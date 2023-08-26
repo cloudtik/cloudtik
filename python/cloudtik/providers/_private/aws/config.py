@@ -8,8 +8,6 @@ import os
 import time
 from typing import Any, Dict, List, Optional
 import logging
-import random
-import string
 
 import boto3
 import botocore
@@ -674,10 +672,20 @@ def _delete_workspace_cloud_storage(config, workspace_name):
     _delete_managed_cloud_storage(config["provider"], workspace_name)
 
 
-def _delete_managed_cloud_storage(cloud_provider, workspace_name):
-    bucket = get_managed_s3_bucket(cloud_provider, workspace_name)
+def _delete_managed_cloud_storage(
+        cloud_provider, workspace_name,
+        object_storage_name=None):
+    region = cloud_provider["region"]
+    if not object_storage_name:
+        object_storage_name = get_default_workspace_object_storage_name(
+            workspace_name, region)
+    bucket = get_managed_s3_bucket(
+        cloud_provider, workspace_name,
+        object_storage_name=object_storage_name)
     if bucket is None:
-        cli_logger.print("No S3 bucket with the name found. Skip deletion.")
+        cli_logger.print(
+            "No S3 bucket with the name {} found. Skip deletion.",
+            object_storage_name)
         return
 
     try:
@@ -1949,40 +1957,58 @@ def _create_instance_profile_for_worker(config, workspace_name):
     cli_logger.print("Successfully created and configured worker instance profile.")
 
 
+def get_default_workspace_object_storage_name(
+        workspace_name, region):
+    bucket_name = "cloudtik-{workspace_name}-{region}-{suffix}".format(
+        workspace_name=workspace_name,
+        region=region,
+        suffix="default"
+    )
+    return bucket_name
+
+
 def _create_workspace_cloud_storage(config, workspace_name):
     _create_managed_cloud_storage(config["provider"], workspace_name)
 
 
-def _create_managed_cloud_storage(cloud_provider, workspace_name):
+def _create_managed_cloud_storage(
+        cloud_provider, workspace_name,
+        object_storage_name=None):
+    region = cloud_provider["region"]
+    if not object_storage_name:
+        object_storage_name = get_default_workspace_object_storage_name(
+            workspace_name, region)
+
     # If the managed cloud storage for the workspace already exists
     # Skip the creation step
-    bucket = get_managed_s3_bucket(cloud_provider, workspace_name)
+    bucket = get_managed_s3_bucket(
+        cloud_provider, workspace_name,
+        object_storage_name=object_storage_name)
     if bucket is not None:
-        cli_logger.print("S3 bucket for the workspace already exists. Skip creation.")
+        cli_logger.print(
+            "S3 bucket {} already exists. Skip creation.", object_storage_name)
         return
 
     s3 = _make_resource("s3", cloud_provider)
     s3_client = _make_resource_client("s3", cloud_provider)
-    region = cloud_provider["region"]
-    suffix = ''.join(random.choice(string.ascii_lowercase + string.digits) for _ in range(8))
-    bucket_name = "cloudtik-{workspace_name}-{region}-{suffix}".format(
-        workspace_name=workspace_name,
-        region=region,
-        suffix=suffix
-    )
 
-    cli_logger.print("Creating S3 bucket for the workspace: {}...".format(workspace_name))
+    cli_logger.print("Creating S3 bucket: {}...".format(object_storage_name))
     try:
         if region == 'us-east-1':
-            s3.create_bucket(Bucket=bucket_name)
+            s3.create_bucket(Bucket=object_storage_name)
         else:
-            s3.create_bucket(Bucket=bucket_name, CreateBucketConfiguration={'LocationConstraint': region})
+            s3.create_bucket(Bucket=object_storage_name,
+                             CreateBucketConfiguration={'LocationConstraint': region})
+
+        # Set the bucket tagging
+        tagging = {'TagSet': [{'Key': CLOUDTIK_TAG_WORKSPACE_NAME, 'Value': workspace_name}]}
+        s3_client.put_bucket_tagging(Bucket=object_storage_name, Tagging=tagging)
 
         # Enable server side encryption by default
-        s3_client.put_bucket_encryption(Bucket=bucket_name, ServerSideEncryptionConfiguration={
+        s3_client.put_bucket_encryption(Bucket=object_storage_name, ServerSideEncryptionConfiguration={
             'Rules': [{'ApplyServerSideEncryptionByDefault': {'SSEAlgorithm': 'AES256'}}, ]})
         cli_logger.print(
-            "Successfully created S3 bucket: {}.".format(bucket_name))
+            "Successfully created S3 bucket: {}.".format(object_storage_name))
     except Exception as e:
         cli_logger.error("Failed to create S3 bucket. {}", str(e))
         raise e
@@ -2520,22 +2546,49 @@ def get_workspace_s3_bucket(config, workspace_name):
     return get_managed_s3_bucket(config["provider"], workspace_name)
 
 
-def get_managed_s3_bucket(provider_config, workspace_name):
-    s3 = _make_resource("s3", provider_config)
+def get_managed_s3_bucket(
+        provider_config, workspace_name,
+        object_storage_name=None):
     region = provider_config["region"]
-    bucket_name_prefix = "cloudtik-{workspace_name}-{region}-".format(
-        workspace_name=workspace_name,
-        region=region
-    )
+    if not object_storage_name:
+        object_storage_name = get_default_workspace_object_storage_name(
+            workspace_name, region)
 
-    cli_logger.verbose("Getting s3 bucket with prefix: {}.".format(bucket_name_prefix))
+    s3 = _make_resource("s3", provider_config)
+
+    cli_logger.verbose("Getting s3 bucket: {}.".format(object_storage_name))
     for bucket in s3.buckets.all():
-        if bucket_name_prefix in bucket.name:
-            cli_logger.verbose("Successfully get the s3 bucket: {}.".format(bucket.name))
+        if bucket.name == object_storage_name:
+            cli_logger.verbose(
+                "Successfully get the s3 bucket: {}.".format(object_storage_name))
             return bucket
 
-    cli_logger.verbose_error("Failed to get the s3 bucket for workspace.")
+    cli_logger.verbose_error(
+        "Failed to get the s3 bucket: {}.", object_storage_name)
     return None
+
+
+def get_managed_s3_buckets(
+        provider_config, workspace_name):
+    s3 = _make_resource("s3", provider_config)
+
+    cli_logger.verbose(
+        "Getting s3 buckets of workspace: {}...", workspace_name)
+    workspace_buckets = []
+    for bucket in s3.buckets.all():
+        bucket_tagging = bucket.Tagging()
+        tags = bucket_tagging.tag_set
+        if tags:
+            for tag in tags:
+                tag_key = tag.get("Key")
+                if (tag_key == CLOUDTIK_TAG_WORKSPACE_NAME and
+                        tag.get("Value") == workspace_name):
+                    workspace_buckets.append(bucket)
+
+    cli_logger.verbose(
+        "Successfully get the {} s3 buckets.".format(
+            len(workspace_buckets)))
+    return workspace_buckets
 
 
 def get_workspace_database_instance(config, workspace_name):
