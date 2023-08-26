@@ -2568,6 +2568,16 @@ def get_managed_s3_bucket(
     return None
 
 
+def _is_workspace_tagged(tags, workspace_name):
+    if not tags:
+        return False
+    for tag in tags:
+        tag_key = tag.get("Key")
+        if tag_key == CLOUDTIK_TAG_WORKSPACE_NAME:
+            return True if tag.get("Value") == workspace_name else False
+    return False
+
+
 def get_managed_s3_buckets(
         provider_config, workspace_name):
     s3 = _make_resource("s3", provider_config)
@@ -2578,12 +2588,8 @@ def get_managed_s3_buckets(
     for bucket in s3.buckets.all():
         bucket_tagging = bucket.Tagging()
         tags = bucket_tagging.tag_set
-        if tags:
-            for tag in tags:
-                tag_key = tag.get("Key")
-                if (tag_key == CLOUDTIK_TAG_WORKSPACE_NAME and
-                        tag.get("Value") == workspace_name):
-                    workspace_buckets.append(bucket)
+        if _is_workspace_tagged(tags, workspace_name):
+            workspace_buckets.append(bucket)
 
     cli_logger.verbose(
         "Successfully get {} s3 buckets.".format(
@@ -2632,11 +2638,8 @@ def get_managed_database_instances(
     workspace_db_instances = []
     for db_instance in db_instances:
         tags = db_instance.get("TagList", [])
-        for tag in tags:
-            tag_key = tag.get("Key")
-            if (tag_key == CLOUDTIK_TAG_WORKSPACE_NAME and
-                    tag.get("Value") == workspace_name):
-                workspace_db_instances.append(db_instance)
+        if _is_workspace_tagged(tags, workspace_name):
+            workspace_db_instances.append(db_instance)
 
     cli_logger.verbose(
         "Found {} managed database instances for workspace.",

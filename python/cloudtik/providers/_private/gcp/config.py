@@ -1823,6 +1823,15 @@ def get_managed_gcs_bucket(
     return None
 
 
+def _is_workspace_labeled(labels, workspace_name):
+    if not labels:
+        return False
+    value = labels.get(CLOUDTIK_TAG_WORKSPACE_NAME)
+    if value == workspace_name:
+        return True
+    return False
+
+
 def get_managed_gcs_buckets(
         cloud_provider, workspace_name):
     gcs = construct_storage_client(cloud_provider)
@@ -1833,11 +1842,8 @@ def get_managed_gcs_buckets(
     workspace_buckets = []
     for bucket in gcs.list_buckets(project=project_id):
         labels = bucket.labels
-        if labels:
-            for key, value in labels.items():
-                if (key == CLOUDTIK_TAG_WORKSPACE_NAME and
-                        value == workspace_name):
-                    workspace_buckets.append(bucket)
+        if _is_workspace_labeled(labels, workspace_name):
+            workspace_buckets.append(bucket)
 
     cli_logger.verbose(
         "Successfully get {} GCS buckets.".format(

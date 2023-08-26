@@ -288,6 +288,31 @@ class OssClient:
                              object_key, bucket_name, str(e))
             raise e
 
+    def put_bucket_tags(self, name, tags):
+        tag_set = oss_models.TagSet(
+            tags=[oss_models.Tag(key, value) for key, value in tags.items()])
+        tagging = oss_models.Tagging(tag_set)
+        put_bucket_tags_request = oss_models.PutBucketTagsRequest(tagging=tagging)
+        try:
+            self.client.put_bucket_tags(name, put_bucket_tags_request)
+        except TeaException as e:
+            cli_logger.error("Failed to update bucket tags. {}", str(e))
+            raise e
+        except Exception as e:
+            cli_logger.error("Ignore the exception. {}", str(e))
+
+    def get_bucket_tags(self, bucket_name):
+        try:
+            response = self.client.get_bucket_tags(bucket_name)
+            if (response is not None
+                    and response.body is not None
+                    and response.body.tag_set is not None):
+                return response.body.tag_set.tags
+            return []
+        except Exception as e:
+            cli_logger.error("Failed to get bucket tags: {}. {}", bucket_name, str(e))
+            raise e
+
 
 class VpcClient:
     """

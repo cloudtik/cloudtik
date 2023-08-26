@@ -52,7 +52,7 @@ from huaweicloudsdkvpc.v2 import AcceptVpcPeeringRequest, \
     ListVpcPeeringsRequest, ListVpcsRequest, RouteTableRoute, ShowVpcRequest, \
     UpdateRouteTableReq, UpdateRoutetableReqBody, UpdateRouteTableRequest, \
     VpcInfo
-from obs import CreateBucketHeader
+from obs import CreateBucketHeader, TagInfo
 
 from cloudtik.core._private.cli_logger import cf, cli_logger
 from cloudtik.core._private.utils import check_cidr_conflict, \
@@ -61,9 +61,9 @@ from cloudtik.core._private.utils import check_cidr_conflict, \
     is_peering_firewall_allow_working_subnet, is_use_internal_ip, \
     is_use_managed_cloud_storage, \
     is_use_peering_vpc, \
-    is_use_working_vpc, is_worker_role_for_cloud_storage, is_managed_cloud_database
+    is_use_working_vpc, is_worker_role_for_cloud_storage
 from cloudtik.core.tags import CLOUDTIK_TAG_CLUSTER_NAME, \
-    CLOUDTIK_TAG_NODE_KIND, NODE_KIND_HEAD
+    CLOUDTIK_TAG_NODE_KIND, NODE_KIND_HEAD, CLOUDTIK_TAG_WORKSPACE_NAME
 from cloudtik.core.workspace_provider import \
     CLOUDTIK_MANAGED_CLOUD_STORAGE, CLOUDTIK_MANAGED_CLOUD_STORAGE_URI, \
     Existence
@@ -319,43 +319,92 @@ def _get_cloud_services_access_role_id(iam_client, role_name):
     return target_role.id
 
 
+def get_default_workspace_object_storage_name(
+        workspace_name):
+    return HWC_WORKSPACE_OBS_BUCKET_NAME.format(workspace_name)
+
+
 def _create_workspace_cloud_storage(config, workspace_name):
     obs_client = make_obs_client(config)
     _check_and_create_cloud_storage_bucket(obs_client,
                                            workspace_name)
 
 
-def _check_and_create_cloud_storage_bucket(obs_client, workspace_name):
+def _check_and_create_cloud_storage_bucket(
+        obs_client, workspace_name,
+        object_storage_name=None):
+    if not object_storage_name:
+        object_storage_name = get_default_workspace_object_storage_name(
+            workspace_name)
     # If the managed cloud storage for the workspace already exists
     # Skip the creation step
-    bucket_name = _get_managed_obs_bucket(obs_client, workspace_name)
+    bucket_name = _get_managed_obs_bucket(
+        obs_client, workspace_name,
+        object_storage_name=object_storage_name)
     if bucket_name:
-        cli_logger.print("OBS bucket for the workspace already exists. "
-                         "Skip creation.")
+        cli_logger.print("OBS bucket {} already exists in workspace. Skip creation.",
+                         object_storage_name)
         return
-    else:
-        bucket_name = HWC_WORKSPACE_OBS_BUCKET_NAME.format(workspace_name)
+
     # Create new bucket with parallel file system enable
-    resp = obs_client.createBucket(bucket_name,
+    resp = obs_client.createBucket(object_storage_name,
                                    header=CreateBucketHeader(isPFS=True),
                                    location=obs_client.region)
     if resp.status < 300:
-        cli_logger.print(
-            "Successfully created OBS bucket: {}.".format(bucket_name))
+        # Set Bucket tags
+        tag_info = TagInfo()
+        tag_info.addTag(CLOUDTIK_TAG_WORKSPACE_NAME, workspace_name)
+        tagging_resp = obs_client.setBucketTagging(object_storage_name, tag_info)
+        if tagging_resp.status < 300:
+            cli_logger.print(
+                "Successfully created OBS bucket: {}.".format(object_storage_name))
+        else:
+            raise RuntimeError(
+                "Failed to set OBS bucket tag. Error: {}".format(
+                    str(tagging_resp)))
     else:
         cli_logger.abort("Failed to create OBS bucket. {}", str(resp))
 
 
-def _get_managed_obs_bucket(obs_client, workspace_name=None, bucket_name=None):
-    if not bucket_name:
-        bucket_name = HWC_WORKSPACE_OBS_BUCKET_NAME.format(workspace_name)
-    resp = obs_client.headBucket(bucket_name)
+def _get_managed_obs_bucket(obs_client, workspace_name=None, object_storage_name=None):
+    if not object_storage_name:
+        object_storage_name = get_default_workspace_object_storage_name(
+            workspace_name)
+    resp = obs_client.headBucket(object_storage_name)
     if resp.status < 300:
-        return bucket_name
+        return object_storage_name
     elif resp.status == 404:
         return None
     else:
         raise Exception("HUAWEI CLOUD OBS service error {}".format(resp))
+
+
+def _is_workspace_tagged(tags, workspace_name):
+    if not tags:
+        return False
+    for tag in tags:
+        if tag.key == CLOUDTIK_TAG_WORKSPACE_NAME:
+            return True if tag.value == workspace_name else False
+    return False
+
+
+def _get_managed_obs_buckets(obs_client, workspace_name):
+    resp = obs_client.listBuckets()
+    if resp.status < 300:
+        # quick pass if no bucket objects
+        if not resp.body.buckets:
+            return []
+        workspace_buckets = []
+        for bucket in resp.body.buckets:
+            tagging_resp = obs_client.getBucketTagging(
+                bucket.name)
+            if tagging_resp.status < 300:
+                if _is_workspace_tagged(
+                        tagging_resp.body.tagSet, workspace_name):
+                    workspace_buckets.append(bucket)
+        return workspace_buckets
+    else:
+        raise RuntimeError("HUAWEI CLOUD OBS service error {}".format(resp))
 
 
 def _create_and_accept_vpc_peering(config, _workspace_vpc, vpc_client,
@@ -810,11 +859,18 @@ def _delete_workspace_cloud_storage(config, workspace_name):
         obs_client, workspace_name)
 
 
-def _check_and_delete_cloud_storage_bucket(obs_client, workspace_name):
-    bucket_name = _get_managed_obs_bucket(obs_client,
-                                          workspace_name)
+def _check_and_delete_cloud_storage_bucket(
+        obs_client, workspace_name,
+        object_storage_name=None):
+    if not object_storage_name:
+        object_storage_name = get_default_workspace_object_storage_name(
+            workspace_name)
+    bucket_name = _get_managed_obs_bucket(
+        obs_client, workspace_name,
+        object_storage_name=object_storage_name)
     if not bucket_name:
-        cli_logger.warning("No OBS bucket with the name found.")
+        cli_logger.warning(
+            "No OBS bucket with the name {} found. Skip deletion.", object_storage_name)
         return
     # List and delete all objects in bucket
     _check_and_delete_bucket_objects(obs_client, bucket_name)
@@ -1458,7 +1514,7 @@ def verify_obs_storage(provider_config: Dict[str, Any]):
                                       region=provider_config.get('region'))
     bucket_name = obs_storage.get(HWC_OBS_BUCKET)
     try:
-        _get_managed_obs_bucket(obs_client, bucket_name=bucket_name)
+        _get_managed_obs_bucket(obs_client, object_storage_name=bucket_name)
     except Exception as e:
         raise StorageTestingError("Error happens when verifying OBS storage "
                                   "configurations. If you want to go without "
@@ -1747,15 +1803,15 @@ def _configure_instance_profile_from_workspace(config):
     head_profile = _get_instance_profile(config,
                                          workspace_name=workspace_name,
                                          for_head=True)
+    if not head_profile:
+        raise RuntimeError("Workspace head instance profile not found!")
+
     if worker_for_cloud_storage:
         worker_profile = _get_instance_profile(config,
                                                workspace_name=workspace_name,
                                                for_head=False)
-
-    if not head_profile:
-        raise RuntimeError("Workspace head instance profile not found!")
-    if worker_for_cloud_storage and not worker_profile:
-        raise RuntimeError("Workspace worker instance profile not found!")
+        if not worker_profile:
+            raise RuntimeError("Workspace worker instance profile not found!")
 
     for key, node_type in config["available_node_types"].items():
         node_config = node_type["node_config"]

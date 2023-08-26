@@ -561,33 +561,44 @@ def _delete_network_resources(config, resource_client, resource_group_name, curr
     return current_step
 
 
-def get_container_for_storage_account(config, resource_group_name):
+def get_container_for_storage_account(
+        config, resource_group_name, object_storage_name=None):
     workspace_name = config["workspace_name"]
     return _get_container_for_storage_account(
-        config["provider"], workspace_name, resource_group_name
+        config["provider"], workspace_name, resource_group_name,
+        object_storage_name=object_storage_name
     )
 
 
-def _get_container_for_storage_account(provider_config, workspace_name, resource_group_name):
-    container_name = get_workspace_storage_container_name(workspace_name)
-    storage_client = _construct_storage_client(provider_config)
+def _get_container_for_storage_account(
+        provider_config, workspace_name, resource_group_name,
+        storage_client=None, object_storage_name=None):
+    if storage_client is None:
+        storage_client = _construct_storage_client(provider_config)
+    if not object_storage_name:
+        object_storage_name = get_workspace_storage_container_name(workspace_name)
     storage_account_name = get_workspace_storage_account_name(workspace_name)
-    storage_account = _get_storage_account(provider_config, storage_account_name)
+    storage_account = _get_storage_account(
+        provider_config, storage_account_name,
+        storage_client=storage_client)
     if storage_account is None:
         return None
 
-    cli_logger.verbose("Getting the workspace container: {}.".format(container_name))
+    cli_logger.verbose("Getting the workspace container: {}.".format(
+        object_storage_name))
     containers = list(storage_client.blob_containers.list(
         resource_group_name=resource_group_name, account_name=storage_account.name))
     workspace_containers = [container for container in containers
-                                  if container.name == container_name]
+                            if container.name == object_storage_name]
 
     if len(workspace_containers) > 0:
         container = workspace_containers[0]
-        cli_logger.verbose("Successfully get the workspace container: {}.".format(container.name))
+        cli_logger.verbose(
+            "Successfully get the workspace container: {}.".format(container.name))
         return container
 
-    cli_logger.verbose_error("Failed to get the container in storage account: {}", storage_account.name)
+    cli_logger.verbose_error(
+        "Failed to get the container in storage account: {}", storage_account.name)
     return None
 
 
@@ -597,14 +608,15 @@ def get_storage_account(config):
     return _get_storage_account(config["provider"], storage_account_name)
 
 
-def _get_storage_account(provider_config, storage_account_name):
-    storage_client = _construct_storage_client(provider_config)
+def _get_storage_account(provider_config, storage_account_name, storage_client=None):
+    if storage_client is None:
+        storage_client = _construct_storage_client(provider_config)
 
     cli_logger.verbose("Getting the storage account: {}.".format(storage_account_name))
     storage_accounts = list(storage_client.storage_accounts.list())
     workspace_storage_accounts = [storage_account for storage_account in storage_accounts
-                                 for key, value in storage_account.tags.items()
-                                 if key == "Name" and value == storage_account_name]
+                                  for key, value in storage_account.tags.items()
+                                  if key == "Name" and value == storage_account_name]
 
     if len(workspace_storage_accounts) > 0:
         storage_account = workspace_storage_accounts[0]
@@ -642,15 +654,28 @@ def _delete_workspace_cloud_storage(config, resource_group_name):
     )
 
 
-def _delete_managed_cloud_storage(provider_config, workspace_name, resource_group_name):
+def _delete_managed_cloud_storage(
+        provider_config, workspace_name, resource_group_name):
+    # TODO: delete storage account will delete all its containers
+    _delete_storage_account(
+        provider_config, workspace_name, resource_group_name)
+
+
+def _delete_storage_account(
+        provider_config, workspace_name, resource_group_name):
     storage_client = _construct_storage_client(provider_config)
+
+    # Check storage account existence
     storage_account_name = get_workspace_storage_account_name(workspace_name)
-    storage_account = _get_storage_account(provider_config, storage_account_name)
+    storage_account = _get_storage_account(
+        provider_config, storage_account_name,
+        storage_client=storage_client)
     if storage_account is None:
-        cli_logger.print("The storage account doesn't exist.")
+        cli_logger.print(
+            "The storage account {} doesn't exist. Skip deletion.",
+            storage_account_name)
         return
 
-    """ Delete storage account """
     cli_logger.print("Deleting the storage account: {}...".format(storage_account.name))
     try:
         storage_client.storage_accounts.delete(
@@ -660,6 +685,52 @@ def _delete_managed_cloud_storage(provider_config, workspace_name, resource_grou
     except Exception as e:
         cli_logger.error(
             "Failed to delete the storage account: {}. {}", storage_account.name, str(e))
+        raise e
+
+
+def _delete_container_for_storage_account(
+        provider_config, workspace_name, resource_group_name,
+        object_storage_name=None):
+    storage_client = _construct_storage_client(provider_config)
+    if not object_storage_name:
+        object_storage_name = get_workspace_storage_container_name(workspace_name)
+
+    # Check storage account existence
+    storage_account_name = get_workspace_storage_account_name(workspace_name)
+    storage_account = _get_storage_account(
+        provider_config, storage_account_name,
+        storage_client=storage_client)
+    if storage_account is None:
+        cli_logger.print(
+            "The storage account {} doesn't exist. Skip deletion.",
+            storage_account_name)
+        return
+
+    # This name is different
+    account_name = storage_account.name
+
+    # Check container existence
+    container = _get_container_for_storage_account(
+        provider_config, workspace_name, resource_group_name,
+        object_storage_name=object_storage_name)
+    if container is None:
+        cli_logger.print(
+            "Storage container {} doesn't exists in the workspace. Skip deletion.",
+            object_storage_name)
+        return
+
+    cli_logger.print("Deleting storage container: {}...", object_storage_name)
+    try:
+        storage_client.blob_containers.delete(
+            resource_group_name=resource_group_name,
+            account_name=account_name,
+            container_name=object_storage_name,
+        )
+        cli_logger.print("Successfully deleted storage container: {}.".
+                         format(object_storage_name))
+    except Exception as e:
+        cli_logger.error(
+            "Failed to delete storage container: {}. {}", object_storage_name, str(e))
         raise e
 
 
@@ -1689,21 +1760,30 @@ def _create_managed_cloud_storage(provider_config, workspace_name, resource_grou
             provider_config, workspace_name, resource_group_name)
 
 
-def _create_container_for_storage_account(provider_config, workspace_name, resource_group_name):
-    container_name = get_workspace_storage_container_name(workspace_name)
+def _create_container_for_storage_account(
+        provider_config, workspace_name, resource_group_name,
+        object_storage_name=None):
+    storage_client = _construct_storage_client(provider_config)
+    if not object_storage_name:
+        object_storage_name = get_workspace_storage_container_name(workspace_name)
+
+    # Check storage account existence
     storage_account_name = get_workspace_storage_account_name(workspace_name)
-    storage_account = _get_storage_account(provider_config, storage_account_name)
+    storage_account = _get_storage_account(
+        provider_config, storage_account_name,
+        storage_client=storage_client)
     if storage_account is None:
         cli_logger.abort("No storage account is found. You need to make sure storage account has been created.")
     account_name = storage_account.name
 
+    # Check the container existence
     container = _get_container_for_storage_account(
-        provider_config, workspace_name, resource_group_name)
+        provider_config, workspace_name, resource_group_name,
+        storage_client=storage_client,
+        object_storage_name=object_storage_name)
     if container is not None:
         cli_logger.print("Storage container for the workspace already exists. Skip creation.")
         return
-
-    storage_client = _construct_storage_client(provider_config)
 
     cli_logger.print("Creating container for storage account: {}...", account_name)
     # Create container for storage account
@@ -1711,7 +1791,7 @@ def _create_container_for_storage_account(provider_config, workspace_name, resou
         blob_container = storage_client.blob_containers.create(
             resource_group_name=resource_group_name,
             account_name=account_name,
-            container_name=container_name,
+            container_name=object_storage_name,
             blob_container={},
         )
         cli_logger.print("Successfully created container for storage account: {}.".
@@ -1723,8 +1803,12 @@ def _create_container_for_storage_account(provider_config, workspace_name, resou
 
 
 def _create_storage_account(provider_config, workspace_name, resource_group_name):
+    storage_client = _construct_storage_client(provider_config)
+
     storage_account_name = get_workspace_storage_account_name(workspace_name)
-    storage_account = _get_storage_account(provider_config, storage_account_name)
+    storage_account = _get_storage_account(
+        provider_config, storage_account_name,
+        storage_client=storage_client)
     if storage_account is not None:
         cli_logger.print("Storage account {} already exists. Skip creation.".format(storage_account_name))
         return
@@ -1740,7 +1824,6 @@ def _create_storage_account(provider_config, workspace_name, resource_group_name
 
     storage_suffix = str(uuid.uuid3(uuid.UUID(subscription_id), resource_group.id))[-12:]
     account_name = 'storage{}'.format(storage_suffix)
-    storage_client = _construct_storage_client(provider_config)
 
     cli_logger.print("Creating workspace storage account: {}...", account_name)
     # Create storage account

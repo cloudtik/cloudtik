@@ -3,8 +3,6 @@ from functools import partial
 import copy
 import os
 import subprocess
-import random
-import string
 import time
 import itertools
 from typing import Any, Dict, Optional, List
@@ -16,8 +14,9 @@ from cloudtik.core._private.services import get_node_ip_address
 from cloudtik.core._private.utils import check_cidr_conflict, is_use_internal_ip, \
     is_managed_cloud_storage, is_use_managed_cloud_storage, is_worker_role_for_cloud_storage, is_use_working_vpc, \
     is_use_peering_vpc, is_peering_firewall_allow_ssh_only, is_peering_firewall_allow_working_subnet, DOCKER_CONFIG_KEY, \
-    is_gpu_runtime, is_managed_cloud_database
-from cloudtik.core.tags import CLOUDTIK_TAG_CLUSTER_NAME, CLOUDTIK_TAG_NODE_KIND, NODE_KIND_HEAD
+    is_gpu_runtime
+from cloudtik.core.tags import CLOUDTIK_TAG_CLUSTER_NAME, CLOUDTIK_TAG_NODE_KIND, NODE_KIND_HEAD, \
+    CLOUDTIK_TAG_WORKSPACE_NAME
 from cloudtik.core.workspace_provider import Existence, CLOUDTIK_MANAGED_CLOUD_STORAGE, \
     CLOUDTIK_MANAGED_CLOUD_STORAGE_URI
 from cloudtik.providers._private.aliyun.utils import export_aliyun_oss_storage_config, \
@@ -252,20 +251,52 @@ def _create_network_resources(config, current_step, total_steps):
     return current_step
 
 
-def get_managed_oss_bucket(provider_config, workspace_name):
-    oss_cli = OssClient(provider_config)
+def get_managed_oss_bucket(
+        provider_config, workspace_name,
+        object_storage_name=None):
     region = provider_config["region"]
-    bucket_name_prefix = "cloudtik-{workspace_name}-{region}-".format(
-        workspace_name=workspace_name,
-        region=region
-    )
-    cli_logger.verbose("Getting OSS bucket with prefix: {}.".format(bucket_name_prefix))
+    if not object_storage_name:
+        object_storage_name = get_default_workspace_object_storage_name(
+            workspace_name, region)
+
+    oss_cli = OssClient(provider_config)
+
+    cli_logger.verbose("Getting OSS bucket: {}.".format(object_storage_name))
     for bucket in oss_cli.list_buckets():
-        if bucket_name_prefix in bucket.name:
-            cli_logger.verbose("Successfully get the OSS bucket: {}.".format(bucket.name))
+        if bucket.name == object_storage_name:
+            cli_logger.verbose(
+                "Successfully get the OSS bucket: {}.".format(
+                    object_storage_name))
             return bucket
-    cli_logger.verbose_error("Failed to get the OSS bucket for workspace.")
+    cli_logger.verbose_error(
+        "Failed to get the OSS bucket: {}.", object_storage_name)
     return None
+
+
+def _is_workspace_tagged(tags, workspace_name):
+    if not tags:
+        return False
+    for tag in tags:
+        if tag.key == CLOUDTIK_TAG_WORKSPACE_NAME:
+            return True if tag.value == workspace_name else False
+    return False
+
+
+def get_managed_oss_buckets(
+        provider_config, workspace_name):
+    oss_cli = OssClient(provider_config)
+
+    cli_logger.verbose("Getting OSS buckets of workspace: {}.".format(workspace_name))
+    workspace_buckets = []
+    for bucket in oss_cli.list_buckets():
+        tags = oss_cli.get_bucket_tags(bucket.name)
+        if _is_workspace_tagged(tags, workspace_name):
+            workspace_buckets.append(bucket)
+
+    cli_logger.verbose(
+        "Successfully get {} OSS buckets.".format(
+            len(workspace_buckets)))
+    return workspace_buckets
 
 
 def _delete_workspace_cloud_storage(config, workspace_name):
@@ -294,30 +325,46 @@ def _delete_managed_cloud_storage(cloud_provider, workspace_name):
     return
 
 
+def get_default_workspace_object_storage_name(
+        workspace_name, region):
+    bucket_name = "cloudtik-{workspace_name}-{region}-{suffix}".format(
+        workspace_name=workspace_name,
+        region=region,
+        suffix="default"
+    )
+    return bucket_name
+
+
 def _create_workspace_cloud_storage(config, workspace_name):
     _create_managed_cloud_storage(config["provider"], workspace_name)
 
 
-def _create_managed_cloud_storage(cloud_provider, workspace_name):
+def _create_managed_cloud_storage(
+        cloud_provider, workspace_name,
+        object_storage_name=None):
+    region = cloud_provider["region"]
+    if not object_storage_name:
+        object_storage_name = get_default_workspace_object_storage_name(
+            workspace_name, region)
     # If the managed cloud storage for the workspace already exists
     # Skip the creation step
     oss_cli = OssClient(cloud_provider)
-    bucket = get_managed_oss_bucket(cloud_provider, workspace_name)
+    bucket = get_managed_oss_bucket(
+        cloud_provider, workspace_name,
+        object_storage_name=object_storage_name)
     if bucket is not None:
         cli_logger.print("OSS bucket for the workspace already exists. Skip creation.")
         return
 
-    region = cloud_provider["region"]
-    suffix = ''.join(random.choice(string.ascii_lowercase + string.digits) for _ in range(8))
-    bucket_name = "cloudtik-{workspace_name}-{region}-{suffix}".format(
-        workspace_name=workspace_name,
-        region=region,
-        suffix=suffix
-    )
+    cli_logger.print(
+        "Creating OSS bucket in the workspace: {}...".format(workspace_name))
+    oss_cli.put_bucket(object_storage_name)
 
-    cli_logger.print("Creating OSS bucket for the workspace: {}...".format(workspace_name))
-    oss_cli.put_bucket(bucket_name)
-    cli_logger.print("Successfully created OSS bucket: {}.".format(bucket_name))
+    # Set bucket tags
+    tags = {CLOUDTIK_TAG_WORKSPACE_NAME: workspace_name}
+    oss_cli.put_bucket_tags(object_storage_name, tags)
+    cli_logger.print(
+        "Successfully created OSS bucket: {}.".format(object_storage_name))
 
 
 def _create_workspace(config):
