@@ -652,7 +652,7 @@ def _delete_managed_database_instance(
         db_instance_name=db_instance_name)
     if db_instance is None:
         cli_logger.print(
-            "No database instance {} was found for workspace. Skip deletion.",
+            "No database instance {} was found in the workspace. Skip deletion.",
             db_instance_name)
         return
 
@@ -2077,7 +2077,7 @@ def _create_managed_database_instance(
         db_instance_name=db_instance_name)
     if db_instance is not None:
         cli_logger.print(
-            "Database instance {} for the workspace already exists. Skip creation.",
+            "Managed database instance {} already exists in the workspace. Skip creation.",
             db_instance_name)
         return
 
@@ -2091,7 +2091,7 @@ def _create_managed_database_instance(
         {'Key': CLOUDTIK_TAG_WORKSPACE_NAME, 'Value': workspace_name}
     ]
 
-    cli_logger.print("Creating database instance for the workspace: {}...".format(workspace_name))
+    cli_logger.print("Creating database instance in the workspace: {}...".format(workspace_name))
     # Port: If not specified RDS for MySQL - 3306, RDS for PostgreSQL - 5432
     # Engine Version: MySQL 8.0, PostgreSQL (14 or 16 any time soon)
     try:

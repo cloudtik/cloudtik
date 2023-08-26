@@ -298,15 +298,26 @@ def get_azure_managed_cloud_database_info(
 
 
 def get_resource_group_name(config, resource_client, use_working_vpc):
+    workspace_name = config["workspace_name"]
     return _get_resource_group_name(
-        config.get("workspace_name"), resource_client, use_working_vpc)
+        workspace_name, resource_client, use_working_vpc)
 
 
-def get_virtual_network_name(config, resource_client, network_client, use_working_vpc):
+def get_virtual_network_name(
+        config, resource_client, network_client, use_working_vpc):
+    workspace_name = config["workspace_name"]
+    return _get_virtual_network_name(
+        workspace_name, resource_client, network_client, use_working_vpc)
+
+
+def _get_virtual_network_name(
+        workspace_name, resource_client, network_client, use_working_vpc):
     if use_working_vpc:
-        virtual_network_name = get_working_node_virtual_network_name(resource_client, network_client)
+        virtual_network_name = get_working_node_virtual_network_name(
+            resource_client, network_client)
     else:
-        virtual_network = get_workspace_virtual_network(config, network_client)
+        virtual_network = get_workspace_virtual_network(
+            workspace_name, network_client)
         virtual_network_name = None if virtual_network is None else virtual_network.name
 
     return virtual_network_name
@@ -697,23 +708,29 @@ def _delete_managed_cloud_database(
 
 
 def _delete_managed_database_instance(
-        provider_config, workspace_name, resource_group_name):
+        provider_config, workspace_name, resource_group_name,
+        db_instance_name=None):
+    if not db_instance_name:
+        # if not specified, workspace default database
+        db_instance_name = get_default_workspace_database_name(workspace_name)
     db_instance = get_managed_database_instance(
-        provider_config, workspace_name, resource_group_name)
+        provider_config, workspace_name, resource_group_name,
+        db_instance_name=db_instance_name)
     if db_instance is None:
-        cli_logger.print("Managed database instance for the workspace doesn't exist. Skip deletion.")
+        cli_logger.print(
+            "Managed database instance {} doesn't exist in the workspace. Skip deletion.",
+            db_instance_name)
         return
 
     database_config = get_azure_database_config(provider_config, {})
     engine = get_azure_database_engine(database_config)
     rdbms_client = _construct_rdbms_client(provider_config, engine=engine)
-    server_name = AZURE_WORKSPACE_DATABASE_NAME.format(workspace_name)
 
     cli_logger.print("Deleting the database instance: {}...".format(db_instance.name))
     try:
         rdbms_client.servers.begin_delete(
             resource_group_name=resource_group_name,
-            server_name=server_name
+            server_name=db_instance_name
         ).result()
         cli_logger.print("Successfully deleted the database instance: {}.".format(db_instance.name))
     except Exception as e:
@@ -1457,14 +1474,14 @@ def get_virtual_network(resource_group_name, virtual_network_name, network_clien
         return None
 
 
-def get_workspace_virtual_network(config, network_client):
-    workspace_name = config["workspace_name"]
+def get_workspace_virtual_network(workspace_name, network_client):
     resource_group_name = get_workspace_resource_group_name(workspace_name)
     virtual_network_name = get_workspace_virtual_network_name(workspace_name)
     cli_logger.verbose("Getting the VirtualNetworkName for workspace: {}...".
                        format(virtual_network_name))
 
-    virtual_network = get_virtual_network(resource_group_name, virtual_network_name, network_client)
+    virtual_network = get_virtual_network(
+        resource_group_name, virtual_network_name, network_client)
     return virtual_network
 
 
@@ -1948,20 +1965,39 @@ def _create_private_dns_zone_link(
         raise e
 
 
+def _create_managed_database_instance_in_workspace(
+        cloud_provider, workspace_name, resource_group_name,
+        db_instance_name=None):
+    use_working_vpc = _is_use_working_vpc(cloud_provider)
+    resource_client = _construct_resource_client(cloud_provider)
+    network_client = _construct_network_client(cloud_provider)
+    virtual_network_name = _get_virtual_network_name(
+        workspace_name, resource_client, network_client, use_working_vpc)
+
+    _create_managed_database_instance(
+        cloud_provider, workspace_name, resource_group_name,
+        virtual_network_name, db_instance_name=db_instance_name)
+
+
 def _create_managed_database_instance(
         cloud_provider, workspace_name, resource_group_name,
-        virtual_network_name):
+        virtual_network_name, db_instance_name=None):
+    if not db_instance_name:
+        # if not specified, workspace default database
+        db_instance_name = get_default_workspace_database_name(workspace_name)
     # If the managed cloud database for the workspace already exists
     # Skip the creation step
     db_instance = get_managed_database_instance(
-        cloud_provider, workspace_name, resource_group_name)
+        cloud_provider, workspace_name, resource_group_name,
+        db_instance_name=db_instance_name)
     if db_instance is not None:
-        cli_logger.print("Managed database instance for the workspace already exists. Skip creation.")
+        cli_logger.print(
+            "Managed database instance {} already exists in the workspace. Skip creation.",
+            db_instance_name)
         return
 
     subscription_id = cloud_provider.get("subscription_id")
     location = cloud_provider["location"]
-    server_name = AZURE_WORKSPACE_DATABASE_NAME.format(workspace_name)
     subnet_name = AZURE_WORKSPACE_DATABASE_SUBNET_NAME.format(workspace_name)
     private_dns_zone_name = AZURE_WORKSPACE_DATABASE_PRIVATE_DNS_ZONE_NAME
 
@@ -1979,7 +2015,7 @@ def _create_managed_database_instance(
             _create_mysql_instance(
                 cloud_provider=cloud_provider,
                 resource_group_name=resource_group_name,
-                server_name=server_name,
+                db_instance_name=db_instance_name,
                 location=location,
                 database_config=database_config,
                 delegated_subnet_resource_id=delegated_subnet_resource_id,
@@ -1989,14 +2025,16 @@ def _create_managed_database_instance(
             _create_postgres_instance(
                 cloud_provider=cloud_provider,
                 resource_group_name=resource_group_name,
-                server_name=server_name,
+                db_instance_name=db_instance_name,
                 location=location,
                 database_config=database_config,
                 delegated_subnet_resource_id=delegated_subnet_resource_id,
                 private_dns_zone_resource_id=private_dns_zone_resource_id
             )
 
-        cli_logger.print("Successfully created database instance for the workspace: {}.".format(server_name))
+        cli_logger.print(
+            "Successfully created database instance for the workspace: {}.".format(
+                db_instance_name))
     except Exception as e:
         cli_logger.error("Failed to create database instance. {}", str(e))
         raise e
@@ -2005,7 +2043,7 @@ def _create_managed_database_instance(
 def _create_mysql_instance(
         cloud_provider,
         resource_group_name,
-        server_name,
+        db_instance_name,
         location,
         database_config,
         delegated_subnet_resource_id,
@@ -2036,7 +2074,7 @@ def _create_mysql_instance(
     )
     server_creation_poller = rdbms_client.servers.begin_create(
         resource_group_name,
-        server_name,
+        db_instance_name,
         server_params
     )
     return server_creation_poller.result()
@@ -2045,7 +2083,7 @@ def _create_mysql_instance(
 def _create_postgres_instance(
         cloud_provider,
         resource_group_name,
-        server_name,
+        db_instance_name,
         location,
         database_config,
         delegated_subnet_resource_id,
@@ -2075,10 +2113,14 @@ def _create_postgres_instance(
     )
     server_creation_poller = rdbms_client.servers.begin_create(
         resource_group_name,
-        server_name,
+        db_instance_name,
         server_params
     )
     return server_creation_poller.result()
+
+
+def get_default_workspace_database_name(workspace_name):
+    return AZURE_WORKSPACE_DATABASE_NAME.format(workspace_name)
 
 
 def get_workspace_database_instance(
@@ -2090,24 +2132,47 @@ def get_workspace_database_instance(
 
 
 def get_managed_database_instance(
-        provider_config, workspace_name, resource_group_name):
-    server_name = AZURE_WORKSPACE_DATABASE_NAME.format(workspace_name)
+        provider_config, workspace_name, resource_group_name,
+        db_instance_name=None):
+    if not db_instance_name:
+        # if not specified, workspace default database
+        db_instance_name = get_default_workspace_database_name(workspace_name)
     return _get_managed_database_instance(
-        provider_config, resource_group_name, server_name)
+        provider_config, resource_group_name,
+        db_instance_name=db_instance_name)
 
 
 def _get_managed_database_instance(
-        provider_config, resource_group_name, server_name):
+        provider_config, resource_group_name, db_instance_name):
     database_config = get_azure_database_config(provider_config, {})
     engine = get_azure_database_engine(database_config)
     rdbms_client = _construct_rdbms_client(provider_config, engine=engine)
-    cli_logger.verbose("Getting the database instance: {}.".format(server_name))
+    cli_logger.verbose("Getting the database instance: {}.".format(db_instance_name))
     try:
-        server_instance = rdbms_client.servers.get(resource_group_name, server_name)
-        cli_logger.verbose("Successfully get database instance: {}.".format(server_name))
+        server_instance = rdbms_client.servers.get(resource_group_name, db_instance_name)
+        cli_logger.verbose("Successfully get database instance: {}.".format(db_instance_name))
         return server_instance
     except Exception as e:
         cli_logger.verbose_error("Failed to get database instance. {}", str(e))
+        return None
+
+
+def _get_managed_database_instances(
+        provider_config, resource_group_name):
+    database_config = get_azure_database_config(provider_config, {})
+    engine = get_azure_database_engine(database_config)
+    rdbms_client = _construct_rdbms_client(provider_config, engine=engine)
+    cli_logger.verbose("Getting the database instances...")
+    try:
+        server_instances = rdbms_client.servers.list_by_resource_group(
+            resource_group_name)
+        if server_instances is None:
+            return []
+        cli_logger.verbose("Successfully get {} database instances.".format(
+            len(server_instances)))
+        return server_instances
+    except Exception as e:
+        cli_logger.verbose_error("Failed to get database instances. {}", str(e))
         return None
 
 
@@ -2198,9 +2263,8 @@ def _create_vnet(config, resource_client, network_client):
         else:
             cli_logger.print("Will use the current node virtual network: {}.", virtual_network_name)
     else:
-
         # Need to create a new virtual network
-        if get_workspace_virtual_network(config, network_client) is None:
+        if get_workspace_virtual_network(workspace_name, network_client) is None:
             virtual_network = create_virtual_network(config, resource_client, network_client)
             virtual_network_name = virtual_network.name
         else:
