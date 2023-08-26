@@ -14,7 +14,8 @@ import string
 import boto3
 import botocore
 
-from cloudtik.core.tags import CLOUDTIK_TAG_NODE_KIND, NODE_KIND_HEAD, CLOUDTIK_TAG_CLUSTER_NAME
+from cloudtik.core.tags import CLOUDTIK_TAG_NODE_KIND, NODE_KIND_HEAD, CLOUDTIK_TAG_CLUSTER_NAME, \
+    CLOUDTIK_TAG_WORKSPACE_NAME
 from cloudtik.core._private.providers import _PROVIDER_PRETTY_NAMES
 from cloudtik.core._private.cli_logger import cli_logger, cf
 from cloudtik.core._private.services import get_node_ip_address
@@ -640,11 +641,19 @@ def _delete_db_subnet_group(provider_config, workspace_name):
         raise e
 
 
-def _delete_managed_database_instance(provider_config, workspace_name):
+def _delete_managed_database_instance(
+        provider_config, workspace_name, db_instance_identifier=None):
+    if not db_instance_identifier:
+        # if not specified, workspace default database
+        db_instance_identifier = get_default_workspace_database_name(workspace_name)
     rds_client = _make_client("rds", provider_config)
-    db_instance = get_managed_database_instance(provider_config, workspace_name)
+    db_instance = get_managed_database_instance(
+        provider_config, workspace_name,
+        db_instance_identifier=db_instance_identifier)
     if db_instance is None:
-        cli_logger.print("No managed database instance was found for workspace. Skip deletion.")
+        cli_logger.print(
+            "No database instance {} was found for workspace. Skip deletion.",
+            db_instance_identifier)
         return
 
     try:
@@ -2019,6 +2028,22 @@ def _create_workspace_cloud_database(config, workspace_name):
     )
 
 
+def _create_managed_database_instance_in_workspace(
+        config, workspace_name, db_instance_identifier=None):
+    cloud_provider = config["provider"]
+
+    ec2_client = _make_resource_client("ec2", cloud_provider)
+    vpc_id = get_workspace_vpc_id(workspace_name, ec2_client)
+
+    security_group = get_workspace_security_group(
+        config, vpc_id, workspace_name)
+
+    _create_managed_database_instance(
+        cloud_provider, workspace_name, security_group.id,
+        db_instance_identifier=db_instance_identifier
+    )
+
+
 def _create_managed_cloud_database(
         cloud_provider, workspace_name,
         subnet_ids, security_group_id):
@@ -2041,19 +2066,30 @@ def _create_managed_cloud_database(
 
 
 def _create_managed_database_instance(
-        cloud_provider, workspace_name, security_group_id):
+        cloud_provider, workspace_name,
+        security_group_id, db_instance_identifier=None):
+    if not db_instance_identifier:
+        db_instance_identifier = get_default_workspace_database_name(workspace_name)
     # If the managed cloud database for the workspace already exists
     # Skip the creation step
-    db_instance = get_managed_database_instance(cloud_provider, workspace_name)
+    db_instance = get_managed_database_instance(
+        cloud_provider, workspace_name,
+        db_instance_identifier=db_instance_identifier)
     if db_instance is not None:
-        cli_logger.print("Managed database instance for the workspace already exists. Skip creation.")
+        cli_logger.print(
+            "Database instance {} for the workspace already exists. Skip creation.",
+            db_instance_identifier)
         return
 
     rds_client = _make_client("rds", cloud_provider)
-    db_instance_identifier = AWS_WORKSPACE_DATABASE_NAME.format(workspace_name)
+
     db_subnet_group = AWS_WORKSPACE_DB_SUBNET_GROUP_NAME.format(workspace_name)
     database_config = get_aws_database_config(cloud_provider, {})
     engine = get_aws_database_engine(database_config)
+
+    tags = [
+        {'Key': CLOUDTIK_TAG_WORKSPACE_NAME, 'Value': workspace_name}
+    ]
 
     cli_logger.print("Creating database instance for the workspace: {}...".format(workspace_name))
     # Port: If not specified RDS for MySQL - 3306, RDS for PostgreSQL - 5432
@@ -2073,7 +2109,8 @@ def _create_managed_database_instance(
             DBSubnetGroupName=db_subnet_group,
             PubliclyAccessible=False,
             Port=database_config.get("port"),
-            MultiAZ=database_config.get("high_availability", False)
+            MultiAZ=database_config.get("high_availability", False),
+            Tags=tags
         )
         wait_db_instance_creation(rds_client, db_instance_identifier)
     except Exception as e:
@@ -2505,19 +2542,53 @@ def get_workspace_database_instance(config, workspace_name):
     return get_managed_database_instance(config["provider"], workspace_name)
 
 
-def get_managed_database_instance(provider_config, workspace_name):
+def get_default_workspace_database_name(workspace_name):
+    return AWS_WORKSPACE_DATABASE_NAME.format(workspace_name)
+
+
+def _list_db_instances(provider_config):
     rds_client = _make_client("rds", provider_config)
-    db_instances = [db_instance for db_instance in rds_client.describe_db_instances().get("DBInstances", [])
-                    if db_instance.get('DBInstanceStatus') == 'available']
-    db_instance_identifier = AWS_WORKSPACE_DATABASE_NAME.format(workspace_name)
-    cli_logger.verbose("Getting the managed database with identifier: {}.".format(db_instance_identifier))
+    return [db_instance for db_instance in
+            rds_client.describe_db_instances().get("DBInstances", [])
+            if db_instance.get('DBInstanceStatus') == 'available']
+
+
+def get_managed_database_instance(
+        provider_config, workspace_name, db_instance_identifier=None):
+    if not db_instance_identifier:
+        # if not specified, workspace default database
+        db_instance_identifier = get_default_workspace_database_name(workspace_name)
+    cli_logger.verbose(
+        "Getting the managed database with identifier: {}.".format(
+            db_instance_identifier))
+    db_instances = _list_db_instances(provider_config)
     for db_instance in db_instances:
         if db_instance.get('DBInstanceIdentifier') == db_instance_identifier:
-            cli_logger.verbose("Successfully get the managed database: {}.".format(db_instance_identifier))
+            cli_logger.verbose("Successfully get the managed database: {}.".format(
+                db_instance_identifier))
             return db_instance
 
     cli_logger.verbose_error("Failed to get the managed database for workspace.")
     return None
+
+
+def get_managed_database_instances(
+        provider_config, workspace_name):
+    cli_logger.verbose("Getting the managed database instances...")
+    db_instances = _list_db_instances(provider_config)
+    workspace_db_instances = []
+    for db_instance in db_instances:
+        tags = db_instance.get("TagList", [])
+        for tag in tags:
+            tag_key = tag.get("Key")
+            if (tag_key == CLOUDTIK_TAG_WORKSPACE_NAME and
+                    tag.get("Value") == workspace_name):
+                workspace_db_instances.append(db_instance)
+
+    cli_logger.verbose(
+        "Found {} managed database instances for workspace.",
+        len(workspace_db_instances))
+    return workspace_db_instances
 
 
 def get_workspace_db_subnet_group(provider_config, workspace_name):
