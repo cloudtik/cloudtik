@@ -2586,7 +2586,7 @@ def get_managed_s3_buckets(
                     workspace_buckets.append(bucket)
 
     cli_logger.verbose(
-        "Successfully get the {} s3 buckets.".format(
+        "Successfully get {} s3 buckets.".format(
             len(workspace_buckets)))
     return workspace_buckets
 

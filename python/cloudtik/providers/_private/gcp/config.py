@@ -2,8 +2,6 @@ import copy
 from functools import partial
 import os
 import logging
-import random
-import string
 from typing import Any, Dict, Optional
 
 from cryptography.hazmat.primitives import serialization
@@ -996,10 +994,21 @@ def _delete_workspace_cloud_storage(config):
     _delete_managed_cloud_storage(config["provider"], config["workspace_name"])
 
 
-def _delete_managed_cloud_storage(cloud_provider, workspace_name):
-    bucket = get_managed_gcs_bucket(cloud_provider, workspace_name)
+def _delete_managed_cloud_storage(
+        cloud_provider, workspace_name,
+        object_storage_name=None):
+    region = cloud_provider["region"]
+    if not object_storage_name:
+        object_storage_name = get_default_workspace_object_storage_name(
+            workspace_name, region)
+
+    bucket = get_managed_gcs_bucket(
+        cloud_provider, workspace_name,
+        object_storage_name=object_storage_name)
     if bucket is None:
-        cli_logger.print("No GCS bucket with the name found. Skip Deletion.")
+        cli_logger.print(
+            "No GCS bucket with the name {} found. Skip Deletion.",
+            object_storage_name)
         return
 
     try:
@@ -1311,32 +1320,56 @@ def _create_workspace_service_accounts(config, crm, iam):
     return config
 
 
+def get_default_workspace_object_storage_name(
+        workspace_name, region):
+    bucket_name = "cloudtik-{workspace_name}-{region}-{suffix}".format(
+        workspace_name=workspace_name,
+        region=region,
+        suffix="default"
+    )
+    return bucket_name
+
+
 def _create_workspace_cloud_storage(config):
     _create_managed_cloud_storage(config["provider"], config["workspace_name"])
     return config
 
 
-def _create_managed_cloud_storage(cloud_provider, workspace_name):
+def _create_managed_cloud_storage(
+        cloud_provider, workspace_name,
+        object_storage_name=None):
+    region = cloud_provider["region"]
+    if not object_storage_name:
+        object_storage_name = get_default_workspace_object_storage_name(
+            workspace_name, region)
+
     # If the managed cloud storage for the workspace already exists
     # Skip the creation step
-    bucket = get_managed_gcs_bucket(cloud_provider, workspace_name)
+    bucket = get_managed_gcs_bucket(
+        cloud_provider, workspace_name,
+        object_storage_name=object_storage_name)
     if bucket is not None:
-        cli_logger.print("GCS bucket for the workspace already exists. Skip creation.")
+        cli_logger.print(
+            "GCS bucket {} already exists. Skip creation.",
+            object_storage_name)
         return
 
-    region = cloud_provider["region"]
     storage_client = construct_storage_client(cloud_provider)
-    suffix = ''.join(random.choice(string.ascii_lowercase + string.digits) for _ in range(8))
-    bucket_name = "cloudtik-{workspace_name}-{region}-{suffix}".format(
-        workspace_name=workspace_name,
-        region=region,
-        suffix=suffix
-    )
 
     cli_logger.print("Creating GCS bucket for the workspace: {}".format(workspace_name))
     try:
-        storage_client.create_bucket(bucket_or_name=bucket_name, location=region)
-        cli_logger.print("Successfully created GCS bucket: {}.".format(bucket_name))
+        bucket = storage_client.create_bucket(
+            bucket_or_name=object_storage_name, location=region)
+
+        # Bet bucket labels
+        labels = bucket.labels if bucket.labels is not None else {}
+        labels[CLOUDTIK_TAG_WORKSPACE_NAME] = workspace_name
+        bucket.labels = labels
+        bucket.patch()
+
+        cli_logger.print(
+            "Successfully created GCS bucket: {}.".format(
+                object_storage_name))
     except Exception as e:
         cli_logger.error("Failed to create GCS bucket. {}", str(e))
         raise e
@@ -1765,23 +1798,51 @@ def get_workspace_gcs_bucket(config, workspace_name):
     return get_managed_gcs_bucket(config["provider"], workspace_name)
 
 
-def get_managed_gcs_bucket(cloud_provider, workspace_name):
-    gcs = construct_storage_client(cloud_provider)
+def get_managed_gcs_bucket(
+        cloud_provider, workspace_name,
+        object_storage_name=None):
     region = cloud_provider["region"]
-    project_id = cloud_provider["project_id"]
-    bucket_name_prefix = "cloudtik-{workspace_name}-{region}-".format(
-        workspace_name=workspace_name,
-        region=region
-    )
+    if not object_storage_name:
+        object_storage_name = get_default_workspace_object_storage_name(
+            workspace_name, region)
 
-    cli_logger.verbose("Getting GCS bucket with prefix: {}.".format(bucket_name_prefix))
+    gcs = construct_storage_client(cloud_provider)
+
+    project_id = cloud_provider["project_id"]
+
+    cli_logger.verbose(
+        "Getting GCS bucket: {}.".format(object_storage_name))
     for bucket in gcs.list_buckets(project=project_id):
-        if bucket_name_prefix in bucket.name:
-            cli_logger.verbose("Successfully get the GCS bucket: {}.".format(bucket.name))
+        if bucket.name == object_storage_name:
+            cli_logger.verbose(
+                "Successfully get the GCS bucket: {}.".format(object_storage_name))
             return bucket
 
-    cli_logger.verbose_error("Failed to get the GCS bucket for workspace.")
+    cli_logger.verbose_error(
+        "Failed to get the GCS bucket: {}.", object_storage_name)
     return None
+
+
+def get_managed_gcs_buckets(
+        cloud_provider, workspace_name):
+    gcs = construct_storage_client(cloud_provider)
+    project_id = cloud_provider["project_id"]
+
+    cli_logger.verbose(
+        "Getting GCS buckets of workspace: {}.".format(workspace_name))
+    workspace_buckets = []
+    for bucket in gcs.list_buckets(project=project_id):
+        labels = bucket.labels
+        if labels:
+            for key, value in labels.items():
+                if (key == CLOUDTIK_TAG_WORKSPACE_NAME and
+                        value == workspace_name):
+                    workspace_buckets.append(bucket)
+
+    cli_logger.verbose(
+        "Successfully get {} GCS buckets.".format(
+            len(workspace_buckets)))
+    return workspace_buckets
 
 
 def get_workspace_database_instance(config):
