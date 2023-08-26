@@ -17,7 +17,8 @@ from google.oauth2 import service_account
 from cloudtik.core.workspace_provider import Existence, CLOUDTIK_MANAGED_CLOUD_STORAGE, \
     CLOUDTIK_MANAGED_CLOUD_STORAGE_URI, CLOUDTIK_MANAGED_CLOUD_DATABASE, CLOUDTIK_MANAGED_CLOUD_DATABASE_ENDPOINT
 
-from cloudtik.core.tags import CLOUDTIK_TAG_NODE_KIND, NODE_KIND_HEAD, CLOUDTIK_TAG_CLUSTER_NAME
+from cloudtik.core.tags import CLOUDTIK_TAG_NODE_KIND, NODE_KIND_HEAD, CLOUDTIK_TAG_CLUSTER_NAME, \
+    CLOUDTIK_TAG_WORKSPACE_NAME
 from cloudtik.core._private.cli_logger import cli_logger, cf
 from cloudtik.core._private.services import get_node_ip_address
 from cloudtik.core._private.utils import check_cidr_conflict, unescape_private_key, is_use_internal_ip, \
@@ -1131,23 +1132,30 @@ def _delete_private_connection(
         raise e
 
 
-def _delete_managed_database_instance(provider_config, workspace_name):
-    db_instance = get_managed_database_instance(provider_config, workspace_name)
+def _delete_managed_database_instance(
+        provider_config, workspace_name, db_instance_name=None):
+    if not db_instance_name:
+        # if not specified, workspace default database
+        db_instance_name = get_default_workspace_database_name(workspace_name)
+    db_instance = get_managed_database_instance(
+        provider_config, workspace_name,
+        db_instance_name=db_instance_name)
     if db_instance is None:
-        cli_logger.print("No managed database instance was found for workspace. Skip deletion.")
+        cli_logger.print(
+            "No managed database instance {} was found in workspace. Skip deletion.",
+            db_instance_name)
         return
 
     sql_admin = construct_sql_admin(provider_config)
     project_id = provider_config["project_id"]
-    db_instance_identifier = GCP_WORKSPACE_DATABASE_NAME.format(workspace_name)
     try:
-        cli_logger.print("Deleting database instance: {}...".format(db_instance_identifier))
+        cli_logger.print("Deleting database instance: {}...".format(db_instance_name))
         operation = sql_admin.instances().delete(
-            project=project_id, instance=db_instance_identifier).execute()
+            project=project_id, instance=db_instance_name).execute()
         result = wait_for_sql_admin_operation(project_id, operation, sql_admin)
         if result["status"] == "DONE":
             cli_logger.print(
-                "Successfully deleted database instance: {}.".format(db_instance_identifier))
+                "Successfully deleted database instance: {}.".format(db_instance_name))
         else:
             raise RuntimeError("Error timeout.")
 
@@ -1443,21 +1451,40 @@ def _create_private_connection(provider_config, workspace_name, vpc_name):
         raise e
 
 
+def _create_managed_database_instance_in_workspace(
+        provider_config, workspace_name,
+        db_instance_name=None):
+    compute = construct_compute_client(provider_config)
+    use_working_vpc = _is_use_working_vpc(provider_config)
+    vpc_name = _get_gcp_vpc_name(
+        provider_config, workspace_name, compute, use_working_vpc)
+
+    _create_managed_database_instance(
+        provider_config, workspace_name, vpc_name,
+        db_instance_name=db_instance_name)
+
+
 def _create_managed_database_instance(
-        provider_config, workspace_name, vpc_name):
+        provider_config, workspace_name, vpc_name,
+        db_instance_name=None):
+    if not db_instance_name:
+        # if not specified, workspace default database
+        db_instance_name = get_default_workspace_database_name(workspace_name)
     # If the managed cloud database for the workspace already exists
     # Skip the creation step
     db_instance = get_managed_database_instance(
-        provider_config, workspace_name)
+        provider_config, workspace_name,
+        db_instance_name=db_instance_name)
     if db_instance is not None:
-        cli_logger.print("Managed database instance for the workspace already exists. Skip creation.")
+        cli_logger.print(
+            "Managed database instance {} already exists in the workspace. Skip creation.",
+            db_instance_name)
         return
 
     project_id = provider_config.get("project_id")
     network = "projects/{}/global/networks/{}".format(project_id, vpc_name)
 
     sql_admin = construct_sql_admin(provider_config)
-    db_instance_identifier = GCP_WORKSPACE_DATABASE_NAME.format(workspace_name)
     region = provider_config["region"]
     project_id = provider_config.get("project_id")
 
@@ -1466,7 +1493,7 @@ def _create_managed_database_instance(
     database_version = "MYSQL_8_0" if engine == "mysql" else "POSTGRES_14"
 
     create_body = {
-        "name": db_instance_identifier,
+        "name": db_instance_name,
         "region": region,
         "databaseVersion": database_version,
         "rootPassword": database_config.get('password', "cloudtik"),
@@ -1479,6 +1506,9 @@ def _create_managed_database_instance(
                 "privateNetwork": network,
                 "enablePrivatePathForGoogleCloudServices": True
             },
+            "userLabels": {
+                CLOUDTIK_TAG_WORKSPACE_NAME: workspace_name
+            }
         }
     }
 
@@ -1498,7 +1528,7 @@ def _create_managed_database_instance(
         result = wait_for_sql_admin_operation(project_id, operation, sql_admin)
         if result["status"] == "DONE":
             cli_logger.print(
-                "Successfully created database instance: {}.".format(db_instance_identifier))
+                "Successfully created database instance: {}.".format(db_instance_name))
         else:
             raise RuntimeError("Error timeout.")
     except Exception as e:
@@ -1759,18 +1789,45 @@ def get_workspace_database_instance(config):
         config["provider"], config["workspace_name"])
 
 
-def get_managed_database_instance(provider_config, workspace_name):
+def get_default_workspace_database_name(workspace_name):
+    return GCP_WORKSPACE_DATABASE_NAME.format(workspace_name)
+
+
+def get_managed_database_instance(
+        provider_config, workspace_name, db_instance_name=None):
+    if not db_instance_name:
+        # if not specified, workspace default database
+        db_instance_name = get_default_workspace_database_name(workspace_name)
     sql_admin = construct_sql_admin(provider_config)
     project_id = provider_config["project_id"]
-    db_instance_identifier = GCP_WORKSPACE_DATABASE_NAME.format(workspace_name)
-    cli_logger.verbose("Getting the database instance: {}.".format(db_instance_identifier))
+
+    cli_logger.verbose("Getting the database instance: {}.".format(db_instance_name))
     try:
         db_instance = sql_admin.instances().get(
-            project=project_id, instance=db_instance_identifier).execute()
-        cli_logger.verbose("Successfully get database instance: {}.".format(db_instance_identifier))
+            project=project_id, instance=db_instance_name).execute()
+        cli_logger.verbose("Successfully get database instance: {}.".format(db_instance_name))
         return db_instance
     except Exception as e:
         cli_logger.verbose_error("Failed to get database instance. {}", str(e))
+        return None
+
+
+def get_managed_database_instances(
+        provider_config, workspace_name):
+    sql_admin = construct_sql_admin(provider_config)
+    project_id = provider_config["project_id"]
+
+    cli_logger.verbose("Getting the database instances...")
+    try:
+        filter_expr = "settings.userLabels.{}:{}".format(
+            CLOUDTIK_TAG_WORKSPACE_NAME, workspace_name)
+        response = sql_admin.instances().list(
+            project=project_id, filter=filter_expr).execute()
+        db_instances = response.get("items", [])
+        cli_logger.verbose("Successfully get {} database instances.", len(db_instances))
+        return db_instances
+    except Exception as e:
+        cli_logger.verbose_error("Failed to get database instances. {}", str(e))
         return None
 
 

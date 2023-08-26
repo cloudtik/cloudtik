@@ -642,29 +642,29 @@ def _delete_db_subnet_group(provider_config, workspace_name):
 
 
 def _delete_managed_database_instance(
-        provider_config, workspace_name, db_instance_identifier=None):
-    if not db_instance_identifier:
+        provider_config, workspace_name, db_instance_name=None):
+    if not db_instance_name:
         # if not specified, workspace default database
-        db_instance_identifier = get_default_workspace_database_name(workspace_name)
+        db_instance_name = get_default_workspace_database_name(workspace_name)
     rds_client = _make_client("rds", provider_config)
     db_instance = get_managed_database_instance(
         provider_config, workspace_name,
-        db_instance_identifier=db_instance_identifier)
+        db_instance_name=db_instance_name)
     if db_instance is None:
         cli_logger.print(
             "No database instance {} was found for workspace. Skip deletion.",
-            db_instance_identifier)
+            db_instance_name)
         return
 
     try:
-        db_instance_identifier = db_instance.get("DBInstanceIdentifier")
-        cli_logger.print("Deleting database instance: {}...".format(db_instance_identifier))
+        db_instance_name = db_instance.get("DBInstanceIdentifier")
+        cli_logger.print("Deleting database instance: {}...".format(db_instance_name))
         rds_client.delete_db_instance(
-            DBInstanceIdentifier=db_instance_identifier,
+            DBInstanceIdentifier=db_instance_name,
             SkipFinalSnapshot=True
         )
-        wait_db_instance_deletion(rds_client, db_instance_identifier)
-        cli_logger.print("Successfully deleted database instance: {}.".format(db_instance_identifier))
+        wait_db_instance_deletion(rds_client, db_instance_name)
+        cli_logger.print("Successfully deleted database instance: {}.".format(db_instance_name))
     except boto3.exceptions.Boto3Error as e:
         cli_logger.error("Failed to delete database instance. {}", str(e))
         raise e
@@ -1481,7 +1481,7 @@ def wait_nat_creation(ec2_client, nat_gateway_id):
         raise
 
 
-def wait_db_instance_creation(rds_client, db_instance_identifier):
+def wait_db_instance_creation(rds_client, db_instance_name):
     """
     Check if successful state is reached every 30 seconds until a successful state is reached.
     An error is returned after 40 failed checks.
@@ -1489,7 +1489,7 @@ def wait_db_instance_creation(rds_client, db_instance_identifier):
     try:
         waiter = rds_client.get_waiter('db_instance_available')
         waiter.wait(
-            DBInstanceIdentifier=db_instance_identifier,
+            DBInstanceIdentifier=db_instance_name,
             WaiterConfig={
                 'Delay': 30,
                 'MaxAttempts': 40
@@ -1500,7 +1500,7 @@ def wait_db_instance_creation(rds_client, db_instance_identifier):
         raise
 
 
-def wait_db_instance_deletion(rds_client, db_instance_identifier):
+def wait_db_instance_deletion(rds_client, db_instance_name):
     """
     Check if successful state is reached every 30 seconds until a successful state is reached.
     An error is returned after 40 failed checks.
@@ -1508,7 +1508,7 @@ def wait_db_instance_deletion(rds_client, db_instance_identifier):
     try:
         waiter = rds_client.get_waiter('db_instance_deleted')
         waiter.wait(
-            DBInstanceIdentifier=db_instance_identifier,
+            DBInstanceIdentifier=db_instance_name,
             WaiterConfig={
                 'Delay': 30,
                 'MaxAttempts': 40
@@ -2029,7 +2029,7 @@ def _create_workspace_cloud_database(config, workspace_name):
 
 
 def _create_managed_database_instance_in_workspace(
-        config, workspace_name, db_instance_identifier=None):
+        config, workspace_name, db_instance_name=None):
     cloud_provider = config["provider"]
 
     ec2_client = _make_resource_client("ec2", cloud_provider)
@@ -2040,7 +2040,7 @@ def _create_managed_database_instance_in_workspace(
 
     _create_managed_database_instance(
         cloud_provider, workspace_name, security_group.id,
-        db_instance_identifier=db_instance_identifier
+        db_instance_name=db_instance_name
     )
 
 
@@ -2067,18 +2067,18 @@ def _create_managed_cloud_database(
 
 def _create_managed_database_instance(
         cloud_provider, workspace_name,
-        security_group_id, db_instance_identifier=None):
-    if not db_instance_identifier:
-        db_instance_identifier = get_default_workspace_database_name(workspace_name)
+        security_group_id, db_instance_name=None):
+    if not db_instance_name:
+        db_instance_name = get_default_workspace_database_name(workspace_name)
     # If the managed cloud database for the workspace already exists
     # Skip the creation step
     db_instance = get_managed_database_instance(
         cloud_provider, workspace_name,
-        db_instance_identifier=db_instance_identifier)
+        db_instance_name=db_instance_name)
     if db_instance is not None:
         cli_logger.print(
             "Database instance {} for the workspace already exists. Skip creation.",
-            db_instance_identifier)
+            db_instance_name)
         return
 
     rds_client = _make_client("rds", cloud_provider)
@@ -2096,7 +2096,7 @@ def _create_managed_database_instance(
     # Engine Version: MySQL 8.0, PostgreSQL (14 or 16 any time soon)
     try:
         rds_client.create_db_instance(
-            DBInstanceIdentifier=db_instance_identifier,
+            DBInstanceIdentifier=db_instance_name,
             DBInstanceClass=database_config.get("instance_type", "db.t3.xlarge"),
             Engine=engine,
             StorageType=database_config.get("storage_type", "gp2"),
@@ -2112,7 +2112,7 @@ def _create_managed_database_instance(
             MultiAZ=database_config.get("high_availability", False),
             Tags=tags
         )
-        wait_db_instance_creation(rds_client, db_instance_identifier)
+        wait_db_instance_creation(rds_client, db_instance_name)
     except Exception as e:
         cli_logger.error("Failed to create database instance. {}", str(e))
         raise e
@@ -2554,18 +2554,18 @@ def _list_db_instances(provider_config):
 
 
 def get_managed_database_instance(
-        provider_config, workspace_name, db_instance_identifier=None):
-    if not db_instance_identifier:
+        provider_config, workspace_name, db_instance_name=None):
+    if not db_instance_name:
         # if not specified, workspace default database
-        db_instance_identifier = get_default_workspace_database_name(workspace_name)
+        db_instance_name = get_default_workspace_database_name(workspace_name)
     cli_logger.verbose(
         "Getting the managed database with identifier: {}.".format(
-            db_instance_identifier))
+            db_instance_name))
     db_instances = _list_db_instances(provider_config)
     for db_instance in db_instances:
-        if db_instance.get('DBInstanceIdentifier') == db_instance_identifier:
+        if db_instance.get('DBInstanceIdentifier') == db_instance_name:
             cli_logger.verbose("Successfully get the managed database: {}.".format(
-                db_instance_identifier))
+                db_instance_name))
             return db_instance
 
     cli_logger.verbose_error("Failed to get the managed database for workspace.")
