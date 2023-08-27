@@ -22,29 +22,26 @@ class AWSStorageProvider(StorageProvider):
     """
 
     def __init__(self, provider_config: Dict[str, Any],
-                 storage_name: str) -> None:
-        super().__init__(provider_config, storage_name)
+                 workspace_name: str, storage_name: str) -> None:
+        super().__init__(provider_config, workspace_name, storage_name)
 
     def create(self, config: Dict[str, Any]):
         """Create the object storage in the workspace based on the config."""
-        workspace_name = config["workspace_name"]
         _create_managed_cloud_storage(
-            self.provider_config, workspace_name, self.storage_name)
+            self.provider_config, self.workspace_name, self.storage_name)
 
     def delete(self, config: Dict[str, Any]):
-        """Delete a object storage in the workspace based on the config.
+        """Delete an object storage in the workspace based on the config.
         """
-        workspace_name = config["workspace_name"]
         _delete_managed_cloud_storage(
-            self.provider_config, workspace_name, self.storage_name)
+            self.provider_config, self.workspace_name, self.storage_name)
 
     def get_info(self, config: Dict[str, Any]):
         """Return the object storage information.
         Return None if the object storage doesn't exist
         """
-        workspace_name = config["workspace_name"]
         return _get_managed_cloud_storage_info(
-            self.provider_config, workspace_name, self.storage_name)
+            self.provider_config, self.workspace_name, self.storage_name)
 
     def validate_config(self, provider_config: Dict[str, Any]):
         """Check the configuration validation.
@@ -56,7 +53,7 @@ class AWSStorageProvider(StorageProvider):
             raise RuntimeError(
                 "{} storage name is between {} and {} characters, "
                 "and can only contain lowercase alphanumeric "
-                "characters, dots and dashes".format(
+                "characters, dashes (-) and dots (.)".format(
                     provider_config["type"], AWS_STORAGE_NAME_MIN_LEN, AWS_STORAGE_NAME_MAX_LEN))
 
     @staticmethod

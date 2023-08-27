@@ -10,18 +10,16 @@ class KubernetesDatabaseProvider(DatabaseProvider):
     """Provider for creating or deleting cloud database services for Managed Kubernetes."""
 
     def __init__(self, provider_config: Dict[str, Any],
-                 database_name: str) -> None:
-        super().__init__(provider_config, database_name)
+                 workspace_name: str, database_name: str) -> None:
+        super().__init__(provider_config, workspace_name, database_name)
 
     def create(self, config: Dict[str, Any]):
         """Create the database instance in the workspace based on the config."""
-        workspace_name = config["workspace_name"]
         pass
 
     def delete(self, config: Dict[str, Any]):
         """Delete a database instance in the workspace based on the config.
         """
-        workspace_name = config["workspace_name"]
         pass
 
     def get_info(self, config: Dict[str, Any]):

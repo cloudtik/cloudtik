@@ -7,6 +7,7 @@ from cloudtik.core._private.cli_logger import cli_logger
 from cloudtik.core._private.utils import _is_use_managed_cloud_storage, _is_managed_cloud_storage, \
     _is_managed_cloud_database, _is_use_managed_cloud_database
 from cloudtik.core.workspace_provider import Existence
+from cloudtik.providers._private._azure.storage_provider import AzureStorageProvider
 from cloudtik.providers._private._kubernetes import core_api, log_prefix
 from cloudtik.providers._private._kubernetes.azure_aks.utils import get_aks_workspace_resource_group_name, \
     AccountType, _get_iam_user_assigned_identity_name, get_iam_role_assignment_name_for_storage_blob_data_owner, \
@@ -19,9 +20,9 @@ from cloudtik.providers._private._azure.config import _configure_managed_cloud_s
     get_azure_managed_cloud_storage_info, _create_user_assigned_identity, _delete_user_assigned_identity, \
     _get_user_assigned_identity, _create_role_assignment_for_storage_blob_data_owner, \
     _delete_role_assignment_for_storage_blob_data_owner, _get_role_assignment_for_storage_blob_data_owner, \
-    _create_resource_group, _delete_resource_group, _get_resource_group_by_name, _get_container_for_storage_account, \
+    _create_resource_group, _delete_resource_group, _get_resource_group_by_name, _get_container_of_storage_account, \
     _create_managed_cloud_database, _delete_managed_cloud_database, _configure_managed_cloud_database_from_workspace, \
-    get_managed_database_instance, get_azure_managed_cloud_database_info
+    get_managed_database_instance, get_azure_managed_cloud_database_info, _list_azure_storages
 from cloudtik.providers._private._azure.utils import export_azure_cloud_storage_config, \
     get_default_azure_cloud_storage, export_azure_cloud_database_config, _construct_compute_client, \
     get_default_azure_cloud_database
@@ -1099,7 +1100,7 @@ def check_existence_for_azure(config: Dict[str, Any], namespace, cloud_provider)
             existing_resources += 1
 
         if managed_cloud_storage:
-            if _get_container_for_storage_account(
+            if _get_container_of_storage_account(
                     cloud_provider, workspace_name, resource_group_name) is not None:
                 existing_resources += 1
                 cloud_storage_existence = True
@@ -1162,6 +1163,32 @@ def get_default_kubernetes_cloud_storage_for_azure(provider_config):
 
 def get_default_kubernetes_cloud_database_for_azure(provider_config):
     return get_default_azure_cloud_database(provider_config)
+
+
+def list_storages_for_azure(
+        config: Dict[str, Any], namespace, cloud_provider):
+    workspace_name = config["workspace_name"]
+    resource_group_name = get_aks_workspace_resource_group_name(workspace_name)
+    return _list_azure_storages(
+        cloud_provider, workspace_name, resource_group_name)
+
+
+class AzureKubernetesStorageProvider(AzureStorageProvider):
+    def __init__(self, provider_config: Dict[str, Any],
+                 workspace_name: str, storage_name: str,
+                 resource_group_name: str) -> None:
+        super().__init__(provider_config, workspace_name, storage_name)
+        self.resource_group_name = resource_group_name
+
+    def get_resource_group_name(self, workspace_name):
+        return self.resource_group_name
+
+
+def create_storage_provider_for_azure(
+            cloud_provider, workspace_name, storage_name):
+    resource_group_name = get_aks_workspace_resource_group_name(workspace_name)
+    return AzureKubernetesStorageProvider(
+        cloud_provider, workspace_name, storage_name, resource_group_name)
 
 
 ######################

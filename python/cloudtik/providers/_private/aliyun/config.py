@@ -18,7 +18,7 @@ from cloudtik.core._private.utils import check_cidr_conflict, is_use_internal_ip
 from cloudtik.core.tags import CLOUDTIK_TAG_CLUSTER_NAME, CLOUDTIK_TAG_NODE_KIND, NODE_KIND_HEAD, \
     CLOUDTIK_TAG_WORKSPACE_NAME
 from cloudtik.core.workspace_provider import Existence, CLOUDTIK_MANAGED_CLOUD_STORAGE, \
-    CLOUDTIK_MANAGED_CLOUD_STORAGE_URI
+    CLOUDTIK_MANAGED_CLOUD_STORAGE_URI, CLOUDTIK_MANAGED_CLOUD_STORAGE_NAME
 from cloudtik.providers._private.aliyun.utils import export_aliyun_oss_storage_config, \
     get_aliyun_oss_storage_config, get_aliyun_oss_storage_config_for_update, ALIYUN_OSS_BUCKET, ALIYUN_OSS_INTERNAL_ENDPOINT, _get_node_info, \
     get_aliyun_cloud_storage_uri, _get_oss_internal_endpoint
@@ -75,8 +75,6 @@ ALIYUN_WORKSPACE_VPC_PEERING_NAME = ALIYUN_RESOURCE_NAME_PREFIX + "-{}-vpc-peeri
 
 ALIYUN_WORKSPACE_VERSION_TAG_NAME = "cloudtik-workspace-version"
 ALIYUN_WORKSPACE_VERSION_CURRENT = "1"
-
-ALIYUN_MANAGED_STORAGE_OSS_BUCKET = "aliyun.managed.storage.oss.bucket"
 
 HEAD_ROLE_ATTACH_POLICIES = [
     "AliyunECSFullAccess",
@@ -289,9 +287,13 @@ def get_managed_oss_buckets(
     cli_logger.verbose("Getting OSS buckets of workspace: {}.".format(workspace_name))
     workspace_buckets = []
     for bucket in oss_cli.list_buckets():
-        tags = oss_cli.get_bucket_tags(bucket.name)
-        if _is_workspace_tagged(tags, workspace_name):
-            workspace_buckets.append(bucket)
+        try:
+            tags = oss_cli.get_bucket_tags(bucket.name)
+            if _is_workspace_tagged(tags, workspace_name):
+                workspace_buckets.append(bucket)
+        except Exception:
+            # Failed to get the tags, ignore
+            continue
 
     cli_logger.verbose(
         "Successfully get {} OSS buckets.".format(
@@ -303,10 +305,21 @@ def _delete_workspace_cloud_storage(config, workspace_name):
     _delete_managed_cloud_storage(config["provider"], workspace_name)
 
 
-def _delete_managed_cloud_storage(cloud_provider, workspace_name):
-    bucket = get_managed_oss_bucket(cloud_provider, workspace_name)
+def _delete_managed_cloud_storage(
+        cloud_provider, workspace_name,
+        object_storage_name=None):
+    region = cloud_provider["region"]
+    if not object_storage_name:
+        object_storage_name = get_default_workspace_object_storage_name(
+            workspace_name, region)
+
+    bucket = get_managed_oss_bucket(
+        cloud_provider, workspace_name,
+        object_storage_name=object_storage_name)
     if bucket is None:
-        cli_logger.warning("No OSS bucket with the name found.")
+        cli_logger.warning(
+            "No OSS bucket with the name {} found. Skip deletion",
+            object_storage_name)
         return
 
     try:
@@ -322,7 +335,6 @@ def _delete_managed_cloud_storage(cloud_provider, workspace_name):
     except Exception as e:
         cli_logger.error("Failed to delete OSS bucket. {}", str(e))
         raise e
-    return
 
 
 def get_default_workspace_object_storage_name(
@@ -1587,6 +1599,21 @@ def list_aliyun_clusters(config: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     return clusters
 
 
+def list_aliyun_storages(config: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    provider_config = config["provider"]
+    workspace_name = config["workspace_name"]
+    buckets = get_managed_oss_buckets(provider_config, workspace_name)
+    if buckets is None:
+        return None
+    object_storages = {}
+    for bucket in buckets:
+        storage_name = bucket.name
+        if storage_name:
+            object_storages[storage_name] = _get_object_storage_info(bucket)
+    return object_storages
+
+
+
 def bootstrap_aliyun_workspace(config):
     # create a copy of the input config to modify
     config = copy.deepcopy(config)
@@ -1668,14 +1695,28 @@ def get_aliyun_workspace_info(config):
 
 def get_aliyun_managed_cloud_storage_info(config, cloud_provider, info):
     workspace_name = config["workspace_name"]
-    bucket = get_managed_oss_bucket(cloud_provider, workspace_name)
-    managed_bucket_name = None if bucket is None else bucket.name
+    cloud_storage_info = _get_managed_cloud_storage_info(
+        cloud_provider, workspace_name)
+    if cloud_storage_info:
+        info[CLOUDTIK_MANAGED_CLOUD_STORAGE] = cloud_storage_info
 
+
+def _get_managed_cloud_storage_info(
+        cloud_provider, workspace_name, object_storage_name=None):
+    bucket = get_managed_oss_bucket(
+        cloud_provider, workspace_name,
+        object_storage_name=object_storage_name)
+    return _get_object_storage_info(bucket)
+
+
+def _get_object_storage_info(bucket):
+    managed_bucket_name = None if bucket is None else bucket.name
     if managed_bucket_name is not None:
         oss_cloud_storage = {ALIYUN_OSS_BUCKET: managed_bucket_name}
-        managed_cloud_storage = {ALIYUN_MANAGED_STORAGE_OSS_BUCKET: managed_bucket_name,
+        managed_cloud_storage = {CLOUDTIK_MANAGED_CLOUD_STORAGE_NAME: managed_bucket_name,
                                  CLOUDTIK_MANAGED_CLOUD_STORAGE_URI: get_aliyun_cloud_storage_uri(oss_cloud_storage)}
-        info[CLOUDTIK_MANAGED_CLOUD_STORAGE] = managed_cloud_storage
+        return managed_cloud_storage
+    return None
 
 
 ######################

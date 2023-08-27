@@ -15,7 +15,9 @@ from cloudtik.providers._private.gcp.config import _configure_managed_cloud_stor
     _remove_iam_role_binding, _has_iam_role_binding, _add_service_account_iam_role_binding, \
     _remove_service_account_iam_role_binding, _has_service_account_iam_role_binding, _get_service_account_of_project, \
     get_gcp_managed_cloud_storage_info, _create_managed_cloud_database, _delete_managed_cloud_database, \
-    _configure_managed_cloud_database_from_workspace, get_managed_database_instance, get_gcp_managed_cloud_database_info
+    _configure_managed_cloud_database_from_workspace, get_managed_database_instance, \
+    get_gcp_managed_cloud_database_info, _list_gcp_storages
+from cloudtik.providers._private.gcp.storage_provider import GCPStorageProvider
 from cloudtik.providers._private.gcp.utils import get_gcp_project, construct_iam_client, construct_crm_client, \
     get_service_account_email, export_gcp_cloud_storage_config, get_default_gcp_cloud_storage, \
     export_gcp_cloud_database_config, get_default_gcp_cloud_database
@@ -892,6 +894,17 @@ def get_default_kubernetes_cloud_storage_for_gcp(provider_config):
 
 def get_default_kubernetes_cloud_database_for_gcp(provider_config):
     return get_default_gcp_cloud_database(provider_config)
+
+
+def list_storages_for_gcp(
+        config: Dict[str, Any], namespace, cloud_provider):
+    workspace_name = config["workspace_name"]
+    return _list_gcp_storages(cloud_provider, workspace_name)
+
+
+def create_storage_provider_for_gcp(
+            cloud_provider, workspace_name, storage_name):
+    return GCPStorageProvider(cloud_provider, workspace_name, storage_name)
 
 
 ######################

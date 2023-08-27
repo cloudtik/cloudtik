@@ -5,7 +5,7 @@ from cloudtik.core._private.utils import binary_to_hex, hex_to_binary, get_runni
 from cloudtik.providers._private.aliyun.config import create_aliyun_workspace, \
     delete_aliyun_workspace, check_aliyun_workspace_integrity, \
     list_aliyun_clusters, _get_workspace_head_nodes, bootstrap_aliyun_workspace, \
-    check_aliyun_workspace_existence, get_aliyun_workspace_info, update_aliyun_workspace
+    check_aliyun_workspace_existence, get_aliyun_workspace_info, update_aliyun_workspace, list_aliyun_storages
 from cloudtik.core._private.provider_factory import _get_node_provider
 from cloudtik.core.tags import CLOUDTIK_GLOBAL_VARIABLE_KEY_PREFIX, CLOUDTIK_GLOBAL_VARIABLE_KEY
 from cloudtik.core.workspace_provider import WorkspaceProvider
@@ -39,8 +39,13 @@ class AliyunWorkspaceProvider(WorkspaceProvider):
     def check_workspace_integrity(self, config):
         return check_aliyun_workspace_integrity(config)
 
-    def list_clusters(self, config: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    def list_clusters(
+            self, config: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         return list_aliyun_clusters(config)
+
+    def list_storages(
+            self, config: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        return list_aliyun_storages(config)
 
     def publish_global_variables(self, cluster_config: Dict[str, Any],
                                  global_variables: Dict[str, Any]):

@@ -16,8 +16,9 @@ class StorageProvider:
     """
 
     def __init__(self, provider_config: Dict[str, Any],
-                 storage_name: str) -> None:
+                 workspace_name: str, storage_name: str) -> None:
         self.provider_config = provider_config
+        self.workspace_name = workspace_name
         self.storage_name = storage_name
 
     def create(self, config: Dict[str, Any]):
@@ -25,7 +26,7 @@ class StorageProvider:
         pass
 
     def delete(self, config: Dict[str, Any]):
-        """Delete a object storage in the workspace based on the config.
+        """Delete an object storage in the workspace based on the config.
         """
         pass
 

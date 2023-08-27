@@ -16,7 +16,7 @@ class DatabaseProvider:
     """
 
     def __init__(self, provider_config: Dict[str, Any],
-                 database_name: str) -> None:
+                 workspace_name: str, database_name: str) -> None:
         self.provider_config = provider_config
         self.database_name = database_name
 

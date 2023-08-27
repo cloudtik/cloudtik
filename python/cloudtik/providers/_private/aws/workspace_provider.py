@@ -46,7 +46,6 @@ class AWSWorkspaceProvider(WorkspaceProvider):
 
     def list_storages(
             self, config: Dict[str, Any]) -> Optional[Dict[str, Any]]:
-
         return list_aws_storages(config)
 
     def publish_global_variables(self, cluster_config: Dict[str, Any],

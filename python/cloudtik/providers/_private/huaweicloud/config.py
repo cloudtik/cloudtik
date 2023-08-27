@@ -66,7 +66,7 @@ from cloudtik.core.tags import CLOUDTIK_TAG_CLUSTER_NAME, \
     CLOUDTIK_TAG_NODE_KIND, NODE_KIND_HEAD, CLOUDTIK_TAG_WORKSPACE_NAME
 from cloudtik.core.workspace_provider import \
     CLOUDTIK_MANAGED_CLOUD_STORAGE, CLOUDTIK_MANAGED_CLOUD_STORAGE_URI, \
-    Existence
+    Existence, CLOUDTIK_MANAGED_CLOUD_STORAGE_NAME
 from cloudtik.providers._private.huaweicloud.utils import _get_node_info, \
     _make_ecs_client, _make_obs_client, \
     _make_vpc_client, export_huaweicloud_obs_storage_config, flat_tags_map, \
@@ -98,8 +98,6 @@ HWC_WORKSPACE_OBS_BUCKET_NAME = HWC_RESOURCE_NAME_PREFIX + '-obs-bucket'
 HWC_WORKSPACE_INSTANCE_PROFILE_NAME = HWC_RESOURCE_NAME_PREFIX + '-{}-profile'
 HWC_WORKSPACE_VPC_SUBNETS_COUNT = 2
 HWC_VM_METADATA_URL = 'http://169.254.169.254/openstack/latest/meta_data.json'
-HWC_MANAGED_CLOUD_STORAGE_OBS_BUCKET = "huaweicloud.managed.cloud.storage." \
-                                       "obs.bucket"
 HWC_KEY_PAIR_NAME = 'cloudtik_huaweicloud_keypair_{}'
 HWC_KEY_PATH_TEMPLATE = '~/.ssh/{}.pem'
 
@@ -326,11 +324,11 @@ def get_default_workspace_object_storage_name(
 
 def _create_workspace_cloud_storage(config, workspace_name):
     obs_client = make_obs_client(config)
-    _check_and_create_cloud_storage_bucket(obs_client,
-                                           workspace_name)
+    _create_managed_cloud_storage(obs_client,
+                                  workspace_name)
 
 
-def _check_and_create_cloud_storage_bucket(
+def _create_managed_cloud_storage(
         obs_client, workspace_name,
         object_storage_name=None):
     if not object_storage_name:
@@ -855,11 +853,11 @@ def delete_huaweicloud_workspace(config, delete_managed_storage):
 
 def _delete_workspace_cloud_storage(config, workspace_name):
     obs_client = make_obs_client(config)
-    _check_and_delete_cloud_storage_bucket(
+    _delete_managed_cloud_storage(
         obs_client, workspace_name)
 
 
-def _check_and_delete_cloud_storage_bucket(
+def _delete_managed_cloud_storage(
         obs_client, workspace_name,
         object_storage_name=None):
     if not object_storage_name:
@@ -1232,19 +1230,42 @@ def update_workspace_firewalls(config):
 
 def get_huaweicloud_workspace_info(config):
     info = {}
-    workspace_name = config["workspace_name"]
-    obs_client = make_obs_client(config)
-    bucket_name = _get_managed_obs_bucket(obs_client, workspace_name)
+    managed_cloud_storage = is_managed_cloud_storage(config)
+    if managed_cloud_storage:
+        get_huaweicloud_managed_cloud_storage_info(
+            config, config["provider"], info)
 
+    return info
+
+
+def get_huaweicloud_managed_cloud_storage_info(
+        config, cloud_provider, info):
+    workspace_name = config["workspace_name"]
+    cloud_storage_info = _get_managed_cloud_storage_info(
+        cloud_provider, workspace_name)
+    if cloud_storage_info:
+        info[CLOUDTIK_MANAGED_CLOUD_STORAGE] = cloud_storage_info
+
+
+def _get_managed_cloud_storage_info(
+        provider_config, workspace_name,
+        object_storage_name=None):
+    obs_client = _make_obs_client(provider_config)
+    bucket_name = _get_managed_obs_bucket(
+        obs_client, workspace_name,
+        object_storage_name=object_storage_name)
+    return _get_object_storage_info(bucket_name)
+
+
+def _get_object_storage_info(bucket_name):
     if bucket_name:
         cloud_storage_uri = get_huaweicloud_cloud_storage_uri(
             {HWC_OBS_BUCKET: bucket_name})
         managed_cloud_storage = {
-            HWC_MANAGED_CLOUD_STORAGE_OBS_BUCKET: bucket_name,
+            CLOUDTIK_MANAGED_CLOUD_STORAGE_NAME: bucket_name,
             CLOUDTIK_MANAGED_CLOUD_STORAGE_URI: cloud_storage_uri}
-        info[CLOUDTIK_MANAGED_CLOUD_STORAGE] = managed_cloud_storage
-
-    return info
+        return managed_cloud_storage
+    return None
 
 
 def check_huaweicloud_workspace_existence(config):
@@ -1349,6 +1370,20 @@ def list_huaweicloud_clusters(config):
         if cluster_name:
             clusters[cluster_name] = _get_node_info(head_node)
     return clusters
+
+
+def list_huaweicloud_storages(config: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    provider_config = config["provider"]
+    workspace_name = config["workspace_name"]
+    buckets = _get_managed_obs_buckets(provider_config, workspace_name)
+    if buckets is None:
+        return None
+    object_storages = {}
+    for bucket in buckets:
+        storage_name = bucket.name
+        if storage_name:
+            object_storages[storage_name] = _get_object_storage_info(bucket.name)
+    return object_storages
 
 
 def get_cluster_name_from_head(head_node) -> Optional[str]:

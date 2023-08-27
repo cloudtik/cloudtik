@@ -34,8 +34,10 @@ def delete_database(
 def _delete_database(
         config: Dict[str, Any],
         yes: bool = False):
+    workspace_name = config["workspace_name"]
     database_name = config["database_name"]
-    provider = _get_database_provider(config["provider"], database_name)
+    provider = _get_database_provider(
+        config["provider"], workspace_name, database_name)
     database_info = provider.get_info(config)
     if not database_info:
         raise RuntimeError(f"Database with the name {database_name} doesn't exist!")
@@ -78,14 +80,16 @@ def create_database(
 
 def _create_database(
         config: Dict[str, Any], yes: bool = False):
+    workspace_name = config["workspace_name"]
     database_name = config["database_name"]
-    provider = _get_database_provider(config["provider"], database_name)
+    provider = _get_database_provider(
+        config["provider"], workspace_name, database_name)
     database_info = provider.get_info(config)
     if database_info:
         raise RuntimeError(f"A database with the name {database_name} already exists!")
     else:
         cli_logger.confirm(yes, "Are you sure that you want to create database {}?",
-                           config["database_name"], _abort=True)
+                           database_name, _abort=True)
         provider.create(config)
 
 
@@ -98,7 +102,8 @@ def get_database_info(
 
 def _get_database_info(
         config: Dict[str, Any]):
-    provider = _get_database_provider(config["provider"], config["database_name"])
+    provider = _get_database_provider(
+        config["provider"], config["workspace_name"], config["database_name"])
     return provider.get_database_info(config)
 
 
@@ -178,5 +183,6 @@ def validate_database_config(config: Dict[str, Any]) -> None:
         raise ValueError("Config {} is not a dictionary".format(config))
 
     validate_schema(config, DATABASE_SCHEMA_PATH)
-    provider = _get_database_provider(config["provider"], config["database_name"])
+    provider = _get_database_provider(
+        config["provider"], config["workspace_name"], config["database_name"])
     provider.validate_config(config["provider"])

@@ -34,14 +34,16 @@ def delete_storage(
 def _delete_storage(
         config: Dict[str, Any],
         yes: bool = False):
+    workspace_name = config["workspace_name"]
     storage_name = config["storage_name"]
-    provider = _get_storage_provider(config["provider"], storage_name)
+    provider = _get_storage_provider(
+        config["provider"], workspace_name, storage_name)
     storage_info = provider.get_info(config)
     if not storage_info:
         raise RuntimeError(f"Storage with the name {storage_name} doesn't exist!")
     else:
         cli_logger.confirm(yes, "Are you sure that you want to delete storage {}?",
-                           config["storage_name"], _abort=True)
+                           storage_name, _abort=True)
         provider.delete(config)
 
 
@@ -78,14 +80,16 @@ def create_storage(
 
 def _create_storage(
         config: Dict[str, Any], yes: bool = False):
+    workspace_name = config["workspace_name"]
     storage_name = config["storage_name"]
-    provider = _get_storage_provider(config["provider"], storage_name)
+    provider = _get_storage_provider(
+        config["provider"], workspace_name, storage_name)
     storage_info = provider.get_info(config)
     if storage_info:
         raise RuntimeError(f"A storage with the name {storage_name} already exists!")
     else:
         cli_logger.confirm(yes, "Are you sure that you want to create storage {}?",
-                           config["storage_name"], _abort=True)
+                           storage_name, _abort=True)
         provider.create(config)
 
 
@@ -98,7 +102,8 @@ def get_storage_info(
 
 def _get_storage_info(
         config: Dict[str, Any]):
-    provider = _get_storage_provider(config["provider"], config["storage_name"])
+    provider = _get_storage_provider(
+        config["provider"], config["workspace_name"], config["storage_name"])
     return provider.get_info(config)
 
 
@@ -178,5 +183,6 @@ def validate_storage_config(config: Dict[str, Any]) -> None:
         raise ValueError("Config {} is not a dictionary".format(config))
 
     validate_schema(config, STORAGE_SCHEMA_PATH)
-    provider = _get_storage_provider(config["provider"], config["storage_name"])
+    provider = _get_storage_provider(
+        config["provider"], config["workspace_name"], config["storage_name"])
     provider.validate_config(config["provider"])

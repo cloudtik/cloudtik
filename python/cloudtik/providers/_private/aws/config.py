@@ -23,7 +23,7 @@ from cloudtik.core._private.utils import check_cidr_conflict, is_use_internal_ip
     is_peering_firewall_allow_working_subnet, is_gpu_runtime
 from cloudtik.core.workspace_provider import Existence, CLOUDTIK_MANAGED_CLOUD_STORAGE, \
     CLOUDTIK_MANAGED_CLOUD_STORAGE_URI, CLOUDTIK_MANAGED_CLOUD_DATABASE, CLOUDTIK_MANAGED_CLOUD_DATABASE_ENDPOINT, \
-    CLOUDTIK_MANAGED_CLOUD_DATABASE_PORT
+    CLOUDTIK_MANAGED_CLOUD_DATABASE_PORT, CLOUDTIK_MANAGED_CLOUD_STORAGE_NAME
 from cloudtik.providers._private.aws.utils import \
     handle_boto_error, get_boto_error_code, _get_node_info, BOTO_MAX_RETRIES, _resource, \
     _resource_client, _make_resource, _make_resource_client, make_ec2_client, export_aws_s3_storage_config, \
@@ -109,8 +109,6 @@ AWS_WORKSPACE_NUM_CREATION_STEPS = 8
 AWS_WORKSPACE_NUM_DELETION_STEPS = 9
 AWS_WORKSPACE_NUM_UPDATE_STEPS = 1
 AWS_WORKSPACE_TARGET_RESOURCES = 10
-
-AWS_MANAGED_STORAGE_S3_BUCKET = "aws.managed.storage.s3.bucket"
 
 # todo: cli_logger should handle this assert properly
 # this should probably also happens somewhere else
@@ -421,7 +419,7 @@ def _get_object_storage_info(bucket):
     if managed_bucket_name is not None:
         aws_cloud_storage = {AWS_S3_BUCKET: managed_bucket_name}
         managed_cloud_storage = {
-            AWS_MANAGED_STORAGE_S3_BUCKET: managed_bucket_name,
+            CLOUDTIK_MANAGED_CLOUD_STORAGE_NAME: managed_bucket_name,
             CLOUDTIK_MANAGED_CLOUD_STORAGE_URI: get_aws_cloud_storage_uri(aws_cloud_storage)
         }
         return managed_cloud_storage
@@ -2704,7 +2702,13 @@ def list_aws_clusters(config: Dict[str, Any]) -> Optional[Dict[str, Any]]:
 def list_aws_storages(config: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     provider_config = config["provider"]
     workspace_name = config["workspace_name"]
-    buckets = get_managed_s3_buckets(provider_config, workspace_name)
+    return _list_aws_storages(provider_config, workspace_name)
+
+
+def _list_aws_storages(cloud_provider: Dict[str, Any], workspace_name):
+    buckets = get_managed_s3_buckets(cloud_provider, workspace_name)
+    if buckets is None:
+        return None
     object_storages = {}
     for bucket in buckets:
         storage_name = bucket.name

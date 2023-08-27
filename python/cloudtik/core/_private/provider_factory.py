@@ -438,6 +438,7 @@ def _get_storage_provider_cls(provider_config: Dict[str, Any]):
 
 def _get_storage_provider(
         provider_config: Dict[str, Any],
+        workspace_name: str,
         storage_name: str,
         use_cache: bool = True) -> Any:
     """Get the instantiated storage provider for a given provider config.
@@ -447,6 +448,7 @@ def _get_storage_provider(
 
     Args:
         provider_config: provider section of the cluster config.
+        workspace_name: workspace name from the cluster config.
         storage_name: storage name from the cluster config.
         use_cache: whether or not to use a cached definition if available. If
             False, the returned object will also not be stored in the cache.
@@ -454,17 +456,20 @@ def _get_storage_provider(
     Returns:
         StorageProvider
     """
-    def load_storage_provider(provider_config: Dict[str, Any], storage_name: str):
+    def load_storage_provider(
+            provider_config: Dict[str, Any], workspace_name: str, storage_name: str):
         provider_cls = _get_storage_provider_cls(provider_config)
-        return provider_cls(provider_config, storage_name)
+        return provider_cls(provider_config, workspace_name, storage_name)
 
     if not use_cache:
-        return load_storage_provider(provider_config, storage_name)
+        return load_storage_provider(provider_config, workspace_name, storage_name)
 
     provider_key = (json.dumps(provider_config, sort_keys=True), storage_name)
     return _storage_provider_instances.get(
         provider_key, load_storage_provider,
-        provider_config=provider_config, storage_name=storage_name)
+        provider_config=provider_config,
+        workspace_name=workspace_name,
+        storage_name=storage_name)
 
 
 def _clear_storage_provider_cache():
@@ -532,6 +537,7 @@ def _get_database_provider_cls(provider_config: Dict[str, Any]):
 
 def _get_database_provider(
         provider_config: Dict[str, Any],
+        workspace_name: str,
         database_name: str,
         use_cache: bool = True) -> Any:
     """Get the instantiated database provider for a given provider config.
@@ -541,6 +547,7 @@ def _get_database_provider(
 
     Args:
         provider_config: provider section of the cluster config.
+        workspace_name: workspace name from the cluster config.
         database_name: database name from the cluster config.
         use_cache: whether or not to use a cached definition if available. If
             False, the returned object will also not be stored in the cache.
@@ -548,17 +555,21 @@ def _get_database_provider(
     Returns:
         DatabaseProvider
     """
-    def load_database_provider(provider_config: Dict[str, Any], database_name: str):
+    def load_database_provider(
+            provider_config: Dict[str, Any], workspace_name: str, database_name: str):
         provider_cls = _get_database_provider_cls(provider_config)
-        return provider_cls(provider_config, database_name)
+        return provider_cls(provider_config, workspace_name, database_name)
 
     if not use_cache:
-        return load_database_provider(provider_config, database_name)
+        return load_database_provider(
+            provider_config, workspace_name, database_name)
 
     provider_key = (json.dumps(provider_config, sort_keys=True), database_name)
     return _database_provider_instances.get(
         provider_key, load_database_provider,
-        provider_config=provider_config, database_name=database_name)
+        provider_config=provider_config,
+        workspace_name=workspace_name,
+        database_name=database_name)
 
 
 def _clear_database_provider_cache():

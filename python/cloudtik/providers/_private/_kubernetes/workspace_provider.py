@@ -5,7 +5,7 @@ from cloudtik.providers._private._kubernetes.config import bootstrap_kubernetes_
     delete_kubernetes_workspace, check_kubernetes_workspace_existence, check_kubernetes_workspace_integrity, \
     list_kubernetes_clusters, get_kubernetes_workspace_info, \
     publish_kubernetes_global_variables, subscribe_kubernetes_global_variables, \
-    validate_kubernetes_workspace_config, update_kubernetes_workspace
+    validate_kubernetes_workspace_config, update_kubernetes_workspace, list_kubernetes_storages
 from cloudtik.core.workspace_provider import WorkspaceProvider
 
 logger = logging.getLogger(__name__)
@@ -36,8 +36,13 @@ class KubernetesWorkspaceProvider(WorkspaceProvider):
     def check_workspace_integrity(self, config):
         return check_kubernetes_workspace_integrity(config)
 
-    def list_clusters(self, config: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    def list_clusters(
+            self, config: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         return list_kubernetes_clusters(config)
+
+    def list_storages(
+            self, config: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        return list_kubernetes_storages(config)
 
     def publish_global_variables(self, cluster_config: Dict[str, Any],
                                  global_variables: Dict[str, Any]):

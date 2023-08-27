@@ -12,21 +12,19 @@ class AWSDatabaseProvider(DatabaseProvider):
     """Provider for creating or deleting cloud database services for AWS."""
 
     def __init__(self, provider_config: Dict[str, Any],
-                 database_name: str) -> None:
-        super().__init__(provider_config, database_name)
+                 workspace_name: str, database_name: str) -> None:
+        super().__init__(provider_config, workspace_name, database_name)
 
     def create(self, config: Dict[str, Any]):
         """Create the database instance in the workspace based on the config."""
-        workspace_name = config["workspace_name"]
         _create_managed_database_instance_in_workspace(
-            self.provider_config, workspace_name, self.database_name)
+            self.provider_config, self.workspace_name, self.database_name)
 
     def delete(self, config: Dict[str, Any]):
         """Delete a database instance in the workspace based on the config.
         """
-        workspace_name = config["workspace_name"]
         _delete_managed_database_instance(
-            self.provider_config, workspace_name, self.database_name)
+            self.provider_config, self.workspace_name, self.database_name)
 
     def get_info(self, config: Dict[str, Any]):
         """Return the database instance information.

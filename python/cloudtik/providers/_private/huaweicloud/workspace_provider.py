@@ -12,7 +12,7 @@ from cloudtik.providers._private.huaweicloud.config import \
     check_huaweicloud_workspace_integrity, create_huaweicloud_workspace, \
     delete_huaweicloud_workspace, get_huaweicloud_workspace_info, \
     list_huaweicloud_clusters, \
-    update_huaweicloud_workspace
+    update_huaweicloud_workspace, list_huaweicloud_storages
 from cloudtik.providers._private.huaweicloud.utils import tags_list_to_dict
 
 HUAWEICLOUD_WORKSPACE_NAME_MAX_LEN = 32
@@ -44,9 +44,13 @@ class HUAWEICLOUDWorkspaceProvider(WorkspaceProvider):
     def check_workspace_integrity(self, config: Dict[str, Any]) -> bool:
         return check_huaweicloud_workspace_integrity(config)
 
-    def list_clusters(self, config: Dict[str, Any]) -> Optional[
-        Dict[str, Any]]:
+    def list_clusters(
+            self, config: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         return list_huaweicloud_clusters(config)
+
+    def list_storages(
+            self, config: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        return list_huaweicloud_storages(config)
 
     def publish_global_variables(self, cluster_config: Dict[str, Any],
                                  global_variables: Dict[str, Any]):

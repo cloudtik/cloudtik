@@ -13,7 +13,8 @@ from googleapiclient import errors
 from google.oauth2 import service_account
 
 from cloudtik.core.workspace_provider import Existence, CLOUDTIK_MANAGED_CLOUD_STORAGE, \
-    CLOUDTIK_MANAGED_CLOUD_STORAGE_URI, CLOUDTIK_MANAGED_CLOUD_DATABASE, CLOUDTIK_MANAGED_CLOUD_DATABASE_ENDPOINT
+    CLOUDTIK_MANAGED_CLOUD_STORAGE_URI, CLOUDTIK_MANAGED_CLOUD_DATABASE, CLOUDTIK_MANAGED_CLOUD_DATABASE_ENDPOINT, \
+    CLOUDTIK_MANAGED_CLOUD_STORAGE_NAME
 
 from cloudtik.core.tags import CLOUDTIK_TAG_NODE_KIND, NODE_KIND_HEAD, CLOUDTIK_TAG_CLUSTER_NAME, \
     CLOUDTIK_TAG_WORKSPACE_NAME
@@ -80,8 +81,6 @@ GCP_WORKSPACE_NUM_CREATION_STEPS = 7
 GCP_WORKSPACE_NUM_DELETION_STEPS = 6
 GCP_WORKSPACE_NUM_UPDATE_STEPS = 1
 GCP_WORKSPACE_TARGET_RESOURCES = 8
-
-GCP_MANAGED_STORAGE_GCS_BUCKET = "gcp.managed.storage.gcs.bucket"
 
 
 ######################
@@ -1727,13 +1726,29 @@ def get_gcp_workspace_info(config):
 
 def get_gcp_managed_cloud_storage_info(config, cloud_provider, info):
     workspace_name = config["workspace_name"]
-    bucket = get_managed_gcs_bucket(cloud_provider, workspace_name)
+    cloud_storage_info = _get_managed_cloud_storage_info(
+        cloud_provider, workspace_name)
+    if cloud_storage_info:
+        info[CLOUDTIK_MANAGED_CLOUD_STORAGE] = cloud_storage_info
+
+
+def _get_managed_cloud_storage_info(
+        cloud_provider, workspace_name,
+        object_storage_name=None):
+    bucket = get_managed_gcs_bucket(
+        cloud_provider, workspace_name,
+        object_storage_name=object_storage_name)
+    return _get_object_storage_info(bucket)
+
+
+def _get_object_storage_info(bucket):
     managed_bucket_name = None if bucket is None else bucket.name
     if managed_bucket_name is not None:
         gcp_cloud_storage = {GCP_GCS_BUCKET: managed_bucket_name}
-        managed_cloud_storage = {GCP_MANAGED_STORAGE_GCS_BUCKET: managed_bucket_name,
+        managed_cloud_storage = {CLOUDTIK_MANAGED_CLOUD_STORAGE_NAME: managed_bucket_name,
                                  CLOUDTIK_MANAGED_CLOUD_STORAGE_URI: get_gcp_cloud_storage_uri(gcp_cloud_storage)}
-        info[CLOUDTIK_MANAGED_CLOUD_STORAGE] = managed_cloud_storage
+        return managed_cloud_storage
+    return None
 
 
 def get_gcp_managed_cloud_database_info(config, cloud_provider, info):
@@ -2240,6 +2255,26 @@ def list_gcp_clusters(config: Dict[str, Any]) -> Optional[Dict[str, Any]]:
             gcp_node = gcp_resource.from_instance(head_node)
             clusters[cluster_name] = _get_node_info(gcp_node)
     return clusters
+
+
+def list_gcp_storages(config: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    provider_config = config["provider"]
+    workspace_name = config["workspace_name"]
+    return _list_gcp_storages(provider_config, workspace_name)
+
+
+def _list_gcp_storages(
+        cloud_provider: Dict[str, Any], workspace_name
+) -> Optional[Dict[str, Any]]:
+    buckets = get_managed_gcs_buckets(cloud_provider, workspace_name)
+    if buckets is None:
+        return None
+    object_storages = {}
+    for bucket in buckets:
+        storage_name = bucket.name
+        if storage_name:
+            object_storages[storage_name] = _get_object_storage_info(bucket)
+    return object_storages
 
 
 def _create_vpc_peering_connections(config, compute, vpc_id):

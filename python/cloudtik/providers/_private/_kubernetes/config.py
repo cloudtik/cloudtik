@@ -387,8 +387,65 @@ def list_kubernetes_clusters(config: Dict[str, Any]) -> Optional[Dict[str, Any]]
     for head_node in head_nodes:
         cluster_name = get_cluster_name_from_head(head_node)
         if cluster_name:
-            clusters[cluster_name] = _get_node_info(head_node, provider_config, namespace, cluster_name)
+            clusters[cluster_name] = _get_node_info(
+                head_node, provider_config, namespace, cluster_name)
     return clusters
+
+
+def create_cloud_storage_provider(
+            provider_config: Dict[str, Any], workspace_name, storage_name):
+    cloud_provider = _get_cloud_provider_config(provider_config)
+    if cloud_provider is None:
+        # No cloud provider configured
+        return None
+    cloud_provider_type = cloud_provider["type"]
+    if cloud_provider_type == "aws":
+        from cloudtik.providers._private._kubernetes.aws_eks.config import \
+            create_storage_provider_for_aws
+        return create_storage_provider_for_aws(
+            cloud_provider, workspace_name, storage_name)
+    elif cloud_provider_type == "gcp":
+        from cloudtik.providers._private._kubernetes.gcp_gke.config import \
+            create_storage_provider_for_gcp
+        return create_storage_provider_for_gcp(
+            cloud_provider, workspace_name, storage_name)
+    elif cloud_provider_type == "azure":
+        from cloudtik.providers._private._kubernetes.azure_aks.config import \
+            create_storage_provider_for_azure
+        return create_storage_provider_for_azure(
+            cloud_provider, workspace_name, storage_name)
+    return None
+
+
+def list_kubernetes_storages(config: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    workspace_name = config["workspace_name"]
+    namespace = get_workspace_namespace_name(workspace_name)
+    return _list_storages_for_cloud_provider(config, namespace)
+
+
+def _list_storages_for_cloud_provider(config, namespace):
+    provider_config = config["provider"]
+    cloud_provider = _get_cloud_provider_config(provider_config)
+    if cloud_provider is None:
+        # No cloud provider configured
+        return None
+    cloud_provider_type = cloud_provider["type"]
+    if cloud_provider_type == "aws":
+        from cloudtik.providers._private._kubernetes.aws_eks.config import \
+            list_storages_for_aws
+        return list_storages_for_aws(
+            config, namespace, cloud_provider)
+    elif cloud_provider_type == "gcp":
+        from cloudtik.providers._private._kubernetes.gcp_gke.config import \
+            list_storages_for_gcp
+        return list_storages_for_gcp(
+            config, namespace, cloud_provider)
+    elif cloud_provider_type == "azure":
+        from cloudtik.providers._private._kubernetes.azure_aks.config import \
+            list_storages_for_azure
+        return list_storages_for_azure(
+            config, namespace, cloud_provider)
+    return None
 
 
 def get_kubernetes_workspace_info(config):

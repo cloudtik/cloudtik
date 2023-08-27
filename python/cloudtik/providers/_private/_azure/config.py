@@ -18,7 +18,8 @@ from cloudtik.core._private.utils import check_cidr_conflict, is_use_internal_ip
     is_managed_cloud_storage, is_use_managed_cloud_storage, _is_use_managed_cloud_storage, update_nested_dict, \
     is_gpu_runtime, is_managed_cloud_database, is_use_managed_cloud_database
 from cloudtik.core.workspace_provider import Existence, CLOUDTIK_MANAGED_CLOUD_STORAGE, \
-    CLOUDTIK_MANAGED_CLOUD_STORAGE_URI, CLOUDTIK_MANAGED_CLOUD_DATABASE, CLOUDTIK_MANAGED_CLOUD_DATABASE_ENDPOINT
+    CLOUDTIK_MANAGED_CLOUD_STORAGE_URI, CLOUDTIK_MANAGED_CLOUD_DATABASE, CLOUDTIK_MANAGED_CLOUD_DATABASE_ENDPOINT, \
+    CLOUDTIK_MANAGED_CLOUD_STORAGE_NAME
 
 from azure.mgmt.compute import ComputeManagementClient
 from azure.core.exceptions import ResourceNotFoundError
@@ -78,7 +79,6 @@ AZURE_WORKSPACE_TARGET_RESOURCES = 12
 
 AZURE_MANAGED_STORAGE_TYPE = "azure.managed.storage.type"
 AZURE_MANAGED_STORAGE_ACCOUNT = "azure.managed.storage.account"
-AZURE_MANAGED_STORAGE_CONTAINER = "azure.managed.storage.container"
 
 logger = logging.getLogger(__name__)
 
@@ -135,6 +135,19 @@ def get_workspace_head_user_assigned_identity_name(workspace_name):
 
 def get_workspace_storage_container_name(workspace_name):
     return AZURE_WORKSPACE_STORAGE_CONTAINER_NAME.format(workspace_name)
+
+
+def get_resource_group_name_of(config):
+    provider_config = config["provider"]
+    workspace_name = config["workspace_name"]
+    return _get_resource_group_name_of(provider_config, workspace_name)
+
+
+def _get_resource_group_name_of(provider_config, workspace_name):
+    resource_client = _construct_resource_client(provider_config)
+    use_working_vpc = _is_use_working_vpc(provider_config)
+    return _get_resource_group_name(
+        workspace_name, resource_client, use_working_vpc)
 
 
 def check_azure_workspace_existence(config):
@@ -220,7 +233,7 @@ def check_azure_workspace_existence(config):
                 existing_resources += 1
 
         if managed_cloud_storage:
-            if get_container_for_storage_account(config, resource_group_name) is not None:
+            if get_container_of_storage_account(config, resource_group_name) is not None:
                 existing_resources += 1
                 cloud_storage_existence = True
 
@@ -272,16 +285,32 @@ def get_azure_workspace_info(config):
 def get_azure_managed_cloud_storage_info(
         config, cloud_provider, resource_group_name, info):
     workspace_name = config["workspace_name"]
-    azure_cloud_storage = _get_managed_azure_cloud_storage(
+    cloud_storage_info = _get_managed_cloud_storage_info(
         cloud_provider, workspace_name, resource_group_name)
-    if azure_cloud_storage is not None:
+    if cloud_storage_info:
+        info[CLOUDTIK_MANAGED_CLOUD_STORAGE] = cloud_storage_info
+
+
+def _get_managed_cloud_storage_info(
+        cloud_provider, workspace_name, resource_group_name,
+        object_storage_name=None):
+    storage_and_container = _get_container_of_storage_account(
+        cloud_provider, workspace_name, resource_group_name,
+        object_storage_name=object_storage_name)
+    return _get_object_storage_info(storage_and_container)
+
+
+def _get_object_storage_info(storage_and_container):
+    if storage_and_container is not None:
+        azure_cloud_storage = _get_azure_cloud_storage(storage_and_container)
         storage_uri = get_azure_cloud_storage_uri(azure_cloud_storage)
         managed_cloud_storage = {
             AZURE_MANAGED_STORAGE_TYPE: azure_cloud_storage.get("azure.storage.type"),
             AZURE_MANAGED_STORAGE_ACCOUNT: azure_cloud_storage.get("azure.storage.account"),
-            AZURE_MANAGED_STORAGE_CONTAINER: azure_cloud_storage.get("azure.container"),
+            CLOUDTIK_MANAGED_CLOUD_STORAGE_NAME: azure_cloud_storage.get("azure.container"),
             CLOUDTIK_MANAGED_CLOUD_STORAGE_URI: storage_uri}
-        info[CLOUDTIK_MANAGED_CLOUD_STORAGE] = managed_cloud_storage
+        return managed_cloud_storage
+    return None
 
 
 def get_azure_managed_cloud_database_info(
@@ -561,22 +590,23 @@ def _delete_network_resources(config, resource_client, resource_group_name, curr
     return current_step
 
 
-def get_container_for_storage_account(
+def get_container_of_storage_account(
         config, resource_group_name, object_storage_name=None):
     workspace_name = config["workspace_name"]
-    return _get_container_for_storage_account(
+    return _get_container_of_storage_account(
         config["provider"], workspace_name, resource_group_name,
         object_storage_name=object_storage_name
     )
 
 
-def _get_container_for_storage_account(
+def _get_container_of_storage_account(
         provider_config, workspace_name, resource_group_name,
         storage_client=None, object_storage_name=None):
     if storage_client is None:
         storage_client = _construct_storage_client(provider_config)
     if not object_storage_name:
         object_storage_name = get_workspace_storage_container_name(workspace_name)
+
     storage_account_name = get_workspace_storage_account_name(workspace_name)
     storage_account = _get_storage_account(
         provider_config, storage_account_name,
@@ -584,7 +614,7 @@ def _get_container_for_storage_account(
     if storage_account is None:
         return None
 
-    cli_logger.verbose("Getting the workspace container: {}.".format(
+    cli_logger.verbose("Getting the container: {}.".format(
         object_storage_name))
     containers = list(storage_client.blob_containers.list(
         resource_group_name=resource_group_name, account_name=storage_account.name))
@@ -594,12 +624,38 @@ def _get_container_for_storage_account(
     if len(workspace_containers) > 0:
         container = workspace_containers[0]
         cli_logger.verbose(
-            "Successfully get the workspace container: {}.".format(container.name))
-        return container
+            "Successfully get the container: {}.".format(container.name))
+        return storage_account, container
 
     cli_logger.verbose_error(
         "Failed to get the container in storage account: {}", storage_account.name)
     return None
+
+
+def _get_containers_of_storage_account(
+        provider_config, workspace_name, resource_group_name,
+        storage_client=None):
+    if storage_client is None:
+        storage_client = _construct_storage_client(provider_config)
+    storage_account_name = get_workspace_storage_account_name(workspace_name)
+    storage_account = _get_storage_account(
+        provider_config, storage_account_name,
+        storage_client=storage_client)
+    if storage_account is None:
+        return None
+
+    cli_logger.verbose("Getting the containers in the workspace: {}.".format(
+        workspace_name))
+    containers = storage_client.blob_containers.list(
+        resource_group_name=resource_group_name, account_name=storage_account.name)
+    if containers is None:
+        cli_logger.verbose("No containers found in workspace: {}", workspace_name)
+        return None
+
+    containers = list(containers)
+    cli_logger.verbose(
+        "Successfully get the {} containers.".format(len(containers)))
+    return storage_account, containers
 
 
 def get_storage_account(config):
@@ -695,29 +751,18 @@ def _delete_container_for_storage_account(
     if not object_storage_name:
         object_storage_name = get_workspace_storage_container_name(workspace_name)
 
-    # Check storage account existence
-    storage_account_name = get_workspace_storage_account_name(workspace_name)
-    storage_account = _get_storage_account(
-        provider_config, storage_account_name,
-        storage_client=storage_client)
-    if storage_account is None:
-        cli_logger.print(
-            "The storage account {} doesn't exist. Skip deletion.",
-            storage_account_name)
-        return
-
-    # This name is different
-    account_name = storage_account.name
-
     # Check container existence
-    container = _get_container_for_storage_account(
+    storage_and_container = _get_container_of_storage_account(
         provider_config, workspace_name, resource_group_name,
         object_storage_name=object_storage_name)
-    if container is None:
+    if storage_and_container is None:
         cli_logger.print(
             "Storage container {} doesn't exists in the workspace. Skip deletion.",
             object_storage_name)
         return
+
+    storage_account, container = storage_and_container
+    account_name = storage_account.name
 
     cli_logger.print("Deleting storage container: {}...", object_storage_name)
     try:
@@ -1558,7 +1603,8 @@ def get_workspace_virtual_network(workspace_name, network_client):
 
 def _get_resource_group_name(
         workspace_name, resource_client, use_working_vpc):
-    resource_group = _get_resource_group(workspace_name, resource_client, use_working_vpc)
+    resource_group = _get_resource_group(
+        workspace_name, resource_client, use_working_vpc)
     return None if resource_group is None else resource_group.name
 
 
@@ -1741,7 +1787,9 @@ def _create_workspace_cloud_storage(config, resource_group_name):
     )
 
 
-def _create_managed_cloud_storage(provider_config, workspace_name, resource_group_name):
+def _create_managed_cloud_storage(
+        provider_config, workspace_name, resource_group_name,
+        object_storage_name=None):
     current_step = 1
     total_steps = 2
 
@@ -1757,7 +1805,8 @@ def _create_managed_cloud_storage(provider_config, workspace_name, resource_grou
             _numbered=("[]", current_step, total_steps)):
         current_step += 1
         _create_container_for_storage_account(
-            provider_config, workspace_name, resource_group_name)
+            provider_config, workspace_name, resource_group_name,
+            object_storage_name=object_storage_name)
 
 
 def _create_container_for_storage_account(
@@ -1777,12 +1826,12 @@ def _create_container_for_storage_account(
     account_name = storage_account.name
 
     # Check the container existence
-    container = _get_container_for_storage_account(
+    storage_and_container = _get_container_of_storage_account(
         provider_config, workspace_name, resource_group_name,
         storage_client=storage_client,
         object_storage_name=object_storage_name)
-    if container is not None:
-        cli_logger.print("Storage container for the workspace already exists. Skip creation.")
+    if storage_and_container is not None:
+        cli_logger.print("Storage container already exists in the workspace. Skip creation.")
         return
 
     cli_logger.print("Creating container for storage account: {}...", account_name)
@@ -1810,7 +1859,9 @@ def _create_storage_account(provider_config, workspace_name, resource_group_name
         provider_config, storage_account_name,
         storage_client=storage_client)
     if storage_account is not None:
-        cli_logger.print("Storage account {} already exists. Skip creation.".format(storage_account_name))
+        cli_logger.print(
+            "Storage account {} already exists. Skip creation.".format(
+                storage_account_name))
         return
 
     location = provider_config["location"]
@@ -3013,18 +3064,19 @@ def get_workspace_azure_storage(config, workspace_name):
     )
 
 
-def _get_managed_azure_cloud_storage(provider_config, workspace_name, resource_group_name):
-    storage_account_name = get_workspace_storage_account_name(workspace_name)
-    storage_account = _get_storage_account(
-        provider_config, storage_account_name)
-    if storage_account is None:
+def _get_managed_azure_cloud_storage(
+        provider_config, workspace_name, resource_group_name,
+        object_storage_name=None):
+    storage_and_container = _get_container_of_storage_account(
+        provider_config, workspace_name, resource_group_name,
+        object_storage_name=object_storage_name)
+    if storage_and_container is None:
         return None
+    return _get_azure_cloud_storage(storage_and_container)
 
-    container = _get_container_for_storage_account(
-        provider_config, workspace_name, resource_group_name)
-    if container is None:
-        return None
 
+def _get_azure_cloud_storage(storage_and_container):
+    storage_account, container = storage_and_container
     azure_cloud_storage = {"azure.storage.type": "datalake",
                            "azure.storage.account": storage_account.name,
                            "azure.container": container.name}
@@ -3332,13 +3384,12 @@ def get_cluster_name_from_head(head_node) -> Optional[str]:
 
 def list_azure_clusters(config: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     compute_client = construct_compute_client(config)
-    resource_client = construct_resource_client(config)
     network_client = construct_network_client(config)
-    use_working_vpc = is_use_working_vpc(config)
-    resource_group_name = get_resource_group_name(config, resource_client, use_working_vpc)
+    workspace_name = config["workspace_name"]
+    resource_group_name = get_resource_group_name_of(config)
 
     head_nodes = _get_workspace_head_nodes(
-        workspace_name=config.get("workspace_name"),
+        workspace_name=workspace_name,
         resource_group_name=resource_group_name,
         compute_client=compute_client
     )
@@ -3354,6 +3405,31 @@ def list_azure_clusters(config: Dict[str, Any]) -> Optional[Dict[str, Any]]:
                 network_client=network_client)
             clusters[cluster_name] = _get_node_info(head_node_meta)
     return clusters
+
+
+def list_azure_storages(config: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    provider_config = config["provider"]
+    workspace_name = config["workspace_name"]
+    resource_group_name = get_resource_group_name_of(config)
+    return _list_azure_storages(
+        provider_config, workspace_name, resource_group_name)
+
+
+def _list_azure_storages(
+        cloud_provider: Dict[str, Any], workspace_name,
+        resource_group_name) -> Optional[Dict[str, Any]]:
+    storage_and_containers = _get_containers_of_storage_account(
+        cloud_provider, workspace_name, resource_group_name)
+    if storage_and_containers is None:
+        return None
+    storage_account, containers = storage_and_containers
+    object_storages = {}
+    for container in containers:
+        storage_name = container.name
+        if storage_name:
+            object_storages[storage_name] = _get_object_storage_info(
+                (storage_account, container))
+    return object_storages
 
 
 def verify_azure_blob_storage(provider_config: Dict[str, Any]):
