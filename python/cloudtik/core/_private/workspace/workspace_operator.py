@@ -11,7 +11,7 @@ from cloudtik.core._private.cluster.cluster_operator import _get_cluster_info
 from cloudtik.core._private.core_utils import get_cloudtik_temp_dir, get_json_object_hash
 from cloudtik.core.tags import CLOUDTIK_TAG_NODE_STATUS
 from cloudtik.core.workspace_provider import Existence, CLOUDTIK_MANAGED_CLOUD_STORAGE, \
-    CLOUDTIK_MANAGED_CLOUD_STORAGE_URI
+    CLOUDTIK_MANAGED_CLOUD_STORAGE_URI, CLOUDTIK_MANAGED_CLOUD_DATABASE_ENDPOINT, CLOUDTIK_MANAGED_CLOUD_DATABASE_PORT
 from cloudtik.core._private.utils import \
     is_managed_cloud_database, is_managed_cloud_storage, print_dict_info, \
     NODE_INFO_NODE_IP, handle_cli_override, load_yaml_config, save_config_cache, load_config_from_cache, \
@@ -281,9 +281,7 @@ def list_workspace_storages(
         cli_logger.print(cf.bold("Workspace {} has no managed cloud storages."),
                          config["workspace_name"])
     else:
-        # storages_info = _get_storages_info(config, storages)
-        # _show_storages(storages_info)
-        pass
+        _show_storages(storages)
 
 
 def _list_workspace_storages(config: Dict[str, Any]) -> Optional[Dict[str, Any]]:
@@ -292,6 +290,17 @@ def _list_workspace_storages(config: Dict[str, Any]) -> Optional[Dict[str, Any]]
         return None
 
     return provider.list_storages(config)
+
+
+def _show_storages(storages):
+    tb = pt.PrettyTable()
+    tb.field_names = ["storage-name", "storage-uri"]
+    for storage_name, storage_info in storages.items():
+        tb.add_row([storage_name, storage_info[CLOUDTIK_MANAGED_CLOUD_STORAGE_URI]
+                    ])
+
+    cli_logger.print(cf.bold("{} object storage(s)."), len(storages))
+    cli_logger.print(tb)
 
 
 def list_workspace_databases(
@@ -307,10 +316,7 @@ def list_workspace_databases(
         cli_logger.print(cf.bold("Workspace {} has no managed cloud databases."),
                          config["workspace_name"])
     else:
-        # TODO: Get database info by the cluster name
-        # databases_info = _get_databases_info(config, databases)
-        # _show_databases(databases_info)
-        pass
+        _show_databases(databases)
 
 
 def _list_workspace_databases(config: Dict[str, Any]) -> Optional[Dict[str, Any]]:
@@ -319,6 +325,18 @@ def _list_workspace_databases(config: Dict[str, Any]) -> Optional[Dict[str, Any]
         return None
 
     return provider.list_databases(config)
+
+
+def _show_databases(databases):
+    tb = pt.PrettyTable()
+    tb.field_names = ["instance-name", "host", "port"]
+    for database_name, database_info in databases.items():
+        tb.add_row([database_name, database_info[CLOUDTIK_MANAGED_CLOUD_DATABASE_ENDPOINT],
+                    database_info[CLOUDTIK_MANAGED_CLOUD_DATABASE_PORT]
+                    ])
+
+    cli_logger.print(cf.bold("{} database instance(s)."), len(databases))
+    cli_logger.print(tb)
 
 
 def show_status(

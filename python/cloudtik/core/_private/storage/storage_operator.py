@@ -105,8 +105,12 @@ def _get_storage_info(
 def show_storage_info(
         config_file: str,
         override_storage_name: Optional[str] = None):
-    storage_info = get_storage_info(config_file, override_storage_name)
-    print_dict_info(storage_info)
+    config = _load_storage_config(config_file, override_storage_name)
+    storage_info = _get_storage_info(config)
+    if not storage_info:
+        cli_logger.print("Object storage {} doesn't exist.", config["storage_name"])
+    else:
+        print_dict_info(storage_info)
 
 
 def _bootstrap_storage_config(

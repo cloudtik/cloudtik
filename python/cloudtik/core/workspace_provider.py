@@ -1,5 +1,5 @@
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 from enum import Enum
 
 from cloudtik.core._private.annotations import DeveloperAPI
@@ -7,9 +7,11 @@ from cloudtik.core._private.annotations import DeveloperAPI
 logger = logging.getLogger(__name__)
 
 CLOUDTIK_MANAGED_CLOUD_STORAGE = "managed.cloud.storage"
+CLOUDTIK_MANAGED_CLOUD_STORAGE_NAME = "cloud.storage.name"
 CLOUDTIK_MANAGED_CLOUD_STORAGE_URI = "cloud.storage.uri"
 
 CLOUDTIK_MANAGED_CLOUD_DATABASE = "managed.cloud.database"
+CLOUDTIK_MANAGED_CLOUD_DATABASE_NAME = "cloud.database.name"
 CLOUDTIK_MANAGED_CLOUD_DATABASE_ENDPOINT = "cloud.database.endpoint"
 CLOUDTIK_MANAGED_CLOUD_DATABASE_PORT = "cloud.database.port"
 
@@ -73,11 +75,27 @@ class WorkspaceProvider:
         """Check whether the workspace is correctly configured"""
         return False
 
-    def list_clusters(self, config: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    def list_clusters(
+            self, config: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         """Get a list of clusters belongs to the workspace specified by the workspace config
         The mapping is keyed by the cluster name with the value of node info of head node.
         """
         return None
+
+    def list_storages(
+            self, config: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """Get a list of cloud storages belongs to the workspace specified by the workspace config
+        The mapping is keyed by the storage name with a dict of storage info.
+        """
+        return None
+
+    def list_databases(
+            self, config: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """Get a list of database instances belongs to the workspace specified by the workspace config
+        The mapping is keyed by the database instance name with a dict of database info.
+        """
+        return None
+
 
     def publish_global_variables(self, cluster_config: Dict[str, Any],
                                  global_variables: Dict[str, Any]):

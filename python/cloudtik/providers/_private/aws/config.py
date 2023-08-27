@@ -413,6 +413,10 @@ def _get_managed_cloud_storage_info(
     bucket = get_managed_s3_bucket(
         cloud_provider, workspace_name,
         object_storage_name=object_storage_name)
+    return _get_object_storage_info(bucket)
+
+
+def _get_object_storage_info(bucket):
     managed_bucket_name = None if bucket is None else bucket.name
     if managed_bucket_name is not None:
         aws_cloud_storage = {AWS_S3_BUCKET: managed_bucket_name}
@@ -2593,15 +2597,20 @@ def _is_workspace_tagged(tags, workspace_name):
 def get_managed_s3_buckets(
         provider_config, workspace_name):
     s3 = _make_resource("s3", provider_config)
+    s3_client = _make_resource_client("s3", provider_config)
 
     cli_logger.verbose(
         "Getting s3 buckets of workspace: {}...", workspace_name)
     workspace_buckets = []
     for bucket in s3.buckets.all():
-        bucket_tagging = bucket.Tagging()
-        tags = bucket_tagging.tag_set
-        if _is_workspace_tagged(tags, workspace_name):
-            workspace_buckets.append(bucket)
+        try:
+            bucket_tagging = s3_client.get_bucket_tagging(Bucket=bucket.name)
+            tags = bucket_tagging.get("TagSet") if bucket_tagging is not None else None
+            if _is_workspace_tagged(tags, workspace_name):
+                workspace_buckets.append(bucket)
+        except botocore.exceptions.ClientError as exc:
+            if exc.response.get("Error", {}).get("Code") == "NoSuchTagSet":
+                continue
 
     cli_logger.verbose(
         "Successfully get {} s3 buckets.".format(
@@ -2690,6 +2699,18 @@ def list_aws_clusters(config: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         if cluster_name:
             clusters[cluster_name] = _get_node_info(head_node)
     return clusters
+
+
+def list_aws_storages(config: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    provider_config = config["provider"]
+    workspace_name = config["workspace_name"]
+    buckets = get_managed_s3_buckets(provider_config, workspace_name)
+    object_storages = {}
+    for bucket in buckets:
+        storage_name = bucket.name
+        if storage_name:
+            object_storages[storage_name] = _get_object_storage_info(bucket)
+    return object_storages
 
 
 ######################

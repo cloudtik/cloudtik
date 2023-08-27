@@ -105,8 +105,12 @@ def _get_database_info(
 def show_database_info(
         config_file: str,
         override_database_name: Optional[str] = None):
-    database_info = get_database_info(config_file, override_database_name)
-    print_dict_info(database_info)
+    config = _load_database_config(config_file, override_database_name)
+    database_info = _get_database_info(config)
+    if not database_info:
+        cli_logger.print("Database instance {} doesn't exist.", config["database_name"])
+    else:
+        print_dict_info(database_info)
 
 
 def _bootstrap_database_config(

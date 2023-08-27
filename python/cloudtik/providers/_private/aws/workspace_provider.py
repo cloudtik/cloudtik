@@ -5,7 +5,7 @@ from cloudtik.core._private.utils import get_running_head_node, check_workspace_
 from cloudtik.providers._private.aws.config import create_aws_workspace, \
     delete_aws_workspace, check_aws_workspace_integrity, \
     list_aws_clusters, _get_workspace_head_nodes, bootstrap_aws_workspace, \
-    check_aws_workspace_existence, get_aws_workspace_info, update_aws_workspace
+    check_aws_workspace_existence, get_aws_workspace_info, update_aws_workspace, list_aws_storages
 from cloudtik.core._private.provider_factory import _get_node_provider
 from cloudtik.core.tags import CLOUDTIK_GLOBAL_VARIABLE_KEY_PREFIX, CLOUDTIK_GLOBAL_VARIABLE_KEY
 from cloudtik.core.workspace_provider import WorkspaceProvider
@@ -40,8 +40,14 @@ class AWSWorkspaceProvider(WorkspaceProvider):
     def check_workspace_integrity(self, config):
         return check_aws_workspace_integrity(config)
 
-    def list_clusters(self, config: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    def list_clusters(
+            self, config: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         return list_aws_clusters(config)
+
+    def list_storages(
+            self, config: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+
+        return list_aws_storages(config)
 
     def publish_global_variables(self, cluster_config: Dict[str, Any],
                                  global_variables: Dict[str, Any]):
