@@ -45,9 +45,9 @@ class GCPDatabaseProvider(DatabaseProvider):
         """Check the configuration validation.
         This happens before bootstrap_config
         """
-        if (len(self.storage_name) < GCP_DATABASE_NAME_MIN_LEN or
-                len(self.storage_name) > GCP_DATABASE_NAME_MAX_LEN or
-                not check_database_name_format(self.storage_name)):
+        if (len(self.database_name) < GCP_DATABASE_NAME_MIN_LEN or
+                len(self.database_name) > GCP_DATABASE_NAME_MAX_LEN or
+                not check_database_name_format(self.database_name)):
             raise RuntimeError(
                 "{} database instance name is between {} and {} characters, "
                 "and can only contain lowercase alphanumeric "

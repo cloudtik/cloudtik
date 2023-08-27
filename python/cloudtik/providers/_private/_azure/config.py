@@ -2348,6 +2348,7 @@ def _get_managed_database_instances_of_engine(
             resource_group_name)
         if server_instances is None:
             return []
+        server_instances = list(server_instances)
         cli_logger.verbose("Successfully get {} database instances.".format(
             len(server_instances)))
         return server_instances

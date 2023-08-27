@@ -98,4 +98,3 @@ class AzureWorkspaceProvider(WorkspaceProvider):
     @staticmethod
     def bootstrap_workspace_config(config):
         return bootstrap_azure_workspace(config)
-

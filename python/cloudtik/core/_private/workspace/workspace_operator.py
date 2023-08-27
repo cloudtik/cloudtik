@@ -263,8 +263,14 @@ def _show_clusters(clusters_info):
 
 def _list_workspace_clusters(config: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     provider = _get_workspace_provider(config["provider"], config["workspace_name"])
-    if not provider.check_workspace_integrity(config):
+    existence = provider.check_workspace_existence(config)
+    if existence == Existence.NOT_EXIST:
         return None
+    elif existence != Existence.COMPLETED:
+        # show a warning here
+        cli_logger.warning(
+            "Workspace {} is not in completed status. Going forward may cause errors.",
+            config["workspace_name"])
 
     return provider.list_clusters(config)
 
@@ -287,8 +293,14 @@ def list_workspace_storages(
 
 def _list_workspace_storages(config: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     provider = _get_workspace_provider(config["provider"], config["workspace_name"])
-    if not provider.check_workspace_integrity(config):
+    existence = provider.check_workspace_existence(config)
+    if existence == Existence.NOT_EXIST:
         return None
+    elif existence != Existence.COMPLETED:
+        # show a warning here
+        cli_logger.warning(
+            "Workspace {} is not in completed status. Going forward may cause errors.",
+            config["workspace_name"])
 
     return provider.list_storages(config)
 
@@ -322,8 +334,14 @@ def list_workspace_databases(
 
 def _list_workspace_databases(config: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     provider = _get_workspace_provider(config["provider"], config["workspace_name"])
-    if not provider.check_workspace_integrity(config):
+    existence = provider.check_workspace_existence(config)
+    if existence == Existence.NOT_EXIST:
         return None
+    elif existence != Existence.COMPLETED:
+        # show a warning here
+        cli_logger.warning(
+            "Workspace {} is not in completed status. Going forward may cause errors.",
+            config["workspace_name"])
 
     return provider.list_databases(config)
 

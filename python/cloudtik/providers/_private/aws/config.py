@@ -30,7 +30,7 @@ from cloudtik.providers._private.aws.utils import \
     _resource_client, _make_resource, _make_resource_client, make_ec2_client, export_aws_s3_storage_config, \
     get_aws_s3_storage_config, get_aws_s3_storage_config_for_update, _working_node_client, _working_node_resource, \
     get_aws_cloud_storage_uri, AWS_S3_BUCKET, _make_client, get_aws_database_config, export_aws_database_config, \
-    get_aws_database_config_for_update, AWS_DATABASE_ENDPOINT, get_aws_database_engine
+    get_aws_database_config_for_update, AWS_DATABASE_ENDPOINT, get_aws_database_engine, get_aws_database_port
 from cloudtik.providers._private.utils import StorageTestingError
 
 logger = logging.getLogger(__name__)
@@ -254,8 +254,14 @@ def get_workspace_public_route_tables(workspace_name, ec2, vpc_id):
 
 
 def get_workspace_security_group(config, vpc_id, workspace_name):
+    return _get_workspace_security_group(
+        config["provider"], vpc_id, workspace_name)
+
+
+def _get_workspace_security_group(provider_config, vpc_id, workspace_name):
+    security_group_name = AWS_WORKSPACE_SECURITY_GROUP_NAME.format(workspace_name)
     return _get_security_group(
-        config["provider"], vpc_id, AWS_WORKSPACE_SECURITY_GROUP_NAME.format(workspace_name))
+        provider_config, vpc_id, security_group_name)
 
 
 def get_workspace_internet_gateways(workspace_name, ec2, vpc_id):
@@ -2087,14 +2093,13 @@ def _create_workspace_cloud_database(config, workspace_name):
 
 
 def _create_managed_database_instance_in_workspace(
-        config, workspace_name, db_instance_name=None):
-    cloud_provider = config["provider"]
+        cloud_provider, workspace_name, db_instance_name=None):
 
     ec2_client = _make_resource_client("ec2", cloud_provider)
     vpc_id = get_workspace_vpc_id(workspace_name, ec2_client)
 
-    security_group = get_workspace_security_group(
-        config, vpc_id, workspace_name)
+    security_group = _get_workspace_security_group(
+        cloud_provider, vpc_id, workspace_name)
 
     _create_managed_database_instance(
         cloud_provider, workspace_name, security_group.id,
@@ -2144,6 +2149,7 @@ def _create_managed_database_instance(
     db_subnet_group = AWS_WORKSPACE_DB_SUBNET_GROUP_NAME.format(workspace_name)
     database_config = get_aws_database_config(cloud_provider, {})
     engine = get_aws_database_engine(database_config)
+    port = get_aws_database_port(database_config)
 
     tags = [
         {'Key': CLOUDTIK_TAG_WORKSPACE_NAME, 'Value': workspace_name}
@@ -2166,7 +2172,7 @@ def _create_managed_database_instance(
             ],
             DBSubnetGroupName=db_subnet_group,
             PubliclyAccessible=False,
-            Port=database_config.get("port"),
+            Port=port,
             MultiAZ=database_config.get("high_availability", False),
             Tags=tags
         )

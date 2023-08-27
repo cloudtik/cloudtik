@@ -104,7 +104,7 @@ def _get_database_info(
         config: Dict[str, Any]):
     provider = _get_database_provider(
         config["provider"], config["workspace_name"], config["database_name"])
-    return provider.get_database_info(config)
+    return provider.get_info(config)
 
 
 def show_database_info(
