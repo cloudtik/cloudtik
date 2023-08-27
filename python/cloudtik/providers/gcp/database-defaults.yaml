@@ -1,0 +1,10 @@
+# Include the common database defaults
+from: database-defaults
+
+# Cloud-provider specific configuration.
+provider:
+    type: gcp
+    region: us-west1
+    availability_zone: us-west1-a
+    # Globally unique project id
+    project_id: null

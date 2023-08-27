@@ -13,7 +13,7 @@ from kubernetes.client.rest import ApiException
 from cloudtik.core._private.cli_logger import cli_logger, cf
 from cloudtik.core._private.core_utils import parse_memory_resource, generate_public_key
 from cloudtik.core._private.docker import get_versioned_image
-from cloudtik.core._private.providers import _get_node_provider
+from cloudtik.core._private.provider_factory import _get_node_provider
 from cloudtik.core._private.utils import is_use_internal_ip, get_running_head_node, binary_to_hex, hex_to_binary, \
     get_head_service_ports, _is_use_managed_cloud_storage, _is_use_internal_ip, is_gpu_runtime, \
     PROVIDER_DATABASE_CONFIG_KEY, PROVIDER_STORAGE_CONFIG_KEY

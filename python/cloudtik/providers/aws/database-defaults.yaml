@@ -1,0 +1,7 @@
+# Include the common database defaults
+from: database-defaults
+
+# Cloud-provider specific configuration.
+provider:
+    type: aws
+    region: us-west-2

@@ -1,0 +1,5 @@
+# Include the common database defaults
+from: database-defaults
+
+provider:
+    type: kubernetes

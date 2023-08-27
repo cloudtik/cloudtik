@@ -6,7 +6,7 @@ from cloudtik.providers._private.aws.config import create_aws_workspace, \
     delete_aws_workspace, check_aws_workspace_integrity, \
     list_aws_clusters, _get_workspace_head_nodes, bootstrap_aws_workspace, \
     check_aws_workspace_existence, get_aws_workspace_info, update_aws_workspace
-from cloudtik.core._private.providers import _get_node_provider
+from cloudtik.core._private.provider_factory import _get_node_provider
 from cloudtik.core.tags import CLOUDTIK_GLOBAL_VARIABLE_KEY_PREFIX, CLOUDTIK_GLOBAL_VARIABLE_KEY
 from cloudtik.core.workspace_provider import WorkspaceProvider
 

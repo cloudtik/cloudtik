@@ -36,13 +36,13 @@ from cloudtik.core._private.node.node_updater import NodeUpdater
 from cloudtik.core._private.prometheus_metrics import ClusterPrometheusMetrics
 from cloudtik.core._private.state.control_state import ControlState
 from cloudtik.core._private.state.scaling_state import ScalingStateClient
-from cloudtik.core._private.utils import prepare_config, validate_config, fillout_defaults, \
+from cloudtik.core._private.utils import prepare_config, validate_config, fill_with_defaults, \
     set_node_type_min_max_workers, DOCKER_CONFIG_KEY, RUNTIME_CONFIG_KEY, get_cluster_uri, hash_launch_conf, \
     hash_runtime_conf, is_docker_enabled, get_commands_to_run, cluster_booting_completed, merge_cluster_config, \
     with_head_node_ip_environment_variables
 from cloudtik.core._private.cluster import cluster_operator
 from cloudtik.core._private.cluster.cluster_metrics import ClusterMetrics
-from cloudtik.core._private.providers import _NODE_PROVIDERS, _get_node_provider, _PROVIDER_HOMES, \
+from cloudtik.core._private.provider_factory import _NODE_PROVIDERS, _get_node_provider, _PROVIDER_HOMES, \
     _load_aws_provider_home
 
 from cloudtik.core.node_provider import NodeProvider
@@ -641,7 +641,7 @@ class CloudTikTest(unittest.TestCase):
         return self.provider
 
     def prepare_mock_config(self, config):
-        with_defaults = fillout_defaults(config)
+        with_defaults = fill_with_defaults(config)
         merge_cluster_config(with_defaults)
         validate_docker_config(with_defaults)
         set_node_type_min_max_workers(with_defaults)

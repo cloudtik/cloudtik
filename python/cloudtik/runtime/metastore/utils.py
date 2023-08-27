@@ -1,7 +1,7 @@
 import os
 from typing import Any, Dict
 
-from cloudtik.core._private.providers import _get_node_provider
+from cloudtik.core._private.provider_factory import _get_node_provider
 from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_METASTORE
 from cloudtik.core._private.service_discovery.utils import get_canonical_service_name, \
     get_service_discovery_config, define_runtime_service_on_head_or_all

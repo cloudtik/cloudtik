@@ -3,7 +3,7 @@ from typing import Any, Dict
 
 from cloudtik.core._private.call_context import CallContext
 from cloudtik.core._private.cluster.cluster_utils import create_node_updater_for_exec
-from cloudtik.core._private.providers import _get_node_provider
+from cloudtik.core._private.provider_factory import _get_node_provider
 from cloudtik.core._private.utils import get_running_head_node
 from cloudtik.core.node_provider import NodeProvider
 

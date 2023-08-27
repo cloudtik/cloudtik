@@ -1,0 +1,8 @@
+# Include the common storage defaults
+from: storage-defaults
+
+# Cloud-provider specific configuration.
+provider:
+    type: azure
+    # https://azure.microsoft.com/en-us/global-infrastructure/locations
+    location: westus2

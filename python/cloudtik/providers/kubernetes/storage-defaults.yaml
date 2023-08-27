@@ -1,0 +1,5 @@
+# Include the common storage defaults
+from: storage-defaults
+
+provider:
+    type: kubernetes

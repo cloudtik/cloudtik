@@ -6,7 +6,7 @@ from cloudtik.providers._private.aliyun.config import create_aliyun_workspace, \
     delete_aliyun_workspace, check_aliyun_workspace_integrity, \
     list_aliyun_clusters, _get_workspace_head_nodes, bootstrap_aliyun_workspace, \
     check_aliyun_workspace_existence, get_aliyun_workspace_info, update_aliyun_workspace
-from cloudtik.core._private.providers import _get_node_provider
+from cloudtik.core._private.provider_factory import _get_node_provider
 from cloudtik.core.tags import CLOUDTIK_GLOBAL_VARIABLE_KEY_PREFIX, CLOUDTIK_GLOBAL_VARIABLE_KEY
 from cloudtik.core.workspace_provider import WorkspaceProvider
 

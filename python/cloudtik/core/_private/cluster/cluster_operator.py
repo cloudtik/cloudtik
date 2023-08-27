@@ -71,7 +71,7 @@ from cloudtik.core._private.utils import hash_runtime_conf, \
     get_resource_list_str, with_verbose_option, run_script, NODE_INFO_NODE_ID, is_alive_time_at, \
     get_runtime_encryption_key, with_runtime_encryption_key, set_runtime_encryption_key
 
-from cloudtik.core._private.providers import _get_node_provider, _NODE_PROVIDERS
+from cloudtik.core._private.provider_factory import _get_node_provider, _NODE_PROVIDERS
 from cloudtik.core.tags import (
     CLOUDTIK_TAG_NODE_KIND, CLOUDTIK_TAG_LAUNCH_CONFIG, CLOUDTIK_TAG_NODE_NAME,
     NODE_KIND_WORKER, NODE_KIND_HEAD, CLOUDTIK_TAG_USER_NODE_TYPE,

@@ -3,7 +3,7 @@ import copy
 import pytest
 
 from cloudtik.core._private.cluster.cluster_config import _bootstrap_config
-from cloudtik.core._private.providers import _get_node_provider, _get_workspace_provider
+from cloudtik.core._private.provider_factory import _get_node_provider, _get_workspace_provider
 from cloudtik.core._private.workspace.workspace_operator import _bootstrap_workspace_config
 from cloudtik.core.node_provider import NodeProvider
 from cloudtik.core.workspace_provider import WorkspaceProvider

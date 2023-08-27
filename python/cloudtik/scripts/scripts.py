@@ -28,6 +28,8 @@ from cloudtik.scripts.node_scripts import node
 from cloudtik.scripts.runtime_scripts import runtime
 from cloudtik.scripts.utils import NaturalOrderGroup, add_command_alias
 from cloudtik.scripts.workspace import workspace
+from cloudtik.scripts.storage import storage
+from cloudtik.scripts.database import database
 
 logger = logging.getLogger(__name__)
 
@@ -1346,6 +1348,12 @@ _add_command_alias(cluster_dump, name="cluster_dump", hidden=True)
 
 # workspace commands
 cli.add_command(workspace)
+
+# storage commands
+cli.add_command(storage)
+
+# database commands
+cli.add_command(database)
 
 # runtime commands
 cli.add_command(runtime)

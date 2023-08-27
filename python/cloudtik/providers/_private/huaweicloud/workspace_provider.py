@@ -1,6 +1,6 @@
 from typing import Any, Dict, Optional
 
-from cloudtik.core._private.providers import _get_node_provider
+from cloudtik.core._private.provider_factory import _get_node_provider
 from cloudtik.core._private.utils import check_workspace_name_format, \
     get_running_head_node
 from cloudtik.core.tags import CLOUDTIK_GLOBAL_VARIABLE_KEY, \

@@ -39,7 +39,7 @@ from cloudtik.core.tags import (
 from cloudtik.core._private.cluster.event_summarizer import EventSummarizer
 from cloudtik.core._private.cluster.cluster_metrics import ClusterMetrics
 from cloudtik.core._private.prometheus_metrics import ClusterPrometheusMetrics
-from cloudtik.core._private.providers import _get_node_provider
+from cloudtik.core._private.provider_factory import _get_node_provider
 from cloudtik.core._private.node.node_updater import NodeUpdaterThread
 from cloudtik.core._private.cluster.node_launcher import NodeLauncher, LAUNCH_ARGS_QUORUM_ID
 from cloudtik.core._private.cluster.node_tracker import NodeTracker

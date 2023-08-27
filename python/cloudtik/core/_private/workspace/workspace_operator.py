@@ -2,64 +2,29 @@ import copy
 import json
 import logging
 import os
-from functools import partial
-from typing import Any, Dict, List, Optional, Tuple, Union
-
+from typing import Any, Dict, Optional
 import prettytable as pt
-
 import yaml
 
+import cloudtik
 from cloudtik.core._private.cluster.cluster_operator import _get_cluster_info
 from cloudtik.core._private.core_utils import get_cloudtik_temp_dir, get_json_object_hash
 from cloudtik.core.tags import CLOUDTIK_TAG_NODE_STATUS
 from cloudtik.core.workspace_provider import Existence, CLOUDTIK_MANAGED_CLOUD_STORAGE, \
     CLOUDTIK_MANAGED_CLOUD_STORAGE_URI
-
-try:  # py3
-    from shlex import quote
-except ImportError:  # py2
-    from pipes import quote
-
-
-from cloudtik.core._private.utils import validate_workspace_config, prepare_workspace_config, is_managed_cloud_database, is_managed_cloud_storage, \
-    print_dict_info, decrypt_config, encrypt_config, NODE_INFO_NODE_IP
-from cloudtik.core._private.providers import _get_workspace_provider_cls, _get_workspace_provider, \
+from cloudtik.core._private.utils import \
+    is_managed_cloud_database, is_managed_cloud_storage, print_dict_info, \
+    NODE_INFO_NODE_IP, handle_cli_override, load_yaml_config, save_config_cache, load_config_from_cache, \
+    merge_config_hierarchy, validate_schema
+from cloudtik.core._private.provider_factory import _get_workspace_provider_cls, _get_workspace_provider, \
     _WORKSPACE_PROVIDERS, _PROVIDER_PRETTY_NAMES, _get_node_provider_cls
-
 from cloudtik.core._private.cli_logger import cli_logger, cf
-
-from cloudtik.core._private.debug import log_once
-
 
 logger = logging.getLogger(__name__)
 
-RUN_ENV_TYPES = ["auto", "host", "docker"]
-
-POLL_INTERVAL = 5
-
-Port_forward = Union[Tuple[int, int], List[Tuple[int, int]]]
-
-
-def try_logging_config(config: Dict[str, Any]) -> None:
-    if config["provider"]["type"] == "aws":
-        from cloudtik.providers._private.aws.config import log_to_cli
-        log_to_cli(config)
-
-
-def try_get_log_state(provider_config: Dict[str, Any]) -> Optional[dict]:
-    if provider_config["type"] == "aws":
-        from cloudtik.providers._private.aws.config import get_log_state
-        return get_log_state()
-    return None
-
-
-def try_reload_log_state(provider_config: Dict[str, Any],
-                         log_state: dict) -> None:
-    if not log_state:
-        return
-    if provider_config["type"] == "aws":
-        from cloudtik.providers._private.aws.config import reload_log_state
-        return reload_log_state(log_state)
+CONFIG_CACHE_VERSION = 1
+WORKSPACE_SCHEMA_PATH = os.path.join(
+    os.path.dirname(cloudtik.core.__file__), "workspace-schema.json")
 
 
 def _get_existence_name(existence):
@@ -140,31 +105,7 @@ def create_workspace(
         no_config_cache: bool = False,
         delete_incomplete: bool = True):
     """Creates a new workspace from a config json."""
-
-    def handle_yaml_error(e):
-        cli_logger.error("Workspace config invalid")
-        cli_logger.newline()
-        cli_logger.error("Failed to load YAML file " + cf.bold("{}"),
-                         config_file)
-        cli_logger.newline()
-        with cli_logger.verbatim_error_ctx("PyYAML error:"):
-            cli_logger.error(e)
-        cli_logger.abort()
-
-    try:
-        with open(config_file) as f:
-            config = yaml.safe_load(f.read())
-    except FileNotFoundError:
-        cli_logger.abort(
-            "Provided workspace configuration file ({}) does not exist",
-            cf.bold(config_file))
-    except yaml.parser.ParserError as e:
-        handle_yaml_error(e)
-        raise
-    except yaml.scanner.ScannerError as e:
-        handle_yaml_error(e)
-        raise
-
+    config = load_yaml_config(config_file)
     importer = _WORKSPACE_PROVIDERS.get(config["provider"]["type"])
     if not importer:
         cli_logger.abort(
@@ -175,23 +116,10 @@ def create_workspace(
                 if _WORKSPACE_PROVIDERS[k] is not None
             ]))
 
-    printed_overrides = False
-
-    def handle_cli_override(key, override):
-        if override is not None:
-            if key in config:
-                nonlocal printed_overrides
-                printed_overrides = True
-                cli_logger.warning(
-                    "`{}` override provided on the command line.\n"
-                    "  Using " + cf.bold("{}") + cf.dimmed(
-                        " [configuration file has " + cf.bold("{}") + "]"),
-                    key, override, config[key])
-            config[key] = override
-
-    handle_cli_override("workspace_name", override_workspace_name)
-
-    if printed_overrides:
+    overrides = 0
+    overrides += handle_cli_override(
+        config, "workspace_name", override_workspace_name)
+    if overrides:
         cli_logger.newline()
 
     cli_logger.labeled_value("Workspace", config["workspace_name"])
@@ -275,9 +203,11 @@ def list_workspace_clusters(
     config = _load_workspace_config(config_file, override_workspace_name)
     clusters = _list_workspace_clusters(config)
     if clusters is None:
-        cli_logger.error("Workspace {} is not correctly configured.", config["workspace_name"])
+        cli_logger.error("Workspace {} is not correctly configured.",
+                         config["workspace_name"])
     elif len(clusters) == 0:
-        cli_logger.print(cf.bold("Workspace {} has no cluster in running."), config["workspace_name"])
+        cli_logger.print(cf.bold("Workspace {} has no cluster in running."),
+                         config["workspace_name"])
     else:
         # Get cluster info by the cluster name
         clusters_info = _get_clusters_info(config, clusters)
@@ -338,6 +268,59 @@ def _list_workspace_clusters(config: Dict[str, Any]) -> Optional[Dict[str, Any]]
     return provider.list_clusters(config)
 
 
+def list_workspace_storages(
+        config_file: str,
+        override_workspace_name: Optional[str] = None):
+    """List cloud storages created for the workspace name."""
+    config = _load_workspace_config(config_file, override_workspace_name)
+    storages = _list_workspace_storages(config)
+    if storages is None:
+        cli_logger.error("Workspace {} is not correctly configured.",
+                         config["workspace_name"])
+    elif len(storages) == 0:
+        cli_logger.print(cf.bold("Workspace {} has no managed cloud storages."),
+                         config["workspace_name"])
+    else:
+        # storages_info = _get_storages_info(config, storages)
+        # _show_storages(storages_info)
+        pass
+
+
+def _list_workspace_storages(config: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    provider = _get_workspace_provider(config["provider"], config["workspace_name"])
+    if not provider.check_workspace_integrity(config):
+        return None
+
+    return provider.list_storages(config)
+
+
+def list_workspace_databases(
+        config_file: str,
+        override_workspace_name: Optional[str] = None):
+    """List cloud databases created for the workspace name."""
+    config = _load_workspace_config(config_file, override_workspace_name)
+    databases = _list_workspace_databases(config)
+    if databases is None:
+        cli_logger.error("Workspace {} is not correctly configured.",
+                         config["workspace_name"])
+    elif len(databases) == 0:
+        cli_logger.print(cf.bold("Workspace {} has no managed cloud databases."),
+                         config["workspace_name"])
+    else:
+        # TODO: Get database info by the cluster name
+        # databases_info = _get_databases_info(config, databases)
+        # _show_databases(databases_info)
+        pass
+
+
+def _list_workspace_databases(config: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    provider = _get_workspace_provider(config["provider"], config["workspace_name"])
+    if not provider.check_workspace_integrity(config):
+        return None
+
+    return provider.list_databases(config)
+
+
 def show_status(
         config_file: str,
         override_workspace_name: Optional[str] = None):
@@ -394,58 +377,25 @@ def show_managed_cloud_storage_uri(
         cli_logger.print(managed_cloud_storage[CLOUDTIK_MANAGED_CLOUD_STORAGE_URI])
 
 
-CONFIG_CACHE_VERSION = 1
-
-
 def _bootstrap_workspace_config(config: Dict[str, Any],
                                 no_config_cache: bool = False) -> Dict[str, Any]:
     config = prepare_workspace_config(config)
     # Note: delete workspace only need to contain workspace_name
+    provider_cls = _get_workspace_provider_cls(config["provider"])
 
     config_hash = get_json_object_hash([config])
     config_cache_dir = os.path.join(get_cloudtik_temp_dir(), "configs")
     cache_key = os.path.join(config_cache_dir,
                              "cloudtik-workspace-config-{}".format(config_hash))
-
-    provider_cls = _get_workspace_provider_cls(config["provider"])
-
-    if os.path.exists(cache_key) and not no_config_cache:
-        with open(cache_key) as f:
-            config_cache = json.loads(f.read())
-        if config_cache.get("_version", -1) == CONFIG_CACHE_VERSION:
-            # todo: is it fine to re-resolve? afaik it should be.
-            # we can have migrations otherwise or something
-            # but this seems overcomplicated given that resolving is
-            # relatively cheap
-            cached_config = decrypt_config(config_cache["config"])
-            try_reload_log_state(cached_config["provider"],
-                                 config_cache.get("provider_log_info"))
-            if log_once("_printed_cached_config_warning"):
-                cli_logger.verbose_warning(
-                    "Loaded cached provider configuration "
-                    "from " + cf.bold("{}"), cache_key)
-                cli_logger.verbose_warning(
-                    "If you experience issues with "
-                    "the cloud provider, try re-running "
-                    "the command with {}.", cf.bold("--no-config-cache"))
-            return cached_config
-        else:
-            cli_logger.warning(
-                "Found cached workspace config "
-                "but the version " + cf.bold("{}") + " "
-                "(expected " + cf.bold("{}") + ") does not match.\n"
-                "This is normal if cluster launcher was updated.\n"
-                "Config will be re-resolved.",
-                config_cache.get("_version", "none"), CONFIG_CACHE_VERSION)
+    cached_config = load_config_from_cache(
+        cache_key, CONFIG_CACHE_VERSION, no_config_cache)
+    if cached_config is not None:
+        return cached_config
 
     cli_logger.print("Checking {} environment settings",
                      _PROVIDER_PRETTY_NAMES.get(config["provider"]["type"]))
 
     try:
-        # NOTE: if `resources` field is missing, validate_config for providers
-        # other than AWS and Kubernetes will fail (the schema error will ask
-        # the user to manually fill the resources) as we currently support
-        # autofilling resources for AWS and Kubernetes only.
         validate_workspace_config(config)
     except (ModuleNotFoundError, ImportError):
         cli_logger.abort(
@@ -453,18 +403,9 @@ def _bootstrap_workspace_config(config: Dict[str, Any],
             "update your install command.")
 
     resolved_config = provider_cls.bootstrap_workspace_config(config)
-
-    if not no_config_cache:
-        os.makedirs(config_cache_dir, exist_ok=True)
-        with open(cache_key, "w", opener=partial(os.open, mode=0o600)) as f:
-            encrypted_config = encrypt_config(resolved_config)
-            config_cache = {
-                "_version": CONFIG_CACHE_VERSION,
-                "provider_log_info": try_get_log_state(
-                    resolved_config["provider"]),
-                "config": encrypted_config
-            }
-            f.write(json.dumps(config_cache))
+    save_config_cache(
+        resolved_config, cache_key,
+        CONFIG_CACHE_VERSION, no_config_cache)
     return resolved_config
 
 
@@ -479,3 +420,25 @@ def _load_workspace_config(config_file: str,
     if should_bootstrap:
         config = _bootstrap_workspace_config(config, no_config_cache=no_config_cache)
     return config
+
+
+def prepare_workspace_config(config: Dict[str, Any]) -> Dict[str, Any]:
+    with_defaults = fill_with_workspace_defaults(config)
+    return with_defaults
+
+
+def fill_with_workspace_defaults(config: Dict[str, Any]) -> Dict[str, Any]:
+    # Merge the config with user inheritance hierarchy and system defaults hierarchy
+    merged_config = merge_config_hierarchy(
+        config["provider"], config, False, "workspace-defaults")
+    return merged_config
+
+
+def validate_workspace_config(config: Dict[str, Any]) -> None:
+    """Required Dicts indicate that no extra fields can be introduced."""
+    if not isinstance(config, dict):
+        raise ValueError("Config {} is not a dictionary".format(config))
+
+    validate_schema(config, WORKSPACE_SCHEMA_PATH)
+    provider = _get_workspace_provider(config["provider"], config["workspace_name"])
+    provider.validate_config(config["provider"])

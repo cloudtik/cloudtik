@@ -38,13 +38,13 @@ from cloudtik.core._private.constants import CLOUDTIK_WHEELS, CLOUDTIK_CLUSTER_P
 from cloudtik.core._private.core_utils import load_class, double_quote, check_process_exists, get_cloudtik_temp_dir, \
     get_config_for_update, get_json_object_md5
 from cloudtik.core._private.crypto import AESCipher
+from cloudtik.core._private.debug import log_once
 from cloudtik.core._private.runtime_factory import _get_runtime, _get_runtime_cls, DEFAULT_RUNTIMES, \
     BUILT_IN_RUNTIME_ALL, BUILT_IN_RUNTIME_NONE
 from cloudtik.core.node_provider import NodeProvider
-from cloudtik.core._private.providers import _get_default_config, _get_node_provider, _get_provider_config_object, \
-    _get_node_provider_cls
+from cloudtik.core._private.provider_factory import _get_default_config, _get_node_provider, \
+    _get_provider_config_object, _get_node_provider_cls
 from cloudtik.core._private.docker import validate_docker_config
-from cloudtik.core._private.providers import _get_workspace_provider
 from cloudtik.core.scaling_policy import ScalingState
 from cloudtik.core.tags import CLOUDTIK_TAG_USER_NODE_TYPE, CLOUDTIK_TAG_NODE_STATUS, STATUS_UP_TO_DATE, \
     STATUS_UPDATE_FAILED, CLOUDTIK_TAG_NODE_KIND, NODE_KIND_HEAD
@@ -53,8 +53,6 @@ from cloudtik.core.tags import CLOUDTIK_TAG_USER_NODE_TYPE, CLOUDTIK_TAG_NODE_ST
 REQUIRED, OPTIONAL = True, False
 CLOUDTIK_CONFIG_SCHEMA_PATH = os.path.join(
     os.path.dirname(cloudtik.core.__file__), "config-schema.json")
-CLOUDTIK_WORKSPACE_SCHEMA_PATH = os.path.join(
-    os.path.dirname(cloudtik.core.__file__), "workspace-schema.json")
 
 # Internal kv keys for storing debug status.
 CLOUDTIK_CLUSTER_SCALING_ERROR = "__cluster_scaling_error"
@@ -191,6 +189,91 @@ def _random_string():
     return id_bytes
 
 
+def load_yaml_config(config_file):
+    def handle_yaml_error(e):
+        cli_logger.error("YAML configuration invalid")
+        cli_logger.newline()
+        cli_logger.error("Failed to load YAML file " + cf.bold("{}"),
+                         config_file)
+        cli_logger.newline()
+        with cli_logger.verbatim_error_ctx("PyYAML error:"):
+            cli_logger.error(e)
+        cli_logger.abort()
+
+    try:
+        with open(config_file) as f:
+            config = yaml.safe_load(f.read())
+    except FileNotFoundError:
+        cli_logger.abort(
+            "Provided storage configuration file ({}) does not exist",
+            cf.bold(config_file))
+    except yaml.parser.ParserError as e:
+        handle_yaml_error(e)
+        raise
+    except yaml.scanner.ScannerError as e:
+        handle_yaml_error(e)
+        raise
+
+    return config
+
+
+def handle_cli_override(config, key, value):
+    override = 0
+    if value is not None:
+        if key in config:
+            cli_logger.warning(
+                "`{}` override provided on the command line.\n"
+                "  Using " + cf.bold("{}") + cf.dimmed(
+                    " [configuration file has " + cf.bold("{}") + "]"),
+                key, value, config[key])
+            override = 1
+        config[key] = value
+    return override
+
+
+def load_config_from_cache(
+        cache_key, cache_version, no_config_cache=False):
+    if os.path.exists(cache_key) and not no_config_cache:
+        with open(cache_key) as f:
+            config_cache = json.loads(f.read())
+        if config_cache.get("_version", -1) == cache_version:
+            cached_config = decrypt_config(config_cache["config"])
+            if log_once("_printed_cached_config_warning"):
+                cli_logger.verbose_warning(
+                    "Loaded cached configuration "
+                    "from " + cf.bold("{}"), cache_key)
+                cli_logger.verbose_warning(
+                    "If you experience issues with "
+                    "the cloud provider, try re-running "
+                    "the command with {}.", cf.bold("--no-config-cache"))
+            return cached_config
+        else:
+            cli_logger.warning(
+                "Found cached config "
+                "but the version " + cf.bold("{}") + " "
+                "(expected " + cf.bold("{}") + ") does not match.\n"
+                "This is normal if the software was updated.\n"
+                "Config will be re-resolved.",
+                config_cache.get("_version", "none"), cache_version)
+    return None
+
+
+def save_config_cache(
+        config, cache_key, cache_version, no_config_cache=False):
+    if no_config_cache:
+        return
+
+    config_cache_dir = os.path.dirname(cache_key)
+    os.makedirs(config_cache_dir, exist_ok=True)
+    with open(cache_key, "w", opener=partial(os.open, mode=0o600)) as f:
+        encrypted_config = encrypt_config(config)
+        config_cache = {
+            "_version": cache_version,
+            "config": encrypted_config
+        }
+        f.write(json.dumps(config_cache))
+
+
 def format_error_message(exception_message, task_exception=False):
     """Improve the formatting of an exception thrown by a remote function.
 
@@ -276,12 +359,8 @@ def run_in_parallel_on_nodes(run_exec,
     return len(nodes) - failures - skipped, failures, skipped
 
 
-def validate_config(config: Dict[str, Any]) -> None:
-    """Required Dicts indicate that no extra fields can be introduced."""
-    if not isinstance(config, dict):
-        raise ValueError("Config {} is not a dictionary".format(config))
-
-    with open(CLOUDTIK_CONFIG_SCHEMA_PATH) as f:
+def validate_schema(config: Dict[str, Any], schema_file):
+    with open(schema_file) as f:
         schema = json.load(f)
 
     try:
@@ -300,6 +379,14 @@ def validate_config(config: Dict[str, Any]) -> None:
         else:
             # For none verbose mode, show short message
             raise RuntimeError("JSON schema validation error: {}.".format(e.message)) from None
+
+
+def validate_config(config: Dict[str, Any]) -> None:
+    """Required Dicts indicate that no extra fields can be introduced."""
+    if not isinstance(config, dict):
+        raise ValueError("Config {} is not a dictionary".format(config))
+
+    validate_schema(config, CLOUDTIK_CONFIG_SCHEMA_PATH)
 
     # Detect out of date defaults. This happens when the cluster scaler that filled
     # out the default values is older than the version of the cluster scaler that
@@ -355,7 +442,7 @@ def prepare_config(config: Dict[str, Any]) -> Dict[str, Any]:
     provider_cls = _get_node_provider_cls(config["provider"])
     config = provider_cls.prepare_config(config)
 
-    with_defaults = fillout_defaults(config)
+    with_defaults = fill_with_defaults(config)
     merge_cluster_config(with_defaults)
     prepare_docker_config(with_defaults)
     set_node_type_min_max_workers(with_defaults)
@@ -389,18 +476,6 @@ def decrypt_config(config: Dict[str, Any]) -> Dict[str, Any]:
     process_config_with_privacy(
         decrypted_config, func=decrypt_config_value, param=cipher)
     return decrypted_config
-
-
-def prepare_workspace_config(config: Dict[str, Any]) -> Dict[str, Any]:
-    with_defaults = fillout_workspace_defaults(config)
-    return with_defaults
-
-
-def fillout_workspace_defaults(config: Dict[str, Any]) -> Dict[str, Any]:
-    # Merge the config with user inheritance hierarchy and system defaults hierarchy
-    merged_config = merge_config_hierarchy(
-        config["provider"], config, False, "workspace-defaults")
-    return merged_config
 
 
 def _get_user_template_file(template_name: str):
@@ -523,7 +598,7 @@ def merge_rooted_config_hierarchy(root: str, config: Dict[str, Any],
     return merged_config
 
 
-def fillout_defaults(config: Dict[str, Any]) -> Dict[str, Any]:
+def fill_with_defaults(config: Dict[str, Any]) -> Dict[str, Any]:
     # Merge the config with user inheritance hierarchy and system defaults hierarchy
     merged_config = merge_config_hierarchy(config["provider"], config)
 
@@ -1720,35 +1795,6 @@ def format_no_node_type_string(node_type: dict):
         output_lines.append(output_line)
 
     return "\n  ".join(output_lines)
-
-
-def validate_workspace_config(config: Dict[str, Any]) -> None:
-    """Required Dicts indicate that no extra fields can be introduced."""
-    if not isinstance(config, dict):
-        raise ValueError("Config {} is not a dictionary".format(config))
-
-    with open(CLOUDTIK_WORKSPACE_SCHEMA_PATH) as f:
-        schema = json.load(f)
-
-    try:
-        import jsonschema
-    except (ModuleNotFoundError, ImportError) as e:
-        # Don't log a warning message here. Logging be handled by upstream.
-        raise e from None
-
-    try:
-        jsonschema.validate(config, schema)
-    except jsonschema.ValidationError as e:
-        # The validate method show very long message of the schema
-        # and the instance data, we need show this only at verbose mode
-        if cli_logger.verbosity > 0:
-            raise e from None
-        else:
-            # For none verbose mode, show short message
-            raise RuntimeError("JSON schema validation error: {}.".format(e.message)) from None
-
-    provider = _get_workspace_provider(config["provider"], config["workspace_name"])
-    provider.validate_config(config["provider"])
 
 
 def check_cidr_conflict(cidr_block, cidr_blocks):

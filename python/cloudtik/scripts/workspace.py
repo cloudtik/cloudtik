@@ -2,10 +2,14 @@ import copy
 import click
 import logging
 import urllib
+import urllib.error
+import urllib.parse
+import urllib.request
 
 from cloudtik.core._private.workspace.workspace_operator import (
-    create_workspace, delete_workspace, list_workspace_clusters, show_status,
-    show_workspace_info, show_managed_cloud_storage, show_managed_cloud_storage_uri, update_workspace)
+    create_workspace, delete_workspace, show_status, show_workspace_info,
+    show_managed_cloud_storage, show_managed_cloud_storage_uri, update_workspace,
+    list_workspace_clusters, list_workspace_storages, list_workspace_databases)
 from cloudtik.core._private.cli_logger import (add_click_logging_options, cli_logger)
 from cloudtik.scripts.utils import NaturalOrderGroup
 
@@ -177,9 +181,37 @@ def status(workspace_config_file, workspace_name):
     type=str,
     help="Override the configured workspace name.")
 @add_click_logging_options
-def show_clusters(workspace_config_file, workspace_name):
+def clusters(workspace_config_file, workspace_name):
     """List clusters running in this workspace."""
     list_workspace_clusters(workspace_config_file, workspace_name)
+
+
+@workspace.command()
+@click.argument("workspace_config_file", required=True, type=str)
+@click.option(
+    "--workspace-name",
+    "-n",
+    required=False,
+    type=str,
+    help="Override the configured workspace name.")
+@add_click_logging_options
+def storages(workspace_config_file, workspace_name):
+    """List cloud storages created for this workspace."""
+    list_workspace_storages(workspace_config_file, workspace_name)
+
+
+@workspace.command()
+@click.argument("workspace_config_file", required=True, type=str)
+@click.option(
+    "--workspace-name",
+    "-n",
+    required=False,
+    type=str,
+    help="Override the configured workspace name.")
+@add_click_logging_options
+def databases(workspace_config_file, workspace_name):
+    """List cloud databases created for this workspace."""
+    list_workspace_databases(workspace_config_file, workspace_name)
 
 
 @workspace.command()
@@ -227,6 +259,14 @@ workspace.add_command(update)
 
 # commands for workspace info
 workspace.add_command(status)
-workspace.add_command(show_clusters)
-_add_command_alias(show_clusters, name="list-clusters", hidden=True)
+
+workspace.add_command(clusters)
+_add_command_alias(clusters, name="list-clusters", hidden=True)
+
+workspace.add_command(storages)
+_add_command_alias(storages, name="list-storages", hidden=True)
+
+workspace.add_command(databases)
+_add_command_alias(databases, name="list-databases", hidden=True)
+
 workspace.add_command(info)

@@ -4,7 +4,7 @@ from types import ModuleType
 
 from cloudtik.core._private.call_context import CallContext
 from cloudtik.core._private.node.node_updater import NodeUpdaterThread
-from cloudtik.core._private.providers import _get_node_provider
+from cloudtik.core._private.provider_factory import _get_node_provider
 from cloudtik.core._private.utils import get_running_head_node, _get_node_specific_runtime_config, \
     _get_node_specific_docker_config
 

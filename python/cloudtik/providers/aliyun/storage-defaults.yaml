@@ -1,0 +1,7 @@
+# Include the common storage defaults
+from: storage-defaults
+
+# Cloud-provider specific configuration.
+provider:
+    type: aliyun
+    region: cn-shanghai

@@ -6,7 +6,7 @@ from cloudtik.providers._private._azure.config import create_azure_workspace, \
     delete_azure_workspace, check_azure_workspace_integrity, \
     get_workspace_head_nodes, list_azure_clusters, bootstrap_azure_workspace, check_azure_workspace_existence, \
     get_azure_workspace_info, update_azure_workspace
-from cloudtik.core._private.providers import _get_node_provider
+from cloudtik.core._private.provider_factory import _get_node_provider
 from cloudtik.core.tags import CLOUDTIK_GLOBAL_VARIABLE_KEY_PREFIX, CLOUDTIK_GLOBAL_VARIABLE_KEY
 from cloudtik.core.workspace_provider import WorkspaceProvider
 
