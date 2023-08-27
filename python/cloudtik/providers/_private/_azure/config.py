@@ -11,6 +11,7 @@ from typing import Any, Dict, Optional
 
 import ipaddr
 
+from cloudtik.core._private.util.database_utils import DATABASE_ENGINE_MYSQL, DATABASE_ENGINE_POSTGRES
 from cloudtik.core.tags import CLOUDTIK_TAG_NODE_KIND, NODE_KIND_HEAD, CLOUDTIK_TAG_CLUSTER_NAME
 from cloudtik.core._private.cli_logger import cli_logger, cf
 from cloudtik.core._private.utils import check_cidr_conflict, is_use_internal_ip, _is_use_working_vpc, \
@@ -19,7 +20,8 @@ from cloudtik.core._private.utils import check_cidr_conflict, is_use_internal_ip
     is_gpu_runtime, is_managed_cloud_database, is_use_managed_cloud_database
 from cloudtik.core.workspace_provider import Existence, CLOUDTIK_MANAGED_CLOUD_STORAGE, \
     CLOUDTIK_MANAGED_CLOUD_STORAGE_URI, CLOUDTIK_MANAGED_CLOUD_DATABASE, CLOUDTIK_MANAGED_CLOUD_DATABASE_ENDPOINT, \
-    CLOUDTIK_MANAGED_CLOUD_STORAGE_NAME
+    CLOUDTIK_MANAGED_CLOUD_STORAGE_NAME, CLOUDTIK_MANAGED_CLOUD_DATABASE_PORT, CLOUDTIK_MANAGED_CLOUD_DATABASE_ENGINE, \
+    CLOUDTIK_MANAGED_CLOUD_DATABASE_ADMIN_USER
 
 from azure.mgmt.compute import ComputeManagementClient
 from azure.core.exceptions import ResourceNotFoundError
@@ -45,7 +47,7 @@ from cloudtik.providers._private._azure.utils import _get_node_info, get_credent
     _construct_manage_server_identity_client, _construct_authorization_client, AZURE_DATABASE_ENDPOINT, \
     get_azure_database_config_for_update, _construct_rdbms_client, get_azure_database_config, \
     export_azure_cloud_database_config, _construct_network_client, _construct_private_dns_client, \
-    get_azure_database_engine
+    get_azure_database_engine, get_azure_database_default_port
 from cloudtik.providers._private.utils import StorageTestingError
 
 AZURE_RESOURCE_NAME_PREFIX = "cloudtik"
@@ -67,7 +69,8 @@ AZURE_WORKSPACE_DATABASE_SUBNET_NAME = AZURE_RESOURCE_NAME_PREFIX + "-{}-db-subn
 AZURE_WORKSPACE_DATABASE_PRIVATE_DNS_ZONE_NAME = AZURE_RESOURCE_NAME_PREFIX + ".mysql.database.azure.com"
 AZURE_WORKSPACE_DATABASE_PRIVATE_DNS_ZONE_LINK_NAME = AZURE_RESOURCE_NAME_PREFIX + "-{}-dns-link"
 
-AZURE_DATABASE_SERVER_ENDPOINT = "{}.mysql.database.azure.com"
+AZURE_DATABASE_MYSQL_SERVER_ENDPOINT = "{}.mysql.database.azure.com"
+AZURE_DATABASE_POSTGRES_SERVER_ENDPOINT = "{}.postgres.database.azure.com"
 
 AZURE_WORKSPACE_VERSION_TAG_NAME = "cloudtik-workspace-version"
 AZURE_WORKSPACE_VERSION_CURRENT = "1"
@@ -316,14 +319,41 @@ def _get_object_storage_info(storage_and_container):
 def get_azure_managed_cloud_database_info(
         config, cloud_provider, resource_group_name, info):
     workspace_name = config["workspace_name"]
-    database_instance = get_managed_database_instance(
+    cloud_database_info = _get_managed_cloud_database_info(
         cloud_provider, workspace_name, resource_group_name)
+    if cloud_database_info:
+        info[CLOUDTIK_MANAGED_CLOUD_DATABASE] = cloud_database_info
+
+
+def _get_managed_cloud_database_info(
+        cloud_provider, workspace_name, resource_group_name,
+        db_instance_name=None):
+    database_instance = get_managed_database_instance(
+        cloud_provider, workspace_name, resource_group_name,
+        db_instance_name=db_instance_name)
+    return get_managed_database_instance_info(database_instance)
+
+
+def _get_managed_database_address(engine, db_instance_name):
+    address_format = (AZURE_DATABASE_MYSQL_SERVER_ENDPOINT
+                      if engine == DATABASE_ENGINE_MYSQL
+                      else AZURE_DATABASE_POSTGRES_SERVER_ENDPOINT)
+    return address_format.format(db_instance_name)
+
+
+def get_managed_database_instance_info(database_instance):
     if database_instance is not None:
-        server_endpoint = AZURE_DATABASE_SERVER_ENDPOINT.format(
-            database_instance.name)
+        engine, db_instance = database_instance
+
+        server_endpoint = _get_managed_database_address(engine, db_instance.name)
         managed_cloud_storage = {
-            CLOUDTIK_MANAGED_CLOUD_DATABASE_ENDPOINT: server_endpoint}
-        info[CLOUDTIK_MANAGED_CLOUD_DATABASE] = managed_cloud_storage
+            CLOUDTIK_MANAGED_CLOUD_DATABASE_ENDPOINT: server_endpoint,
+            CLOUDTIK_MANAGED_CLOUD_DATABASE_PORT: get_azure_database_default_port(engine),
+            CLOUDTIK_MANAGED_CLOUD_DATABASE_ENGINE: engine,
+            CLOUDTIK_MANAGED_CLOUD_DATABASE_ADMIN_USER: db_instance.administrator_login,
+        }
+        return managed_cloud_storage
+    return None
 
 
 def get_resource_group_name(config, resource_client, use_working_vpc):
@@ -829,17 +859,16 @@ def _delete_managed_database_instance(
     if not db_instance_name:
         # if not specified, workspace default database
         db_instance_name = get_default_workspace_database_name(workspace_name)
-    db_instance = get_managed_database_instance(
+    database_instance = get_managed_database_instance(
         provider_config, workspace_name, resource_group_name,
         db_instance_name=db_instance_name)
-    if db_instance is None:
+    if database_instance is None:
         cli_logger.print(
             "Managed database instance {} doesn't exist in the workspace. Skip deletion.",
             db_instance_name)
         return
 
-    database_config = get_azure_database_config(provider_config, {})
-    engine = get_azure_database_engine(database_config)
+    engine, db_instance = database_instance
     rdbms_client = _construct_rdbms_client(provider_config, engine=engine)
 
     cli_logger.print("Deleting the database instance: {}...".format(db_instance.name))
@@ -1985,7 +2014,7 @@ def _create_managed_database_delegated_subnet(
 
     database_config = get_azure_database_config(cloud_provider, {})
     engine = get_azure_database_engine(database_config)
-    if engine == "mysql":
+    if engine == DATABASE_ENGINE_MYSQL:
         service_name = "Microsoft.DBforMySQL/flexibleServers"
     else:
         service_name = "Microsoft.DBforPostgreSQL/flexibleServers"
@@ -2121,10 +2150,10 @@ def _create_managed_database_instance(
         db_instance_name = get_default_workspace_database_name(workspace_name)
     # If the managed cloud database for the workspace already exists
     # Skip the creation step
-    db_instance = get_managed_database_instance(
+    database_instance = get_managed_database_instance(
         cloud_provider, workspace_name, resource_group_name,
         db_instance_name=db_instance_name)
-    if db_instance is not None:
+    if database_instance is not None:
         cli_logger.print(
             "Managed database instance {} already exists in the workspace. Skip creation.",
             db_instance_name)
@@ -2145,7 +2174,7 @@ def _create_managed_database_instance(
         private_dns_zone_resource_id = "/subscriptions/{}/resourceGroups/{}/providers/Microsoft.Network/privateDnsZones/{}".format(
             subscription_id, resource_group_name, private_dns_zone_name)
 
-        if engine == "mysql":
+        if engine == DATABASE_ENGINE_MYSQL:
             _create_mysql_instance(
                 cloud_provider=cloud_provider,
                 resource_group_name=resource_group_name,
@@ -2182,7 +2211,7 @@ def _create_mysql_instance(
         database_config,
         delegated_subnet_resource_id,
         private_dns_zone_resource_id,):
-    rdbms_client = _construct_rdbms_client(cloud_provider, engine="mysql")
+    rdbms_client = _construct_rdbms_client(cloud_provider, engine=DATABASE_ENGINE_MYSQL)
 
     if database_config.get("high_availability", False):
         high_availability = MySQLHighAvailability(mode="ZoneRedundant")
@@ -2285,7 +2314,7 @@ def _get_managed_database_instance(
     try:
         server_instance = rdbms_client.servers.get(resource_group_name, db_instance_name)
         cli_logger.verbose("Successfully get database instance: {}.".format(db_instance_name))
-        return server_instance
+        return engine, server_instance
     except Exception as e:
         cli_logger.verbose_error("Failed to get database instance. {}", str(e))
         return None
@@ -2293,8 +2322,25 @@ def _get_managed_database_instance(
 
 def _get_managed_database_instances(
         provider_config, resource_group_name):
-    database_config = get_azure_database_config(provider_config, {})
-    engine = get_azure_database_engine(database_config)
+    database_instances = []
+    # get all instances of supported engines
+    mysql_instances = _get_managed_database_instances_of_engine(
+        provider_config, resource_group_name, DATABASE_ENGINE_MYSQL)
+    if mysql_instances:
+        database_instances += [
+            (DATABASE_ENGINE_MYSQL, mysql_instance)
+            for mysql_instance in mysql_instances]
+    postgres_instances = _get_managed_database_instances_of_engine(
+        provider_config, resource_group_name, DATABASE_ENGINE_POSTGRES)
+    if postgres_instances:
+        database_instances += [
+            (DATABASE_ENGINE_POSTGRES, postgres_instance)
+            for postgres_instance in postgres_instances]
+    return database_instances
+
+
+def _get_managed_database_instances_of_engine(
+        provider_config, resource_group_name, engine):
     rdbms_client = _construct_rdbms_client(provider_config, engine=engine)
     cli_logger.verbose("Getting the database instances...")
     try:
@@ -3048,11 +3094,12 @@ def _configure_managed_cloud_database_from_workspace(
         cli_logger.abort("No managed database was found. If you want to use managed database, "
                          "you should set managed_cloud_database equal to True when you creating workspace.")
 
+    engine, db_instance = database_instance
     database_config = get_azure_database_config_for_update(config["provider"])
-    server_endpoint = AZURE_DATABASE_SERVER_ENDPOINT.format(database_instance.name)
+    server_endpoint = _get_managed_database_address(engine, db_instance.name)
     database_config[AZURE_DATABASE_ENDPOINT] = server_endpoint
     if "username" not in database_config:
-        database_config["username"] = database_instance.administrator_login
+        database_config["username"] = db_instance.administrator_login
 
 
 def get_workspace_azure_storage(config, workspace_name):
@@ -3420,16 +3467,41 @@ def _list_azure_storages(
         resource_group_name) -> Optional[Dict[str, Any]]:
     storage_and_containers = _get_containers_of_storage_account(
         cloud_provider, workspace_name, resource_group_name)
-    if storage_and_containers is None:
-        return None
-    storage_account, containers = storage_and_containers
     object_storages = {}
+    if storage_and_containers is None:
+        return object_storages
+    storage_account, containers = storage_and_containers
     for container in containers:
         storage_name = container.name
         if storage_name:
             object_storages[storage_name] = _get_object_storage_info(
                 (storage_account, container))
     return object_storages
+
+
+def list_azure_databases(config: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    provider_config = config["provider"]
+    workspace_name = config["workspace_name"]
+    resource_group_name = get_resource_group_name_of(config)
+    return _list_azure_databases(
+        provider_config, workspace_name, resource_group_name)
+
+
+def _list_azure_databases(
+        cloud_provider: Dict[str, Any], workspace_name,
+        resource_group_name) -> Optional[Dict[str, Any]]:
+    database_instances = _get_managed_database_instances(
+        cloud_provider, resource_group_name)
+    cloud_databases = {}
+    if database_instances is None:
+        return None
+
+    for database_instance in database_instances:
+        engine, db_instance = database_instance
+        database_name = "{}.{}".format(engine, db_instance.name)
+        cloud_databases[database_name] = get_managed_database_instance_info(
+            database_instance)
+    return cloud_databases
 
 
 def verify_azure_blob_storage(provider_config: Dict[str, Any]):

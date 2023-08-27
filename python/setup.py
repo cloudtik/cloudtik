@@ -54,8 +54,10 @@ cloudtik_files = [
 
 # cloudtik default yaml files
 cloudtik_files += [
-    "cloudtik/core/config-schema.json",
+    "cloudtik/core/cluster-schema.json",
     "cloudtik/core/workspace-schema.json",
+    "cloudtik/core/storage-schema.json",
+    "cloudtik/core/database-schema.json",
     "cloudtik/core/_private/job_waiter/tmux-session.sh",
     "cloudtik/core/_private/job_waiter/screen-session.sh",
 ]

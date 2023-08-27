@@ -15,7 +15,8 @@ from azure.mgmt.privatedns import PrivateDnsManagementClient
 
 from cloudtik.core._private.constants import CLOUDTIK_DEFAULT_CLOUD_STORAGE_URI
 from cloudtik.core._private.util.database_utils import get_database_engine, get_database_port, DATABASE_ENV_ENGINE, \
-    DATABASE_ENV_ENABLED, DATABASE_ENV_PASSWORD, DATABASE_ENV_USERNAME, DATABASE_ENV_PORT, DATABASE_ENV_HOST
+    DATABASE_ENV_ENABLED, DATABASE_ENV_PASSWORD, DATABASE_ENV_USERNAME, DATABASE_ENV_PORT, DATABASE_ENV_HOST, \
+    DATABASE_ENGINE_MYSQL, get_database_default_port
 from cloudtik.core._private.utils import get_storage_config_for_update, get_database_config_for_update, \
     get_config_for_update, PROVIDER_DATABASE_CONFIG_KEY, PROVIDER_STORAGE_CONFIG_KEY
 from cloudtik.providers._private._azure.azure_identity_credential_adapter import AzureIdentityCredentialAdapter
@@ -116,7 +117,7 @@ def _construct_rdbms_client(provider_config, engine):
     if subscription_id is None:
         subscription_id = get_cli_profile().get_subscription_id()
     credential = get_client_credential(provider_config)
-    if engine == "mysql":
+    if engine == DATABASE_ENGINE_MYSQL:
         rdbms_client = MySQLManagementClient(credential, subscription_id)
     else:
         rdbms_client = PostgreSQLManagementClient(credential, subscription_id)
@@ -284,6 +285,10 @@ def get_azure_database_engine(database_config):
 
 def get_azure_database_port(database_config):
     return get_database_port(database_config)
+
+
+def get_azure_database_default_port(engine):
+    return get_database_default_port(engine)
 
 
 def get_azure_database_config_for_update(provider_config: Dict[str, Any]):

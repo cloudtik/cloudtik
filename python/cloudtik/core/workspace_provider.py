@@ -14,6 +14,8 @@ CLOUDTIK_MANAGED_CLOUD_DATABASE = "managed.cloud.database"
 CLOUDTIK_MANAGED_CLOUD_DATABASE_NAME = "cloud.database.name"
 CLOUDTIK_MANAGED_CLOUD_DATABASE_ENDPOINT = "cloud.database.endpoint"
 CLOUDTIK_MANAGED_CLOUD_DATABASE_PORT = "cloud.database.port"
+CLOUDTIK_MANAGED_CLOUD_DATABASE_ADMIN_USER = "cloud.database.admin_user"
+CLOUDTIK_MANAGED_CLOUD_DATABASE_ENGINE = "cloud.database.engine"
 
 
 class Existence(Enum):

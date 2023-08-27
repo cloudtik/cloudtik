@@ -23,7 +23,8 @@ from cloudtik.core._private.utils import check_cidr_conflict, is_use_internal_ip
     is_peering_firewall_allow_working_subnet, is_gpu_runtime
 from cloudtik.core.workspace_provider import Existence, CLOUDTIK_MANAGED_CLOUD_STORAGE, \
     CLOUDTIK_MANAGED_CLOUD_STORAGE_URI, CLOUDTIK_MANAGED_CLOUD_DATABASE, CLOUDTIK_MANAGED_CLOUD_DATABASE_ENDPOINT, \
-    CLOUDTIK_MANAGED_CLOUD_DATABASE_PORT, CLOUDTIK_MANAGED_CLOUD_STORAGE_NAME
+    CLOUDTIK_MANAGED_CLOUD_DATABASE_PORT, CLOUDTIK_MANAGED_CLOUD_STORAGE_NAME, \
+    CLOUDTIK_MANAGED_CLOUD_DATABASE_ADMIN_USER, CLOUDTIK_MANAGED_CLOUD_DATABASE_ENGINE
 from cloudtik.providers._private.aws.utils import \
     handle_boto_error, get_boto_error_code, _get_node_info, BOTO_MAX_RETRIES, _resource, \
     _resource_client, _make_resource, _make_resource_client, make_ec2_client, export_aws_s3_storage_config, \
@@ -428,15 +429,32 @@ def _get_object_storage_info(bucket):
 
 def get_aws_managed_cloud_database_info(config, cloud_provider, info):
     workspace_name = config["workspace_name"]
-    database_instance = get_managed_database_instance(
+    cloud_database_info = _get_managed_cloud_database_info(
         cloud_provider, workspace_name)
+    if cloud_database_info:
+        info[CLOUDTIK_MANAGED_CLOUD_DATABASE] = cloud_database_info
+
+
+def _get_managed_cloud_database_info(
+        cloud_provider, workspace_name,
+        db_instance_name=None):
+    database_instance = get_managed_database_instance(
+        cloud_provider, workspace_name,
+        db_instance_name=db_instance_name)
+    return _get_managed_database_instance_info(database_instance)
+
+
+def _get_managed_database_instance_info(database_instance):
     if database_instance is not None:
         endpoint = database_instance['Endpoint']
         managed_cloud_database_info = {
             CLOUDTIK_MANAGED_CLOUD_DATABASE_ENDPOINT: endpoint['Address'],
-            CLOUDTIK_MANAGED_CLOUD_DATABASE_PORT: endpoint['Port']
+            CLOUDTIK_MANAGED_CLOUD_DATABASE_PORT: endpoint['Port'],
+            CLOUDTIK_MANAGED_CLOUD_DATABASE_ENGINE: database_instance['Engine'],
+            CLOUDTIK_MANAGED_CLOUD_DATABASE_ADMIN_USER: database_instance['MasterUsername'],
         }
-        info[CLOUDTIK_MANAGED_CLOUD_DATABASE] = managed_cloud_database_info
+        return managed_cloud_database_info
+    return None
 
 
 def update_aws_workspace(
@@ -2707,14 +2725,33 @@ def list_aws_storages(config: Dict[str, Any]) -> Optional[Dict[str, Any]]:
 
 def _list_aws_storages(cloud_provider: Dict[str, Any], workspace_name):
     buckets = get_managed_s3_buckets(cloud_provider, workspace_name)
-    if buckets is None:
-        return None
     object_storages = {}
+    if buckets is None:
+        return object_storages
     for bucket in buckets:
         storage_name = bucket.name
         if storage_name:
             object_storages[storage_name] = _get_object_storage_info(bucket)
     return object_storages
+
+
+def list_aws_databases(config: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    provider_config = config["provider"]
+    workspace_name = config["workspace_name"]
+    return _list_aws_databases(provider_config, workspace_name)
+
+
+def _list_aws_databases(cloud_provider: Dict[str, Any], workspace_name):
+    database_instances = get_managed_database_instances(cloud_provider, workspace_name)
+    cloud_databases = {}
+    if database_instances is None:
+        return cloud_databases
+    for database_instance in database_instances:
+        database_name = database_instance.get('DBInstanceIdentifier')
+        if database_name:
+            cloud_databases[database_name] = _get_managed_database_instance_info(
+                database_instance)
+    return cloud_databases
 
 
 ######################

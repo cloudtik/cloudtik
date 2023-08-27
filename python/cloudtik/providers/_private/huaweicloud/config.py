@@ -1376,9 +1376,9 @@ def list_huaweicloud_storages(config: Dict[str, Any]) -> Optional[Dict[str, Any]
     provider_config = config["provider"]
     workspace_name = config["workspace_name"]
     buckets = _get_managed_obs_buckets(provider_config, workspace_name)
-    if buckets is None:
-        return None
     object_storages = {}
+    if buckets is None:
+        return object_storages
     for bucket in buckets:
         storage_name = bucket.name
         if storage_name:

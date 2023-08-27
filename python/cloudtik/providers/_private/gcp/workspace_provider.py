@@ -4,7 +4,7 @@ from typing import Any, Dict, Optional
 from cloudtik.providers._private.gcp.config import create_gcp_workspace, \
     delete_gcp_workspace, check_gcp_workspace_integrity, \
     get_workspace_head_nodes, list_gcp_clusters, bootstrap_gcp_workspace, check_gcp_workspace_existence, \
-    get_gcp_workspace_info, update_gcp_workspace, list_gcp_storages
+    get_gcp_workspace_info, update_gcp_workspace, list_gcp_storages, list_gcp_databases
 from cloudtik.core._private.provider_factory import _get_node_provider
 from cloudtik.core._private.utils import binary_to_hex, hex_to_binary, get_running_head_node, check_workspace_name_format
 from cloudtik.core.tags import CLOUDTIK_GLOBAL_VARIABLE_KEY_PREFIX, CLOUDTIK_GLOBAL_VARIABLE_KEY
@@ -47,6 +47,10 @@ class GCPWorkspaceProvider(WorkspaceProvider):
     def list_storages(
             self, config: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         return list_gcp_storages(config)
+
+    def list_databases(
+            self, config: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        return list_gcp_databases(config)
 
     def publish_global_variables(self, cluster_config: Dict[str, Any],
                                  global_variables: Dict[str, Any]):

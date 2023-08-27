@@ -16,7 +16,8 @@ from cloudtik.providers._private.gcp.config import _configure_managed_cloud_stor
     _remove_service_account_iam_role_binding, _has_service_account_iam_role_binding, _get_service_account_of_project, \
     get_gcp_managed_cloud_storage_info, _create_managed_cloud_database, _delete_managed_cloud_database, \
     _configure_managed_cloud_database_from_workspace, get_managed_database_instance, \
-    get_gcp_managed_cloud_database_info, _list_gcp_storages
+    get_gcp_managed_cloud_database_info, _list_gcp_storages, _list_gcp_databases
+from cloudtik.providers._private.gcp.database_provider import GCPDatabaseProvider
 from cloudtik.providers._private.gcp.storage_provider import GCPStorageProvider
 from cloudtik.providers._private.gcp.utils import get_gcp_project, construct_iam_client, construct_crm_client, \
     get_service_account_email, export_gcp_cloud_storage_config, get_default_gcp_cloud_storage, \
@@ -904,7 +905,18 @@ def list_storages_for_gcp(
 
 def create_storage_provider_for_gcp(
             cloud_provider, workspace_name, storage_name):
-    return GCPStorageProvider(cloud_provider, workspace_name, storage_name)
+    return GCPDatabaseProvider(cloud_provider, workspace_name, storage_name)
+
+
+def list_databases_for_gcp(
+        config: Dict[str, Any], namespace, cloud_provider):
+    workspace_name = config["workspace_name"]
+    return _list_gcp_databases(cloud_provider, workspace_name)
+
+
+def create_database_provider_for_gcp(
+            cloud_provider, workspace_name, database_name):
+    return GCPStorageProvider(cloud_provider, workspace_name, database_name)
 
 
 ######################

@@ -12,9 +12,11 @@ from googleapiclient import errors
 
 from google.oauth2 import service_account
 
+from cloudtik.core._private.util.database_utils import DATABASE_ENGINE_POSTGRES, DATABASE_ENGINE_MYSQL
 from cloudtik.core.workspace_provider import Existence, CLOUDTIK_MANAGED_CLOUD_STORAGE, \
     CLOUDTIK_MANAGED_CLOUD_STORAGE_URI, CLOUDTIK_MANAGED_CLOUD_DATABASE, CLOUDTIK_MANAGED_CLOUD_DATABASE_ENDPOINT, \
-    CLOUDTIK_MANAGED_CLOUD_STORAGE_NAME
+    CLOUDTIK_MANAGED_CLOUD_STORAGE_NAME, CLOUDTIK_MANAGED_CLOUD_DATABASE_ENGINE, \
+    CLOUDTIK_MANAGED_CLOUD_DATABASE_ADMIN_USER, CLOUDTIK_MANAGED_CLOUD_DATABASE_PORT
 
 from cloudtik.core.tags import CLOUDTIK_TAG_NODE_KIND, NODE_KIND_HEAD, CLOUDTIK_TAG_CLUSTER_NAME, \
     CLOUDTIK_TAG_WORKSPACE_NAME
@@ -34,7 +36,8 @@ from cloudtik.providers._private.gcp.utils import _get_node_info, construct_clie
     GCP_DATABASE_ENDPOINT, get_gcp_database_config_for_update, construct_sql_admin, get_gcp_database_config, \
     wait_for_sql_admin_operation, export_gcp_cloud_database_config, construct_compute_client, \
     construct_service_networking, \
-    wait_for_service_networking_operation, get_gcp_database_engine
+    wait_for_service_networking_operation, get_gcp_database_engine, get_gcp_database_default_admin_user, \
+    get_gcp_database_default_port
 from cloudtik.providers._private.utils import StorageTestingError
 
 logger = logging.getLogger(__name__)
@@ -1745,22 +1748,44 @@ def _get_object_storage_info(bucket):
     managed_bucket_name = None if bucket is None else bucket.name
     if managed_bucket_name is not None:
         gcp_cloud_storage = {GCP_GCS_BUCKET: managed_bucket_name}
-        managed_cloud_storage = {CLOUDTIK_MANAGED_CLOUD_STORAGE_NAME: managed_bucket_name,
-                                 CLOUDTIK_MANAGED_CLOUD_STORAGE_URI: get_gcp_cloud_storage_uri(gcp_cloud_storage)}
+        managed_cloud_storage = {
+            CLOUDTIK_MANAGED_CLOUD_STORAGE_NAME: managed_bucket_name,
+            CLOUDTIK_MANAGED_CLOUD_STORAGE_URI: get_gcp_cloud_storage_uri(gcp_cloud_storage)}
         return managed_cloud_storage
     return None
 
 
 def get_gcp_managed_cloud_database_info(config, cloud_provider, info):
     workspace_name = config["workspace_name"]
-    database_instance = get_managed_database_instance(
+    cloud_database_info = _get_managed_cloud_database_info(
         cloud_provider, workspace_name)
+    if cloud_database_info:
+        info[CLOUDTIK_MANAGED_CLOUD_DATABASE] = cloud_database_info
+
+
+def _get_managed_cloud_database_info(
+        cloud_provider, workspace_name, db_instance_name=None):
+    database_instance = get_managed_database_instance(
+        cloud_provider, workspace_name,
+        db_instance_name=db_instance_name)
+    return _get_managed_database_instance_info(database_instance)
+
+
+def _get_managed_database_instance_info(database_instance):
     if database_instance is not None:
         db_address = _get_managed_database_address(database_instance)
+        engine = _get_managed_database_engine(database_instance)
+        if engine is None:
+            return None
+
         managed_cloud_database_info = {
             CLOUDTIK_MANAGED_CLOUD_DATABASE_ENDPOINT: db_address,
+            CLOUDTIK_MANAGED_CLOUD_DATABASE_PORT: get_gcp_database_default_port(engine),
+            CLOUDTIK_MANAGED_CLOUD_DATABASE_ENGINE: engine,
+            CLOUDTIK_MANAGED_CLOUD_DATABASE_ADMIN_USER: get_gcp_database_default_admin_user(engine),
         }
-        info[CLOUDTIK_MANAGED_CLOUD_DATABASE] = managed_cloud_database_info
+        return managed_cloud_database_info
+    return None
 
 
 def get_subnet(config, subnet_name, compute):
@@ -2267,14 +2292,35 @@ def _list_gcp_storages(
         cloud_provider: Dict[str, Any], workspace_name
 ) -> Optional[Dict[str, Any]]:
     buckets = get_managed_gcs_buckets(cloud_provider, workspace_name)
-    if buckets is None:
-        return None
     object_storages = {}
+    if buckets is None:
+        return object_storages
     for bucket in buckets:
         storage_name = bucket.name
         if storage_name:
             object_storages[storage_name] = _get_object_storage_info(bucket)
     return object_storages
+
+
+def list_gcp_databases(config: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    provider_config = config["provider"]
+    workspace_name = config["workspace_name"]
+    return _list_gcp_databases(provider_config, workspace_name)
+
+
+def _list_gcp_databases(
+        cloud_provider: Dict[str, Any], workspace_name
+) -> Optional[Dict[str, Any]]:
+    database_instances = get_managed_database_instances(cloud_provider, workspace_name)
+    cloud_databases = {}
+    if database_instances is None:
+        return cloud_databases
+    for database_instance in database_instances:
+        database_name = database_instance["name"]
+        if database_name:
+            cloud_databases[database_name] = _get_managed_database_instance_info(
+                database_instance)
+    return cloud_databases
 
 
 def _create_vpc_peering_connections(config, compute, vpc_id):
@@ -2454,6 +2500,21 @@ def _get_managed_database_address(database_instance):
         if "PRIVATE" == addr_type or "PRIMARY" == addr_type:
             return ip_addr["ipAddress"]
 
+    return None
+
+
+def _get_managed_database_engine(database_instance):
+    database_version = database_instance.get("databaseVersion")
+    if not database_version:
+        return None
+
+    database_version = database_version.lower()
+    if database_version.startswith(DATABASE_ENGINE_MYSQL):
+        return DATABASE_ENGINE_MYSQL
+    elif database_version.startswith(DATABASE_ENGINE_POSTGRES):
+        return DATABASE_ENGINE_POSTGRES
+
+    # Unknown
     return None
 
 

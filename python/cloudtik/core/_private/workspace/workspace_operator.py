@@ -1,5 +1,4 @@
 import copy
-import json
 import logging
 import os
 from typing import Any, Dict, Optional
@@ -11,7 +10,9 @@ from cloudtik.core._private.cluster.cluster_operator import _get_cluster_info
 from cloudtik.core._private.core_utils import get_cloudtik_temp_dir, get_json_object_hash
 from cloudtik.core.tags import CLOUDTIK_TAG_NODE_STATUS
 from cloudtik.core.workspace_provider import Existence, CLOUDTIK_MANAGED_CLOUD_STORAGE, \
-    CLOUDTIK_MANAGED_CLOUD_STORAGE_URI, CLOUDTIK_MANAGED_CLOUD_DATABASE_ENDPOINT, CLOUDTIK_MANAGED_CLOUD_DATABASE_PORT
+    CLOUDTIK_MANAGED_CLOUD_STORAGE_URI, CLOUDTIK_MANAGED_CLOUD_DATABASE_ENDPOINT, \
+    CLOUDTIK_MANAGED_CLOUD_DATABASE_PORT, CLOUDTIK_MANAGED_CLOUD_DATABASE_ENGINE, \
+    CLOUDTIK_MANAGED_CLOUD_DATABASE_ADMIN_USER
 from cloudtik.core._private.utils import \
     is_managed_cloud_database, is_managed_cloud_storage, print_dict_info, \
     NODE_INFO_NODE_IP, handle_cli_override, load_yaml_config, save_config_cache, load_config_from_cache, \
@@ -329,10 +330,12 @@ def _list_workspace_databases(config: Dict[str, Any]) -> Optional[Dict[str, Any]
 
 def _show_databases(databases):
     tb = pt.PrettyTable()
-    tb.field_names = ["instance-name", "host", "port"]
+    tb.field_names = ["instance-name", "engine", "host", "port", "admin-user"]
     for database_name, database_info in databases.items():
-        tb.add_row([database_name, database_info[CLOUDTIK_MANAGED_CLOUD_DATABASE_ENDPOINT],
-                    database_info[CLOUDTIK_MANAGED_CLOUD_DATABASE_PORT]
+        tb.add_row([database_name, database_info[CLOUDTIK_MANAGED_CLOUD_DATABASE_ENGINE],
+                    database_info[CLOUDTIK_MANAGED_CLOUD_DATABASE_ENDPOINT],
+                    database_info[CLOUDTIK_MANAGED_CLOUD_DATABASE_PORT],
+                    database_info.get(CLOUDTIK_MANAGED_CLOUD_DATABASE_ADMIN_USER, "-")
                     ])
 
     cli_logger.print(cf.bold("{} database instance(s)."), len(databases))

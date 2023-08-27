@@ -7,6 +7,7 @@ from cloudtik.core._private.cli_logger import cli_logger
 from cloudtik.core._private.utils import _is_use_managed_cloud_storage, _is_managed_cloud_storage, \
     _is_managed_cloud_database, _is_use_managed_cloud_database
 from cloudtik.core.workspace_provider import Existence
+from cloudtik.providers._private._azure.database_provider import AzureDatabaseProvider
 from cloudtik.providers._private._azure.storage_provider import AzureStorageProvider
 from cloudtik.providers._private._kubernetes import core_api, log_prefix
 from cloudtik.providers._private._kubernetes.azure_aks.utils import get_aks_workspace_resource_group_name, \
@@ -22,7 +23,7 @@ from cloudtik.providers._private._azure.config import _configure_managed_cloud_s
     _delete_role_assignment_for_storage_blob_data_owner, _get_role_assignment_for_storage_blob_data_owner, \
     _create_resource_group, _delete_resource_group, _get_resource_group_by_name, _get_container_of_storage_account, \
     _create_managed_cloud_database, _delete_managed_cloud_database, _configure_managed_cloud_database_from_workspace, \
-    get_managed_database_instance, get_azure_managed_cloud_database_info, _list_azure_storages
+    get_managed_database_instance, get_azure_managed_cloud_database_info, _list_azure_storages, _list_azure_databases
 from cloudtik.providers._private._azure.utils import export_azure_cloud_storage_config, \
     get_default_azure_cloud_storage, export_azure_cloud_database_config, _construct_compute_client, \
     get_default_azure_cloud_database
@@ -1189,6 +1190,32 @@ def create_storage_provider_for_azure(
     resource_group_name = get_aks_workspace_resource_group_name(workspace_name)
     return AzureKubernetesStorageProvider(
         cloud_provider, workspace_name, storage_name, resource_group_name)
+
+
+def list_databases_for_azure(
+        config: Dict[str, Any], namespace, cloud_provider):
+    workspace_name = config["workspace_name"]
+    resource_group_name = get_aks_workspace_resource_group_name(workspace_name)
+    return _list_azure_databases(
+        cloud_provider, workspace_name, resource_group_name)
+
+
+class AzureKubernetesDatabaseProvider(AzureDatabaseProvider):
+    def __init__(self, provider_config: Dict[str, Any],
+                 workspace_name: str, database_name: str,
+                 resource_group_name: str) -> None:
+        super().__init__(provider_config, workspace_name, database_name)
+        self.resource_group_name = resource_group_name
+
+    def get_resource_group_name(self, workspace_name):
+        return self.resource_group_name
+
+
+def create_database_provider_for_azure(
+            cloud_provider, workspace_name, database_name):
+    resource_group_name = get_aks_workspace_resource_group_name(workspace_name)
+    return AzureKubernetesDatabaseProvider(
+        cloud_provider, workspace_name, database_name, resource_group_name)
 
 
 ######################

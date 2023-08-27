@@ -20,7 +20,9 @@ from cloudtik.providers._private.aws.config import _configure_managed_cloud_stor
     get_managed_s3_bucket, get_aws_managed_cloud_storage_info, get_managed_database_instance, \
     _configure_managed_cloud_database_from_workspace, _create_managed_cloud_database, _create_security_group, \
     _create_default_intra_cluster_inbound_rules, _update_inbound_rules, _get_security_group, \
-    _delete_managed_cloud_database, _delete_security_group, get_aws_managed_cloud_database_info, _list_aws_storages
+    _delete_managed_cloud_database, _delete_security_group, get_aws_managed_cloud_database_info, _list_aws_storages, \
+    _list_aws_databases
+from cloudtik.providers._private.aws.database_provider import AWSDatabaseProvider
 from cloudtik.providers._private.aws.storage_provider import AWSStorageProvider
 from cloudtik.providers._private.aws.utils import _make_resource_client, _make_resource, get_current_account_id, \
     handle_boto_error, _make_client, export_aws_s3_storage_config, get_default_aws_cloud_storage, \
@@ -818,6 +820,17 @@ def list_storages_for_aws(
         config: Dict[str, Any], namespace, cloud_provider):
     workspace_name = config["workspace_name"]
     return _list_aws_storages(cloud_provider, workspace_name)
+
+
+def create_database_provider_for_aws(
+            cloud_provider, workspace_name, database_name):
+    return AWSDatabaseProvider(cloud_provider, workspace_name, database_name)
+
+
+def list_databases_for_aws(
+        config: Dict[str, Any], namespace, cloud_provider):
+    workspace_name = config["workspace_name"]
+    return _list_aws_databases(cloud_provider, workspace_name)
 
 
 ######################

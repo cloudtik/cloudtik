@@ -52,7 +52,7 @@ from cloudtik.core.tags import CLOUDTIK_TAG_USER_NODE_TYPE, CLOUDTIK_TAG_NODE_ST
 
 REQUIRED, OPTIONAL = True, False
 CLOUDTIK_CONFIG_SCHEMA_PATH = os.path.join(
-    os.path.dirname(cloudtik.core.__file__), "config-schema.json")
+    os.path.dirname(cloudtik.core.__file__), "cluster-schema.json")
 
 # Internal kv keys for storing debug status.
 CLOUDTIK_CLUSTER_SCALING_ERROR = "__cluster_scaling_error"

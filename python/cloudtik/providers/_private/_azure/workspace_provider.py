@@ -5,7 +5,7 @@ from cloudtik.core._private.utils import get_running_head_node, check_workspace_
 from cloudtik.providers._private._azure.config import create_azure_workspace, \
     delete_azure_workspace, check_azure_workspace_integrity, \
     get_workspace_head_nodes, list_azure_clusters, bootstrap_azure_workspace, check_azure_workspace_existence, \
-    get_azure_workspace_info, update_azure_workspace, list_azure_storages
+    get_azure_workspace_info, update_azure_workspace, list_azure_storages, list_azure_databases
 from cloudtik.core._private.provider_factory import _get_node_provider
 from cloudtik.core.tags import CLOUDTIK_GLOBAL_VARIABLE_KEY_PREFIX, CLOUDTIK_GLOBAL_VARIABLE_KEY
 from cloudtik.core.workspace_provider import WorkspaceProvider
@@ -47,6 +47,10 @@ class AzureWorkspaceProvider(WorkspaceProvider):
     def list_storages(
             self, config: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         return list_azure_storages(config)
+
+    def list_databases(
+            self, config: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        return list_azure_databases(config)
 
     def publish_global_variables(self, cluster_config: Dict[str, Any],
                                  global_variables: Dict[str, Any]):

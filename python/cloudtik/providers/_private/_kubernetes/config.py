@@ -448,6 +448,62 @@ def _list_storages_for_cloud_provider(config, namespace):
     return None
 
 
+def create_cloud_database_provider(
+            provider_config: Dict[str, Any], workspace_name, database_name):
+    cloud_provider = _get_cloud_provider_config(provider_config)
+    if cloud_provider is None:
+        # No cloud provider configured
+        return None
+    cloud_provider_type = cloud_provider["type"]
+    if cloud_provider_type == "aws":
+        from cloudtik.providers._private._kubernetes.aws_eks.config import \
+            create_database_provider_for_aws
+        return create_database_provider_for_aws(
+            cloud_provider, workspace_name, database_name)
+    elif cloud_provider_type == "gcp":
+        from cloudtik.providers._private._kubernetes.gcp_gke.config import \
+            create_database_provider_for_gcp
+        return create_database_provider_for_gcp(
+            cloud_provider, workspace_name, database_name)
+    elif cloud_provider_type == "azure":
+        from cloudtik.providers._private._kubernetes.azure_aks.config import \
+            create_database_provider_for_azure
+        return create_database_provider_for_azure(
+            cloud_provider, workspace_name, database_name)
+    return None
+
+
+def list_kubernetes_databases(config: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    workspace_name = config["workspace_name"]
+    namespace = get_workspace_namespace_name(workspace_name)
+    return _list_databases_for_cloud_provider(config, namespace)
+
+
+def _list_databases_for_cloud_provider(config, namespace):
+    provider_config = config["provider"]
+    cloud_provider = _get_cloud_provider_config(provider_config)
+    if cloud_provider is None:
+        # No cloud provider configured
+        return None
+    cloud_provider_type = cloud_provider["type"]
+    if cloud_provider_type == "aws":
+        from cloudtik.providers._private._kubernetes.aws_eks.config import \
+            list_databases_for_aws
+        return list_databases_for_aws(
+            config, namespace, cloud_provider)
+    elif cloud_provider_type == "gcp":
+        from cloudtik.providers._private._kubernetes.gcp_gke.config import \
+            list_databases_for_gcp
+        return list_databases_for_gcp(
+            config, namespace, cloud_provider)
+    elif cloud_provider_type == "azure":
+        from cloudtik.providers._private._kubernetes.azure_aks.config import \
+            list_databases_for_azure
+        return list_databases_for_azure(
+            config, namespace, cloud_provider)
+    return None
+
+
 def get_kubernetes_workspace_info(config):
     workspace_name = config["workspace_name"]
     namespace = get_workspace_namespace_name(workspace_name)
