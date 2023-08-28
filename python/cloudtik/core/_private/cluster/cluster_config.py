@@ -2,12 +2,11 @@ import json
 import os
 from typing import Any, Dict, Optional
 from functools import partial
-import yaml
 
 from cloudtik.core._private.core_utils import get_cloudtik_temp_dir, get_json_object_hash
 from cloudtik.core._private.debug import log_once
 from cloudtik.core._private.utils import prepare_config, decrypt_config, runtime_prepare_config, validate_config, \
-    verify_config, encrypt_config, RUNTIME_CONFIG_KEY, runtime_bootstrap_config
+    verify_config, encrypt_config, RUNTIME_CONFIG_KEY, runtime_bootstrap_config, load_yaml_config
 from cloudtik.core._private.provider_factory import _NODE_PROVIDERS, _PROVIDER_PRETTY_NAMES
 from cloudtik.core._private.cli_logger import cli_logger, cf
 
@@ -128,8 +127,7 @@ def _load_cluster_config(config_file: str,
                          override_cluster_name: Optional[str] = None,
                          should_bootstrap: bool = True,
                          no_config_cache: bool = False) -> Dict[str, Any]:
-    with open(config_file) as f:
-        config = yaml.safe_load(f.read())
+    config = load_yaml_config(config_file)
     if override_cluster_name is not None:
         config["cluster_name"] = override_cluster_name
     if should_bootstrap:

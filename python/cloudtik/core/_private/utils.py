@@ -205,7 +205,7 @@ def load_yaml_config(config_file):
             config = yaml.safe_load(f.read())
     except FileNotFoundError:
         cli_logger.abort(
-            "Provided storage configuration file ({}) does not exist",
+            "Configuration file ({}) does not exist",
             cf.bold(config_file))
     except yaml.parser.ParserError as e:
         handle_yaml_error(e)

@@ -1,7 +1,6 @@
 import logging
 import os
 from typing import Any, Dict, Optional
-import yaml
 
 import cloudtik
 from cloudtik.core._private.core_utils import get_cloudtik_temp_dir, get_json_object_hash
@@ -50,8 +49,7 @@ def _delete_database(
 def create_database(
         config_file: str, yes: bool,
         override_database_name: Optional[str] = None,
-        no_config_cache: bool = False,
-        delete_incomplete: bool = True):
+        no_config_cache: bool = False):
     """Creates a new database from a config json."""
     config = load_yaml_config(config_file)
     importer = _DATABASE_PROVIDERS.get(config["provider"]["type"])
@@ -156,8 +154,7 @@ def _load_database_config(
         override_database_name: Optional[str] = None,
         should_bootstrap: bool = True,
         no_config_cache: bool = False) -> Dict[str, Any]:
-    with open(config_file) as f:
-        config = yaml.safe_load(f.read())
+    config = load_yaml_config(config_file)
     if override_database_name is not None:
         config["database_name"] = override_database_name
     if should_bootstrap:

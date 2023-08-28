@@ -3,7 +3,6 @@ import logging
 import os
 from typing import Any, Dict, Optional
 import prettytable as pt
-import yaml
 
 import cloudtik
 from cloudtik.core._private.cluster.cluster_operator import _get_cluster_info
@@ -452,8 +451,7 @@ def _load_workspace_config(config_file: str,
                            override_workspace_name: Optional[str] = None,
                            should_bootstrap: bool = True,
                            no_config_cache: bool = False) -> Dict[str, Any]:
-    with open(config_file) as f:
-        config = yaml.safe_load(f.read())
+    config = load_yaml_config(config_file)
     if override_workspace_name is not None:
         config["workspace_name"] = override_workspace_name
     if should_bootstrap:

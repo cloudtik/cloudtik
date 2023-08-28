@@ -237,7 +237,7 @@ def create_or_update_cluster(
             config = yaml.safe_load(f.read())
     except FileNotFoundError:
         _cli_logger.abort(
-            "Provided cluster configuration file ({}) does not exist",
+            "Configuration file ({}) does not exist",
             cf.bold(config_file))
     except yaml.parser.ParserError as e:
         handle_yaml_error(e)
