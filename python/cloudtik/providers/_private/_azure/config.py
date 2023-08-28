@@ -65,9 +65,9 @@ AZURE_WORKSPACE_SECURITY_RULE_NAME = AZURE_RESOURCE_NAME_PREFIX + "-{}-security-
 AZURE_WORKSPACE_WORKER_USI_NAME = AZURE_RESOURCE_NAME_PREFIX + "-{}-worker-user-assigned-identity"
 AZURE_WORKSPACE_HEAD_USI_NAME = AZURE_RESOURCE_NAME_PREFIX + "-{}-user-assigned-identity"
 AZURE_WORKSPACE_DATABASE_NAME = AZURE_RESOURCE_NAME_PREFIX + "-{}-db"
-AZURE_WORKSPACE_DATABASE_SUBNET_NAME = AZURE_RESOURCE_NAME_PREFIX + "-{}-db-subnet"
-AZURE_WORKSPACE_DATABASE_PRIVATE_DNS_ZONE_NAME = AZURE_RESOURCE_NAME_PREFIX + ".mysql.database.azure.com"
-AZURE_WORKSPACE_DATABASE_PRIVATE_DNS_ZONE_LINK_NAME = AZURE_RESOURCE_NAME_PREFIX + "-{}-dns-link"
+AZURE_WORKSPACE_DATABASE_SUBNET_NAME = AZURE_RESOURCE_NAME_PREFIX + "-{}-{}-subnet"
+AZURE_WORKSPACE_DATABASE_PRIVATE_DNS_ZONE_NAME = AZURE_RESOURCE_NAME_PREFIX + ".{}.database.azure.com"
+AZURE_WORKSPACE_DATABASE_PRIVATE_DNS_ZONE_LINK_NAME = AZURE_RESOURCE_NAME_PREFIX + "{}-{}-dns-link"
 
 AZURE_DATABASE_MYSQL_SERVER_ENDPOINT = "{}.mysql.database.azure.com"
 AZURE_DATABASE_POSTGRES_SERVER_ENDPOINT = "{}.postgres.database.azure.com"
@@ -151,6 +151,19 @@ def _get_resource_group_name_of(provider_config, workspace_name):
     use_working_vpc = _is_use_working_vpc(provider_config)
     return _get_resource_group_name(
         workspace_name, resource_client, use_working_vpc)
+
+
+def get_managed_database_subnet_name(workspace_name, engine):
+    return AZURE_WORKSPACE_DATABASE_SUBNET_NAME.format(workspace_name, engine)
+
+
+def get_managed_database_private_dns_zone_name(workspace_name, engine):
+    return AZURE_WORKSPACE_DATABASE_PRIVATE_DNS_ZONE_NAME.format(engine)
+
+
+def get_managed_database_private_dns_zone_link_name(workspace_name, engine):
+    return AZURE_WORKSPACE_DATABASE_PRIVATE_DNS_ZONE_LINK_NAME.format(
+        workspace_name, engine)
 
 
 def check_azure_workspace_existence(config):
@@ -836,65 +849,125 @@ def _delete_managed_cloud_database(
         provider_config, workspace_name,
         resource_group_name, virtual_network_name):
     current_step = 1
+    total_steps = 2
+
+    engine = DATABASE_ENGINE_MYSQL
+    with cli_logger.group(
+            "Deleting managed {} instances and resources", engine,
+            _numbered=("()", current_step, total_steps)):
+        current_step += 1
+        _delete_managed_cloud_databases_of_engine(
+            provider_config, workspace_name, resource_group_name,
+            virtual_network_name, engine)
+
+    engine = DATABASE_ENGINE_POSTGRES
+    with cli_logger.group(
+            "Deleting managed {} instances and resources", engine,
+            _numbered=("()", current_step, total_steps)):
+        current_step += 1
+        _delete_managed_cloud_databases_of_engine(
+            provider_config, workspace_name, resource_group_name,
+            virtual_network_name, engine)
+
+
+def _delete_managed_cloud_databases_of_engine(
+        provider_config, workspace_name,
+        resource_group_name, virtual_network_name, engine):
+    current_step = 1
     total_steps = 3
 
     with cli_logger.group(
-            "Deleting managed database instance",
+            "Deleting managed {} instance", engine,
             _numbered=("()", current_step, total_steps)):
         current_step += 1
-        _delete_managed_database_instance(
-            provider_config, workspace_name, resource_group_name)
+        _delete_managed_database_instances(
+            provider_config, workspace_name, resource_group_name,
+            engine=engine)
 
     with cli_logger.group(
-            "Deleting database private DNS zone",
+            "Deleting {} private DNS zone", engine,
             _numbered=("()", current_step, total_steps)):
         current_step += 1
         _delete_managed_database_private_dns_zone(
-            provider_config, workspace_name, resource_group_name)
+            provider_config, workspace_name, resource_group_name,
+            engine)
 
     with cli_logger.group(
-            "Deleting database delegated subnet",
+            "Deleting {} delegated subnet", engine,
             _numbered=("()", current_step, total_steps)):
         current_step += 1
         _delete_managed_database_delegated_subnet(
             provider_config, workspace_name, resource_group_name,
-            virtual_network_name)
+            virtual_network_name, engine)
 
 
 def _delete_managed_database_instance(
         provider_config, workspace_name, resource_group_name,
-        db_instance_name=None):
+        db_instance_name=None, engine=None):
     if not db_instance_name:
         # if not specified, workspace default database
         db_instance_name = get_default_workspace_database_name(workspace_name)
     database_instance = get_managed_database_instance(
         provider_config, workspace_name, resource_group_name,
-        db_instance_name=db_instance_name)
+        db_instance_name=db_instance_name, engine=engine)
     if database_instance is None:
         cli_logger.print(
             "Managed database instance {} doesn't exist in the workspace. Skip deletion.",
             db_instance_name)
         return
+    _delete_database_instance(
+        provider_config, resource_group_name, database_instance)
 
+
+def _delete_database_instance(
+        provider_config, resource_group_name, database_instance):
     engine, db_instance = database_instance
     rdbms_client = _construct_rdbms_client(provider_config, engine=engine)
 
-    cli_logger.print("Deleting the database instance: {}...".format(db_instance.name))
+    cli_logger.print("Deleting the {} instance: {}...".format(
+        engine, db_instance.name))
     try:
         rdbms_client.servers.begin_delete(
             resource_group_name=resource_group_name,
-            server_name=db_instance_name
+            server_name=db_instance.name
         ).result()
-        cli_logger.print("Successfully deleted the database instance: {}.".format(db_instance.name))
+        cli_logger.print(
+            "Successfully deleted the database instance: {}.".format(
+                db_instance.name))
     except Exception as e:
         cli_logger.error(
-            "Failed to delete the database instance: {}. {}", db_instance.name, str(e))
+            "Failed to delete the database instance: {}. {}",
+            db_instance.name, str(e))
         raise e
 
 
-def get_private_dns_zone(provider_config, resource_group_name):
+def _delete_managed_database_instances(
+        provider_config, workspace_name,
+        resource_group_name, engine):
+    database_instances = _get_managed_database_instances(
+        provider_config, resource_group_name)
+    if database_instances is None:
+        cli_logger.print(
+            "No managed {} database instances found in workspace {}. Skip deletion.",
+            engine, workspace_name)
+        return
+
+    total = len(database_instances)
+    for i, database_instance in enumerate(database_instances):
+        engine, db_instance = database_instance
+        with cli_logger.group(
+                "Deleting {} instance: {}",
+                engine, db_instance.name,
+                _numbered=("()", i + 1, total)):
+            _delete_database_instance(
+                provider_config, resource_group_name, database_instance)
+
+
+def get_private_dns_zone(
+        provider_config, workspace_name, resource_group_name, engine):
     private_dns_client = _construct_private_dns_client(provider_config)
-    private_dns_zone_name = AZURE_WORKSPACE_DATABASE_PRIVATE_DNS_ZONE_NAME
+    private_dns_zone_name = get_managed_database_private_dns_zone_name(
+        workspace_name, engine)
 
     cli_logger.verbose("Getting private DNS zone: {}...".format(private_dns_zone_name))
     try:
@@ -910,35 +983,40 @@ def get_private_dns_zone(provider_config, resource_group_name):
 
 
 def _delete_managed_database_private_dns_zone(
-        provider_config, workspace_name, resource_group_name):
+        provider_config, workspace_name, resource_group_name,
+        engine):
     current_step = 1
     total_steps = 2
 
     with cli_logger.group(
-            "Deleting DNS link with virtual network",
+            "Deleting {} DNS link with virtual network", engine,
             _numbered=("()", current_step, total_steps)):
         current_step += 1
         _delete_private_dns_zone_link(
-            provider_config, workspace_name, resource_group_name)
+            provider_config, workspace_name, resource_group_name,
+            engine=engine)
 
     with cli_logger.group(
-            "Deleting private DNS zone",
+            "Deleting {} private DNS zone", engine,
             _numbered=("()", current_step, total_steps)):
         current_step += 1
         _delete_private_dns_zone(
-            provider_config, workspace_name, resource_group_name)
+            provider_config, workspace_name, resource_group_name,
+            engine=engine)
 
 
 def _delete_private_dns_zone(
-        provider_config, workspace_name, resource_group_name):
+        provider_config, workspace_name, resource_group_name,
+        engine):
     private_dns_zone = get_private_dns_zone(
-        provider_config, resource_group_name)
+        provider_config, workspace_name, resource_group_name, engine)
     if private_dns_zone is None:
         cli_logger.print("Private DNS zone doesn't exist. Skip deletion.")
         return
 
     private_dns_client = _construct_private_dns_client(provider_config)
-    private_dns_zone_name = AZURE_WORKSPACE_DATABASE_PRIVATE_DNS_ZONE_NAME
+    private_dns_zone_name = get_managed_database_private_dns_zone_name(
+        workspace_name, engine)
 
     cli_logger.print("Deleting the private DNS zone: {}...".format(private_dns_zone_name))
     try:
@@ -953,10 +1031,14 @@ def _delete_private_dns_zone(
         raise e
 
 
-def get_private_dns_zone_link(provider_config, workspace_name, resource_group_name):
+def get_private_dns_zone_link(
+        provider_config, workspace_name, resource_group_name,
+        engine):
     private_dns_client = _construct_private_dns_client(provider_config)
-    private_dns_zone_name = AZURE_WORKSPACE_DATABASE_PRIVATE_DNS_ZONE_NAME
-    link_name = AZURE_WORKSPACE_DATABASE_PRIVATE_DNS_ZONE_LINK_NAME.format(workspace_name)
+    private_dns_zone_name = get_managed_database_private_dns_zone_name(
+        workspace_name, engine)
+    link_name = get_managed_database_private_dns_zone_link_name(
+        workspace_name, engine)
 
     cli_logger.verbose("Getting private DNS zone link: {}->{}...".format(
         private_dns_zone_name, link_name))
@@ -974,13 +1056,16 @@ def get_private_dns_zone_link(provider_config, workspace_name, resource_group_na
 
 
 def _delete_private_dns_zone_link(
-        provider_config, workspace_name, resource_group_name):
+        provider_config, workspace_name, resource_group_name,
+        engine):
     private_dns_client = _construct_private_dns_client(provider_config)
-    private_dns_zone_name = AZURE_WORKSPACE_DATABASE_PRIVATE_DNS_ZONE_NAME
-    link_name = AZURE_WORKSPACE_DATABASE_PRIVATE_DNS_ZONE_LINK_NAME.format(workspace_name)
+    private_dns_zone_name = get_managed_database_private_dns_zone_name(
+        workspace_name, engine)
+    link_name = get_managed_database_private_dns_zone_link_name(
+        workspace_name, engine)
 
     private_dns_zone_link = get_private_dns_zone_link(
-        provider_config, workspace_name, resource_group_name)
+        provider_config, workspace_name, resource_group_name, engine)
     if private_dns_zone_link is None:
         cli_logger.print("Private DNS zone link doesn't exist. Skip deletion.")
         return
@@ -1001,9 +1086,10 @@ def _delete_private_dns_zone_link(
 
 def _delete_managed_database_delegated_subnet(
         provider_config, workspace_name, resource_group_name,
-        virtual_network_name):
+        virtual_network_name, engine):
+    subnet_name = get_managed_database_subnet_name(workspace_name, engine)
+
     network_client = _construct_network_client(provider_config)
-    subnet_name = AZURE_WORKSPACE_DATABASE_SUBNET_NAME.format(workspace_name)
     subnet = get_subnet(network_client, resource_group_name,
                         virtual_network_name, subnet_name)
     if subnet is None:
@@ -1981,37 +2067,40 @@ def _create_managed_cloud_database(
     current_step = 1
     total_steps = 3
 
+    database_config = get_azure_database_config(cloud_provider, {})
+    engine = get_azure_database_engine(database_config)
+
     with cli_logger.group(
-            "Creating database delegated subnet",
+            "Creating {} delegated subnet", engine,
             _numbered=("()", current_step, total_steps)):
         current_step += 1
         _create_managed_database_delegated_subnet(
             cloud_provider, workspace_name, resource_group_name,
-            virtual_network_name)
+            virtual_network_name, engine)
 
     with cli_logger.group(
-            "Creating database private DNS zone",
+            "Creating {} private DNS zone", engine,
             _numbered=("()", current_step, total_steps)):
         current_step += 1
         _create_managed_database_private_dns_zone(
             cloud_provider, workspace_name, resource_group_name,
-            virtual_network_name)
+            virtual_network_name, engine)
 
     with cli_logger.group(
-            "Creating managed database instance",
+            "Creating managed {} instance", engine,
             _numbered=("()", current_step, total_steps)):
         current_step += 1
         _create_managed_database_instance(
             cloud_provider, workspace_name, resource_group_name,
             virtual_network_name,
-            db_instance_name=db_instance_name)
+            db_instance_name=db_instance_name, engine=engine)
 
 
 def _create_managed_database_delegated_subnet(
         cloud_provider, workspace_name, resource_group_name,
-        virtual_network_name):
+        virtual_network_name, engine):
     network_client = _construct_network_client(cloud_provider)
-    subnet_name = AZURE_WORKSPACE_DATABASE_SUBNET_NAME.format(workspace_name)
+    subnet_name = get_managed_database_subnet_name(workspace_name, engine)
     subnet = get_subnet(network_client, resource_group_name,
                         virtual_network_name, subnet_name)
     if subnet is not None:
@@ -2021,8 +2110,6 @@ def _create_managed_database_delegated_subnet(
     cidr_block = _configure_azure_subnet_cidr(
         network_client, resource_group_name, virtual_network_name)
 
-    database_config = get_azure_database_config(cloud_provider, {})
-    engine = get_azure_database_engine(database_config)
     if engine == DATABASE_ENGINE_MYSQL:
         service_name = "Microsoft.DBforMySQL/flexibleServers"
     else:
@@ -2051,7 +2138,7 @@ def _create_managed_database_delegated_subnet(
 
 def _create_managed_database_private_dns_zone(
         cloud_provider, workspace_name, resource_group_name,
-        virtual_network_name):
+        virtual_network_name, engine):
     current_step = 1
     total_steps = 2
 
@@ -2060,7 +2147,8 @@ def _create_managed_database_private_dns_zone(
             _numbered=("()", current_step, total_steps)):
         current_step += 1
         _create_private_dns_zone(
-            cloud_provider, workspace_name, resource_group_name)
+            cloud_provider, workspace_name, resource_group_name,
+            engine)
 
     with cli_logger.group(
             "Creating DNS link with virtual network",
@@ -2068,16 +2156,18 @@ def _create_managed_database_private_dns_zone(
         current_step += 1
         _create_private_dns_zone_link(
             cloud_provider, workspace_name, resource_group_name,
-            virtual_network_name)
+            virtual_network_name, engine)
 
 
 def _create_private_dns_zone(
-        cloud_provider, workspace_name, resource_group_name):
-    private_dns_client = _construct_private_dns_client(cloud_provider)
-    private_dns_zone_name = AZURE_WORKSPACE_DATABASE_PRIVATE_DNS_ZONE_NAME
+        cloud_provider, workspace_name, resource_group_name,
+        engine):
+    private_dns_zone_name = get_managed_database_private_dns_zone_name(
+        workspace_name, engine)
 
+    private_dns_client = _construct_private_dns_client(cloud_provider)
     private_dns_zone = get_private_dns_zone(
-        cloud_provider, resource_group_name)
+        cloud_provider, workspace_name, resource_group_name, engine)
     if private_dns_zone is not None:
         cli_logger.print("Private DNS zone already exist. Skip creation.")
         return
@@ -2101,13 +2191,16 @@ def _create_private_dns_zone(
 
 def _create_private_dns_zone_link(
         cloud_provider, workspace_name, resource_group_name,
-        virtual_network_name):
+        virtual_network_name, engine):
+    private_dns_zone_name = get_managed_database_private_dns_zone_name(
+        workspace_name, engine)
+    link_name = get_managed_database_private_dns_zone_link_name(
+        workspace_name, engine)
+
     private_dns_client = _construct_private_dns_client(cloud_provider)
-    private_dns_zone_name = AZURE_WORKSPACE_DATABASE_PRIVATE_DNS_ZONE_NAME
-    link_name = AZURE_WORKSPACE_DATABASE_PRIVATE_DNS_ZONE_LINK_NAME.format(workspace_name)
 
     private_dns_zone_link = get_private_dns_zone_link(
-        cloud_provider, workspace_name, resource_group_name)
+        cloud_provider, workspace_name, resource_group_name, engine)
     if private_dns_zone_link is not None:
         cli_logger.print("Private DNS zone link already exist. Skip creation.")
         return
@@ -2137,27 +2230,21 @@ def _create_private_dns_zone_link(
         raise e
 
 
-def _create_managed_database_instance_in_workspace(
-        cloud_provider, workspace_name, resource_group_name,
-        db_instance_name=None):
-    virtual_network_name = get_virtual_network_name(
-        cloud_provider, workspace_name)
-    _create_managed_database_instance(
-        cloud_provider, workspace_name, resource_group_name,
-        virtual_network_name, db_instance_name=db_instance_name)
-
-
 def _create_managed_database_instance(
         cloud_provider, workspace_name, resource_group_name,
-        virtual_network_name, db_instance_name=None):
+        virtual_network_name, db_instance_name=None, engine=None):
     if not db_instance_name:
         # if not specified, workspace default database
         db_instance_name = get_default_workspace_database_name(workspace_name)
+    if not engine:
+        database_config = get_azure_database_config(cloud_provider, {})
+        engine = get_azure_database_engine(database_config)
+
     # If the managed cloud database for the workspace already exists
     # Skip the creation step
     database_instance = get_managed_database_instance(
         cloud_provider, workspace_name, resource_group_name,
-        db_instance_name=db_instance_name)
+        db_instance_name=db_instance_name, engine=engine)
     if database_instance is not None:
         cli_logger.print(
             "Managed database instance {} already exists in the workspace. Skip creation.",
@@ -2166,11 +2253,11 @@ def _create_managed_database_instance(
 
     subscription_id = cloud_provider.get("subscription_id")
     location = cloud_provider["location"]
-    subnet_name = AZURE_WORKSPACE_DATABASE_SUBNET_NAME.format(workspace_name)
-    private_dns_zone_name = AZURE_WORKSPACE_DATABASE_PRIVATE_DNS_ZONE_NAME
-
     database_config = get_azure_database_config(cloud_provider, {})
-    engine = get_azure_database_engine(database_config)
+
+    subnet_name = get_managed_database_subnet_name(workspace_name, engine)
+    private_dns_zone_name = get_managed_database_private_dns_zone_name(
+        workspace_name, engine)
 
     cli_logger.print("Creating database instance for the workspace: {}...".format(workspace_name))
     try:
@@ -2301,19 +2388,21 @@ def get_workspace_database_instance(
 
 def get_managed_database_instance(
         provider_config, workspace_name, resource_group_name,
-        db_instance_name=None):
+        db_instance_name=None, engine=None):
     if not db_instance_name:
         # if not specified, workspace default database
         db_instance_name = get_default_workspace_database_name(workspace_name)
     return _get_managed_database_instance(
         provider_config, resource_group_name,
-        db_instance_name=db_instance_name)
+        db_instance_name=db_instance_name, engine=engine)
 
 
 def _get_managed_database_instance(
-        provider_config, resource_group_name, db_instance_name):
-    database_config = get_azure_database_config(provider_config, {})
-    engine = get_azure_database_engine(database_config)
+        provider_config, resource_group_name,
+        db_instance_name, engine=None):
+    if not engine:
+        database_config = get_azure_database_config(provider_config, {})
+        engine = get_azure_database_engine(database_config)
     rdbms_client = _construct_rdbms_client(provider_config, engine=engine)
     cli_logger.verbose("Getting the database instance: {}.".format(db_instance_name))
     try:
