@@ -31,7 +31,8 @@ from cloudtik.providers._private.aws.utils import \
     _resource_client, _make_resource, _make_resource_client, make_ec2_client, export_aws_s3_storage_config, \
     get_aws_s3_storage_config, get_aws_s3_storage_config_for_update, _working_node_client, _working_node_resource, \
     get_aws_cloud_storage_uri, AWS_S3_BUCKET, _make_client, get_aws_database_config, export_aws_database_config, \
-    get_aws_database_config_for_update, AWS_DATABASE_ENDPOINT, get_aws_database_engine, get_aws_database_port
+    get_aws_database_config_for_update, AWS_DATABASE_ENDPOINT, get_aws_database_engine, get_aws_database_port, \
+    get_aws_credentials
 from cloudtik.providers._private.utils import StorageTestingError
 
 logger = logging.getLogger(__name__)
@@ -2873,12 +2874,13 @@ def list_ec2_instances(region: str, aws_credentials: Dict[str, Any] = None
 
 
 def get_latest_ami_id(cluster_config: Dict[str, Any], is_gpu):
+    provider_config = cluster_config["provider"]
     name_filter = DEFAULT_AMI_NAME_PREFIX_GPU if is_gpu else DEFAULT_AMI_NAME_PREFIX
     try:
         ec2 = make_ec2_client(
-            region=cluster_config["provider"]["region"],
+            region=provider_config["region"],
             max_retries=BOTO_MAX_RETRIES,
-            aws_credentials=cluster_config["provider"].get("aws_credentials"))
+            aws_credentials=get_aws_credentials(provider_config))
         response = ec2.describe_images(Owners=["amazon"],
                                        Filters=[{'Name': 'name', 'Values': [name_filter + "*"]},
                                                 {"Name": "is-public", "Values": ["true"]},
@@ -2914,11 +2916,12 @@ def fill_available_node_types_resources(
     if "available_node_types" not in cluster_config:
         return cluster_config
     cluster_config = copy.deepcopy(cluster_config)
+    provider_config = cluster_config["provider"]
 
     # Get instance information from cloud provider
     instances_list = list_ec2_instances(
-        cluster_config["provider"]["region"],
-        cluster_config["provider"].get("aws_credentials"))
+        provider_config["region"],
+        get_aws_credentials(provider_config))
     instances_dict = {
         instance["InstanceType"]: instance
         for instance in instances_list
@@ -2960,7 +2963,7 @@ def fill_available_node_types_resources(
         else:
             raise ValueError("Instance type " + instance_type +
                              " is not available in AWS region: " +
-                             cluster_config["provider"]["region"] + ".")
+                             provider_config["region"] + ".")
     return cluster_config
 
 

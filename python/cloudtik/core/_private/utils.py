@@ -41,6 +41,8 @@ from cloudtik.core._private.crypto import AESCipher
 from cloudtik.core._private.debug import log_once
 from cloudtik.core._private.runtime_factory import _get_runtime, _get_runtime_cls, DEFAULT_RUNTIMES, \
     BUILT_IN_RUNTIME_ALL, BUILT_IN_RUNTIME_NONE
+from cloudtik.core._private.schema_utils import CLUSTER_SCHEMA_NAME, CLUSTER_SCHEMA_REFS, \
+    validate_schema_by_name
 from cloudtik.core.node_provider import NodeProvider
 from cloudtik.core._private.provider_factory import _get_default_config, _get_node_provider, \
     _get_provider_config_object, _get_node_provider_cls
@@ -51,9 +53,6 @@ from cloudtik.core.tags import CLOUDTIK_TAG_USER_NODE_TYPE, CLOUDTIK_TAG_NODE_ST
 
 
 REQUIRED, OPTIONAL = True, False
-
-CLOUDTIK_SCHEMA_PATH = os.path.join(os.path.dirname(cloudtik.__file__), "schema")
-CLOUDTIK_CLUSTER_SCHEMA_PATH = os.path.join(CLOUDTIK_SCHEMA_PATH, "cluster-schema.json")
 
 # Internal kv keys for storing debug status.
 CLOUDTIK_CLUSTER_SCALING_ERROR = "__cluster_scaling_error"
@@ -111,8 +110,10 @@ FILE_MOUNTS_CONFIG_KEY = "file_mounts"
 RUNTIME_TYPES_CONFIG_KEY = "types"
 ENCRYPTION_KEY_CONFIG_KEY = "encryption.key"
 
+PROVIDER_CREDENTIALS_CONFIG_KEY = "credentials"
 PROVIDER_STORAGE_CONFIG_KEY = "storage"
 PROVIDER_DATABASE_CONFIG_KEY = "database"
+
 
 PRIVACY_CONFIG_KEYS = ["credentials", "account.key", "secret", "access.key", "private.key", "encryption.key"]
 
@@ -360,34 +361,12 @@ def run_in_parallel_on_nodes(run_exec,
     return len(nodes) - failures - skipped, failures, skipped
 
 
-def validate_schema(config: Dict[str, Any], schema_file):
-    with open(schema_file) as f:
-        schema = json.load(f)
-
-    try:
-        import jsonschema
-    except (ModuleNotFoundError, ImportError) as e:
-        # Don't log a warning message here. Logging be handled by upstream.
-        raise e from None
-
-    try:
-        jsonschema.validate(config, schema)
-    except jsonschema.ValidationError as e:
-        # The validate method show very long message of the schema
-        # and the instance data, we need show this only at verbose mode
-        if cli_logger.verbosity > 0:
-            raise e from None
-        else:
-            # For none verbose mode, show short message
-            raise RuntimeError("JSON schema validation error: {}.".format(e.message)) from None
-
-
 def validate_config(config: Dict[str, Any]) -> None:
     """Required Dicts indicate that no extra fields can be introduced."""
     if not isinstance(config, dict):
         raise ValueError("Config {} is not a dictionary".format(config))
 
-    validate_schema(config, CLOUDTIK_CLUSTER_SCHEMA_PATH)
+    validate_schema_by_name(config, CLUSTER_SCHEMA_NAME, CLUSTER_SCHEMA_REFS)
 
     # Detect out of date defaults. This happens when the cluster scaler that filled
     # out the default values is older than the version of the cluster scaler that
@@ -3345,3 +3324,20 @@ def prepare_runtime_config_on_head(config):
         cluster_config_file = get_head_bootstrap_config()
         with open(cluster_config_file, "w") as f:
             f.write(json.dumps(encrypted_config))
+
+
+def get_cloud_credentials(provider_config, credentials_key, default=None):
+    credentials_config = provider_config.get(
+        PROVIDER_CREDENTIALS_CONFIG_KEY)
+    if not credentials_config:
+        return default
+    return credentials_config.get(credentials_key, default)
+
+
+def clear_cloud_credentials(provider_config, credentials_key):
+    credentials_config = provider_config.get(
+        PROVIDER_CREDENTIALS_CONFIG_KEY)
+    if not credentials_config:
+        return
+    if credentials_key in credentials_config:
+        credentials_config.pop(credentials_key, None)

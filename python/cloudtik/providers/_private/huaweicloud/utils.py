@@ -23,11 +23,12 @@ from obs import ObsClient
 from cloudtik.core._private.constants import \
     CLOUDTIK_DEFAULT_CLOUD_STORAGE_URI, env_bool
 from cloudtik.core._private.utils import get_storage_config_for_update, get_config_for_update, \
-    PROVIDER_STORAGE_CONFIG_KEY
+    PROVIDER_STORAGE_CONFIG_KEY, get_cloud_credentials, clear_cloud_credentials, PROVIDER_CREDENTIALS_CONFIG_KEY
 
 OBS_SERVICES_URL = 'https://obs.{location}.myhuaweicloud.com'
 OBS_SERVICES_DEFAULT_URL = 'https://obs.myhuaweicloud.com'
 HWC_OBS_BUCKET = "obs.bucket"
+HWC_CREDENTIALS = "huaweicloud_credentials"
 HWC_SERVER_TAG_STR_FORMAT = '{}={}'
 HWC_SERVER_STATUS_ACTIVE = 'ACTIVE'
 HWC_SERVER_STATUS_BUILD = 'BUILD'
@@ -120,10 +121,19 @@ def _client_cache(region: str = None, ak: str = None, sk: str = None) -> Dict[
     return client_map
 
 
+def get_huaweicloud_credentials(provider_config, default=None):
+    return get_cloud_credentials(
+        provider_config, HWC_CREDENTIALS, default)
+
+
+def clear_huaweicloud_credentials(provider_config):
+    clear_cloud_credentials(provider_config, HWC_CREDENTIALS)
+
+
 def _make_client(
         config_provider: Dict[str, Any], client_type: str, region=None):
     region = config_provider.get('region') if region is None else region
-    credentials = config_provider.get('huaweicloud_credentials')
+    credentials = get_huaweicloud_credentials(config_provider)
     if credentials:
         ak = credentials.get('huaweicloud_access_key')
         sk = credentials.get('huaweicloud_secret_key')
@@ -184,8 +194,8 @@ def _make_ims_client(config_provider: Dict[str, Any], region=None) -> Any:
 def make_obs_client_aksk(ak: str, sk: str, region: str = None) -> Any:
     config_provider = {}
     if ak and sk:
-        aksk = {"huaweicloud_access_key": ak, "huaweicloud_secret_key": sk}
-        config_provider["huaweicloud_credentials"] = aksk
+        hwc_credentials = {"huaweicloud_access_key": ak, "huaweicloud_secret_key": sk}
+        config_provider[PROVIDER_CREDENTIALS_CONFIG_KEY] = {HWC_CREDENTIALS: hwc_credentials}
     return _make_obs_client(config_provider, region=region)
 
 

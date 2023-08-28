@@ -1,4 +1,7 @@
-# A unique identifier for the head node and workers of this cluster.
+# A unique identifier for the workspace
+workspace_name: default
+
+# A unique identifier for this cluster.
 cluster_name: default
 
 # The cluster scaler will scale up the cluster faster with higher upscaling speed.

@@ -20,7 +20,7 @@ from cloudtik.providers._private.aws.config import verify_s3_storage, bootstrap_
 from cloudtik.providers._private.aws.utils import boto_exception_handler, \
     get_boto_error_code, BOTO_MAX_RETRIES, BOTO_CREATE_MAX_RETRIES, \
     _get_node_info, make_ec2_resource, get_aws_s3_storage_config, get_default_aws_cloud_storage, \
-    get_default_aws_cloud_database
+    get_default_aws_cloud_database, get_aws_credentials, clear_aws_credentials
 from cloudtik.providers._private.utils import validate_config_dict
 
 logger = logging.getLogger(__name__)
@@ -53,7 +53,7 @@ class AWSNodeProvider(NodeProvider):
         NodeProvider.__init__(self, provider_config, cluster_name)
         self.cache_stopped_nodes = provider_config.get("cache_stopped_nodes",
                                                        False)
-        aws_credentials = provider_config.get("aws_credentials")
+        aws_credentials = get_aws_credentials(provider_config)
 
         self.ec2 = make_ec2_resource(
             region=provider_config["region"],
@@ -536,9 +536,7 @@ class AWSNodeProvider(NodeProvider):
         """Returns a new cluster config with custom configs for head node."""
         # Since the head will use the instance profile and role to access cloud,
         # remove the client credentials from config
-        if "aws_credentials" in remote_config["provider"]:
-            remote_config["provider"].pop("aws_credentials", None)
-
+        clear_aws_credentials(remote_config["provider"])
         return remote_config
 
     def get_default_cloud_storage(self):

@@ -20,8 +20,8 @@ from cloudtik.providers._private.gcp.node import (
     GCPResource, GCPNode, GCPCompute, GCPTPU, GCPNodeType)
 
 from cloudtik.providers._private.gcp.utils import _get_node_info, \
-    construct_clients_from_provider_config, get_node_type, get_gcp_cloud_storage_config, get_default_gcp_cloud_storage, \
-    get_default_gcp_cloud_database
+    construct_clients_from_provider_config, get_node_type, get_gcp_cloud_storage_config, \
+    get_default_gcp_cloud_storage, get_default_gcp_cloud_database, clear_gcp_credentials
 from cloudtik.providers._private.utils import validate_config_dict
 
 logger = logging.getLogger(__name__)
@@ -239,8 +239,7 @@ class GCPNodeProvider(NodeProvider):
         """Returns a new cluster config with custom configs for head node."""
         # Since the head will use the instance profile and role to access cloud,
         # remove the client credentials from config
-        if "gcp_credentials" in remote_config["provider"]:
-            remote_config["provider"].pop("gcp_credentials", None)
+        clear_gcp_credentials(remote_config["provider"])
 
         return remote_config
 

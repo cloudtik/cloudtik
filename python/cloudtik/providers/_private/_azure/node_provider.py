@@ -23,7 +23,8 @@ from cloudtik.providers._private._azure.config import (AZURE_MSI_NAME,
 
 from cloudtik.providers._private._azure.utils import (_get_node_info, get_azure_sdk_function,
                                                       get_credential, get_azure_cloud_storage_config,
-                                                      get_default_azure_cloud_storage, get_default_azure_cloud_database)
+                                                      get_default_azure_cloud_storage, get_default_azure_cloud_database,
+                                                      clear_azure_credentials)
 from cloudtik.providers._private.utils import validate_config_dict
 
 VM_NAME_MAX_LEN = 64
@@ -307,8 +308,7 @@ class AzureNodeProvider(NodeProvider):
 
         # Since the head will use the instance profile and role to access cloud,
         # remove the client credentials from config
-        if "azure_credentials" in remote_config["provider"]:
-            remote_config["provider"].pop("azure_credentials", None)
+        clear_azure_credentials(remote_config["provider"])
 
         return remote_config
 

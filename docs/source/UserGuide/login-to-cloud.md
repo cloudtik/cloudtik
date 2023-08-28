@@ -99,14 +99,15 @@ provider:
     # Use allowed_ssh_sources to allow SSH access from your client machine
     allowed_ssh_sources:
       - 0.0.0.0/0
-    gcp_credentials:
-        type: oauth_token
-        credentials:
-            token: nil
-            client_id: "your_client_id"
-            client_secret: "your_client_secret"
-            token_uri: https://oauth2.googleapis.com/token
-            refresh_token: "your_refresh_token"
+    credentials:
+        gcp_credentials:
+            type: oauth_token
+            credentials:
+                token: nil
+                client_id: "your_client_id"
+                client_secret: "your_client_secret"
+                token_uri: https://oauth2.googleapis.com/token
+                refresh_token: "your_refresh_token"
 ```
 
 ## Alibaba Cloud
@@ -137,9 +138,10 @@ For example,
 provider:
     type: aliyun
     region: cn-shanghai
-    aliyun_credentials:
-        aliyun_access_key_id: your-access-key-id
-        aliyun_access_key_secret: your-access-key-secret
+    credentials:
+        aliyun_credentials:
+            aliyun_access_key_id: your-access-key-id
+            aliyun_access_key_secret: your-access-key-secret
 ```
 
 or with the optional security token for STS authentication,
@@ -148,10 +150,11 @@ or with the optional security token for STS authentication,
 provider:
     type: aliyun
     region: cn-shanghai
-    aliyun_credentials:
-        aliyun_access_key_id: your-access-key-id
-        aliyun_access_key_secret: your-access-key-secret
-        aliyun_security_token: your-security-token
+    credentials:
+        aliyun_credentials:
+            aliyun_access_key_id: your-access-key-id
+            aliyun_access_key_secret: your-access-key-secret
+            aliyun_security_token: your-security-token
 ```
 
 ### Alibaba Cloud API Configuration file

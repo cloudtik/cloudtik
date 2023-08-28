@@ -411,6 +411,7 @@ class MockClusterScaler(ClusterScaler):
 
 
 SMALL_CLUSTER = {
+    "workspace_name": "default",
     "cluster_name": "default",
     "min_workers": 2,
     "max_workers": 2,
@@ -463,6 +464,7 @@ SMALL_CLUSTER = {
 }
 
 MOCK_DEFAULT_CONFIG = {
+    "workspace_name": "default",
     "cluster_name": "default",
     "max_workers": 2,
     "idle_timeout_minutes": 5,

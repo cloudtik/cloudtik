@@ -6,6 +6,8 @@ import prettytable as pt
 
 from cloudtik.core._private.cluster.cluster_operator import _get_cluster_info
 from cloudtik.core._private.core_utils import get_cloudtik_temp_dir, get_json_object_hash
+from cloudtik.core._private.schema_utils import WORKSPACE_SCHEMA_REFS, WORKSPACE_SCHEMA_NAME, \
+    validate_schema_by_name
 from cloudtik.core.tags import CLOUDTIK_TAG_NODE_STATUS
 from cloudtik.core.workspace_provider import Existence, CLOUDTIK_MANAGED_CLOUD_STORAGE, \
     CLOUDTIK_MANAGED_CLOUD_STORAGE_URI, CLOUDTIK_MANAGED_CLOUD_DATABASE_ENDPOINT, \
@@ -14,7 +16,7 @@ from cloudtik.core.workspace_provider import Existence, CLOUDTIK_MANAGED_CLOUD_S
 from cloudtik.core._private.utils import \
     is_managed_cloud_database, is_managed_cloud_storage, print_dict_info, \
     NODE_INFO_NODE_IP, handle_cli_override, load_yaml_config, save_config_cache, load_config_from_cache, \
-    merge_config_hierarchy, validate_schema, CLOUDTIK_SCHEMA_PATH
+    merge_config_hierarchy
 from cloudtik.core._private.provider_factory import _get_workspace_provider_cls, _get_workspace_provider, \
     _WORKSPACE_PROVIDERS, _PROVIDER_PRETTY_NAMES, _get_node_provider_cls
 from cloudtik.core._private.cli_logger import cli_logger, cf
@@ -22,7 +24,6 @@ from cloudtik.core._private.cli_logger import cli_logger, cf
 logger = logging.getLogger(__name__)
 
 CONFIG_CACHE_VERSION = 1
-WORKSPACE_SCHEMA_PATH = os.path.join(CLOUDTIK_SCHEMA_PATH, "workspace-schema.json")
 
 
 def _get_existence_name(existence):
@@ -484,6 +485,7 @@ def validate_workspace_config(config: Dict[str, Any]) -> None:
     if not isinstance(config, dict):
         raise ValueError("Config {} is not a dictionary".format(config))
 
-    validate_schema(config, WORKSPACE_SCHEMA_PATH)
+    validate_schema_by_name(
+        config, WORKSPACE_SCHEMA_NAME, WORKSPACE_SCHEMA_REFS)
     provider = _get_workspace_provider(config["provider"], config["workspace_name"])
     provider.validate_config(config["provider"])

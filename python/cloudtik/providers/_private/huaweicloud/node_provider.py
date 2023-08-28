@@ -29,7 +29,7 @@ from cloudtik.providers._private.huaweicloud.utils import _get_node_info, \
     get_huaweicloud_obs_storage_config, \
     HWC_SERVER_STATUS_ACTIVE, \
     HWC_SERVER_STATUS_NON_TERMINATED, HWC_SERVER_TAG_STR_FORMAT, \
-    tags_list_to_dict
+    tags_list_to_dict, clear_huaweicloud_credentials
 from cloudtik.providers._private.utils import validate_config_dict
 
 logger = logging.getLogger(__name__)
@@ -202,14 +202,13 @@ class HUAWEICLOUDNodeProvider(NodeProvider):
             created_nodes_dict[created_server.id] = created_server
         return created_nodes_dict
 
-    def prepare_config_for_head(self, cluster_config: Dict[str, Any],
-                              remote_config: Dict[str, Any]) -> Dict[str, Any]:
+    def prepare_config_for_head(
+            self, cluster_config: Dict[str, Any],
+            remote_config: Dict[str, Any]) -> Dict[str, Any]:
         """Returns a new cluster config with custom configs for head node."""
         # Since the head will use the ECS agency to access cloud,
         # remove the client credentials from config
-        if "huaweicloud_credentials" in remote_config["provider"]:
-            remote_config.pop("huaweicloud_credentials", None)
-
+        clear_huaweicloud_credentials(remote_config["provider"])
         return remote_config
 
     def _get_node(self, node_id):

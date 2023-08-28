@@ -6,7 +6,7 @@ from typing import Any, Dict, List
 
 from cloudtik.core._private.constants import CLOUDTIK_DEFAULT_CLOUD_STORAGE_URI
 from cloudtik.core._private.utils import get_storage_config_for_update, get_config_for_update, \
-    PROVIDER_STORAGE_CONFIG_KEY
+    PROVIDER_STORAGE_CONFIG_KEY, get_cloud_credentials, clear_cloud_credentials
 
 from cloudtik.core._private.cli_logger import cli_logger
 
@@ -28,6 +28,8 @@ from Tea.exceptions import TeaException, UnretryableException
 
 ALIYUN_OSS_BUCKET = "oss.bucket"
 ALIYUN_OSS_INTERNAL_ENDPOINT = "oss.internal.endpoint"
+ALIYUN_CREDENTIALS = "aliyun_credentials"
+
 CLIENT_MAX_RETRY_ATTEMPTS = 5
 
 
@@ -119,8 +121,17 @@ def _get_node_info(node):
     return node_info
 
 
+def get_aliyun_credentials(provider_config, default=None):
+    return get_cloud_credentials(
+        provider_config, ALIYUN_CREDENTIALS, default)
+
+
+def clear_aliyun_credentials(provider_config):
+    clear_cloud_credentials(provider_config, ALIYUN_CREDENTIALS)
+
+
 def get_credential(provider_config):
-    aliyun_credentials = provider_config.get("aliyun_credentials")
+    aliyun_credentials = get_aliyun_credentials(provider_config)
     aliyun_ram_role_name = provider_config.get("ram_role_name")
     return _get_credential(aliyun_credentials, aliyun_ram_role_name)
 
@@ -186,7 +197,7 @@ def make_ram_client(provider_config):
 
 
 def make_oss_client(provider_config, region_id=None):
-    credentials_config = provider_config.get("aliyun_credentials")
+    credentials_config = get_aliyun_credentials(provider_config)
     region_id = region_id if region_id is not None else provider_config["region"]
     return _make_oss_client(credentials_config, region_id)
 
@@ -233,7 +244,7 @@ class OssClient:
     def __init__(self, provider_config, credentials_config=None, region_id=None):
         self.region_id = provider_config["region"] if region_id is None else region_id
         if credentials_config is None:
-            credentials_config = provider_config.get("aliyun_credentials")
+            credentials_config = get_aliyun_credentials(provider_config)
         self.client = _make_oss_client(credentials_config, self.region_id)
         self.runtime_options = util_models.RuntimeOptions(
             autoretry=True,

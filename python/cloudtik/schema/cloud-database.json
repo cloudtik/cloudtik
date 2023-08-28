@@ -1,0 +1,110 @@
+{
+	"$schema": "http://json-schema.org/draft-07/schema#",
+	"$id": "http://cloudtik.com/schema/cloud-database.json",
+	"description": "CloudTik managed cloud database configuration schema",
+    "type": "object",
+    "additionalProperties": true,
+    "properties": {
+        "aws.database": {
+            "type": "object",
+            "description": "AWS RDS for MySQL options",
+            "additionalProperties": true,
+            "properties": {
+                "instance_type": {
+                    "type": "string",
+                    "description": "AWS RDS DBInstanceClass. default: db.t3.xlarge"
+                },
+                "storage_type": {
+                    "type": "string",
+                    "description": "AWS RDS StorageType. default: gp2"
+                },
+                "storage_size": {
+                    "type": "number",
+                    "description": "AWS RDS AllocatedStorage size in GB. default: 50"
+                },
+                "username": {
+                    "type": "string",
+                    "description": "AWS RDS MasterUserPassword. default: cloudtik"
+                },
+                "password": {
+                    "type": "string",
+                    "description": "AWS RDS MasterUserPassword."
+                },
+                "engine": {
+                    "type": "string",
+                    "description": "AWS RDS engine type: mysql or postgres. default: mysql"
+                },
+                "port": {
+                    "type": "number",
+                    "description": "AWS RDS port. default: mysql=3306, postgres=5432"
+                },
+                "high_availability": {
+                    "type": "boolean",
+                    "description": "AWS RDS high availability flag. Default: false"
+                }
+            }
+        },
+        "azure.database": {
+            "type": "object",
+            "description": "Azure Database for MySQL options",
+            "additionalProperties": true,
+            "properties": {
+                "instance_type": {
+                    "type": "string",
+                    "description": "Azure Database InstanceSku. default: Standard_D4ds_v4"
+                },
+                "storage_size": {
+                    "type": "number",
+                    "description": "Azure Database storage size in GB. default: 50"
+                },
+                "username": {
+                    "type": "string",
+                    "description": "Azure Database administrator login name. default: cloudtik"
+                },
+                "password": {
+                    "type": "string",
+                    "description": "Azure Database administrator password."
+                },
+                "engine": {
+                    "type": "string",
+                    "description": "Azure Database engine type: mysql or postgres. default: mysql"
+                },
+                "high_availability": {
+                    "type": "boolean",
+                    "description": "Azure Database high availability flag. Default: false"
+                }
+            }
+        },
+        "gcp.database": {
+            "type": "object",
+            "description": "GCP Cloud SQL for MySQL options",
+            "additionalProperties": true,
+            "properties": {
+                "instance_type": {
+                    "type": "string",
+                    "description": "GCP Cloud SQL machine type. default: db-custom-4-15360"
+                },
+                "storage_type": {
+                    "type": "string",
+                    "description": "GCP Cloud SQL storage type. default: PD_SSD"
+                },
+                "storage_size": {
+                    "type": "number",
+                    "description": "GCP Cloud SQL storage size in GB. default: 50"
+                },
+                "password": {
+                    "type": "string",
+                    "description": "GCP Cloud SQL root password."
+                },
+                "engine": {
+                    "type": "string",
+                    "description": "GCP Cloud SQL engine type: mysql or postgres. default: mysql"
+                },
+                "high_availability": {
+                    "type": "boolean",
+                    "description": "GCP Cloud SQL high availability flag. Default: false"
+                }
+            }
+        }
+    }
+}

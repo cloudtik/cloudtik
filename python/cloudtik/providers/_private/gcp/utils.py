@@ -14,7 +14,8 @@ from cloudtik.core._private.util.database_utils import get_database_engine, get_
     DATABASE_ENV_ENGINE, DATABASE_ENV_HOST, DATABASE_ENV_PORT, DATABASE_ENV_USERNAME, DATABASE_ENV_PASSWORD, \
     DATABASE_ENGINE_MYSQL, get_database_default_port
 from cloudtik.core._private.utils import get_storage_config_for_update, get_database_config_for_update, \
-    get_config_for_update, PROVIDER_DATABASE_CONFIG_KEY, PROVIDER_STORAGE_CONFIG_KEY
+    get_config_for_update, PROVIDER_DATABASE_CONFIG_KEY, PROVIDER_STORAGE_CONFIG_KEY, PROVIDER_CREDENTIALS_CONFIG_KEY, \
+    get_cloud_credentials, clear_cloud_credentials
 from cloudtik.providers._private.gcp.node import (GCPNodeType, MAX_POLLS,
                                                   POLL_INTERVAL)
 from cloudtik.providers._private.gcp.node import GCPNode
@@ -32,6 +33,7 @@ SERVICE_ACCOUNT_EMAIL_TEMPLATE = (
 
 GCP_GCS_BUCKET = "gcs.bucket"
 GCP_DATABASE_ENDPOINT = "address"
+GCP_CREDENTIALS = "gcp_credentials"
 
 
 def _create_crm(gcp_credentials=None):
@@ -80,8 +82,17 @@ def _create_storage_client(project=None, gcp_credentials=None):
     return storage.Client(project=project, credentials=gcp_credentials)
 
 
+def get_gcp_credentials(provider_config, default=None):
+    return get_cloud_credentials(
+        provider_config, GCP_CREDENTIALS, default)
+
+
+def clear_gcp_credentials(provider_config):
+    clear_cloud_credentials(provider_config, GCP_CREDENTIALS)
+
+
 def _get_gcp_credentials(provider_config):
-    gcp_credentials = provider_config.get("gcp_credentials")
+    gcp_credentials = get_gcp_credentials(provider_config)
     if gcp_credentials is None:
         logger.debug("gcp_credentials not found in cluster yaml file. "
                      "Falling back to GOOGLE_APPLICATION_CREDENTIALS "

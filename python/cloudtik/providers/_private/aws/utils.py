@@ -13,7 +13,8 @@ from cloudtik.core._private.util.database_utils import get_database_engine, get_
 
 # Max number of retries to AWS (default is 5, time increases exponentially)
 from cloudtik.core._private.utils import get_storage_config_for_update, get_database_config_for_update, \
-    get_config_for_update, PROVIDER_DATABASE_CONFIG_KEY, PROVIDER_STORAGE_CONFIG_KEY
+    get_config_for_update, PROVIDER_DATABASE_CONFIG_KEY, PROVIDER_STORAGE_CONFIG_KEY, \
+    get_cloud_credentials, clear_cloud_credentials
 
 BOTO_MAX_RETRIES = env_integer("BOTO_MAX_RETRIES", 12)
 
@@ -22,6 +23,7 @@ BOTO_CREATE_MAX_RETRIES = env_integer("BOTO_CREATE_MAX_RETRIES", 5)
 
 AWS_S3_BUCKET = "s3.bucket"
 AWS_DATABASE_ENDPOINT = "address"
+AWS_CREDENTIALS = "aws_credentials"
 
 
 class LazyDefaultDict(defaultdict):
@@ -315,6 +317,15 @@ def client_cache(name, region, max_retries=BOTO_MAX_RETRIES, **kwargs):
         )
 
 
+def get_aws_credentials(provider_config, default=None):
+    return get_cloud_credentials(
+        provider_config, AWS_CREDENTIALS, default)
+
+
+def clear_aws_credentials(provider_config):
+    clear_cloud_credentials(provider_config, AWS_CREDENTIALS)
+
+
 def _resource_client(name, config):
     return _make_resource_client(name, config["provider"])
 
@@ -329,7 +340,7 @@ def _make_resource_client(name, provider_config):
 
 def _make_resource(name, provider_config):
     region = provider_config["region"]
-    aws_credentials = provider_config.get("aws_credentials", {})
+    aws_credentials = get_aws_credentials(provider_config, {})
     return resource_cache(name, region, **aws_credentials)
 
 
@@ -345,7 +356,7 @@ def _client(name, config):
 
 def _make_client(name, provider_config):
     region = provider_config["region"]
-    aws_credentials = provider_config.get("aws_credentials", {})
+    aws_credentials = get_aws_credentials(provider_config, {})
     return client_cache(name, region, **aws_credentials)
 
 
@@ -360,7 +371,7 @@ def _working_node_resource(name, config):
 
 
 def _make_working_node_resource(name, provider_config):
-    aws_credentials = provider_config.get("aws_credentials", {})
+    aws_credentials = get_aws_credentials(provider_config, {})
     return boto3.resource(name, **aws_credentials)
 
 
@@ -369,5 +380,5 @@ def _working_node_client(name, config):
 
 
 def _make_working_node_client(name, provider_config):
-    aws_credentials = provider_config.get("aws_credentials", {})
+    aws_credentials = get_aws_credentials(provider_config, {})
     return boto3.client(name, **aws_credentials)

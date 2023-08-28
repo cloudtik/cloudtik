@@ -18,10 +18,12 @@ from cloudtik.core._private.util.database_utils import get_database_engine, get_
     DATABASE_ENV_ENABLED, DATABASE_ENV_PASSWORD, DATABASE_ENV_USERNAME, DATABASE_ENV_PORT, DATABASE_ENV_HOST, \
     DATABASE_ENGINE_MYSQL, get_database_default_port
 from cloudtik.core._private.utils import get_storage_config_for_update, get_database_config_for_update, \
-    get_config_for_update, PROVIDER_DATABASE_CONFIG_KEY, PROVIDER_STORAGE_CONFIG_KEY
+    get_config_for_update, PROVIDER_DATABASE_CONFIG_KEY, PROVIDER_STORAGE_CONFIG_KEY, get_cloud_credentials, \
+    clear_cloud_credentials
 from cloudtik.providers._private._azure.azure_identity_credential_adapter import AzureIdentityCredentialAdapter
 
 AZURE_DATABASE_ENDPOINT = "address"
+AZURE_CREDENTIALS = "azure_credentials"
 
 
 def get_azure_sdk_function(client: Any, function_name: str) -> Callable:
@@ -56,8 +58,17 @@ def get_credential(provider_config):
     return credential
 
 
+def get_azure_credentials(provider_config, default=None):
+    return get_cloud_credentials(
+        provider_config, AZURE_CREDENTIALS, default)
+
+
+def clear_azure_credentials(provider_config):
+    clear_cloud_credentials(provider_config, AZURE_CREDENTIALS)
+
+
 def get_client_credential(provider_config):
-    azure_credentials = provider_config.get("azure_credentials")
+    azure_credentials = get_azure_credentials(provider_config)
     if azure_credentials is not None:
         # azure credentials configured in the configuration file
         assert ("type" in azure_credentials), \

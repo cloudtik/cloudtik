@@ -1,0 +1,113 @@
+{
+	"$schema": "http://json-schema.org/draft-07/schema#",
+	"$id": "http://cloudtik.com/schema/cloud-storage-client.json",
+	"description": "CloudTik cloud object storage client configuration schema",
+    "type": "object",
+    "additionalProperties": true,
+    "properties": {
+        "aws_s3_storage": {
+            "type": "object",
+            "description": "AWS S3 storage configurations",
+            "additionalProperties": false,
+            "properties": {
+              "s3.bucket": {
+                "type": "string",
+                "description": "the s3 bucket name"
+              },
+              "s3.access.key.id": {
+                "type": "string",
+                "description": "access key id of s3"
+              },
+              "s3.secret.access.key": {
+                "type": "string",
+                "description": "secret access key of s3"
+              }
+            }
+        },
+        "gcp_cloud_storage": {
+            "type": "object",
+            "description": "use google cloud storage",
+            "additionalProperties": true,
+            "properties": {
+                "gcs.bucket": {
+                    "type": "string",
+                    "description": "gcp cloud storage bucket name"
+                },
+                "gcs.service.account.client.email": {
+                    "type": "string",
+                    "description": "gcp service account client email"
+                },
+                "gcs.service.account.private.key.id": {
+                    "type": "string",
+                    "description": "gcp service account private key id"
+                },
+                "gcs.service.account.private.key": {
+                    "type": "string",
+                    "description": "gcp service account private key"
+                }
+            }
+        },
+        "azure_cloud_storage": {
+            "type": "object",
+            "description": "Azure cloud storage configurations",
+            "additionalProperties": false,
+            "properties": {
+              "azure.storage.type": {
+                "type": "string",
+                "enum": ["blob", "datalake"],
+                "description": "Azure cloud storage type: blob (Azure Blob Storage) or datalake (Azure Data Lake Storage Gen 2)."
+              },
+              "azure.storage.account": {
+                "type": "string",
+                "description": "azure storage account name"
+              },
+              "azure.container": {
+                "type": "string",
+                "description": "azure container name"
+              },
+              "azure.account.key": {
+                "type": "string",
+                "description": "azure storage account access key"
+              }
+            }
+        },
+        "aliyun_oss_storage": {
+            "type": "object",
+            "description": "Aliyun OSS storage configurations",
+            "additionalProperties": false,
+            "properties": {
+              "oss.bucket": {
+                "type": "string",
+                "description": "the OSS bucket name"
+              },
+              "oss.access.key.id": {
+                "type": "string",
+                "description": "access key id of accessing OSS"
+              },
+              "oss.access.key.secret": {
+                "type": "string",
+                "description": "access key secret of accessing OSS"
+              }
+            }
+        },
+        "huaweicloud_obs_storage": {
+            "type": "object",
+            "description": "Huawei Cloud OBS storage configurations",
+            "additionalProperties": false,
+            "properties": {
+              "obs.bucket": {
+                "type": "string",
+                "description": "the OBS bucket name"
+              },
+              "obs.access.key": {
+                "type": "string",
+                "description": "access key id of accessing OBS"
+              },
+              "obs.secret.key": {
+                "type": "string",
+                "description": "secret key of accessing OBS"
+              }
+            }
+        }
+    }
+}

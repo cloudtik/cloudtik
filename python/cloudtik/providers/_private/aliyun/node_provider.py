@@ -16,7 +16,7 @@ from cloudtik.providers._private.aliyun.config import (
     bootstrap_aliyun, verify_oss_storage, post_prepare_aliyun, with_aliyun_environment_variables,
 )
 from cloudtik.providers._private.aliyun.utils import CLIENT_MAX_RETRY_ATTEMPTS, get_default_aliyun_cloud_storage, \
-    get_aliyun_oss_storage_config, _get_node_info, tags_list_to_dict, EcsClient
+    get_aliyun_oss_storage_config, _get_node_info, tags_list_to_dict, EcsClient, clear_aliyun_credentials
 from cloudtik.core._private.cli_logger import cli_logger
 from cloudtik.core._private.log_timer import LogTimer
 from cloudtik.core.node_provider import NodeProvider
@@ -386,8 +386,7 @@ class AliyunNodeProvider(NodeProvider):
 
         # Since the head will use the instance profile and role to access cloud,
         # remove the client credentials from config
-        if "aliyun_credentials" in remote_config["provider"]:
-            remote_config["provider"].pop("aliyun_credentials", None)
+        clear_aliyun_credentials(remote_config["provider"])
         
         return remote_config
 

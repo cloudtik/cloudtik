@@ -1,2 +1,5 @@
+# A unique identifier for the workspace
+workspace_name: default
+
 # A unique identifier
 database_name: default

@@ -3,9 +3,10 @@ import os
 from typing import Any, Dict, Optional
 
 from cloudtik.core._private.core_utils import get_cloudtik_temp_dir, get_json_object_hash
+from cloudtik.core._private.schema_utils import STORAGE_SCHEMA_NAME, STORAGE_SCHEMA_REFS, \
+    validate_schema_by_name
 from cloudtik.core._private.utils import print_dict_info, \
-    load_yaml_config, handle_cli_override, save_config_cache, load_config_from_cache, merge_config_hierarchy, \
-    validate_schema, CLOUDTIK_SCHEMA_PATH
+    load_yaml_config, handle_cli_override, save_config_cache, load_config_from_cache, merge_config_hierarchy
 from cloudtik.core._private.provider_factory import _get_storage_provider_cls, _get_storage_provider, \
     _STORAGE_PROVIDERS, _PROVIDER_PRETTY_NAMES
 from cloudtik.core._private.cli_logger import cli_logger, cf
@@ -14,7 +15,6 @@ from cloudtik.core._private.cli_logger import cli_logger, cf
 logger = logging.getLogger(__name__)
 
 CONFIG_CACHE_VERSION = 1
-STORAGE_SCHEMA_PATH = os.path.join(CLOUDTIK_SCHEMA_PATH, "storage-schema.json")
 
 
 def delete_storage(
@@ -177,7 +177,7 @@ def validate_storage_config(config: Dict[str, Any]) -> None:
     if not isinstance(config, dict):
         raise ValueError("Config {} is not a dictionary".format(config))
 
-    validate_schema(config, STORAGE_SCHEMA_PATH)
+    validate_schema_by_name(config, STORAGE_SCHEMA_NAME, STORAGE_SCHEMA_REFS)
     provider = _get_storage_provider(
         config["provider"], config["workspace_name"], config["storage_name"])
     provider.validate_config(config["provider"])

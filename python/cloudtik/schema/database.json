@@ -1,0 +1,77 @@
+{
+	"$schema": "http://json-schema.org/draft-07/schema#",
+	"$id": "http://cloudtik.com/schema/database.json",
+	"title": "CloudTik",
+	"description": "CloudTik database configuration schema",
+	"type": "object",
+    "required": [
+        "workspace_name",
+        "database_name",
+        "provider"
+    ],
+    "additionalProperties": true,
+	"properties": {
+        "workspace_name": {
+            "description": "A unique identifier for the workspace.",
+            "type": "string"
+        },
+        "database_name": {
+            "description": "A unique identifier for database instance.",
+            "type": "string"
+        },
+        "from": {
+            "description": "Inherit configurations from another configuration in templates folder.",
+            "type": "string"
+        },
+        "provider": {
+            "type": "object",
+            "description": "Cloud-provider specific configuration.",
+            "required": [ "type" ],
+            "additionalProperties": true,
+            "properties": {
+                "type": {
+                    "type": "string",
+                    "description": "e.g. aws, azure, gcp, aliyun, huaweicloud..."
+                },
+                "region": { 
+                    "type": "string",
+                    "description": "e.g. us-east-1"
+                },
+                "provider_class": {
+                    "type": "string",
+                    "description": "The module and class path if using external workspace provider"
+                },
+                "use_internal_ips": {
+                    "type": "boolean",
+                    "description": "don't require public ips"
+                },
+                "namespace": {
+                    "type": "string",
+                    "description": "k8s namespace, if using k8s"
+                },
+                "location": {
+                    "type": "string",
+                    "description": "Azure location"
+                },
+                "resource_group": {
+                    "type": "string",
+                    "description": "Azure resource group"
+                },
+                "subscription_id": {
+                    "type": "string",
+                    "description": "Azure subscription id"
+                },
+                "availability_zone": {
+                    "type": "string",
+                    "description": "GCP availability zone"
+                },
+                "project_id": {
+                    "type": ["string", "null"],
+                    "description": "GCP globally unique project id"
+                },
+                "credentials": { "$ref": "/schema/cloud-credentials.json" },
+                "database": { "$ref": "/schema/cloud-database.json" }
+            }
+        }
+    }
+}
