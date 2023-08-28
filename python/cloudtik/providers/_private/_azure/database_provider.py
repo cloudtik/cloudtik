@@ -4,7 +4,8 @@ from typing import Any, Dict
 
 from cloudtik.core.database_provider import DatabaseProvider
 from cloudtik.providers._private._azure.config import _delete_managed_database_instance, \
-    _create_managed_database_instance_in_workspace, _get_resource_group_name_of, _get_managed_cloud_database_info
+    _get_resource_group_name_of, _get_managed_cloud_database_info, \
+    _create_managed_cloud_database, get_virtual_network_name
 
 logger = logging.getLogger(__name__)
 
@@ -23,21 +24,27 @@ class AzureDatabaseProvider(DatabaseProvider):
                  workspace_name: str, database_name: str) -> None:
         super().__init__(provider_config, workspace_name, database_name)
 
-    def get_resource_group_name(self, workspace_name):
-        provider_config = self.provider_config
-        return _get_resource_group_name_of(provider_config, workspace_name)
+    def get_resource_group_name(self):
+        return _get_resource_group_name_of(
+            self.provider_config, self.workspace_name)
+
+    def get_virtual_network_name(self):
+        return get_virtual_network_name(
+            self.provider_config, self.workspace_name)
 
     def create(self, config: Dict[str, Any]):
         """Create the database instance in the workspace based on the config."""
-        resource_group_name = self.get_resource_group_name(self.workspace_name)
-        _create_managed_database_instance_in_workspace(
+        resource_group_name = self.get_resource_group_name()
+        virtual_network_name = self.get_virtual_network_name()
+        _create_managed_cloud_database(
             self.provider_config, self.workspace_name,
-            resource_group_name, self.database_name)
+            resource_group_name, virtual_network_name,
+            self.database_name)
 
     def delete(self, config: Dict[str, Any]):
         """Delete a database instance in the workspace based on the config.
         """
-        resource_group_name = self.get_resource_group_name(self.workspace_name)
+        resource_group_name = self.get_resource_group_name()
         _delete_managed_database_instance(
             self.provider_config, self.workspace_name,
             resource_group_name, self.database_name)
@@ -46,7 +53,7 @@ class AzureDatabaseProvider(DatabaseProvider):
         """Return the database instance information.
         Return None if the database instance doesn't exist
         """
-        resource_group_name = self.get_resource_group_name(self.workspace_name)
+        resource_group_name = self.get_resource_group_name()
         return _get_managed_cloud_database_info(
             self.provider_config, self.workspace_name,
             resource_group_name, self.database_name)

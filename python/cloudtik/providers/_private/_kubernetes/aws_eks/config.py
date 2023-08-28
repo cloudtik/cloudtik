@@ -822,9 +822,29 @@ def list_storages_for_aws(
     return _list_aws_storages(cloud_provider, workspace_name)
 
 
+class AWSKubernetesDatabaseProvider(AWSDatabaseProvider):
+    def __init__(self, provider_config: Dict[str, Any],
+                 workspace_name: str, database_name: str,
+                 database_subnet_ids, database_security_group_id) -> None:
+        super().__init__(provider_config, workspace_name, database_name)
+        self.database_subnet_ids = database_subnet_ids
+        self.database_security_group_id = database_security_group_id
+
+    def get_database_subnet_ids(self):
+        return self.database_subnet_ids
+
+    def get_database_security_group_id(self):
+        return self.database_security_group_id
+
+
 def create_database_provider_for_aws(
             cloud_provider, workspace_name, database_name):
-    return AWSDatabaseProvider(cloud_provider, workspace_name, database_name)
+    vpc_id, database_subnet_ids = get_eks_vpc_and_subnet_ids(cloud_provider)
+    database_security_group_id = _get_database_security_group_id(
+        cloud_provider, workspace_name, vpc_id)
+    return AWSKubernetesDatabaseProvider(
+        cloud_provider, workspace_name, database_name,
+        database_subnet_ids, database_security_group_id)
 
 
 def list_databases_for_aws(

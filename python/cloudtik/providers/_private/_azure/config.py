@@ -195,7 +195,8 @@ def check_azure_workspace_existence(config):
         resource_group_existence = True
 
         # Below resources are all depends on resource group
-        virtual_network_name = get_virtual_network_name(config, resource_client, network_client, use_working_vpc)
+        virtual_network_name = _get_virtual_network_name(
+            workspace_name, resource_client, network_client, use_working_vpc)
         if virtual_network_name is not None:
             existing_resources += 1
 
@@ -362,9 +363,10 @@ def get_resource_group_name(config, resource_client, use_working_vpc):
         workspace_name, resource_client, use_working_vpc)
 
 
-def get_virtual_network_name(
-        config, resource_client, network_client, use_working_vpc):
-    workspace_name = config["workspace_name"]
+def get_virtual_network_name(cloud_provider, workspace_name):
+    use_working_vpc = _is_use_working_vpc(cloud_provider)
+    resource_client = _construct_resource_client(cloud_provider)
+    network_client = _construct_network_client(cloud_provider)
     return _get_virtual_network_name(
         workspace_name, resource_client, network_client, use_working_vpc)
 
@@ -550,11 +552,14 @@ def delete_azure_workspace(config,
         cf.bold(workspace_name))
 
 
-def _delete_network_resources(config, resource_client, resource_group_name, current_step, total_steps):
+def _delete_network_resources(
+        config, resource_client, resource_group_name, current_step, total_steps):
+    workspace_name = config["workspace_name"]
     use_working_vpc = is_use_working_vpc(config)
     use_peering_vpc = is_use_peering_vpc(config)
     network_client = construct_network_client(config)
-    virtual_network_name = get_virtual_network_name(config, resource_client, network_client, use_working_vpc)
+    virtual_network_name = _get_virtual_network_name(
+        workspace_name, resource_client, network_client, use_working_vpc)
 
     """
          Do the work - order of operation
@@ -573,21 +578,26 @@ def _delete_network_resources(config, resource_client, resource_group_name, curr
                 "Deleting virtual network peering connections",
                 _numbered=("[]", current_step, total_steps)):
             current_step += 1
-            _delete_vnet_peering_connections(config, resource_client, network_client)
+            _delete_vnet_peering_connections(
+                config, resource_client, network_client)
 
     # delete public subnets
     with cli_logger.group(
             "Deleting public subnet",
             _numbered=("[]", current_step, total_steps)):
         current_step += 1
-        _delete_subnet(config, network_client, resource_group_name, virtual_network_name, is_private=False)
+        _delete_subnet(
+            config, network_client, resource_group_name,
+            virtual_network_name, is_private=False)
 
     # delete private subnets
     with cli_logger.group(
             "Deleting private subnet",
             _numbered=("[]", current_step, total_steps)):
         current_step += 1
-        _delete_subnet(config, network_client, resource_group_name, virtual_network_name, is_private=True)
+        _delete_subnet(
+            config, network_client, resource_group_name,
+            virtual_network_name, is_private=True)
 
     # delete NAT gateway
     with cli_logger.group(
@@ -601,14 +611,16 @@ def _delete_network_resources(config, resource_client, resource_group_name, curr
             "Deleting public IP address",
             _numbered=("[]", current_step, total_steps)):
         current_step += 1
-        _delete_public_ip_address(config, network_client, resource_group_name)
+        _delete_public_ip_address(
+            config, network_client, resource_group_name)
 
     # delete network security group
     with cli_logger.group(
             "Deleting network security group",
             _numbered=("[]", current_step, total_steps)):
         current_step += 1
-        _delete_network_security_group(config, network_client, resource_group_name)
+        _delete_network_security_group(
+            config, network_client, resource_group_name)
 
     # delete virtual network
     with cli_logger.group(
@@ -810,14 +822,10 @@ def _delete_container_for_storage_account(
 
 
 def _delete_workspace_cloud_database(config, resource_group_name):
-    use_working_vpc = is_use_working_vpc(config)
-    resource_client = construct_resource_client(config)
-    network_client = construct_network_client(config)
-    virtual_network_name = get_virtual_network_name(
-        config, resource_client, network_client, use_working_vpc)
-
     provider_config = config["provider"]
     workspace_name = config["workspace_name"]
+    virtual_network_name = get_virtual_network_name(
+        provider_config, workspace_name)
     _delete_managed_cloud_database(
         provider_config, workspace_name, resource_group_name,
         virtual_network_name
@@ -1372,8 +1380,11 @@ def _delete_vnet(config, resource_client, network_client):
         cli_logger.print("Will not delete the current node virtual network.")
         return
 
-    resource_group_name = get_resource_group_name(config, resource_client, use_working_vpc)
-    virtual_network_name = get_virtual_network_name(config, resource_client, network_client, use_working_vpc)
+    workspace_name = config["workspace_name"]
+    resource_group_name = get_resource_group_name(
+        config, resource_client, use_working_vpc)
+    virtual_network_name = _get_virtual_network_name(
+        workspace_name, resource_client, network_client, use_working_vpc)
     if virtual_network_name is None:
         cli_logger.print("The virtual network: {} doesn't exist.".
                          format(virtual_network_name))
@@ -1954,14 +1965,10 @@ def _create_storage_account(provider_config, workspace_name, resource_group_name
 
 
 def _create_workspace_cloud_database(config, resource_group_name):
-    use_working_vpc = is_use_working_vpc(config)
-    resource_client = construct_resource_client(config)
-    network_client = construct_network_client(config)
-    virtual_network_name = get_virtual_network_name(
-        config, resource_client, network_client, use_working_vpc)
-
-    workspace_name = config["workspace_name"]
     cloud_provider = config["provider"]
+    workspace_name = config["workspace_name"]
+    virtual_network_name = get_virtual_network_name(
+        cloud_provider, workspace_name)
     _create_managed_cloud_database(
         cloud_provider, workspace_name,
         resource_group_name, virtual_network_name)
@@ -1969,7 +1976,8 @@ def _create_workspace_cloud_database(config, resource_group_name):
 
 def _create_managed_cloud_database(
         cloud_provider, workspace_name,
-        resource_group_name, virtual_network_name):
+        resource_group_name, virtual_network_name,
+        db_instance_name=None):
     current_step = 1
     total_steps = 3
 
@@ -1995,7 +2003,8 @@ def _create_managed_cloud_database(
         current_step += 1
         _create_managed_database_instance(
             cloud_provider, workspace_name, resource_group_name,
-            virtual_network_name)
+            virtual_network_name,
+            db_instance_name=db_instance_name)
 
 
 def _create_managed_database_delegated_subnet(
@@ -2131,12 +2140,8 @@ def _create_private_dns_zone_link(
 def _create_managed_database_instance_in_workspace(
         cloud_provider, workspace_name, resource_group_name,
         db_instance_name=None):
-    use_working_vpc = _is_use_working_vpc(cloud_provider)
-    resource_client = _construct_resource_client(cloud_provider)
-    network_client = _construct_network_client(cloud_provider)
-    virtual_network_name = _get_virtual_network_name(
-        workspace_name, resource_client, network_client, use_working_vpc)
-
+    virtual_network_name = get_virtual_network_name(
+        cloud_provider, workspace_name)
     _create_managed_database_instance(
         cloud_provider, workspace_name, resource_group_name,
         virtual_network_name, db_instance_name=db_instance_name)
@@ -2537,10 +2542,14 @@ def _delete_vnet_peering_connections(config, resource_client, network_client):
     workspace_name = config["workspace_name"]
     virtual_network_peering_name = get_workspace_vnet_peering_name(workspace_name)
     use_working_vpc = is_use_working_vpc(config)
-    resource_group_name = get_resource_group_name(config, resource_client, use_working_vpc)
-    virtual_network_name = get_virtual_network_name(config, resource_client, network_client, use_working_vpc)
-    current_resource_group_name = get_working_node_resource_group_name(resource_client)
-    current_virtual_network_name = get_working_node_virtual_network_name(resource_client, network_client)
+    resource_group_name = get_resource_group_name(
+        config, resource_client, use_working_vpc)
+    virtual_network_name = _get_virtual_network_name(
+        workspace_name, resource_client, network_client, use_working_vpc)
+    current_resource_group_name = get_working_node_resource_group_name(
+        resource_client)
+    current_virtual_network_name = get_working_node_virtual_network_name(
+        resource_client, network_client)
 
     current_step = 1
     total_steps = 2
@@ -2549,15 +2558,17 @@ def _delete_vnet_peering_connections(config, resource_client, network_client):
             "Deleting working virtual network peering",
             _numbered=("()", current_step, total_steps)):
         current_step += 1
-        _delete_vnet_peering_connection(network_client, resource_group_name, virtual_network_name,
-                                        virtual_network_peering_name)
+        _delete_vnet_peering_connection(
+            network_client, resource_group_name, virtual_network_name,
+            virtual_network_peering_name)
 
     with cli_logger.group(
             "Deleting workspace virtual network peering",
             _numbered=("()", current_step, total_steps)):
         current_step += 1
-        _delete_vnet_peering_connection(network_client, current_resource_group_name, current_virtual_network_name,
-                                        virtual_network_peering_name)
+        _delete_vnet_peering_connection(
+            network_client, current_resource_group_name,
+            current_virtual_network_name, virtual_network_peering_name)
 
 
 def get_subnet(network_client, resource_group_name, virtual_network_name, subnet_name):
@@ -3194,11 +3205,10 @@ def _configure_network_security_group_from_workspace(config):
 
 
 def _configure_virtual_network_from_workspace(config):
-    use_working_vpc = is_use_working_vpc(config)
-    resource_client = construct_resource_client(config)
-    network_client = construct_network_client(config)
-
-    virtual_network_name = get_virtual_network_name(config, resource_client, network_client, use_working_vpc)
+    cloud_provider = config["provider"]
+    workspace_name = config["workspace_name"]
+    virtual_network_name = get_virtual_network_name(
+        cloud_provider, workspace_name)
 
     for node_type_key in config["available_node_types"].keys():
         node_config = config["available_node_types"][node_type_key][

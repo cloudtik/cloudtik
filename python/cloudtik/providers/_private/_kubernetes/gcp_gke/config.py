@@ -905,7 +905,7 @@ def list_storages_for_gcp(
 
 def create_storage_provider_for_gcp(
             cloud_provider, workspace_name, storage_name):
-    return GCPDatabaseProvider(cloud_provider, workspace_name, storage_name)
+    return GCPStorageProvider(cloud_provider, workspace_name, storage_name)
 
 
 def list_databases_for_gcp(
@@ -914,9 +914,23 @@ def list_databases_for_gcp(
     return _list_gcp_databases(cloud_provider, workspace_name)
 
 
+class GCPKubernetesDatabaseProvider(GCPDatabaseProvider):
+    def __init__(self, provider_config: Dict[str, Any],
+                 workspace_name: str, database_name: str,
+                 vpc_name: str) -> None:
+        super().__init__(provider_config, workspace_name, database_name)
+        self.vpc_name = vpc_name
+
+    def get_vpc_name(self):
+        return self.vpc_name
+
+
 def create_database_provider_for_gcp(
             cloud_provider, workspace_name, database_name):
-    return GCPStorageProvider(cloud_provider, workspace_name, database_name)
+    vpc_name = _get_gke_vpc_name(cloud_provider)
+    return GCPKubernetesDatabaseProvider(
+        cloud_provider, workspace_name, database_name,
+        vpc_name)
 
 
 ######################

@@ -1203,19 +1203,25 @@ def list_databases_for_azure(
 class AzureKubernetesDatabaseProvider(AzureDatabaseProvider):
     def __init__(self, provider_config: Dict[str, Any],
                  workspace_name: str, database_name: str,
-                 resource_group_name: str) -> None:
+                 resource_group_name: str, virtual_network_name) -> None:
         super().__init__(provider_config, workspace_name, database_name)
         self.resource_group_name = resource_group_name
+        self.virtual_network_name = virtual_network_name
 
-    def get_resource_group_name(self, workspace_name):
+    def get_resource_group_name(self):
         return self.resource_group_name
+
+    def get_virtual_network_name(self):
+        return self.virtual_network_name
 
 
 def create_database_provider_for_azure(
             cloud_provider, workspace_name, database_name):
-    resource_group_name = get_aks_workspace_resource_group_name(workspace_name)
+    vnet_resource_group_name, virtual_network_name = _get_aks_virtual_network(
+        cloud_provider)
     return AzureKubernetesDatabaseProvider(
-        cloud_provider, workspace_name, database_name, resource_group_name)
+        cloud_provider, workspace_name, database_name,
+        vnet_resource_group_name, virtual_network_name)
 
 
 ######################

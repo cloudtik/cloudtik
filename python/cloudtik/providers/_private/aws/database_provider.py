@@ -4,7 +4,8 @@ from typing import Any, Dict
 
 from cloudtik.core.database_provider import DatabaseProvider
 from cloudtik.providers._private.aws.config import _delete_managed_database_instance, \
-    _create_managed_database_instance_in_workspace, _get_managed_cloud_database_info
+    _get_managed_cloud_database_info, _create_managed_cloud_database, \
+    get_database_subnet_ids, get_database_security_group_id
 
 logger = logging.getLogger(__name__)
 
@@ -24,10 +25,22 @@ class AWSDatabaseProvider(DatabaseProvider):
                  workspace_name: str, database_name: str) -> None:
         super().__init__(provider_config, workspace_name, database_name)
 
+    def get_database_subnet_ids(self):
+        return get_database_subnet_ids(
+            self.provider_config, self.workspace_name)
+
+    def get_database_security_group_id(self):
+        return get_database_security_group_id(
+            self.provider_config, self.workspace_name)
+
     def create(self, config: Dict[str, Any]):
         """Create the database instance in the workspace based on the config."""
-        _create_managed_database_instance_in_workspace(
-            self.provider_config, self.workspace_name, self.database_name)
+        subnet_ids = self.get_database_subnet_ids()
+        security_group_id = self.get_database_security_group_id()
+        _create_managed_cloud_database(
+            self.provider_config, self.workspace_name,
+            subnet_ids, security_group_id,
+            self.database_name)
 
     def delete(self, config: Dict[str, Any]):
         """Delete a database instance in the workspace based on the config.

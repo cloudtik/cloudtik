@@ -126,8 +126,12 @@ _log_info = {}
 # Workspace functions
 ######################
 
+def get_workspace_vpc_id(cloud_provider, workspace_name):
+    ec2_client = _make_resource_client("ec2", cloud_provider)
+    return _get_workspace_vpc_id(workspace_name, ec2_client)
 
-def get_workspace_vpc_id(workspace_name, ec2_client):
+
+def _get_workspace_vpc_id(workspace_name, ec2_client):
     vpc = describe_workspace_vpc(workspace_name, ec2_client)
     if vpc is None:
         return None
@@ -136,7 +140,7 @@ def get_workspace_vpc_id(workspace_name, ec2_client):
 
 
 def get_workspace_vpc(workspace_name, ec2_client, ec2):
-    vpc_id = get_workspace_vpc_id(workspace_name, ec2_client)
+    vpc_id = _get_workspace_vpc_id(workspace_name, ec2_client)
     if vpc_id is None:
         return None
     return ec2.Vpc(vpc_id)
@@ -322,7 +326,7 @@ def check_aws_workspace_existence(config):
          Check database instance
     """
     skipped_resources = 0
-    vpc_id = get_workspace_vpc_id(workspace_name, ec2_client)
+    vpc_id = _get_workspace_vpc_id(workspace_name, ec2_client)
     if vpc_id is not None:
         existing_resources += 1
         # Network resources that depending on VPC
@@ -527,7 +531,7 @@ def update_aws_workspace(
 def update_workspace_firewalls(config):
     ec2_client = _resource_client("ec2", config)
     workspace_name = config["workspace_name"]
-    vpc_id = get_workspace_vpc_id(workspace_name, ec2_client)
+    vpc_id = _get_workspace_vpc_id(workspace_name, ec2_client)
     if vpc_id is None:
         raise RuntimeError("The workspace: {} doesn't exist!".format(config["workspace_name"]))
 
@@ -554,7 +558,7 @@ def delete_aws_workspace(
     use_peering_vpc = is_use_peering_vpc(config)
     managed_cloud_storage = is_managed_cloud_storage(config)
     managed_cloud_database = is_managed_cloud_database(config)
-    vpc_id = get_workspace_vpc_id(workspace_name, ec2_client)
+    vpc_id = _get_workspace_vpc_id(workspace_name, ec2_client)
 
     current_step = 1
     total_steps = AWS_WORKSPACE_NUM_DELETION_STEPS
@@ -842,7 +846,7 @@ def get_workspace_head_nodes(config):
 def _get_workspace_head_nodes(provider_config, workspace_name):
     ec2 = _make_resource("ec2", provider_config)
     ec2_client = _make_resource_client("ec2", provider_config)
-    vpc_id = get_workspace_vpc_id(workspace_name, ec2_client)
+    vpc_id = _get_workspace_vpc_id(workspace_name, ec2_client)
     if vpc_id is None:
         raise RuntimeError(
             "Failed to get the VPC. The workspace {} doesn't exist or is in the wrong state.".format(
@@ -2074,42 +2078,50 @@ def _create_db_subnet_group(
         raise e
 
 
+def get_database_subnet_ids(cloud_provider, workspace_name):
+    vpc_id = get_workspace_vpc_id(cloud_provider, workspace_name)
+    ec2 = _make_resource("ec2", cloud_provider)
+    private_subnets = get_workspace_private_subnets(workspace_name, ec2, vpc_id)
+    subnet_ids = [private_subnet.id for private_subnet in private_subnets]
+    return subnet_ids
+
+
+def get_database_security_group_id(cloud_provider, workspace_name):
+    vpc_id = get_workspace_vpc_id(cloud_provider, workspace_name)
+    security_group = _get_workspace_security_group(
+        cloud_provider, vpc_id, workspace_name)
+    return security_group.id
+
+
 def _create_workspace_cloud_database(config, workspace_name):
     cloud_provider = config["provider"]
 
-    ec2 = _make_resource("ec2", cloud_provider)
-    ec2_client = _make_resource_client("ec2", cloud_provider)
-    vpc_id = get_workspace_vpc_id(workspace_name, ec2_client)
-    private_subnets = get_workspace_private_subnets(workspace_name, ec2, vpc_id)
-    subnet_ids = [private_subnet.id for private_subnet in private_subnets]
-
-    security_group = get_workspace_security_group(
-        config, vpc_id, workspace_name)
+    subnet_ids = get_database_subnet_ids(
+        cloud_provider, workspace_name)
+    security_group_id = get_database_security_group_id(
+        cloud_provider, workspace_name)
 
     _create_managed_cloud_database(
         cloud_provider, workspace_name,
-        subnet_ids, security_group.id
+        subnet_ids, security_group_id
     )
 
 
 def _create_managed_database_instance_in_workspace(
-        cloud_provider, workspace_name, db_instance_name=None):
-
-    ec2_client = _make_resource_client("ec2", cloud_provider)
-    vpc_id = get_workspace_vpc_id(workspace_name, ec2_client)
-
-    security_group = _get_workspace_security_group(
-        cloud_provider, vpc_id, workspace_name)
-
+        cloud_provider, workspace_name,
+        db_instance_name=None):
+    security_group_id = get_database_security_group_id(
+        cloud_provider, workspace_name)
     _create_managed_database_instance(
-        cloud_provider, workspace_name, security_group.id,
+        cloud_provider, workspace_name, security_group_id,
         db_instance_name=db_instance_name
     )
 
 
 def _create_managed_cloud_database(
         cloud_provider, workspace_name,
-        subnet_ids, security_group_id):
+        subnet_ids, security_group_id,
+        db_instance_name=None):
     current_step = 1
     total_steps = 2
 
@@ -2125,7 +2137,8 @@ def _create_managed_cloud_database(
             _numbered=("()", current_step, total_steps)):
         current_step += 1
         _create_managed_database_instance(
-            cloud_provider, workspace_name, security_group_id)
+            cloud_provider, workspace_name, security_group_id,
+            db_instance_name=db_instance_name)
 
 
 def _create_managed_database_instance(
@@ -2280,7 +2293,7 @@ def _configure_vpc(config, workspace_name, ec2, ec2_client):
         cli_logger.print("Using the existing VPC: {} for workspace. Skip creation.".format(vpc.id))
     else:
         # Need to create a new vpc
-        if get_workspace_vpc_id(config["workspace_name"], ec2_client) is None:
+        if _get_workspace_vpc_id(config["workspace_name"], ec2_client) is None:
             vpc = _create_vpc(config, ec2, ec2_client)
         else:
             raise RuntimeError("There is a same name VPC for workspace: {}, "
@@ -3257,7 +3270,7 @@ def _configure_subnet_from_workspace(config):
     workspace_name = config["workspace_name"]
     use_internal_ips = is_use_internal_ip(config)
 
-    vpc_id = get_workspace_vpc_id(workspace_name, ec2_client)
+    vpc_id = _get_workspace_vpc_id(workspace_name, ec2_client)
     public_subnets = get_workspace_public_subnets(workspace_name, ec2, vpc_id)
     private_subnets = get_workspace_private_subnets(workspace_name, ec2, vpc_id)
     public_subnet_ids = [public_subnet.id for public_subnet in public_subnets]
@@ -3293,7 +3306,7 @@ def _configure_subnet_from_workspace(config):
 def _configure_security_group_from_workspace(config):
     ec2_client = _resource_client("ec2", config)
     workspace_name = config["workspace_name"]
-    vpc_id = get_workspace_vpc_id(workspace_name, ec2_client)
+    vpc_id = _get_workspace_vpc_id(workspace_name, ec2_client)
     # map from node type key -> source of SecurityGroupIds field
     security_group_info_src = {}
     _set_config_info(security_group_src=security_group_info_src)

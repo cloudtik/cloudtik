@@ -784,12 +784,15 @@ def _get_gcp_vpc_id(provider_config, workspace_name, compute, use_working_vpc):
     return vpc_id
 
 
-def get_gcp_vpc_name(config, compute, use_working_vpc):
+def get_gcp_vpc_name(provider_config, workspace_name):
+    compute = construct_compute_client(provider_config)
+    use_working_vpc = _is_use_working_vpc(provider_config)
     return _get_gcp_vpc_name(
-        config["provider"], config.get("workspace_name"), compute, use_working_vpc)
+        provider_config, workspace_name, compute, use_working_vpc)
 
 
-def _get_gcp_vpc_name(provider_config, workspace_name, compute, use_working_vpc):
+def _get_gcp_vpc_name(
+        provider_config, workspace_name, compute, use_working_vpc):
     if use_working_vpc:
         vpc_name = _get_working_node_vpc_name(provider_config, compute)
     else:
@@ -1026,11 +1029,8 @@ def _delete_workspace_cloud_database(
         config, delete_for_update: bool = False):
     provider_config = config["provider"]
     workspace_name = config["workspace_name"]
-
-    compute = construct_compute_client(provider_config)
-    use_working_vpc = _is_use_working_vpc(provider_config)
-    vpc_name = _get_gcp_vpc_name(
-        provider_config, workspace_name, compute, use_working_vpc)
+    vpc_name = get_gcp_vpc_name(
+        provider_config, workspace_name)
 
     _delete_managed_cloud_database(
         provider_config, workspace_name, vpc_name,
@@ -1380,19 +1380,16 @@ def _create_managed_cloud_storage(
 def _create_workspace_cloud_database(config):
     provider_config = config["provider"]
     workspace_name = config["workspace_name"]
-
-    compute = construct_compute_client(provider_config)
-    use_working_vpc = _is_use_working_vpc(provider_config)
-    vpc_name = _get_gcp_vpc_name(
-        provider_config, workspace_name, compute, use_working_vpc)
-
+    vpc_name = get_gcp_vpc_name(
+        provider_config, workspace_name)
     _create_managed_cloud_database(
         provider_config, workspace_name,
         vpc_name)
 
 
 def _create_managed_cloud_database(
-        provider_config, workspace_name, vpc_name):
+        provider_config, workspace_name, vpc_name,
+        db_instance_name=None):
     current_step = 1
     total_steps = 3
 
@@ -1415,7 +1412,8 @@ def _create_managed_cloud_database(
             _numbered=("()", current_step, total_steps)):
         current_step += 1
         _create_managed_database_instance(
-            provider_config, workspace_name, vpc_name)
+            provider_config, workspace_name, vpc_name,
+            db_instance_name=db_instance_name)
 
 
 def _create_global_address(
@@ -1489,11 +1487,8 @@ def _create_private_connection(provider_config, workspace_name, vpc_name):
 def _create_managed_database_instance_in_workspace(
         provider_config, workspace_name,
         db_instance_name=None):
-    compute = construct_compute_client(provider_config)
-    use_working_vpc = _is_use_working_vpc(provider_config)
-    vpc_name = _get_gcp_vpc_name(
-        provider_config, workspace_name, compute, use_working_vpc)
-
+    vpc_name = get_gcp_vpc_name(
+        provider_config, workspace_name)
     _create_managed_database_instance(
         provider_config, workspace_name, vpc_name,
         db_instance_name=db_instance_name)
