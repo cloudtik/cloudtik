@@ -12,6 +12,7 @@ SUPPORTED_PYTHONS = [(3, 7), (3, 8), (3, 9)]
 
 ROOT_DIR = os.path.dirname(__file__)
 
+SCHEMA_SUBDIR = os.path.join("cloudtik", "schema")
 PROVIDER_SUBDIR = os.path.join("cloudtik", "providers")
 THIRDPARTY_SUBDIR = os.path.join("cloudtik", "thirdparty_files")
 TEMPLATES_SUBDIR = os.path.join("cloudtik", "templates")
@@ -50,14 +51,6 @@ setup_spec = SetupSpec("cloudtik", "CloudTik: a cloud scale platform for distrib
 # NOTE: The lists below must be kept in sync with cloudtik build(.sh)
 cloudtik_files = [
     "cloudtik/core/thirdparty/redis/cloudtik-redis-server",
-]
-
-# cloudtik default yaml files
-cloudtik_files += [
-    "cloudtik/core/cluster-schema.json",
-    "cloudtik/core/workspace-schema.json",
-    "cloudtik/core/storage-schema.json",
-    "cloudtik/core/database-schema.json",
     "cloudtik/core/_private/job_waiter/tmux-session.sh",
     "cloudtik/core/_private/job_waiter/screen-session.sh",
 ]
@@ -194,6 +187,10 @@ def copy_file(target_dir, filename, rootdir):
 
 def pip_run(build_ext):
     setup_spec.files_to_include += cloudtik_files
+    # Include all schema files in schema directory
+    schema_dir = os.path.join(ROOT_DIR, SCHEMA_SUBDIR)
+    setup_spec.files_to_include += walk_directory(schema_dir, True)
+
     # Include all non-python files in provider directory
     provider_dir = os.path.join(ROOT_DIR, PROVIDER_SUBDIR)
     setup_spec.files_to_include += walk_directory(provider_dir, True)

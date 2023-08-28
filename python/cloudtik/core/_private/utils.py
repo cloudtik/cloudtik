@@ -51,8 +51,9 @@ from cloudtik.core.tags import CLOUDTIK_TAG_USER_NODE_TYPE, CLOUDTIK_TAG_NODE_ST
 
 
 REQUIRED, OPTIONAL = True, False
-CLOUDTIK_CONFIG_SCHEMA_PATH = os.path.join(
-    os.path.dirname(cloudtik.core.__file__), "cluster-schema.json")
+
+CLOUDTIK_SCHEMA_PATH = os.path.join(os.path.dirname(cloudtik.__file__), "schema")
+CLOUDTIK_CLUSTER_SCHEMA_PATH = os.path.join(CLOUDTIK_SCHEMA_PATH, "cluster-schema.json")
 
 # Internal kv keys for storing debug status.
 CLOUDTIK_CLUSTER_SCALING_ERROR = "__cluster_scaling_error"
@@ -386,7 +387,7 @@ def validate_config(config: Dict[str, Any]) -> None:
     if not isinstance(config, dict):
         raise ValueError("Config {} is not a dictionary".format(config))
 
-    validate_schema(config, CLOUDTIK_CONFIG_SCHEMA_PATH)
+    validate_schema(config, CLOUDTIK_CLUSTER_SCHEMA_PATH)
 
     # Detect out of date defaults. This happens when the cluster scaler that filled
     # out the default values is older than the version of the cluster scaler that

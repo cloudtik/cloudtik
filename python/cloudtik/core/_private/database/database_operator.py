@@ -2,11 +2,10 @@ import logging
 import os
 from typing import Any, Dict, Optional
 
-import cloudtik
 from cloudtik.core._private.core_utils import get_cloudtik_temp_dir, get_json_object_hash
 from cloudtik.core._private.utils import print_dict_info, \
     load_yaml_config, handle_cli_override, save_config_cache, load_config_from_cache, merge_config_hierarchy, \
-    validate_schema
+    validate_schema, CLOUDTIK_SCHEMA_PATH
 from cloudtik.core._private.provider_factory import _get_database_provider_cls, _get_database_provider, \
     _DATABASE_PROVIDERS, _PROVIDER_PRETTY_NAMES
 from cloudtik.core._private.cli_logger import cli_logger, cf
@@ -15,8 +14,7 @@ from cloudtik.core._private.cli_logger import cli_logger, cf
 logger = logging.getLogger(__name__)
 
 CONFIG_CACHE_VERSION = 1
-DATABASE_SCHEMA_PATH = os.path.join(
-    os.path.dirname(cloudtik.core.__file__), "database-schema.json")
+DATABASE_SCHEMA_PATH = os.path.join(CLOUDTIK_SCHEMA_PATH, "database-schema.json")
 
 
 def delete_database(

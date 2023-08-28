@@ -4,7 +4,6 @@ import os
 from typing import Any, Dict, Optional
 import prettytable as pt
 
-import cloudtik
 from cloudtik.core._private.cluster.cluster_operator import _get_cluster_info
 from cloudtik.core._private.core_utils import get_cloudtik_temp_dir, get_json_object_hash
 from cloudtik.core.tags import CLOUDTIK_TAG_NODE_STATUS
@@ -15,7 +14,7 @@ from cloudtik.core.workspace_provider import Existence, CLOUDTIK_MANAGED_CLOUD_S
 from cloudtik.core._private.utils import \
     is_managed_cloud_database, is_managed_cloud_storage, print_dict_info, \
     NODE_INFO_NODE_IP, handle_cli_override, load_yaml_config, save_config_cache, load_config_from_cache, \
-    merge_config_hierarchy, validate_schema
+    merge_config_hierarchy, validate_schema, CLOUDTIK_SCHEMA_PATH
 from cloudtik.core._private.provider_factory import _get_workspace_provider_cls, _get_workspace_provider, \
     _WORKSPACE_PROVIDERS, _PROVIDER_PRETTY_NAMES, _get_node_provider_cls
 from cloudtik.core._private.cli_logger import cli_logger, cf
@@ -23,8 +22,7 @@ from cloudtik.core._private.cli_logger import cli_logger, cf
 logger = logging.getLogger(__name__)
 
 CONFIG_CACHE_VERSION = 1
-WORKSPACE_SCHEMA_PATH = os.path.join(
-    os.path.dirname(cloudtik.core.__file__), "workspace-schema.json")
+WORKSPACE_SCHEMA_PATH = os.path.join(CLOUDTIK_SCHEMA_PATH, "workspace-schema.json")
 
 
 def _get_existence_name(existence):

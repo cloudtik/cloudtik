@@ -1,6 +1,6 @@
 {
 	"$schema": "http://json-schema.org/draft-07/schema#",
-	"$id": "http://github.com/jerrychenhf/cloudtik/python/cloudtick/core/cluster-schema.json",
+	"$id": "http://github.com/jerrychenhf/cloudtik/python/cloudtick/schema/cluster-schema.json",
 	"title": "CloudTik",
 	"description": "CloudTik cluster config schema",
 	"type": "object",
