@@ -16,7 +16,8 @@ from cloudtik.core._private.util.database_utils import DATABASE_ENGINE_POSTGRES,
 from cloudtik.core.workspace_provider import Existence, CLOUDTIK_MANAGED_CLOUD_STORAGE, \
     CLOUDTIK_MANAGED_CLOUD_STORAGE_URI, CLOUDTIK_MANAGED_CLOUD_DATABASE, CLOUDTIK_MANAGED_CLOUD_DATABASE_ENDPOINT, \
     CLOUDTIK_MANAGED_CLOUD_STORAGE_NAME, CLOUDTIK_MANAGED_CLOUD_DATABASE_ENGINE, \
-    CLOUDTIK_MANAGED_CLOUD_DATABASE_ADMIN_USER, CLOUDTIK_MANAGED_CLOUD_DATABASE_PORT
+    CLOUDTIK_MANAGED_CLOUD_DATABASE_ADMIN_USER, CLOUDTIK_MANAGED_CLOUD_DATABASE_PORT, \
+    CLOUDTIK_MANAGED_CLOUD_DATABASE_NAME
 
 from cloudtik.core.tags import CLOUDTIK_TAG_NODE_KIND, NODE_KIND_HEAD, CLOUDTIK_TAG_CLUSTER_NAME, \
     CLOUDTIK_TAG_WORKSPACE_NAME
@@ -1044,10 +1045,10 @@ def _delete_managed_cloud_database(
     total_steps = 3
 
     with cli_logger.group(
-            "Deleting managed database instance",
+            "Deleting managed database instances",
             _numbered=("()", current_step, total_steps)):
         current_step += 1
-        _delete_managed_database_instance(provider_config, workspace_name)
+        _delete_managed_database_instances(provider_config, workspace_name)
 
     private_connection_deleted = False
     with cli_logger.group(
@@ -1157,9 +1158,14 @@ def _delete_managed_database_instance(
             db_instance_name)
         return
 
+    _delete_database_instance(provider_config, db_instance)
+
+
+def _delete_database_instance(provider_config, db_instance):
     sql_admin = construct_sql_admin(provider_config)
     project_id = provider_config["project_id"]
     try:
+        db_instance_name = db_instance["name"]
         cli_logger.print("Deleting database instance: {}...".format(db_instance_name))
         operation = sql_admin.instances().delete(
             project=project_id, instance=db_instance_name).execute()
@@ -1173,6 +1179,25 @@ def _delete_managed_database_instance(
     except Exception as e:
         cli_logger.error("Failed to delete database instance. {}", str(e))
         raise e
+
+
+def _delete_managed_database_instances(provider_config, workspace_name):
+    database_instances = get_managed_database_instances(
+        provider_config, workspace_name)
+    if database_instances is None:
+        cli_logger.print(
+            "No managed database instances found in workspace {}. Skip deletion.",
+            workspace_name)
+        return
+
+    total = len(database_instances)
+    for i, database_instance in enumerate(database_instances):
+        with cli_logger.group(
+                "Deleting database instance: {}",
+                database_instance["name"],
+                _numbered=("()", i + 1, total)):
+            _delete_database_instance(
+                provider_config, database_instance)
 
 
 def _delete_network_resources(config, compute, current_step, total_steps):
@@ -1774,6 +1799,7 @@ def _get_managed_database_instance_info(database_instance):
             return None
 
         managed_cloud_database_info = {
+            CLOUDTIK_MANAGED_CLOUD_DATABASE_NAME: database_instance["name"],
             CLOUDTIK_MANAGED_CLOUD_DATABASE_ENDPOINT: db_address,
             CLOUDTIK_MANAGED_CLOUD_DATABASE_PORT: get_gcp_database_default_port(engine),
             CLOUDTIK_MANAGED_CLOUD_DATABASE_ENGINE: engine,

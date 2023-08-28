@@ -11,7 +11,7 @@ from cloudtik.core.tags import CLOUDTIK_TAG_NODE_STATUS
 from cloudtik.core.workspace_provider import Existence, CLOUDTIK_MANAGED_CLOUD_STORAGE, \
     CLOUDTIK_MANAGED_CLOUD_STORAGE_URI, CLOUDTIK_MANAGED_CLOUD_DATABASE_ENDPOINT, \
     CLOUDTIK_MANAGED_CLOUD_DATABASE_PORT, CLOUDTIK_MANAGED_CLOUD_DATABASE_ENGINE, \
-    CLOUDTIK_MANAGED_CLOUD_DATABASE_ADMIN_USER
+    CLOUDTIK_MANAGED_CLOUD_DATABASE_ADMIN_USER, CLOUDTIK_MANAGED_CLOUD_DATABASE_NAME
 from cloudtik.core._private.utils import \
     is_managed_cloud_database, is_managed_cloud_storage, print_dict_info, \
     NODE_INFO_NODE_IP, handle_cli_override, load_yaml_config, save_config_cache, load_config_from_cache, \
@@ -91,8 +91,15 @@ def _delete_workspace(config: Dict[str, Any],
                 cli_logger.warning("WARNING: The managed cloud database associated with this workspace "
                                    "and the data in it will all be deleted!")
             else:
-                cli_logger.print(
-                    cf.bold("The managed cloud database associated with this workspace will not be deleted."))
+                # check whether there are managed database instances
+                # cannot delete workspace if there is any
+                managed_databases = provider.list_databases(config)
+                if managed_databases is not None and len(managed_databases) > 0:
+                    managed_database_names = ",".join(list(managed_databases.keys()))
+                    raise RuntimeError(
+                        "Workspace {} has managed databases ({}) in running. Cannot not delete workspace.".format(
+                            workspace_name, managed_database_names
+                        ))
 
         cli_logger.confirm(yes, "Are you sure that you want to delete workspace {}?",
                            config["workspace_name"], _abort=True)
@@ -349,7 +356,10 @@ def _show_databases(databases):
     tb = pt.PrettyTable()
     tb.field_names = ["instance-name", "engine", "host", "port", "admin-user"]
     for database_name, database_info in databases.items():
-        tb.add_row([database_name, database_info[CLOUDTIK_MANAGED_CLOUD_DATABASE_ENGINE],
+        instance_name = database_info.get(CLOUDTIK_MANAGED_CLOUD_DATABASE_NAME)
+        if not instance_name:
+            instance_name = database_name
+        tb.add_row([instance_name, database_info[CLOUDTIK_MANAGED_CLOUD_DATABASE_ENGINE],
                     database_info[CLOUDTIK_MANAGED_CLOUD_DATABASE_ENDPOINT],
                     database_info[CLOUDTIK_MANAGED_CLOUD_DATABASE_PORT],
                     database_info.get(CLOUDTIK_MANAGED_CLOUD_DATABASE_ADMIN_USER, "-")

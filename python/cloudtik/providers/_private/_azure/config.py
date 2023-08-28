@@ -21,7 +21,7 @@ from cloudtik.core._private.utils import check_cidr_conflict, is_use_internal_ip
 from cloudtik.core.workspace_provider import Existence, CLOUDTIK_MANAGED_CLOUD_STORAGE, \
     CLOUDTIK_MANAGED_CLOUD_STORAGE_URI, CLOUDTIK_MANAGED_CLOUD_DATABASE, CLOUDTIK_MANAGED_CLOUD_DATABASE_ENDPOINT, \
     CLOUDTIK_MANAGED_CLOUD_STORAGE_NAME, CLOUDTIK_MANAGED_CLOUD_DATABASE_PORT, CLOUDTIK_MANAGED_CLOUD_DATABASE_ENGINE, \
-    CLOUDTIK_MANAGED_CLOUD_DATABASE_ADMIN_USER
+    CLOUDTIK_MANAGED_CLOUD_DATABASE_ADMIN_USER, CLOUDTIK_MANAGED_CLOUD_DATABASE_NAME
 
 from azure.mgmt.compute import ComputeManagementClient
 from azure.core.exceptions import ResourceNotFoundError
@@ -361,6 +361,7 @@ def get_managed_database_instance_info(database_instance):
 
         server_endpoint = _get_managed_database_address(engine, db_instance.name)
         managed_cloud_storage = {
+            CLOUDTIK_MANAGED_CLOUD_DATABASE_NAME: db_instance.name,
             CLOUDTIK_MANAGED_CLOUD_DATABASE_ENDPOINT: server_endpoint,
             CLOUDTIK_MANAGED_CLOUD_DATABASE_PORT: get_azure_database_default_port(engine),
             CLOUDTIK_MANAGED_CLOUD_DATABASE_ENGINE: engine,
@@ -877,7 +878,7 @@ def _delete_managed_cloud_databases_of_engine(
     total_steps = 3
 
     with cli_logger.group(
-            "Deleting managed {} instance", engine,
+            "Deleting managed {} instances", engine,
             _numbered=("()", current_step, total_steps)):
         current_step += 1
         _delete_managed_database_instances(
@@ -2143,7 +2144,7 @@ def _create_managed_database_private_dns_zone(
     total_steps = 2
 
     with cli_logger.group(
-            "Creating private DNS zone",
+            "Creating {} private DNS zone", engine,
             _numbered=("()", current_step, total_steps)):
         current_step += 1
         _create_private_dns_zone(
@@ -2151,7 +2152,7 @@ def _create_managed_database_private_dns_zone(
             engine)
 
     with cli_logger.group(
-            "Creating DNS link with virtual network",
+            "Creating {} DNS link with virtual network", engine,
             _numbered=("()", current_step, total_steps)):
         current_step += 1
         _create_private_dns_zone_link(
