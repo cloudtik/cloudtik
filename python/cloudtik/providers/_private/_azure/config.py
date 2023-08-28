@@ -2216,7 +2216,7 @@ def _create_private_dns_zone_link(
         params = VirtualNetworkLink(
             location="global",
             virtual_network=virtual_network,
-            registration_enabled=True
+            registration_enabled=False
         )
         creation_poller = private_dns_client.virtual_network_links.begin_create_or_update(
             resource_group_name,
@@ -2351,18 +2351,20 @@ def _create_postgres_instance(
     else:
         high_availability = None
 
+    # Storage is available in the following fixed sizes:
+    # 32GB, 64GB, 128GB, 256GB, 512GB, 1TB, 2TB, 4TB, 8TB, 16TB, 32TB
     server_params = PostgreSQLServer(
         administrator_login=database_config.get('username', "cloudtik"),
         administrator_login_password=database_config.get('password', "1kiTdUoLc!"),
         version=PostgreSQLServerVersion.FOURTEEN,
         storage=PostgreSQLStorage(
-            storage_size_gb=database_config.get("storage_size", 50)),
+            storage_size_gb=database_config.get("storage_size", 64)),
         sku=PostgreSQLSku(
             name=database_config.get("instance_type", "Standard_D4ds_v4"),
             tier='GeneralPurpose'),
         network=PostgreSQLNetwork(
             delegated_subnet_resource_id=delegated_subnet_resource_id,
-            private_dns_zone_resource_id=private_dns_zone_resource_id),
+            private_dns_zone_arm_resource_id=private_dns_zone_resource_id),
         high_availability=high_availability,
         create_mode="Default",
         location=location,
