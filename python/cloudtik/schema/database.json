@@ -31,19 +31,19 @@
             "properties": {
                 "type": {
                     "type": "string",
-                    "description": "e.g. aws, azure, gcp, aliyun, huaweicloud..."
+                    "description": "Provider type, e.g. aws, azure, gcp, kubernetes"
                 },
                 "region": { 
                     "type": "string",
-                    "description": "e.g. us-east-1"
+                    "description": "Provider region, e.g. us-east-1"
                 },
                 "provider_class": {
                     "type": "string",
-                    "description": "The module and class path if using external workspace provider"
+                    "description": "The module and class path if using external database provider"
                 },
                 "use_internal_ips": {
                     "type": "boolean",
-                    "description": "don't require public ips"
+                    "description": "Whether use only internal ips"
                 },
                 "namespace": {
                     "type": "string",

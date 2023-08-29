@@ -26,11 +26,11 @@
             "properties": {
                 "type": {
                     "type": "string",
-                    "description": "e.g. aws, azure, gcp, aliyun, huaweicloud..."
+                    "description": "Provider type, e.g. aws, azure, gcp, kubernetes, aliyun, huaweicloud, local, virtual, onpremise"
                 },
                 "region": { 
                     "type": "string",
-                    "description": "e.g. us-east-1"
+                    "description": "Provider region, e.g. us-east-1"
                 },
                 "provider_class": {
                     "type": "string",
@@ -38,7 +38,7 @@
                 },
                 "use_internal_ips": {
                     "type": "boolean",
-                    "description": "don't require public ips"
+                    "description": "Whether use only internal ips"
                 },
                 "namespace": {
                     "type": "string",
@@ -117,7 +117,7 @@
                 },
                 "cloud_simulator_address": {
                     "type": "string",
-                    "description": "The cloud simulator address in the format of address:port for on-premise provider."
+                    "description": "On-premise cloud simulator address in the format of address:port."
                 }
             }
         }
