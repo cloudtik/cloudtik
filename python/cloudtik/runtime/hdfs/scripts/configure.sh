@@ -30,14 +30,30 @@ function check_hadoop_installed() {
     fi
 }
 
+function get_first_dfs_dir() {
+    local data_disk_dir=$(get_first_data_disk_dir)
+    if [ -z "$data_disk_dir" ]; then
+        data_dir="${HADOOP_HOME}/data/dfs"
+    else
+        data_dir="$data_disk_dir/dfs"
+    fi
+    echo "${data_dir}"
+}
+
 function update_hdfs_data_disks_config() {
-    hdfs_nn_dirs="${HADOOP_HOME}/data/dfs/nn"
-    hdfs_dn_dirs=""
+    local hdfs_nn_dirs=""
+    local hdfs_dn_dirs=""
     if [ -d "/mnt/cloudtik" ]; then
         for data_disk in /mnt/cloudtik/*; do
             [ -d "$data_disk" ] || continue
-            # Keep the directory not contain outdated information of cluster.(Local mode)
-            sudo rm -rf $data_disk/dfs/dn
+            if [ "$HDFS_FORCE_CLEAN" == "true" ]; then
+                sudo rm -rf $data_disk/dfs
+            fi
+            if [ -z "$hdfs_nn_dirs" ]; then
+                hdfs_nn_dirs=$data_disk/dfs/nn
+            else
+                hdfs_nn_dirs="$hdfs_nn_dirs,$data_disk/dfs/nn"
+            fi
             if [ -z "$hdfs_dn_dirs" ]; then
                 hdfs_dn_dirs=$data_disk/dfs/dn
             else
@@ -47,8 +63,13 @@ function update_hdfs_data_disks_config() {
     fi
 
     # if no disks mounted on /mnt/cloudtik
+    if [ -z "$hdfs_nn_dirs" ]; then
+        if [ "$HDFS_FORCE_CLEAN" == "true" ]; then
+            sudo rm -rf "${HADOOP_HOME}/data/dfs"
+        fi
+        hdfs_nn_dirs="${HADOOP_HOME}/data/dfs/nn"
+    fi
     if [ -z "$hdfs_dn_dirs" ]; then
-        sudo rm -rf "${HADOOP_HOME}/data/dfs/dn"
         hdfs_dn_dirs="${HADOOP_HOME}/data/dfs/dn"
     fi
     sed -i "s!{%dfs.namenode.name.dir%}!${hdfs_nn_dirs}!g" `grep "{%dfs.namenode.name.dir%}" -rl ${output_dir}`
@@ -91,9 +112,10 @@ function configure_hdfs() {
     cp -r ${output_dir}/hadoop/core-site.xml ${HDFS_CONF_DIR}/
     cp -r ${output_dir}/hadoop/hdfs-site.xml  ${HDFS_CONF_DIR}/
 
-    if [ $IS_HEAD_NODE == "true" ];then
+    if [ $IS_HEAD_NODE == "true" ]; then
         # format only once if there is no force format flag
-        HDFS_INIT_DIR=${HDFS_CONF_DIR}/hdfs.init
+        local dfs_dir=$(get_first_dfs_dir)
+        HDFS_INIT_DIR=${dfs_dir}/hdfs.init
         if [ ! -d "${HDFS_INIT_DIR}" ]; then
             export HADOOP_CONF_DIR=${HDFS_CONF_DIR}
             # Stop namenode in case it was running left from last try

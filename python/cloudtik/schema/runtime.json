@@ -418,6 +418,23 @@
                 "database_service_selector": {
                     "$ref": "#/definitions/service_selector",
                     "description": "The selector for database service if service discovery is enabled."
+                },
+                "high_availability": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Whether to run a server on each node for high availability."
+                }
+            }
+        },
+        "hdfs": {
+            "type": "object",
+            "description": "HDFS runtime configurations",
+            "additionalProperties": true,
+            "properties": {
+                "force_clean": {
+                    "type": "boolean",
+                    "description": "Whether to force clean the data directory when starting.",
+                    "default": false
                 }
             }
         },

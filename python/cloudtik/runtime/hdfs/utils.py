@@ -16,6 +16,8 @@ RUNTIME_PROCESSES = [
     ["proc_datanode", False, "DataNode", "worker"],
 ]
 
+HDFS_FORCE_CLEAN_KEY = "force_clean"
+
 HDFS_WEB_PORT = 9870
 
 HDFS_SERVICE_NAME = "hdfs"
@@ -42,7 +44,14 @@ def _get_runtime_processes():
 
 def _with_runtime_environment_variables(
         runtime_config, config, provider, node_id: str):
+    hdfs_config = _get_config(runtime_config)
+
     runtime_envs = {"HDFS_ENABLED": True}
+
+    force_clean = hdfs_config.get(HDFS_FORCE_CLEAN_KEY, False)
+    if force_clean:
+        runtime_envs["HDFS_FORCE_CLEAN"] = force_clean
+
     return runtime_envs
 
 
