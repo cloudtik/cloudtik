@@ -1467,7 +1467,7 @@ class ClusterScaler:
         # for stable seq id, if the node died with a seq id, we need to reuse that
         # get the first free seq id using the seq ids in use
         node_seq_ids_in_use = self.node_seq_ids_in_use
-        for seq_id in range(1, self.max_node_seq_id + 1):
+        for seq_id in range(2, self.max_node_seq_id + 1):
             if seq_id not in node_seq_ids_in_use:
                 node_seq_ids_in_use.add(seq_id)
                 return seq_id

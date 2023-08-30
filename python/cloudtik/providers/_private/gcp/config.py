@@ -27,7 +27,7 @@ from cloudtik.core._private.utils import check_cidr_conflict, unescape_private_k
     is_managed_cloud_storage, is_use_managed_cloud_storage, is_worker_role_for_cloud_storage, \
     _is_use_managed_cloud_storage, is_use_peering_vpc, is_use_working_vpc, _is_use_working_vpc, \
     is_peering_firewall_allow_working_subnet, is_peering_firewall_allow_ssh_only, is_gpu_runtime, \
-    is_managed_cloud_database, is_use_managed_cloud_database, is_permanent_data_volumes
+    is_managed_cloud_database, is_use_managed_cloud_database, is_permanent_data_volumes, _is_permanent_data_volumes
 from cloudtik.providers._private.gcp.node import GCPCompute
 from cloudtik.providers._private.gcp.utils import _get_node_info, construct_clients_from_provider_config, \
     wait_for_compute_global_operation, wait_for_compute_region_operation, _create_storage, \
@@ -2660,7 +2660,7 @@ def fill_available_node_types_resources(
     return cluster_config
 
 
-def _fix_disk_type_for_disk(zone, disk):
+def _configure_disk_type_for_disk(zone, disk):
     # fix disk type for all disks
     initialize_params = disk.get("initializeParams")
     if initialize_params is None:
@@ -2675,33 +2675,44 @@ def _fix_disk_type_for_disk(zone, disk):
     initialize_params["diskType"] = fix_disk_type
 
 
-def _fix_disk_info_for_disk(zone, disk, boot, source_image):
+def _configure_disk_info_for_disk(
+        provider_config, zone, disk, boot, source_image):
     if boot:
         # Need to fix source image for only boot disk
         if "initializeParams" not in disk:
             disk["initializeParams"] = {"sourceImage": source_image}
         else:
             disk["initializeParams"]["sourceImage"] = source_image
+    else:
+        # for data disk, set flag whether we need to auto delete
+        if _is_permanent_data_volumes(provider_config):
+            disk["autoDelete"] = False
+        else:
+            disk["autoDelete"] = True
 
-    _fix_disk_type_for_disk(zone, disk)
+    _configure_disk_type_for_disk(zone, disk)
 
 
-def _fix_disk_info_for_node(node_config, zone):
+def _configure_disk_info_for_node(
+        provider_config, node_config, zone):
     source_image = node_config.get("sourceImage", None)
     disks = node_config.get("disks", [])
     for disk in disks:
         boot = disk.get("boot", False)
-        _fix_disk_info_for_disk(zone, disk, boot, source_image)
+        _configure_disk_info_for_disk(
+            provider_config, zone, disk, boot, source_image)
 
     # Remove the sourceImage from node config
     node_config.pop("sourceImage", None)
 
 
-def _fix_disk_info(config):
-    zone = config["provider"]["availability_zone"]
+def _configure_disk_info(config):
+    provider_config = config["provider"]
+    zone = provider_config["availability_zone"]
     for node_type in config["available_node_types"].values():
         node_config = node_type["node_config"]
-        _fix_disk_info_for_node(node_config, zone)
+        _configure_disk_info_for_node(
+            provider_config, node_config, zone)
 
     return config
 
@@ -2800,7 +2811,7 @@ def bootstrap_gcp_from_workspace(config):
         construct_clients_from_provider_config(config["provider"])
 
     config = _configure_image(config)
-    config = _fix_disk_info(config)
+    config = _configure_disk_info(config)
     config = _configure_iam_role_from_workspace(config, iam)
     config = _configure_cloud_storage_from_workspace(config)
     config = _configure_cloud_database_from_workspace(config)

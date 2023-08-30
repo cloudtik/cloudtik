@@ -2170,7 +2170,7 @@ def _show_cluster_status(config: Dict[str, Any]) -> None:
     for node_info in nodes_info:
         tb.add_row([node_info[NODE_INFO_NODE_ID], node_info[NODE_INFO_NODE_IP], node_info[CLOUDTIK_TAG_NODE_KIND],
                     node_info[CLOUDTIK_TAG_NODE_STATUS], node_info["instance_type"], node_info["public_ip"],
-                    node_info["instance_status", node_info.get(CLOUDTIK_TAG_NODE_SEQ_ID, "-")]
+                    node_info["instance_status"], node_info.get(CLOUDTIK_TAG_NODE_SEQ_ID, "-")
                     ])
 
     nodes_ready = _get_number_of_node_in_status(nodes_info, STATUS_UP_TO_DATE)
