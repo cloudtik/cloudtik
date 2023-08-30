@@ -33,10 +33,6 @@
                     "type": "string",
                     "description": "Provider type, e.g. aws, azure, gcp, kubernetes, aliyun, huaweicloud"
                 },
-                "region": { 
-                    "type": "string",
-                    "description": "Provider region, e.g. us-east-1"
-                },
                 "provider_class": {
                     "type": "string",
                     "description": "The module and class path if using external storage provider"
@@ -45,9 +41,17 @@
                     "type": "boolean",
                     "description": "Whether use only internal ips"
                 },
-                "namespace": {
+                "region": {
                     "type": "string",
-                    "description": "k8s namespace, if using k8s"
+                    "description": "Provider region, e.g. us-east-1"
+                },
+                "availability_zone": {
+                    "type": "string",
+                    "description": "GCP availability zone"
+                },
+                "project_id": {
+                    "type": ["string", "null"],
+                    "description": "GCP globally unique project id"
                 },
                 "location": {
                     "type": "string",
@@ -61,13 +65,9 @@
                     "type": "string",
                     "description": "Azure subscription id"
                 },
-                "availability_zone": {
+                "namespace": {
                     "type": "string",
-                    "description": "GCP availability zone"
-                },
-                "project_id": {
-                    "type": ["string", "null"],
-                    "description": "GCP globally unique project id"
+                    "description": "k8s namespace, if using k8s"
                 },
                 "credentials": { "$ref": "/schema/cloud-credentials.json" }
             }

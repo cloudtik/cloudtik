@@ -58,9 +58,10 @@ def _retry(method, max_tries=5, backoff_s=1):
 class GCPNodeProvider(NodeProvider):
     """
     Computing nodes provider for GCP.
-    All the operations use instance["name"] as the unique node id. In the format of:
-    "{name_label}-{uuid4().hex[:INSTANCE_NAME_UUID_LEN]}-{node_suffix}"
+    All the operations use instance["name"] as the unique node id.
     Which is different from the node-id shown in the status command (node["id"]).
+    The node is in the format of "{CLOUDTIK_TAG_NODE_NAME}-{uuid4().hex[:INSTANCE_NAME_UUID_LEN]}-{node_suffix}"
+    And CLOUDTIK_TAG_NODE_NAME keeps as the tag with the same tag name of the instance.
     """
     def __init__(self, provider_config: dict, cluster_name: str):
         NodeProvider.__init__(self, provider_config, cluster_name)
