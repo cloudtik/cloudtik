@@ -39,7 +39,7 @@ from cloudtik.providers._private.gcp.utils import _get_node_info, construct_clie
     wait_for_sql_admin_operation, export_gcp_cloud_database_config, construct_compute_client, \
     construct_service_networking, \
     wait_for_service_networking_operation, get_gcp_database_engine, get_gcp_database_default_admin_user, \
-    get_gcp_database_default_port
+    get_gcp_database_default_port, wait_for_compute_zone_operation
 from cloudtik.providers._private.utils import StorageTestingError
 
 logger = logging.getLogger(__name__)
@@ -2694,7 +2694,8 @@ def _configure_disk_volume(
     _configure_disk_type_for_disk(zone, disk)
 
 
-def _configure_disk_name_for_volumes(node_config, node_name):
+def _configure_disk_name_for_volumes(
+        node_config, cluster_name, node_name):
     disks = node_config.get("disks", [])
     data_disk_id = 0
     for disk in disks:
@@ -2703,15 +2704,19 @@ def _configure_disk_name_for_volumes(node_config, node_name):
             continue
         data_disk_id += 1
         _configure_disk_name_for_volume(
-            disk, data_disk_id, node_name)
+            disk, data_disk_id, cluster_name, node_name)
     return node_config
 
 
 def _configure_disk_name_for_volume(
-        disk, data_disk_id, node_name):
+        disk, data_disk_id, cluster_name, node_name):
     initialize_params = get_config_for_update(disk, "initializeParams")
     disk_name = "{}-disk-{}".format(node_name, data_disk_id)
     initialize_params["diskName"] = disk_name
+
+    # add labels for cluster name
+    labels = get_config_for_update(initialize_params, "labels")
+    labels[CLOUDTIK_TAG_CLUSTER_NAME] = cluster_name
 
 
 def _configure_disk_volumes_for_node(
@@ -3185,3 +3190,69 @@ def with_gcp_environment_variables(
             config_dict["GCP_PROJECT_ID"] = project_id
 
     return config_dict
+
+
+def cleanup_cluster_disks(provider_config, cluster_name):
+    compute = construct_compute_client(provider_config)
+    project_id = provider_config["project_id"]
+    availability_zone = provider_config.get("availability_zone")
+
+    cli_logger.print("Getting disks for cluster: {}", cluster_name)
+
+    filter_expr = '(labels.{key} = {value})'.format(
+        key=CLOUDTIK_TAG_CLUSTER_NAME, value=cluster_name)
+
+    disks = []
+    paged_disks = _get_cluster_disks(
+        compute, project_id, availability_zone,
+        filter_expr)
+
+    disks.extend(paged_disks.get("items", []))
+    next_page_token = paged_disks.get("nextPageToken", None)
+
+    while next_page_token is not None:
+        paged_disks = _get_cluster_disks(
+            compute, project_id, availability_zone,
+            filter_expr, next_page_token=None)
+
+        disks.extend(paged_disks.get("items", []))
+        next_page_token = paged_disks.get("nextPageToken", None)
+
+    num_disks = len(disks)
+    cli_logger.print(
+        "Got {} disks to delete.", num_disks)
+
+    if num_disks:
+        # delete the disks
+        cli_logger.print(
+            "Deleting {} disks...", num_disks)
+
+        for i, disk in enumerate(disks):
+            disk_name = disk["name"]
+            with cli_logger.group(
+                    "Deleting disk: {}",
+                    disk_name,
+                    _numbered=("()", i + 1, num_disks)):
+                operation = compute.disks().delete(
+                    project=project_id,
+                    zone=availability_zone,
+                    disk=disk_name,
+                ).execute()
+                wait_for_compute_zone_operation(
+                    project_id, availability_zone, operation, compute)
+                cli_logger.print("Successfully deleted.")
+
+        cli_logger.print(
+            "Successfully deleted {} disks.", num_disks)
+
+
+def _get_cluster_disks(
+        compute, project_id, availability_zone,
+        filter_expr, next_page_token=None):
+    response = compute.disks().list(
+        project=project_id,
+        zone=availability_zone,
+        filter=filter_expr,
+        pageToken=next_page_token
+    ).execute()
+    return response

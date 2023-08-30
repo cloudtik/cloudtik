@@ -266,9 +266,11 @@ class KubernetesNodeProvider(NodeProvider):
     def bootstrap_config(cluster_config):
         return bootstrap_kubernetes(cluster_config)
 
-    def cleanup_cluster(self, cluster_config: Dict[str, Any]):
+    def cleanup_cluster(
+            self, cluster_config: Dict[str, Any], deep: bool = False):
         """Finalize the cluster by cleanup additional resources other than the nodes."""
-        cleanup_kubernetes_cluster(cluster_config, self.cluster_name, self.namespace)
+        cleanup_kubernetes_cluster(
+            cluster_config, self.cluster_name, self.namespace)
 
     @staticmethod
     def bootstrap_config_for_api(cluster_config: Dict[str, Any]) -> Dict[str, Any]:

@@ -346,7 +346,8 @@ def teardown_cluster(config_file: str, yes: bool, workers_only: bool,
                      override_cluster_name: Optional[str],
                      keep_min_workers: bool,
                      proxy_stop: bool = False,
-                     hard: bool = False) -> None:
+                     hard: bool = False,
+                     deep: bool = False) -> None:
     """Destroys all nodes of a cluster described by a config json."""
     config = _load_cluster_config(config_file, override_cluster_name)
 
@@ -359,7 +360,8 @@ def teardown_cluster(config_file: str, yes: bool, workers_only: bool,
                           workers_only=workers_only,
                           keep_min_workers=keep_min_workers,
                           proxy_stop=proxy_stop,
-                          hard=hard)
+                          hard=hard,
+                          deep=deep)
 
     cli_logger.success("Successfully shut down cluster: {}.", config["cluster_name"])
 
@@ -369,7 +371,8 @@ def _teardown_cluster(config: Dict[str, Any],
                       workers_only: bool = False,
                       keep_min_workers: bool = False,
                       proxy_stop: bool = False,
-                      hard: bool = False) -> None:
+                      hard: bool = False,
+                      deep: bool = False) -> None:
     current_step = 1
     total_steps = NUM_TEARDOWN_CLUSTER_STEPS_BASE
     if proxy_stop and is_proxy_needed(config):
@@ -459,7 +462,8 @@ def _teardown_cluster(config: Dict[str, Any],
         current_step += 1
         cleanup_cluster(config,
                         call_context=call_context,
-                        provider=provider)
+                        provider=provider,
+                        deep=deep)
 
 
 def _teardown_workers_from_head(
@@ -491,10 +495,13 @@ def _teardown_workers_from_head(
 
 def cleanup_cluster(config: Dict[str, Any],
                     call_context: CallContext,
-                    provider: NodeProvider):
-    call_context.cli_logger.print("Cleaning up cluster resources...")
-    provider.cleanup_cluster(config)
-    call_context.cli_logger.print(cf.bold("Successfully cleaned up other cluster resources."))
+                    provider: NodeProvider,
+                    deep: bool = False):
+    call_context.cli_logger.print(
+        "Cleaning up cluster resources...")
+    provider.cleanup_cluster(config, deep=deep)
+    call_context.cli_logger.print(
+        cf.bold("Successfully cleaned up other cluster resources."))
 
 
 def teardown_cluster_nodes(config: Dict[str, Any],

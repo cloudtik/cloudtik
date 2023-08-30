@@ -258,8 +258,11 @@ class NodeProvider:
         The cluster config may also be updated for setting up the head"""
         return remote_config
 
-    def cleanup_cluster(self, cluster_config: Dict[str, Any]):
-        """Cleanup the cluster by deleting additional resources other than the nodes."""
+    def cleanup_cluster(
+            self, cluster_config: Dict[str, Any], deep: bool = False):
+        """Cleanup the cluster by deleting additional resources other than the nodes.
+        If deep flag is true, do a deep clean up all the resources
+        """
         pass
 
     def get_node_info(self, node_id: str) -> Dict[str, str]:

@@ -177,12 +177,17 @@ def start(
     is_flag=True,
     default=False,
     help="Stop the cluster nodes by without running stop commands.")
+@click.option(
+    "--deep",
+    is_flag=True,
+    default=False,
+    help="Do deep clean of all the resources such as permanent data volumes.")
 @add_click_logging_options
 def stop(cluster_config_file, yes, workers_only, cluster_name,
-         keep_min_workers, hard):
+         keep_min_workers, hard, deep):
     """Stop a cluster."""
     teardown_cluster(cluster_config_file, yes, workers_only, cluster_name,
-                     keep_min_workers, proxy_stop=True, hard=hard)
+                     keep_min_workers, proxy_stop=True, hard=hard, deep=deep)
 
 
 @cli.command()

@@ -298,7 +298,7 @@ class GCPCompute(GCPResource):
                            poll_interval: int = POLL_INTERVAL) -> dict:
         """Poll for compute zone operation until finished."""
         logger.debug("wait_for_compute_zone_operation: "
-                    f"Waiting for operation {operation['name']} to finish...")
+                     f"Waiting for operation {operation['name']} to finish...")
 
         for _ in range(max_polls):
             result = self.resource.zoneOperations().get(
@@ -310,7 +310,7 @@ class GCPCompute(GCPResource):
 
             if result["status"] == "DONE":
                 logger.debug("wait_for_compute_zone_operation: "
-                            f"Operation {operation['name']} finished.")
+                             f"Operation {operation['name']} finished.")
                 break
 
             time.sleep(poll_interval)

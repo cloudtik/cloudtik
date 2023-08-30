@@ -117,7 +117,8 @@ class Cluster:
     def stop(self,
              workers_only: bool = False,
              keep_min_workers: bool = False,
-             hard: bool = False) -> None:
+             hard: bool = False,
+             deep: bool = False) -> None:
         """Destroys all nodes of a cluster.
 
         Args:
@@ -126,13 +127,15 @@ class Cluster:
             keep_min_workers (bool): Whether to keep min_workers (as specified
                 in the YAML) still running.
             hard (bool): Stop the cluster nodes by without running stop commands.
+            deep (boo): Do a deep clean of all the resources such as permanent data volumes.
         """
         return cluster_operator._teardown_cluster(
             config=self.config,
             call_context=self.call_context,
             workers_only=workers_only,
             keep_min_workers=keep_min_workers,
-            hard=hard)
+            hard=hard,
+            deep=deep)
 
     def exec(self,
              cmd: str,

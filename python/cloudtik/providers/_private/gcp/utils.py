@@ -229,7 +229,7 @@ def wait_for_crm_operation(operation, crm):
 
 
 def wait_for_compute_region_operation(project_name, region, operation, compute):
-    """Poll for global compute operation until finished."""
+    """Poll for compute region operation until finished."""
     cli_logger.verbose("wait_for_compute_region_operation: "
                        "Waiting for operation {} to finish...".format(operation["name"]))
 
@@ -244,6 +244,30 @@ def wait_for_compute_region_operation(project_name, region, operation, compute):
 
         if result["status"] == "DONE":
             cli_logger.verbose("wait_for_compute_region_operation: "
+                               "Operation done.")
+            break
+
+        time.sleep(POLL_INTERVAL)
+
+    return result
+
+
+def wait_for_compute_zone_operation(project_id, availability_zone, operation, compute):
+    """Poll for compute zone operation until finished."""
+    cli_logger.verbose("wait_for_compute_zone_operation: "
+                       "Waiting for operation {} to finish...".format(operation["name"]))
+
+    for _ in range(MAX_POLLS):
+        result = compute.zoneOperations().get(
+            project=project_id,
+            zone=availability_zone,
+            operation=operation["name"],
+        ).execute()
+        if "error" in result:
+            raise Exception(result["error"])
+
+        if result["status"] == "DONE":
+            cli_logger.verbose("wait_for_compute_zone_operation: "
                                "Operation done.")
             break
 

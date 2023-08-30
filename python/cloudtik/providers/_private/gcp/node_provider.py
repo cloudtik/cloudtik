@@ -15,7 +15,7 @@ from cloudtik.core.tags import CLOUDTIK_TAG_NODE_SEQ_ID
 
 from cloudtik.providers._private.gcp.config import (
     verify_gcs_storage, bootstrap_gcp, post_prepare_gcp, with_gcp_environment_variables,
-    _configure_disk_name_for_volumes)
+    _configure_disk_name_for_volumes, cleanup_cluster_disks)
 
 # The logic has been abstracted away here to allow for different GCP resources
 # (API endpoints), which can differ widely, making it impossible to use
@@ -188,7 +188,7 @@ class GCPNodeProvider(NodeProvider):
                     self.cluster_name, seq_id)
                 base_config = copy.deepcopy(base_config)
                 base_config = _configure_disk_name_for_volumes(
-                    base_config, node_name_for_disk)
+                    base_config, self.cluster_name, node_name_for_disk)
 
             resource.create_instances(base_config, labels, count)
 
@@ -264,6 +264,14 @@ class GCPNodeProvider(NodeProvider):
         clear_gcp_credentials(remote_config["provider"])
 
         return remote_config
+
+    def cleanup_cluster(
+            self, cluster_config: Dict[str, Any], deep: bool = False):
+        """Cleanup the cluster by deleting additional resources other than the nodes.
+        If deep flag is true, do a deep clean up all the resources
+        """
+        if deep and _is_permanent_data_volumes(self.provider_config):
+            cleanup_cluster_disks(self.provider_config, self.cluster_name)
 
     def get_default_cloud_storage(self):
         """Return the managed cloud storage if configured."""
