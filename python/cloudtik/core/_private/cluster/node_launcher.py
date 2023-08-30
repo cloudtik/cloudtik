@@ -1,3 +1,4 @@
+import collections
 from typing import Any, Optional, Dict
 import copy
 import logging
@@ -12,7 +13,7 @@ from cloudtik.core.tags import (CLOUDTIK_TAG_LAUNCH_CONFIG, CLOUDTIK_TAG_NODE_ST
                                 CLOUDTIK_TAG_NODE_KIND, CLOUDTIK_TAG_NODE_NAME,
                                 CLOUDTIK_TAG_USER_NODE_TYPE, STATUS_UNINITIALIZED,
                                 NODE_KIND_WORKER, CLOUDTIK_TAG_QUORUM_ID, CLOUDTIK_TAG_QUORUM_JOIN,
-                                QUORUM_JOIN_STATUS_INIT)
+                                QUORUM_JOIN_STATUS_INIT, CLOUDTIK_TAG_NODE_SEQ_ID)
 from cloudtik.core._private.prometheus_metrics import ClusterPrometheusMetrics
 from cloudtik.core._private.utils import hash_launch_conf
 
@@ -20,6 +21,52 @@ logger = logging.getLogger(__name__)
 
 
 LAUNCH_ARGS_QUORUM_ID = "quorum_id"
+LAUNCH_ARGS_SEQ_ID = "seq_id"
+
+
+class PendingLaunches:
+    def __init__(self):
+        self._lock = threading.RLock()
+        self._counter = collections.defaultdict(int)
+        self._seq_ids = set()
+
+    def inc(self, key, count, seq_id=None):
+        with self._lock:
+            self._counter[key] += count
+            if seq_id:
+                self._seq_ids.add(seq_id)
+            return self.value
+
+    def dec(self, key, count, seq_id=None):
+        with self._lock:
+            self._counter[key] -= count
+            assert self._counter[key] >= 0, "counter cannot go negative"
+            if seq_id:
+                self._seq_ids.discard(seq_id)
+            return self.value
+
+    def counter(self):
+        with self._lock:
+            return dict(self._counter)
+
+    def seq_ids(self):
+        with self._lock:
+            return self._seq_ids.copy()
+
+    @property
+    def value(self):
+        with self._lock:
+            return sum(self._counter.values())
+
+    def lock(self):
+        return self._lock
+
+    def __enter__(self):
+        self._lock.acquire()
+        return self
+
+    def __exit__(self, *args):
+        self._lock.release()
 
 
 class BaseNodeLauncher:
@@ -27,7 +74,7 @@ class BaseNodeLauncher:
 
     def __init__(self,
                  provider,
-                 pending,
+                 pending_launches,
                  event_summarizer,
                  node_availability_tracker: NodeAvailabilityTracker,
                  session_name: Optional[str] = None,
@@ -36,7 +83,7 @@ class BaseNodeLauncher:
                  index=None,
                  *args,
                  **kwargs):
-        self.pending = pending
+        self.pending_launches = pending_launches
         self.event_summarizer = event_summarizer
         self.node_availability_tracker = node_availability_tracker
         self.prometheus_metrics = prometheus_metrics or ClusterPrometheusMetrics(
@@ -70,6 +117,10 @@ class BaseNodeLauncher:
         if quorum_id:
             node_tags[CLOUDTIK_TAG_QUORUM_ID] = quorum_id
             node_tags[CLOUDTIK_TAG_QUORUM_JOIN] = QUORUM_JOIN_STATUS_INIT
+
+        seq_id = launch_args.get(LAUNCH_ARGS_SEQ_ID)
+        if seq_id:
+            node_tags[CLOUDTIK_TAG_NODE_SEQ_ID] = str(seq_id)
 
         # A custom node type is specified; set the tag in this case, and also
         # merge the configs. We merge the configs instead of overriding, so
@@ -146,7 +197,8 @@ class BaseNodeLauncher:
             launch_args: Dict[str, Any]):
         self.log("Got {} nodes to launch, type {}.".format(count, node_type))
         self._launch_node(config, count, node_type, launch_args)
-        self.pending.dec(node_type, count)
+        seq_id = launch_args.get(LAUNCH_ARGS_SEQ_ID)
+        self.pending_launches.dec(node_type, count, seq_id=seq_id)
 
     def log(self, statement):
         # launcher_class is "BaseNodeLauncher", or "NodeLauncher" if called
@@ -162,7 +214,7 @@ class NodeLauncher(BaseNodeLauncher, threading.Thread):
     def __init__(self,
                  provider,
                  queue,
-                 pending,
+                 pending_launches,
                  event_summarizer,
                  node_availability_tracker: NodeAvailabilityTracker,
                  session_name: Optional[str] = None,
@@ -175,7 +227,7 @@ class NodeLauncher(BaseNodeLauncher, threading.Thread):
         BaseNodeLauncher.__init__(
             self,
             provider=provider,
-            pending=pending,
+            pending_launches=pending_launches,
             event_summarizer=event_summarizer,
             node_availability_tracker=node_availability_tracker,
             session_name=session_name,

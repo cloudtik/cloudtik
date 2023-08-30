@@ -22,7 +22,7 @@ from cloudtik.core._private.cluster.cluster_metrics_updater import ClusterMetric
 from cloudtik.core._private.cluster.node_availability_tracker import NodeAvailabilitySummary, NodeAvailabilityTracker
 from cloudtik.core._private.cluster.quorum_manager import QuorumManager
 from cloudtik.core._private.cluster.resource_scaling_policy import ResourceScalingPolicy
-from cloudtik.core._private.core_utils import ConcurrentCounter, get_string_hash
+from cloudtik.core._private.core_utils import get_string_hash
 from cloudtik.core._private.crypto import AESCipher
 from cloudtik.core._private.state.kv_store import kv_put, kv_del, kv_initialized
 try:
@@ -41,7 +41,8 @@ from cloudtik.core._private.cluster.cluster_metrics import ClusterMetrics
 from cloudtik.core._private.prometheus_metrics import ClusterPrometheusMetrics
 from cloudtik.core._private.provider_factory import _get_node_provider
 from cloudtik.core._private.node.node_updater import NodeUpdaterThread
-from cloudtik.core._private.cluster.node_launcher import NodeLauncher, LAUNCH_ARGS_QUORUM_ID
+from cloudtik.core._private.cluster.node_launcher import NodeLauncher, LAUNCH_ARGS_QUORUM_ID, PendingLaunches, \
+    LAUNCH_ARGS_SEQ_ID
 from cloudtik.core._private.cluster.node_tracker import NodeTracker
 from cloudtik.core._private.cluster.resource_demand_scheduler import \
     get_bin_pack_residual, ResourceDemandScheduler, NodeType, NodeID, NodeIP, \
@@ -224,7 +225,8 @@ class ClusterScaler:
 
         # The next node sequence id to assign
         # will be initialized by the max node sequence id from the existing nodes
-        self.next_node_seq_id = None
+        self.max_node_seq_id = None
+        self.node_seq_ids_in_use = None
 
         self.cluster_metrics = cluster_metrics
         self.cluster_metrics_updater = cluster_metrics_updater
@@ -270,11 +272,19 @@ class ClusterScaler:
         # Disable the feature to assign each node with a unique number
         self.disable_node_seq_id = self.config.get(
             "disable_node_seq_id", False)
+        self.stable_node_seq_id = self.config.get(
+            "stable_node_seq_id", False)
+
+        if self._is_stable_node_seq_id():
+            # for stable node seq id, launch one node at a time
+            self.max_launch_batch = 1
 
         # Node launchers
         self.launch_queue = queue.Queue()
-        self.pending_launches = ConcurrentCounter()
+        self.pending_launches = PendingLaunches()
         self._pending_launches = defaultdict(int)
+        self._pending_seq_ids = set()
+
         max_batches = math.ceil(
             max_concurrent_launches / float(max_launch_batch))
         for i in range(int(max_batches)):
@@ -282,7 +292,7 @@ class ClusterScaler:
                 provider=self.provider,
                 queue=self.launch_queue,
                 index=i,
-                pending=self.pending_launches,
+                pending_launches=self.pending_launches,
                 event_summarizer=self.event_summarizer,
                 node_availability_tracker=self.node_availability_tracker,
                 session_name=session_name,
@@ -398,7 +408,8 @@ class ClusterScaler:
         with self.pending_launches.lock():
             # Query the provider to update the list of non-terminated nodes
             self.non_terminated_nodes = NonTerminatedNodes(self.provider)
-            self._pending_launches = self.pending_launches.breakdown()
+            self._pending_launches = self.pending_launches.counter()
+            self._pending_seq_ids = self.pending_launches.seq_ids()
 
         # This will accumulate the nodes we need to terminate.
         self.nodes_to_terminate = []
@@ -422,8 +433,8 @@ class ClusterScaler:
         self.terminate_nodes_to_enforce_config_constraints(now)
 
         if not self.disable_node_seq_id:
-            # Assign node sequence id to new nodes
-            self.assign_node_seq_id_to_new_nodes()
+            # Assign node sequence id
+            self.assign_node_seq_ids()
 
         wait_for_update = self.quorum_manager.wait_for_update()
         if not wait_for_update:
@@ -1338,13 +1349,26 @@ class ClusterScaler:
             self, count: int, node_type: str, launch_args: Dict[str, Any]) -> None:
         logger.info(
             "Cluster Controller: Queue {} new nodes for launch".format(count))
-        self.pending_launches.inc(node_type, count)
         config = copy.deepcopy(self.config)
-        # Split into individual launch requests of the max batch size.
-        while count > 0:
-            self.launch_queue.put((config, min(count, self.max_launch_batch),
-                                   node_type, launch_args))
-            count -= self.max_launch_batch
+
+        if self._is_stable_node_seq_id():
+            # launch one by one with specific seq id
+            while count > 0:
+                seq_id = self._get_next_stable_seq_id()
+                self.pending_launches.inc(node_type, 1, seq_id)
+                node_launch_args = copy.deepcopy(launch_args)
+                node_launch_args[LAUNCH_ARGS_SEQ_ID] = seq_id
+                self.launch_queue.put((config, 1,
+                                       node_type, node_launch_args))
+                count -= 1
+
+        else:
+            self.pending_launches.inc(node_type, count)
+            # Split into individual launch requests of the max batch size.
+            while count > 0:
+                self.launch_queue.put((config, min(count, self.max_launch_batch),
+                                       node_type, launch_args))
+                count -= self.max_launch_batch
 
     def workers(self):
         return self.non_terminated_nodes.worker_ids
@@ -1434,32 +1458,79 @@ class ClusterScaler:
         return "\n" + format_info_string(
             cluster_metrics_summary, cluster_scaler_summary)
 
-    def _init_next_node_seq_id(self):
+    def _is_stable_node_seq_id(self):
+        return (True
+                if not self.disable_node_seq_id and self.stable_node_seq_id
+                else False)
+
+    def _get_next_stable_seq_id(self):
+        # for stable seq id, if the node died with a seq id, we need to reuse that
+        # get the first free seq id using the seq ids in use
+        node_seq_ids_in_use = self.node_seq_ids_in_use
+        for seq_id in range(1, self.max_node_seq_id + 1):
+            if seq_id not in node_seq_ids_in_use:
+                node_seq_ids_in_use.add(seq_id)
+                return seq_id
+        self.max_node_seq_id += 1
+        node_seq_ids_in_use.add(self.max_node_seq_id)
+        return self.max_node_seq_id
+
+    def _init_node_seq_ids_in_use(self):
+        node_seq_ids_in_use = set()
+        max_node_seq_id = CLOUDTIK_TAG_HEAD_NODE_SEQ_ID
+        for node_id in self.non_terminated_nodes.worker_ids:
+            node_seq_id_tag = self.provider.node_tags(
+                node_id).get(CLOUDTIK_TAG_NODE_SEQ_ID)
+            if node_seq_id_tag is None:
+                continue
+            node_seq_id = int(node_seq_id_tag)
+            node_seq_ids_in_use.add(node_seq_id)
+            if node_seq_id > max_node_seq_id:
+                max_node_seq_id = node_seq_id
+
+        # consider it in use for pending seq ids
+        for node_seq_id in self._pending_seq_ids:
+            node_seq_ids_in_use.add(node_seq_id)
+            if node_seq_id > max_node_seq_id:
+                max_node_seq_id = node_seq_id
+
+        self.node_seq_ids_in_use = node_seq_ids_in_use
+        self.max_node_seq_id = max_node_seq_id
+
+    def _init_max_node_seq_id(self):
         # get the maximum sequence id from the existing node
         # Only when the case the last node terminated, and controller restarted at the same time
         # The maximum sequence id lost (rare cases)
-        self.next_node_seq_id = CLOUDTIK_TAG_HEAD_NODE_SEQ_ID + 1
+        max_node_seq_id = CLOUDTIK_TAG_HEAD_NODE_SEQ_ID
         for node_id in self.non_terminated_nodes.worker_ids:
             node_seq_id_tag = self.provider.node_tags(node_id).get(CLOUDTIK_TAG_NODE_SEQ_ID)
             if node_seq_id_tag is None:
                 continue
 
             node_seq_id = int(node_seq_id_tag)
-            if node_seq_id > self.next_node_seq_id:
-                self.next_node_seq_id = node_seq_id
+            if node_seq_id > max_node_seq_id:
+                max_node_seq_id = node_seq_id
 
-    def assign_node_seq_id_to_new_nodes(self):
-        if self.next_node_seq_id is None:
-            self._init_next_node_seq_id()
+        self.max_node_seq_id = max_node_seq_id
+
+    def assign_node_seq_ids(self):
+        if self.stable_node_seq_id:
+            self._init_node_seq_ids_in_use()
+        else:
+            self._assign_node_seq_id_to_new_nodes()
+
+    def _assign_node_seq_id_to_new_nodes(self):
+        if self.max_node_seq_id is None:
+            self._init_max_node_seq_id()
 
         for node_id in self.non_terminated_nodes.worker_ids:
             node_seq_id_tag = self.provider.node_tags(
                 node_id).get(CLOUDTIK_TAG_NODE_SEQ_ID)
             if node_seq_id_tag is None:
                 # New node, assign the node sequence id
+                self.max_node_seq_id += 1
                 self.provider.set_node_tags(
-                    node_id, {CLOUDTIK_TAG_NODE_SEQ_ID: str(self.next_node_seq_id)})
-                self.next_node_seq_id += 1
+                    node_id, {CLOUDTIK_TAG_NODE_SEQ_ID: str(self.max_node_seq_id)})
 
     def emit_metrics(self, cluster_scaler_summary):
         node_types = self.all_node_types

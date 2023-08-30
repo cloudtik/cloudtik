@@ -43,7 +43,7 @@
                 },
                 "region": {
                     "type": "string",
-                    "description": "Provider region, e.g. us-east-1"
+                    "description": "AWS, GCP, Alibaba Cloud, or Huawei Cloud region, e.g. us-east-1"
                 },
                 "availability_zone": {
                     "type": "string",

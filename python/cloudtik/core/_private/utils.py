@@ -2874,6 +2874,14 @@ def is_worker_role_for_cloud_storage(config: Dict[str, Any]) -> bool:
     return config["provider"].get("worker_role_for_cloud_storage", True)
 
 
+def is_permanent_data_volumes(config: Dict[str, Any]) -> bool:
+    return _is_permanent_data_volumes(config["provider"])
+
+
+def _is_permanent_data_volumes(provider_config: Dict[str, Any]) -> bool:
+    return provider_config.get("permanent_data_volumes", False)
+
+
 def check_workspace_name_format(workspace_name):
     return bool(re.match("^[a-z0-9-]*$", workspace_name))
 
