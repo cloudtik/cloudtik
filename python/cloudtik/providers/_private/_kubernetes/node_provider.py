@@ -35,6 +35,13 @@ DELAY_BEFORE_TAG_RETRY = .5
 
 
 class KubernetesNodeProvider(NodeProvider):
+    """
+    Computing nodes provider for Kubernetes.
+    All the operations use pod.metadata.name as the unique node id.
+    Which is the same as shown in the node-id of status command.
+    The node id is in the format of cloudtik-{cluster_name}-{node_kind}-{auto-generated-suffix}
+    And CLOUDTIK_TAG_NODE_NAME keeps as the tag with the same tag name of the instance.
+    """
     def __init__(self, provider_config, cluster_name):
         NodeProvider.__init__(self, provider_config, cluster_name)
         self.cluster_name = cluster_name

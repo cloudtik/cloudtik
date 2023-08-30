@@ -19,7 +19,13 @@ HUAWEICLOUD_WORKSPACE_NAME_MAX_LEN = 32
 
 
 class HUAWEICLOUDWorkspaceProvider(WorkspaceProvider):
-
+    """
+    HuaweiCloud supports up to 10 tags for each resource.
+    Due to the limitation of the number of the tags,
+    Some advanced features in cluster controller may not work properly because
+    this features depends on some new tags created on each resource
+    but the number of tags for the resource may exceed and cannot be tagged.
+    """
     def __init__(self, provider_config: Dict[str, Any],
                  workspace_name: str) -> None:
         WorkspaceProvider.__init__(self, provider_config, workspace_name)

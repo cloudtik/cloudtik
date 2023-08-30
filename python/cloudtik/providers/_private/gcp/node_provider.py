@@ -56,6 +56,12 @@ def _retry(method, max_tries=5, backoff_s=1):
 
 
 class GCPNodeProvider(NodeProvider):
+    """
+    Computing nodes provider for GCP.
+    All the operations use instance["name"] as the unique node id. In the format of:
+    "{name_label}-{uuid4().hex[:INSTANCE_NAME_UUID_LEN]}-{node_suffix}"
+    Which is different from the node-id shown in the status command (node["id"]).
+    """
     def __init__(self, provider_config: dict, cluster_name: str):
         NodeProvider.__init__(self, provider_config, cluster_name)
         self.lock = RLock()

@@ -49,7 +49,12 @@ def synchronized(f):
 
 
 class AzureNodeProvider(NodeProvider):
-    """Node Provider for Azure
+    """
+    Computing nodes provider for Azure.
+    All the operations use instance["name"] (vm.name) as the unique node id.
+    Which is the longer form of the node-id shown in status command (shown the last component).
+    The node id (vm.name) is in the format of {CLOUDTIK_TAG_NODE_NAME}-{uuid4().hex[:VM_NAME_UUID_LEN]}
+    And CLOUDTIK_TAG_NODE_NAME keeps as the tag with the same tag name of the instance.
 
     This provider assumes Azure credentials are set by running ``az login``
     and the default subscription is configured through ``az account``
