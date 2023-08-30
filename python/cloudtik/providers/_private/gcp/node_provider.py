@@ -184,7 +184,7 @@ class GCPNodeProvider(NodeProvider):
                 seq_id = labels.get(CLOUDTIK_TAG_NODE_SEQ_ID) if labels else None
                 if not seq_id:
                     raise RuntimeError("No node sequence id assigned for using permanent data volumes.")
-                node_name_for_disk = "cloudtik-{}-{}".format(
+                node_name_for_disk = "cloudtik-{}-node-{}".format(
                     self.cluster_name, seq_id)
                 base_config = copy.deepcopy(base_config)
                 base_config = _configure_disk_name_for_volumes(

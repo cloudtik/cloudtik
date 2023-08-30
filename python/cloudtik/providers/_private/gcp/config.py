@@ -12,6 +12,7 @@ from googleapiclient import errors
 
 from google.oauth2 import service_account
 
+from cloudtik.core._private.core_utils import get_config_for_update
 from cloudtik.core._private.util.database_utils import DATABASE_ENGINE_POSTGRES, DATABASE_ENGINE_MYSQL
 from cloudtik.core.workspace_provider import Existence, CLOUDTIK_MANAGED_CLOUD_STORAGE, \
     CLOUDTIK_MANAGED_CLOUD_STORAGE_URI, CLOUDTIK_MANAGED_CLOUD_DATABASE, CLOUDTIK_MANAGED_CLOUD_DATABASE_ENDPOINT, \
@@ -2708,8 +2709,9 @@ def _configure_disk_name_for_volumes(node_config, node_name):
 
 def _configure_disk_name_for_volume(
         disk, data_disk_id, node_name):
-    disk_name = "{}-{}".format(node_name, data_disk_id)
-    disk["diskName"] = disk_name
+    initialize_params = get_config_for_update(disk, "initializeParams")
+    disk_name = "{}-disk-{}".format(node_name, data_disk_id)
+    initialize_params["diskName"] = disk_name
 
 
 def _configure_disk_volumes_for_node(

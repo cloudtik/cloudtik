@@ -109,8 +109,12 @@ function configure_hdfs() {
     mkdir -p ${HDFS_CONF_DIR}
     cp -r  ${HADOOP_HOME}/etc/hadoop/* ${HDFS_CONF_DIR}/
     # override hdfs conf
-    cp -r ${output_dir}/hadoop/core-site.xml ${HDFS_CONF_DIR}/
-    cp -r ${output_dir}/hadoop/hdfs-site.xml  ${HDFS_CONF_DIR}/
+    cp ${output_dir}/hadoop/core-site.xml ${HDFS_CONF_DIR}/core-site.xml
+    cp ${output_dir}/hadoop/hdfs-site.xml  ${HDFS_CONF_DIR}/hdfs-site.xml
+
+    # configure the default hadoop to HDFS, if there are other components configure
+    # Hadoop, it will override this file
+    cp ${output_dir}/hadoop/core-site.xml ${HADOOP_HOME}/etc/hadoop/core-site.xml
 
     if [ $IS_HEAD_NODE == "true" ]; then
         # format only once if there is no force format flag
