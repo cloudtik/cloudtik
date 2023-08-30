@@ -54,7 +54,7 @@ class HostCommandExecutor(CommandExecutor):
                     self.cli_logger.labeled_value("Received", ip)
                     return ip
                 self.cli_logger.print("Not yet available, retrying in {} seconds",
-                                 cf.bold(str(interval)))
+                                      cf.bold(str(interval)))
                 time.sleep(interval)
 
         return None
@@ -148,9 +148,10 @@ class HostCommandExecutor(CommandExecutor):
             self._format_and_mount(block_device, data_disk_index)
             data_disk_index += 1
 
-    def _is_raw_block_device(self, block_device):
+    @staticmethod
+    def _is_raw_block_device(block_device):
         # Read only or not a disk
-        if (not isinstance(block_device["ro"], bool) and  block_device["ro"] != '0') \
+        if (not isinstance(block_device["ro"], bool) and block_device["ro"] != '0') \
                 or block_device["ro"] is True or block_device["type"] != "disk":
             return False
         mount_point = block_device.get("mountpoint", None)
@@ -167,7 +168,7 @@ class HostCommandExecutor(CommandExecutor):
     def _get_raw_block_devices(self):
         self.run_with_retry("touch ~/.sudo_as_admin_successful")
         lsblk_output = self.run_with_retry(
-            "lsblk -o name,ro,type,size,mountpoint -p --json || true",
+            "lsblk -o name,ro,type,size,fstype,mountpoint -p --json || true",
             with_output=True).decode().strip()
         self.cli_logger.verbose("List of all block devices:\n{}", lsblk_output)
 
@@ -188,13 +189,24 @@ class HostCommandExecutor(CommandExecutor):
         mount_point = CLOUDTIK_DATA_DISK_MOUNT_POINT
         mount_path = f"{mount_point}/data_disk_{data_disk_index}"
 
-        self.run_with_retry(
-            "which mkfs.xfs > /dev/null || "
-            "(sudo apt-get -qq update -y && "
-            "sudo apt-get -qq install -y xfsprogs > /dev/null)")
-        self.cli_logger.print("Formatting device {} and mount to {}...", device_name, mount_path)
-        # Execute the format commands on the block device
-        self.run_with_retry(f"sudo mkfs -t xfs -f {device_name}")
+        # check whether the block device has formatted
+        formatted = self._is_block_device_formatted(block_device)
+        if not formatted:
+            self.run_with_retry(
+                "which mkfs.xfs > /dev/null || "
+                "(sudo apt-get -qq update -y > /dev/null && "
+                "sudo apt-get -qq install -y xfsprogs > /dev/null)")
+            self.cli_logger.print("Formatting device {}...", device_name)
+            # Execute the format commands on the block device
+            self.run_with_retry(f"sudo mkfs -t xfs -f {device_name}")
+
+        self.cli_logger.print("Mounting to {}...", device_name, mount_path)
         self.run_with_retry(f"sudo mkdir -p {mount_path}")
         self.run_with_retry(f"sudo mount {device_name} {mount_path}")
         self.run_with_retry(f"sudo chmod a+w {mount_path}")
+
+    @staticmethod
+    def _is_block_device_formatted(block_device):
+        fs_type = block_device.get("fstype", None)
+        # there is already a file system if fstype is not empty
+        return True if fs_type else False
