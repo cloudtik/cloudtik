@@ -2675,7 +2675,7 @@ def _configure_disk_type_for_disk(zone, disk):
     initialize_params["diskType"] = fix_disk_type
 
 
-def _configure_disk_info_for_disk(
+def _configure_disk_volume(
         provider_config, zone, disk, boot, source_image):
     if boot:
         # Need to fix source image for only boot disk
@@ -2693,25 +2693,44 @@ def _configure_disk_info_for_disk(
     _configure_disk_type_for_disk(zone, disk)
 
 
-def _configure_disk_info_for_node(
+def _configure_disk_name_for_volumes(node_config, node_name):
+    disks = node_config.get("disks", [])
+    data_disk_id = 0
+    for disk in disks:
+        boot = disk.get("boot", False)
+        if boot:
+            continue
+        data_disk_id += 1
+        _configure_disk_name_for_volume(
+            disk, data_disk_id, node_name)
+    return node_config
+
+
+def _configure_disk_name_for_volume(
+        disk, data_disk_id, node_name):
+    disk_name = "{}-{}".format(node_name, data_disk_id)
+    disk["diskName"] = disk_name
+
+
+def _configure_disk_volumes_for_node(
         provider_config, node_config, zone):
     source_image = node_config.get("sourceImage", None)
     disks = node_config.get("disks", [])
     for disk in disks:
         boot = disk.get("boot", False)
-        _configure_disk_info_for_disk(
+        _configure_disk_volume(
             provider_config, zone, disk, boot, source_image)
 
     # Remove the sourceImage from node config
     node_config.pop("sourceImage", None)
 
 
-def _configure_disk_info(config):
+def _configure_disk_volumes(config):
     provider_config = config["provider"]
     zone = provider_config["availability_zone"]
     for node_type in config["available_node_types"].values():
         node_config = node_type["node_config"]
-        _configure_disk_info_for_node(
+        _configure_disk_volumes_for_node(
             provider_config, node_config, zone)
 
     return config
@@ -2811,7 +2830,7 @@ def bootstrap_gcp_from_workspace(config):
         construct_clients_from_provider_config(config["provider"])
 
     config = _configure_image(config)
-    config = _configure_disk_info(config)
+    config = _configure_disk_volumes(config)
     config = _configure_iam_role_from_workspace(config, iam)
     config = _configure_cloud_storage_from_workspace(config)
     config = _configure_cloud_database_from_workspace(config)

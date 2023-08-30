@@ -89,6 +89,8 @@ def test_gcp_terminate_nodes():
     expected_terminate_nodes_result_len = 2
 
     def __init__(self, provider_config: dict, cluster_name: str):
+        self.provider_config = provider_config
+        self.cluster_name = cluster_name
         self.lock = RLock()
         self.cached_nodes: Dict[str, GCPNode] = {}
         self.resources: Dict[GCPNodeType, GCPResource] = {}
