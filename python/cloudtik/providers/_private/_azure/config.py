@@ -11,8 +11,10 @@ from typing import Any, Dict, Optional
 
 import ipaddr
 
+from cloudtik.core._private.core_utils import get_list_for_update
 from cloudtik.core._private.util.database_utils import DATABASE_ENGINE_MYSQL, DATABASE_ENGINE_POSTGRES
-from cloudtik.core.tags import CLOUDTIK_TAG_NODE_KIND, NODE_KIND_HEAD, CLOUDTIK_TAG_CLUSTER_NAME
+from cloudtik.core.tags import CLOUDTIK_TAG_NODE_KIND, NODE_KIND_HEAD, CLOUDTIK_TAG_CLUSTER_NAME, \
+    CLOUDTIK_TAG_NODE_SEQ_ID
 from cloudtik.core._private.cli_logger import cli_logger, cf
 from cloudtik.core._private.utils import check_cidr_conflict, is_use_internal_ip, _is_use_working_vpc, \
     is_use_working_vpc, is_use_peering_vpc, \
@@ -3419,9 +3421,111 @@ def _configure_disk_volume(
         provider_config, data_disk):
     # for data disk, set flag whether we need to auto delete
     if _is_permanent_data_volumes(provider_config):
+        data_disk["createOption"] = "attach"
         data_disk["deleteOption"] = "Detach"
     else:
+        data_disk["createOption"] = "empty"
         data_disk["deleteOption"] = "Delete"
+
+
+def _configure_disks_for_node(
+        provider_config, cluster_name,
+        node_config, tags,
+        template, template_params):
+    data_disk_resources = get_list_for_update(
+        template_params, "dataDiskResources")
+    if _is_permanent_data_volumes(provider_config):
+        # node name for disk is in the format of cloudtik-{cluster_name}-{seq_id}
+        seq_id = tags.get(CLOUDTIK_TAG_NODE_SEQ_ID) if tags else None
+        if not seq_id:
+            raise RuntimeError("No node sequence id assigned for using permanent data volumes.")
+        node_name_for_disk = "cloudtik-{}-node-{}".format(
+            cluster_name, seq_id)
+
+        # remove the name attribute template
+        remove_name_from_disk_template(template)
+
+        _configure_managed_disks(
+            template_params, data_disk_resources,
+            cluster_name, node_name_for_disk)
+    else:
+        # remove the id attribute from template
+        remove_id_from_disk_template(template)
+
+
+def _get_named_resource(resources, name_key, name):
+    for resource_template in resources:
+        if resource_template.get(name_key) == name:
+            return resource_template
+    return None
+
+
+def _get_data_disks_input_template(template):
+    resource_template = _get_named_resource(
+        template["resources"], "type", "Microsoft.Compute/virtualMachines")
+    if not resource_template:
+        return
+    data_disks = _get_named_resource(
+        resource_template["properties"]["storageProfile"]["copy"],
+        "name", "dataDisks")
+    if not data_disks:
+        return
+    return data_disks.get("input")
+
+
+def remove_name_from_disk_template(template):
+    data_disks_input = _get_data_disks_input_template(template)
+    if not data_disks_input:
+        return
+    data_disks_input.pop("name", None)
+
+
+def remove_id_from_disk_template(template):
+    data_disks_input = _get_data_disks_input_template(template)
+    if not data_disks_input:
+        return
+    managed_disk = data_disks_input.get("managedDisk")
+    if not managed_disk:
+        return
+    managed_disk.pop("id", None)
+
+
+def _configure_managed_disks(
+        template_params, data_disk_resources,
+        cluster_name, node_name):
+    data_disks = template_params.get("dataDisks", [])
+    data_disk_id = 0
+    for data_disk in data_disks:
+        data_disk_id += 1
+        _configure_managed_disk(
+            data_disk_resources, data_disk, data_disk_id,
+            cluster_name, node_name)
+
+
+def _configure_managed_disk(
+        data_disk_resources, data_disk, data_disk_id,
+        cluster_name, node_name):
+    disk_name = "{}-disk-{}".format(node_name, data_disk_id)
+    data_disk_resource = {
+        "name": disk_name,
+        "sku": data_disk["storageAccountType"],
+        "properties": {
+            "diskSizeGB": data_disk["diskSizeGB"],
+            "creationData": {
+                "createOption": "empty"
+            }
+        },
+        "tags": {
+            CLOUDTIK_TAG_CLUSTER_NAME: cluster_name
+        }
+    }
+    data_disk_resources.append(data_disk_resource)
+
+    data_disk["diskName"] = disk_name
+    # clear unnecessary fields
+    data_disk["id"] = None
+    data_disk["storageAccountType"] = None
+    data_disk["diskSizeGB"] = None
 
 
 def bootstrap_azure(config):

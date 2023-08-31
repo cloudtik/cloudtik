@@ -1,5 +1,4 @@
 import concurrent.futures
-import copy
 from typing import Any, Dict, List
 from functools import wraps
 from threading import RLock
@@ -11,11 +10,10 @@ import googleapiclient
 from cloudtik.core._private.cli_logger import cli_logger
 from cloudtik.core._private.utils import _is_permanent_data_volumes
 from cloudtik.core.node_provider import NodeProvider
-from cloudtik.core.tags import CLOUDTIK_TAG_NODE_SEQ_ID
 
 from cloudtik.providers._private.gcp.config import (
     verify_gcs_storage, bootstrap_gcp, post_prepare_gcp, with_gcp_environment_variables,
-    _configure_disk_name_for_volumes, cleanup_cluster_disks)
+    cleanup_cluster_disks, _configure_disks_for_node)
 
 # The logic has been abstracted away here to allow for different GCP resources
 # (API endpoints), which can differ widely, making it impossible to use
@@ -179,16 +177,9 @@ class GCPNodeProvider(NodeProvider):
             node_type = get_node_type(base_config)
             resource = self.resources[node_type]
 
-            if _is_permanent_data_volumes(self.provider_config):
-                # node name for disk is in the format of cloudtik-{cluster_name}-{seq_id}
-                seq_id = labels.get(CLOUDTIK_TAG_NODE_SEQ_ID) if labels else None
-                if not seq_id:
-                    raise RuntimeError("No node sequence id assigned for using permanent data volumes.")
-                node_name_for_disk = "cloudtik-{}-node-{}".format(
-                    self.cluster_name, seq_id)
-                base_config = copy.deepcopy(base_config)
-                base_config = _configure_disk_name_for_volumes(
-                    base_config, self.cluster_name, node_name_for_disk)
+            base_config = _configure_disks_for_node(
+                self.provider_config, self.cluster_name,
+                base_config, labels)
 
             resource.create_instances(base_config, labels, count)
 

@@ -21,7 +21,7 @@ from cloudtik.core.workspace_provider import Existence, CLOUDTIK_MANAGED_CLOUD_S
     CLOUDTIK_MANAGED_CLOUD_DATABASE_NAME
 
 from cloudtik.core.tags import CLOUDTIK_TAG_NODE_KIND, NODE_KIND_HEAD, CLOUDTIK_TAG_CLUSTER_NAME, \
-    CLOUDTIK_TAG_WORKSPACE_NAME
+    CLOUDTIK_TAG_WORKSPACE_NAME, CLOUDTIK_TAG_NODE_SEQ_ID
 from cloudtik.core._private.cli_logger import cli_logger, cf
 from cloudtik.core._private.services import get_node_ip_address
 from cloudtik.core._private.utils import check_cidr_conflict, unescape_private_key, is_use_internal_ip, \
@@ -2701,6 +2701,23 @@ def _configure_disk_volume(
     _configure_disk_type_for_disk(provider_config, disk)
 
 
+def _configure_disks_for_node(
+                provider_config, cluster_name,
+                base_config, labels):
+    if _is_permanent_data_volumes(provider_config):
+        # node name for disk is in the format of cloudtik-{cluster_name}-{seq_id}
+        seq_id = labels.get(CLOUDTIK_TAG_NODE_SEQ_ID) if labels else None
+        if not seq_id:
+            raise RuntimeError("No node sequence id assigned for using permanent data volumes.")
+        node_name_for_disk = "cloudtik-{}-node-{}".format(
+            cluster_name, seq_id)
+        base_config = copy.deepcopy(base_config)
+        base_config = _configure_disk_name_for_volumes(
+            base_config, cluster_name, node_name_for_disk)
+
+    return base_config
+
+
 def _configure_disk_name_for_volumes(
         node_config, cluster_name, node_name):
     disks = node_config.get("disks", [])
@@ -2710,12 +2727,12 @@ def _configure_disk_name_for_volumes(
         if boot:
             continue
         data_disk_id += 1
-        _configure_disk_name_for_volume(
+        _configure_disk_for_volume(
             disk, data_disk_id, cluster_name, node_name)
     return node_config
 
 
-def _configure_disk_name_for_volume(
+def _configure_disk_for_volume(
         disk, data_disk_id, cluster_name, node_name):
     initialize_params = get_config_for_update(disk, "initializeParams")
     disk_name = "{}-disk-{}".format(node_name, data_disk_id)

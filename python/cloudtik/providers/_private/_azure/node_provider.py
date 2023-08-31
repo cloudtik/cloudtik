@@ -19,7 +19,8 @@ from cloudtik.core.tags import CLOUDTIK_TAG_CLUSTER_NAME, CLOUDTIK_TAG_NODE_NAME
 from cloudtik.providers._private._azure.config import (AZURE_MSI_NAME,
                                                        verify_azure_cloud_storage, bootstrap_azure,
                                                        _extract_metadata_for_node, bootstrap_azure_for_api,
-                                                       post_prepare_azure, with_azure_environment_variables)
+                                                       post_prepare_azure, with_azure_environment_variables,
+                                                       _configure_disks_for_node)
 
 from cloudtik.providers._private._azure.utils import (_get_node_info, get_azure_sdk_function,
                                                       get_credential, get_azure_cloud_storage_config,
@@ -182,6 +183,11 @@ class AzureNodeProvider(NodeProvider):
         template_params["vmName"] = vm_name
         template_params["vmTags"] = config_tags
         template_params["vmCount"] = count
+
+        _configure_disks_for_node(
+            self.provider_config, self.cluster_name,
+            node_config, tags,
+            template, template_params)
 
         parameters = {
             "properties": {
