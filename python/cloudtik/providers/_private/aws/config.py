@@ -3696,10 +3696,27 @@ def create_volumes_for_node(
             new_volume = _create_volume(
                 ec2, cluster_name, availability_zone,
                 data_disk, node_name_for_volume, volume_name)
-            volumes_for_node[new_volume.id] = (new_volume, data_disk["DeviceName"], False)
+            volume_instance = {
+                "volume_name": volume_name,
+                "volume": new_volume,
+                "device_name": data_disk["DeviceName"],
+                "existing": False,
+            }
+            volumes_for_node[new_volume.id] = volume_instance
         else:
             # existing one
-            volumes_for_node[existing_volume.id] = (existing_volume, data_disk["DeviceName"], True)
+            added_existing_volume = volumes_for_node.get(existing_volume.id)
+            if added_existing_volume is not None:
+                existing = added_existing_volume["existing"]
+            else:
+                existing = True
+            volume_instance = {
+                "volume_name": volume_name,
+                "volume": existing_volume,
+                "device_name": data_disk["DeviceName"],
+                "existing": existing,
+            }
+            volumes_for_node[existing_volume.id] = volume_instance
 
     # since we attach separately the volumes
     # remove the block device mappings for data disks
@@ -3756,10 +3773,10 @@ def attach_volumes_for_node(
         raise RuntimeError("Invalid number of instances. Must be one instance.")
     instance_id = instance_ids[0]
 
-    for volume_id, volume_attach in volumes_for_node.items():
-        volume, device_name, _ = volume_attach
+    for volume_id, volume_instance in volumes_for_node.items():
+        volume = volume_instance["volume"]
         volume.attach_to_instance(
-            Device=device_name,
+            Device=volume_instance["device_name"],
             InstanceId=instance_id
         )
 
@@ -3769,13 +3786,22 @@ def rollback_volumes_for_node(
     if not volumes_for_node:
         return
 
-    for volume_id, volume_attach in volumes_for_node.items():
-        _, _, existing = volume_attach
+    volumes_deleted = set()
+    for volume_id, volume_instance in volumes_for_node.items():
+        existing = volume_instance["existing"]
         if existing:
             continue
-        volume = ec2.Volume(volume_id)
-        if volume.state == "available":
-            volume.delete()
+        try:
+            volume = ec2.Volume(volume_id)
+            if volume.state == "available":
+                volume.delete()
+                volumes_deleted.add(volume_id)
+        except Exception as e:
+            cli_logger.error("Failed to delete volume: {}", str(e))
+
+    # remove the deleted volumes from map
+    for volume_id in volumes_deleted:
+        del volumes_for_node[volume_id]
 
 
 def delete_cluster_volumes(provider_config, cluster_name):
