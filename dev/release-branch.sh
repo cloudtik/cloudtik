@@ -13,8 +13,11 @@ do
         shift
         CLOUDTIK_BRANCH=$1
         ;;
+    --revert)
+        DO_REVERT=YES
+        ;;
     *)
-        echo "Usage: release-branch.sh [ --branch main ]"
+        echo "Usage: release-branch.sh [ --branch main --revert]"
         exit 1
     esac
     shift
@@ -31,6 +34,13 @@ CLOUDTIK_VERSION=$(sed -n 's/__version__ = \"\(..*\)\"/\1/p' ./python/cloudtik/_
 RELEASE_BRANCH="branch-${CLOUDTIK_VERSION}"
 RELEASE_TAG="v${CLOUDTIK_VERSION}"
 
-git push origin ${CLOUDTIK_BRANCH}:${RELEASE_BRANCH}
-git tag -a ${RELEASE_TAG} -m "CloudTik ${CLOUDTIK_VERSION} Release"
-git push origin ${RELEASE_TAG}
+if [ $DO_REVERT ]; then
+    git push origin --delete ${RELEASE_BRANCH}
+    git push origin --delete ${RELEASE_TAG}
+    git branch -D ${RELEASE_BRANCH}
+    git tag -d ${RELEASE_TAG}
+else
+    git push origin ${CLOUDTIK_BRANCH}:${RELEASE_BRANCH}
+    git tag -a ${RELEASE_TAG} -m "CloudTik ${CLOUDTIK_VERSION} Release"
+    git push origin ${RELEASE_TAG}
+fi
