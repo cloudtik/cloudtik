@@ -13,7 +13,7 @@ import boto3
 import botocore
 
 from cloudtik.core.tags import CLOUDTIK_TAG_NODE_KIND, NODE_KIND_HEAD, CLOUDTIK_TAG_CLUSTER_NAME, \
-    CLOUDTIK_TAG_WORKSPACE_NAME, CLOUDTIK_TAG_NODE_SEQ_ID
+    CLOUDTIK_TAG_WORKSPACE_NAME, CLOUDTIK_TAG_NODE_SEQ_ID, CLOUDTIK_TAG_NODE_NAME
 from cloudtik.core._private.provider_factory import _PROVIDER_PRETTY_NAMES
 from cloudtik.core._private.cli_logger import cli_logger, cf
 from cloudtik.core._private.services import get_node_ip_address
@@ -3638,62 +3638,109 @@ def with_aws_environment_variables(
     return config_dict
 
 
+def _get_volume_name_of(volume):
+    tags = volume.tags
+    if not tags:
+        return None
+    for item in tags:
+        if item.get("Key") == "Name":
+            return item.get("Value")
+    return None
+
+
+def _map_by_volume_name(volume_list):
+    volume_map = {}
+    for volume in volume_list:
+        volume_name = _get_volume_name_of(volume)
+        if volume_name:
+            volume_map[volume_name] = volume
+    return volume_map
+
+
 def create_volumes_for_node(
         provider_config, ec2, cluster_name,
         node_config, tags, conf, volumes_for_node, availability_zone):
+    volume_availability_zone = None
     if not _is_permanent_data_volumes(provider_config):
-        return conf
+        return conf, volume_availability_zone
 
     # node name for disk is in the format of cloudtik-{cluster_name}-{seq_id}
     seq_id = tags.get(CLOUDTIK_TAG_NODE_SEQ_ID) if tags else None
     if not seq_id:
         raise RuntimeError("No node sequence id assigned for using permanent data volumes.")
-    node_name_for_disk = "cloudtik-{}-node-{}".format(
+    node_name_for_volume = "cloudtik-{}-node-{}".format(
         cluster_name, seq_id)
 
     data_disks = node_config.get("BlockDeviceMappings", [])
     # the first one is os boot
     if len(data_disks) <= 1:
-        return conf
+        return conf, volume_availability_zone
+
+    # query the existing volumes for this node
+    existing_volume_list = _get_volumes_of_node(
+        ec2, cluster_name, node_name_for_volume)
+    existing_volumes = _map_by_volume_name(existing_volume_list)
+    if existing_volumes:
+        # there are existing volumes, availability zone now fixed to it
+        volume_availability_zone = existing_volume_list[0].availability_zone
+        # new volume (if there is) will also need to be created in the same zone
+        availability_zone = volume_availability_zone
 
     data_disk_id = 0
     for data_disk in data_disks[1:]:
         data_disk_id += 1
-        volume = _create_volume(
-            ec2, cluster_name, availability_zone,
-            data_disk, data_disk_id, node_name_for_disk)
-        volumes_for_node[volume.id] = (data_disk["DeviceName"], volumes_for_node)
+        volume_name = "{}-disk-{}".format(node_name_for_volume, data_disk_id)
+        existing_volume = existing_volumes.get(volume_name)
+        if existing_volume is None:
+            # create a new volume
+            new_volume = _create_volume(
+                ec2, cluster_name, availability_zone,
+                data_disk, node_name_for_volume, volume_name)
+            volumes_for_node[new_volume.id] = (new_volume, data_disk["DeviceName"], False)
+        else:
+            # existing one
+            volumes_for_node[existing_volume.id] = (existing_volume, data_disk["DeviceName"], True)
 
     # since we attach separately the volumes
     # remove the block device mappings for data disks
     block_device_mappings = conf["BlockDeviceMappings"]
     conf["BlockDeviceMappings"] = [block_device_mappings[0]]
-    return conf
+    return conf, volume_availability_zone
 
 
 def _create_volume(
         ec2, cluster_name, availability_zone,
-        data_disk, data_disk_id, node_name):
-    disk_name = "{}-disk-{}".format(node_name, data_disk_id)
+        data_disk, node_name, volume_name):
+    ebs = data_disk["Ebs"]
+    volume_options = {}
+    if "Iops" in ebs:
+        volume_options["Iops"] = ebs["Iops"]
+    if "Throughput" in ebs:
+        volume_options["Throughput"] = ebs["Throughput"]
     volume = ec2.create_volume(
         AvailabilityZone=availability_zone,
-        Size=data_disk["Ebs"]["VolumeSize"],
-        VolumeType=data_disk["Ebs"]["VolumeType"],
+        Size=ebs["VolumeSize"],
+        VolumeType=ebs["VolumeType"],
         TagSpecifications=[
             {
                 'ResourceType': 'volume',
                 'Tags': [
                     {
                         'Key': 'Name',
-                        'Value': disk_name
+                        'Value': volume_name
                     },
                     {
                         'Key': CLOUDTIK_TAG_CLUSTER_NAME,
                         'Value': cluster_name
                     },
+                    {
+                        'Key': CLOUDTIK_TAG_NODE_NAME,
+                        'Value': node_name
+                    },
                 ]
             }
-        ]
+        ],
+        **volume_options,
     )
     return volume
 
@@ -3710,7 +3757,7 @@ def attach_volumes_for_node(
     instance_id = instance_ids[0]
 
     for volume_id, volume_attach in volumes_for_node.items():
-        volume, device_name = volume_attach
+        volume, device_name, _ = volume_attach
         volume.attach_to_instance(
             Device=device_name,
             InstanceId=instance_id
@@ -3722,7 +3769,10 @@ def rollback_volumes_for_node(
     if not volumes_for_node:
         return
 
-    for volume_id in volumes_for_node:
+    for volume_id, volume_attach in volumes_for_node.items():
+        _, _, existing = volume_attach
+        if existing:
+            continue
         volume = ec2.Volume(volume_id)
         if volume.state == "available":
             volume.delete()
@@ -3747,8 +3797,7 @@ def delete_cluster_volumes(provider_config, cluster_name):
         num_deleted_volumes = 0
         for i, volume in enumerate(volumes):
             volume_id = volume.id
-            # TODO: get a volume name
-            volume_name = None
+            volume_name = _get_volume_name_of(volume)
             if not volume_name:
                 volume_name = volume_id
             with cli_logger.group(
@@ -3769,6 +3818,11 @@ def delete_cluster_volumes(provider_config, cluster_name):
             "Successfully deleted {} volumes.", num_deleted_volumes)
 
 
+def _get_filtered_volumes(ec2, filters):
+    volumes = list(ec2.volumes.filter(Filters=filters))
+    return volumes
+
+
 def _get_cluster_volumes(
         ec2, cluster_name):
     filters = [
@@ -3777,5 +3831,19 @@ def _get_cluster_volumes(
             "Values": [cluster_name],
         },
     ]
-    volumes = list(ec2.volumes.filter(Filters=filters))
-    return volumes
+    return _get_filtered_volumes(ec2, filters)
+
+
+def _get_volumes_of_node(
+        ec2, cluster_name, node_name):
+    filters = [
+        {
+            "Name": "tag:{}".format(CLOUDTIK_TAG_CLUSTER_NAME),
+            "Values": [cluster_name],
+        },
+        {
+            "Name": "tag:{}".format(CLOUDTIK_TAG_NODE_NAME),
+            "Values": [node_name],
+        },
+    ]
+    return _get_filtered_volumes(ec2, filters)

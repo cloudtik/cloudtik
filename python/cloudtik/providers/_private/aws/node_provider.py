@@ -363,6 +363,7 @@ class AWSNodeProvider(NodeProvider):
 
         # provision volumes if needed (for the count will be 1 for this case)
         volumes_for_node = {}
+        volume_availability_zone = None
         subnet_zone_mapping = self.provider_config.get(
             "subnet_zone_mapping", {})
 
@@ -379,15 +380,25 @@ class AWSNodeProvider(NodeProvider):
                     cli_logger_tags["network_interfaces"] = str(net_ifs)
                     subnet_id = conf["SubnetId"]
                 else:
-                    subnet_id = subnet_ids[subnet_idx % len(subnet_ids)]
-                    conf["SubnetId"] = subnet_id
-                    cli_logger_tags["subnet_id"] = subnet_id
+                    if volume_availability_zone:
+                        subnet_id = self._get_subnet_of_zone(
+                            subnet_zone_mapping, volume_availability_zone)
+                    else:
+                        subnet_id = subnet_ids[subnet_idx % len(subnet_ids)]
+                        conf["SubnetId"] = subnet_id
+                        cli_logger_tags["subnet_id"] = subnet_id
 
                 # get availability_zone of the subnet
                 availability_zone = subnet_zone_mapping.get(subnet_id)
-                conf = create_volumes_for_node(
+                conf, volume_availability_zone = create_volumes_for_node(
                     self.provider_config, self.ec2, self.cluster_name,
                     node_config, tags, conf, volumes_for_node, availability_zone)
+                if volume_availability_zone:
+                    # update subnet id to the same zone of volume
+                    subnet_id = self._get_subnet_of_zone(
+                        subnet_zone_mapping, volume_availability_zone)
+                    conf["SubnetId"] = subnet_id
+                    cli_logger_tags["subnet_id"] = subnet_id
 
                 created = self.ec2_fail_fast.create_instances(**conf)
                 created_nodes_dict = {n.id: n for n in created}
@@ -427,37 +438,55 @@ class AWSNodeProvider(NodeProvider):
                 rollback_volumes_for_node(
                     self.ec2, volumes_for_node)
 
-                subnet_idx += 1
-                if attempt == max_tries:
-                    try:
-                        exc = NodeLaunchException(
-                            category=exc.response["Error"]["Code"],
-                            description=exc.response["Error"]["Message"],
-                            src_exc_info=sys.exc_info(),
-                        )
-                    except Exception:
-                        # In theory, all ClientError's we expect to get should
-                        # have these fields, but just in case we can't parse
-                        # it, it's fine, just throw the original error.
-                        logger.warning("Couldn't parse exception.", exc)
-                        pass
-                    cli_logger.abort(
-                        "Failed to launch instances. Max attempts exceeded.",
-                        exc=exc,
-                    )
-                else:
-                    cli_logger.warning(
-                        "Create instances attempt failed: {}. Retrying...",
-                        exc)
-
                 error_code = get_boto_error_code(exc)
-                if error_code and error_code == "InsufficientInstanceCapacity":
-                    # If failed with insufficient capacity, we request on-demand if it requested spot
-                    if "InstanceMarketOptions" in conf:
-                        cli_logger.warning("Retrying request for on-demand instance instead of spot.")
-                        conf.pop("InstanceMarketOptions")
+                if (error_code and
+                        error_code == "InsufficientInstanceCapacity" and
+                        "InstanceMarketOptions" in conf):
+                    # If failed with insufficient capacity, we retry once to request on-demand if it requested spot
+                    cli_logger.warning("Retrying request for on-demand instance instead of spot.")
+                    conf.pop("InstanceMarketOptions")
+                else:
+                    if volume_availability_zone:
+                        # there are existing volumes, cannot try another zone
+                        self._fail_node_creation(
+                            exc, "Will not retry other zones because existing volumes.")
+
+                    subnet_idx += 1
+                    if attempt == max_tries:
+                        self._fail_node_creation(exc, "Max attempts exceeded.")
+                    else:
+                        cli_logger.warning(
+                            "Create instances attempt failed: {}. Retrying...",
+                            exc)
 
         return created_nodes_dict
+
+    @staticmethod
+    def _get_subnet_of_zone(subnet_zone_mapping, availability_zone):
+        for subnet_id, zone in subnet_zone_mapping.items():
+            if availability_zone == zone:
+                return subnet_id
+        raise RuntimeError(
+            "Failed to get subnet id of availability zone: {}".format(availability_zone))
+
+    @staticmethod
+    def _fail_node_creation(exc, reason):
+        try:
+            exc = NodeLaunchException(
+                category=exc.response["Error"]["Code"],
+                description=exc.response["Error"]["Message"],
+                src_exc_info=sys.exc_info(),
+            )
+        except Exception:
+            # In theory, all ClientError's we expect to get should
+            # have these fields, but just in case we can't parse
+            # it, it's fine, just throw the original error.
+            logger.warning("Couldn't parse exception.", exc)
+            pass
+        cli_logger.abort(
+            "Failed to launch instances. " + reason,
+            exc=exc,
+        )
 
     def terminate_node(self, node_id):
         node = self._get_cached_node(node_id)
