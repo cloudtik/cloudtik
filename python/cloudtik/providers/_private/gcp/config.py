@@ -3215,7 +3215,7 @@ def with_gcp_environment_variables(
     return config_dict
 
 
-def cleanup_cluster_disks(provider_config, cluster_name):
+def delete_cluster_disks(provider_config, cluster_name):
     compute = construct_compute_client(provider_config)
     current_step = 1
     total_steps = 2

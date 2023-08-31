@@ -13,7 +13,7 @@ from cloudtik.core.node_provider import NodeProvider
 
 from cloudtik.providers._private.gcp.config import (
     verify_gcs_storage, bootstrap_gcp, post_prepare_gcp, with_gcp_environment_variables,
-    cleanup_cluster_disks, _configure_disks_for_node)
+    delete_cluster_disks, _configure_disks_for_node)
 
 # The logic has been abstracted away here to allow for different GCP resources
 # (API endpoints), which can differ widely, making it impossible to use
@@ -262,7 +262,7 @@ class GCPNodeProvider(NodeProvider):
         If deep flag is true, do a deep clean up all the resources
         """
         if deep and _is_permanent_data_volumes(self.provider_config):
-            cleanup_cluster_disks(self.provider_config, self.cluster_name)
+            delete_cluster_disks(self.provider_config, self.cluster_name)
 
     def get_default_cloud_storage(self):
         """Return the managed cloud storage if configured."""

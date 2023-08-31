@@ -249,6 +249,7 @@
                 "storageProfile": {
                     "osDisk": {
                         "createOption": "fromImage",
+                        "deleteOption": "Delete",
                         "managedDisk": {
                             "storageAccountType": "[parameters('osDiskType')]"
                         },
@@ -271,7 +272,7 @@
                                 "caching": "ReadOnly",
                                 "diskSizeGB": "[parameters('dataDisks')[copyIndex('dataDisks')].diskSizeGB]",
                                 "managedDisk": {
-                                    "id": "[coalesce(parameters('dataDisks')[copyIndex('dataDisks')].id, if(equals(parameters('dataDisks')[copyIndex('dataDisks')].name, json('null')), json('null'), resourceId('Microsoft.Compute/disks', parameters('dataDisks')[copyIndex('dataDisks')].diskName)))]",
+                                    "id": "[coalesce(parameters('dataDisks')[copyIndex('dataDisks')].id, if(equals(parameters('dataDisks')[copyIndex('dataDisks')].diskName, json('null')), json('null'), resourceId('Microsoft.Compute/disks', parameters('dataDisks')[copyIndex('dataDisks')].diskName)))]",
                                     "storageAccountType": "[parameters('dataDisks')[copyIndex('dataDisks')].storageAccountType]"
                                 },
                                 "deleteOption": "[parameters('dataDisks')[copyIndex('dataDisks')].deleteOption]",

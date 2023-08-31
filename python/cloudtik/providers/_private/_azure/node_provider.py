@@ -13,6 +13,7 @@ from azure.mgmt.resource.resources.models import DeploymentMode
 from azure.mgmt.msi import ManagedServiceIdentityClient
 
 from cloudtik.core._private.cli_logger import cli_logger
+from cloudtik.core._private.utils import _is_permanent_data_volumes
 from cloudtik.core.node_provider import NodeProvider
 from cloudtik.core.tags import CLOUDTIK_TAG_CLUSTER_NAME, CLOUDTIK_TAG_NODE_NAME
 
@@ -20,7 +21,7 @@ from cloudtik.providers._private._azure.config import (AZURE_MSI_NAME,
                                                        verify_azure_cloud_storage, bootstrap_azure,
                                                        _extract_metadata_for_node, bootstrap_azure_for_api,
                                                        post_prepare_azure, with_azure_environment_variables,
-                                                       _configure_disks_for_node)
+                                                       _configure_disks_for_node, delete_cluster_disks)
 
 from cloudtik.providers._private._azure.utils import (_get_node_info, get_azure_sdk_function,
                                                       get_credential, get_azure_cloud_storage_config,
@@ -242,12 +243,6 @@ class AzureNodeProvider(NodeProvider):
         #   resource_group_name=resource_group,
         #   vm_name=node_id)
 
-        # gather disks to delete later
-        vm = self.compute_client.virtual_machines.get(
-            resource_group_name=resource_group, vm_name=node_id)
-        disks = {d.name for d in vm.storage_profile.data_disks}
-        disks.add(vm.storage_profile.os_disk.name)
-
         try:
             # delete machine, must wait for this to complete
             delete = get_azure_sdk_function(
@@ -292,15 +287,6 @@ class AzureNodeProvider(NodeProvider):
                     else:
                         cli_logger.error("Failed to delete public ip address. {}", str(e))
 
-        # delete disks
-        for disk in disks:
-            try:
-                delete = get_azure_sdk_function(
-                    client=self.compute_client.disks, function_name="delete")
-                delete(resource_group_name=resource_group, disk_name=disk)
-            except Exception as e:
-                logger.warning("Failed to delete disk: {}".format(e))
-
     def _get_node(self, node_id):
         self._get_filtered_nodes({})  # Side effect: updates cache
         return self.cached_nodes[node_id]
@@ -322,6 +308,14 @@ class AzureNodeProvider(NodeProvider):
         clear_azure_credentials(remote_config["provider"])
 
         return remote_config
+
+    def cleanup_cluster(
+            self, cluster_config: Dict[str, Any], deep: bool = False):
+        """Cleanup the cluster by deleting additional resources other than the nodes.
+        If deep flag is true, do a deep clean up all the resources
+        """
+        if deep and _is_permanent_data_volumes(self.provider_config):
+            delete_cluster_disks(self.provider_config, self.cluster_name)
 
     def get_default_cloud_storage(self):
         """Return the managed cloud storage if configured."""

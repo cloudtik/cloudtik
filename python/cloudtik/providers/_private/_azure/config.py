@@ -49,7 +49,7 @@ from cloudtik.providers._private._azure.utils import _get_node_info, get_credent
     _construct_manage_server_identity_client, _construct_authorization_client, AZURE_DATABASE_ENDPOINT, \
     get_azure_database_config_for_update, _construct_rdbms_client, get_azure_database_config, \
     export_azure_cloud_database_config, _construct_network_client, _construct_private_dns_client, \
-    get_azure_database_engine, get_azure_database_default_port
+    get_azure_database_engine, get_azure_database_default_port, get_azure_sdk_function
 from cloudtik.providers._private.utils import StorageTestingError
 
 AZURE_RESOURCE_NAME_PREFIX = "cloudtik"
@@ -3827,3 +3827,60 @@ def with_azure_environment_variables(provider_config, node_type_config: Dict[str
             config_dict["AZURE_MANAGED_IDENTITY_TENANT_ID"] = user_assigned_identity_tenant_id
 
     return config_dict
+
+
+def delete_cluster_disks(provider_config, cluster_name):
+    subscription_id = provider_config["subscription_id"]
+    resource_group_name = provider_config["resource_group"]
+
+    credential = get_credential(provider_config)
+    compute_client = ComputeManagementClient(credential, subscription_id)
+
+    cli_logger.print("Getting disks for cluster: {}", cluster_name)
+
+    disks = _get_cluster_disks(
+        compute_client, resource_group_name, cluster_name)
+
+    num_disks = len(disks)
+    cli_logger.print(
+        "Got {} disks to delete.", num_disks)
+
+    if num_disks:
+        # delete the disks
+        cli_logger.print(
+            "Deleting {} disks...", num_disks)
+
+        for i, disk_name in enumerate(disks):
+            with cli_logger.group(
+                    "Deleting disk: {}",
+                    disk_name,
+                    _numbered=("()", i + 1, num_disks)):
+                try:
+                    delete = get_azure_sdk_function(
+                        client=compute_client.disks, function_name="delete")
+                    delete(resource_group_name=resource_group_name, disk_name=disk_name)
+                    cli_logger.print("Successfully deleted.")
+                except Exception as e:
+                    logger.warning("Failed to delete disk: {}".format(e))
+
+        cli_logger.print(
+            "Successfully deleted {} disks.", num_disks)
+
+
+def _get_cluster_disks(
+        compute_client, resource_group_name, cluster_name):
+    paged_disks = compute_client.disks.list_by_resource_group(
+        resource_group_name=resource_group_name)
+    if paged_disks is None:
+        return []
+
+    tag_filters = {CLOUDTIK_TAG_CLUSTER_NAME: cluster_name}
+
+    def match_tags(disk):
+        for k, v in tag_filters.items():
+            if disk.tags is None or disk.tags.get(k) != v:
+                return False
+        return True
+
+    cluster_disks = [disk for disk in filter(match_tags, paged_disks)]
+    return cluster_disks
