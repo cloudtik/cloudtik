@@ -3270,23 +3270,28 @@ def delete_cluster_zone_disks(
         cli_logger.print(
             "Deleting {} zone disks...", num_disks)
 
+        num_deleted_disks = 0
         for i, disk in enumerate(disks):
             disk_name = disk["name"]
             with cli_logger.group(
-                    "Deleting disk: {}",
+                    "Deleting zone disk: {}",
                     disk_name,
                     _numbered=("()", i + 1, num_disks)):
-                operation = compute.disks().delete(
-                    project=project_id,
-                    zone=availability_zone,
-                    disk=disk_name,
-                ).execute()
-                wait_for_compute_zone_operation(
-                    project_id, availability_zone, operation, compute)
-                cli_logger.print("Successfully deleted.")
+                try:
+                    operation = compute.disks().delete(
+                        project=project_id,
+                        zone=availability_zone,
+                        disk=disk_name,
+                    ).execute()
+                    wait_for_compute_zone_operation(
+                        project_id, availability_zone, operation, compute)
+                    num_deleted_disks += 1
+                    cli_logger.print("Successfully deleted.")
+                except Exception as e:
+                    cli_logger.error("Failed to delete zone disk: {}", str(e))
 
         cli_logger.print(
-            "Successfully deleted {} zone disks.", num_disks)
+            "Successfully deleted {} zone disks.", num_deleted_disks)
 
 
 def _get_cluster_zone_disks(
@@ -3336,23 +3341,28 @@ def delete_cluster_region_disks(
         cli_logger.print(
             "Deleting {} region disks...", num_disks)
 
+        num_deleted_disks = 0
         for i, disk in enumerate(disks):
             disk_name = disk["name"]
             with cli_logger.group(
                     "Deleting region disk: {}",
                     disk_name,
                     _numbered=("()", i + 1, num_disks)):
-                operation = compute.regionDisks().delete(
-                    project=project_id,
-                    region=region,
-                    disk=disk_name,
-                ).execute()
-                wait_for_compute_region_operation(
-                    project_id, region, operation, compute)
-                cli_logger.print("Successfully deleted.")
+                try:
+                    operation = compute.regionDisks().delete(
+                        project=project_id,
+                        region=region,
+                        disk=disk_name,
+                    ).execute()
+                    wait_for_compute_region_operation(
+                        project_id, region, operation, compute)
+                    num_deleted_disks += 1
+                    cli_logger.print("Successfully deleted.")
+                except Exception as e:
+                    cli_logger.error("Failed to delete region disk: {}", str(e))
 
         cli_logger.print(
-            "Successfully deleted {} region disks.", num_disks)
+            "Successfully deleted {} region disks.", num_deleted_disks)
 
 
 def _get_cluster_region_disks(

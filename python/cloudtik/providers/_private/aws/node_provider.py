@@ -8,6 +8,7 @@ from typing import Any, Dict, List
 
 import botocore
 
+from cloudtik.core._private.utils import _is_permanent_data_volumes
 from cloudtik.core.node_provider import NodeProvider, NodeLaunchException
 from cloudtik.core.tags import CLOUDTIK_TAG_CLUSTER_NAME, CLOUDTIK_TAG_NODE_NAME, \
     CLOUDTIK_TAG_LAUNCH_CONFIG, CLOUDTIK_TAG_NODE_KIND, CLOUDTIK_TAG_USER_NODE_TYPE
@@ -16,7 +17,7 @@ from cloudtik.core._private.log_timer import LogTimer
 from cloudtik.core._private.cli_logger import cli_logger, cf
 
 from cloudtik.providers._private.aws.config import verify_s3_storage, bootstrap_aws, post_prepare_aws, \
-    with_aws_environment_variables
+    with_aws_environment_variables, delete_cluster_disks
 from cloudtik.providers._private.aws.utils import boto_exception_handler, \
     get_boto_error_code, BOTO_MAX_RETRIES, BOTO_CREATE_MAX_RETRIES, \
     _get_node_info, make_ec2_resource, get_aws_s3_storage_config, get_default_aws_cloud_storage, \
@@ -545,6 +546,14 @@ class AWSNodeProvider(NodeProvider):
         # remove the client credentials from config
         clear_aws_credentials(remote_config["provider"])
         return remote_config
+
+    def cleanup_cluster(
+            self, cluster_config: Dict[str, Any], deep: bool = False):
+        """Cleanup the cluster by deleting additional resources other than the nodes.
+        If deep flag is true, do a deep clean up all the resources
+        """
+        if deep and _is_permanent_data_volumes(self.provider_config):
+            delete_cluster_disks(self.provider_config, self.cluster_name)
 
     def get_default_cloud_storage(self):
         """Return the managed cloud storage if configured."""

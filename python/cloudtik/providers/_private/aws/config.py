@@ -3621,8 +3621,62 @@ def verify_s3_storage(provider_config: Dict[str, Any]):
                                   "Error: {}.".format(e.message)) from None
 
 
-def with_aws_environment_variables(provider_config, node_type_config: Dict[str, Any], node_id: str):
+def with_aws_environment_variables(
+        provider_config, node_type_config: Dict[str, Any], node_id: str):
     config_dict = {}
     export_aws_s3_storage_config(provider_config, config_dict)
     export_aws_database_config(provider_config, config_dict)
     return config_dict
+
+
+def delete_cluster_disks(provider_config, cluster_name):
+    ec2 = _make_resource("ec2", provider_config)
+
+    cli_logger.print("Getting volumes for cluster: {}", cluster_name)
+    disks = _get_cluster_disks(
+        ec2, cluster_name)
+
+    num_disks = len(disks)
+    cli_logger.print(
+        "Got {} volumes to delete.", num_disks)
+
+    if num_disks:
+        # delete the disks
+        cli_logger.print(
+            "Deleting {} volumes...", num_disks)
+
+        num_deleted_disks = 0
+        for i, volume in enumerate(disks):
+            volume_id = volume.id
+            # TODO: get a volume name
+            volume_name = None
+            if not volume_name:
+                volume_name = volume_id
+            with cli_logger.group(
+                    "Deleting volume: {}",
+                    volume_name,
+                    _numbered=("()", i + 1, num_disks)):
+                try:
+                    if volume.state == "available":
+                        volume.delete()
+                        num_deleted_disks += 1
+                        cli_logger.print("Successfully deleted.")
+                    else:
+                        cli_logger.print("Can't delete volume attached to EC2 instance. Skip deletion.")
+                except Exception as e:
+                    cli_logger.error("Failed to delete volume: {}", str(e))
+
+        cli_logger.print(
+            "Successfully deleted {} volumes.", num_deleted_disks)
+
+
+def _get_cluster_disks(
+        ec2, cluster_name):
+    filters = [
+        {
+            "Name": "tag:{}".format(CLOUDTIK_TAG_CLUSTER_NAME),
+            "Values": [cluster_name],
+        },
+    ]
+    volumes = list(ec2.volumes.filter(Filters=filters))
+    return volumes

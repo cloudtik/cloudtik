@@ -3850,7 +3850,9 @@ def delete_cluster_disks(provider_config, cluster_name):
         cli_logger.print(
             "Deleting {} disks...", num_disks)
 
-        for i, disk_name in enumerate(disks):
+        num_deleted_disks = 0
+        for i, disk in enumerate(disks):
+            disk_name = disk.name
             with cli_logger.group(
                     "Deleting disk: {}",
                     disk_name,
@@ -3859,12 +3861,13 @@ def delete_cluster_disks(provider_config, cluster_name):
                     delete = get_azure_sdk_function(
                         client=compute_client.disks, function_name="delete")
                     delete(resource_group_name=resource_group_name, disk_name=disk_name)
+                    num_deleted_disks += 1
                     cli_logger.print("Successfully deleted.")
                 except Exception as e:
-                    logger.warning("Failed to delete disk: {}".format(e))
+                    cli_logger.error("Failed to delete disk: {}", str(e))
 
         cli_logger.print(
-            "Successfully deleted {} disks.", num_disks)
+            "Successfully deleted {} disks.", num_deleted_disks)
 
 
 def _get_cluster_disks(
