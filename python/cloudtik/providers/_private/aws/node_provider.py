@@ -17,7 +17,8 @@ from cloudtik.core._private.log_timer import LogTimer
 from cloudtik.core._private.cli_logger import cli_logger, cf
 
 from cloudtik.providers._private.aws.config import verify_s3_storage, bootstrap_aws, post_prepare_aws, \
-    with_aws_environment_variables, delete_cluster_disks
+    with_aws_environment_variables, delete_cluster_volumes, create_volumes_for_node, attach_volumes_for_node, \
+    rollback_volumes_for_node
 from cloudtik.providers._private.aws.utils import boto_exception_handler, \
     get_boto_error_code, BOTO_MAX_RETRIES, BOTO_CREATE_MAX_RETRIES, \
     _get_node_info, make_ec2_resource, get_aws_s3_storage_config, get_default_aws_cloud_storage, \
@@ -359,6 +360,12 @@ class AWSNodeProvider(NodeProvider):
         # Try to always launch in the first listed subnet.
         subnet_idx = 0
         cli_logger_tags = {}
+
+        # provision volumes if needed (for the count will be 1 for this case)
+        volumes_for_node = {}
+        subnet_zone_mapping = self.provider_config.get(
+            "subnet_zone_mapping", {})
+
         # NOTE: This ensures that we try ALL availability zones before
         # throwing an error.
         max_tries = max(BOTO_CREATE_MAX_RETRIES, len(subnet_ids))
@@ -370,13 +377,24 @@ class AWSNodeProvider(NodeProvider):
                     # interfaces (create_instances call fails otherwise)
                     conf.pop("SecurityGroupIds", None)
                     cli_logger_tags["network_interfaces"] = str(net_ifs)
+                    subnet_id = conf["SubnetId"]
                 else:
                     subnet_id = subnet_ids[subnet_idx % len(subnet_ids)]
                     conf["SubnetId"] = subnet_id
                     cli_logger_tags["subnet_id"] = subnet_id
 
+                # get availability_zone of the subnet
+                availability_zone = subnet_zone_mapping.get(subnet_id)
+                conf = create_volumes_for_node(
+                    self.provider_config, self.ec2, self.cluster_name,
+                    node_config, tags, conf, volumes_for_node, availability_zone)
+
                 created = self.ec2_fail_fast.create_instances(**conf)
                 created_nodes_dict = {n.id: n for n in created}
+
+                # attach volumes if needed
+                attach_volumes_for_node(
+                    self.ec2, created, volumes_for_node)
 
                 # todo: timed?
                 # todo: handle plurality?
@@ -405,6 +423,10 @@ class AWSNodeProvider(NodeProvider):
             except botocore.exceptions.ClientError as exc:
                 # Launch failure may be due to instance type availability in
                 # the given AZ
+                # because the volume is availability zone bounded, try another zone need new volumes
+                rollback_volumes_for_node(
+                    self.ec2, volumes_for_node)
+
                 subnet_idx += 1
                 if attempt == max_tries:
                     try:
@@ -553,7 +575,7 @@ class AWSNodeProvider(NodeProvider):
         If deep flag is true, do a deep clean up all the resources
         """
         if deep and _is_permanent_data_volumes(self.provider_config):
-            delete_cluster_disks(self.provider_config, self.cluster_name)
+            delete_cluster_volumes(self.provider_config, self.cluster_name)
 
     def get_default_cloud_storage(self):
         """Return the managed cloud storage if configured."""
