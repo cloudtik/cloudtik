@@ -181,6 +181,11 @@
                     "type": ["string", "null"],
                     "description": "GCP globally unique project id"
                 },
+                "default_region_disks": {
+                    "type": "boolean",
+                    "description": "GCP default to use region disk volumes if not specified.",
+                    "default": false
+                },
                 "location": {
                     "type": "string",
                     "description": "Azure location"

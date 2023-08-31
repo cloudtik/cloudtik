@@ -2661,7 +2661,7 @@ def fill_available_node_types_resources(
     return cluster_config
 
 
-def _configure_disk_type_for_disk(zone, disk):
+def _configure_disk_type_for_disk(provider_config, disk):
     # fix disk type for all disks
     initialize_params = disk.get("initializeParams")
     if initialize_params is None:
@@ -2671,13 +2671,20 @@ def _configure_disk_type_for_disk(zone, disk):
     if disk_type is None or "diskTypes" in disk_type:
         return
 
-    # Fix to format: zones/zone/diskTypes/diskType
-    fix_disk_type = "zones/{}/diskTypes/{}".format(zone, disk_type)
+    default_region_disks = provider_config.get("default_region_disks")
+    if default_region_disks or "replicaZones" in disk:
+        region = provider_config["region"]
+        # Fix to format: regions/region/diskTypes/diskType
+        fix_disk_type = "regions/{}/diskTypes/{}".format(region, disk_type)
+    else:
+        zone = provider_config["availability_zone"]
+        # Fix to format: zones/zone/diskTypes/diskType
+        fix_disk_type = "zones/{}/diskTypes/{}".format(zone, disk_type)
     initialize_params["diskType"] = fix_disk_type
 
 
 def _configure_disk_volume(
-        provider_config, zone, disk, boot, source_image):
+        provider_config, disk, boot, source_image):
     if boot:
         # Need to fix source image for only boot disk
         if "initializeParams" not in disk:
@@ -2691,7 +2698,7 @@ def _configure_disk_volume(
         else:
             disk["autoDelete"] = True
 
-    _configure_disk_type_for_disk(zone, disk)
+    _configure_disk_type_for_disk(provider_config, disk)
 
 
 def _configure_disk_name_for_volumes(
@@ -2720,13 +2727,13 @@ def _configure_disk_name_for_volume(
 
 
 def _configure_disk_volumes_for_node(
-        provider_config, node_config, zone):
+        provider_config, node_config):
     source_image = node_config.get("sourceImage", None)
     disks = node_config.get("disks", [])
     for disk in disks:
         boot = disk.get("boot", False)
         _configure_disk_volume(
-            provider_config, zone, disk, boot, source_image)
+            provider_config, disk, boot, source_image)
 
     # Remove the sourceImage from node config
     node_config.pop("sourceImage", None)
@@ -2734,11 +2741,10 @@ def _configure_disk_volumes_for_node(
 
 def _configure_disk_volumes(config):
     provider_config = config["provider"]
-    zone = provider_config["availability_zone"]
     for node_type in config["available_node_types"].values():
         node_config = node_type["node_config"]
         _configure_disk_volumes_for_node(
-            provider_config, node_config, zone)
+            provider_config, node_config)
 
     return config
 
@@ -3194,16 +3200,36 @@ def with_gcp_environment_variables(
 
 def cleanup_cluster_disks(provider_config, cluster_name):
     compute = construct_compute_client(provider_config)
+    current_step = 1
+    total_steps = 2
+
+    with cli_logger.group(
+            "Deleting zone disks",
+            _numbered=("()", current_step, total_steps)):
+        current_step += 1
+        delete_cluster_zone_disks(
+            provider_config, cluster_name, compute)
+
+    with cli_logger.group(
+            "Deleting region disks",
+            _numbered=("()", current_step, total_steps)):
+        current_step += 1
+        delete_cluster_region_disks(
+            provider_config, cluster_name, compute)
+
+
+def delete_cluster_zone_disks(
+        provider_config, cluster_name, compute):
     project_id = provider_config["project_id"]
     availability_zone = provider_config.get("availability_zone")
 
-    cli_logger.print("Getting disks for cluster: {}", cluster_name)
+    cli_logger.print("Getting zone disks for cluster: {}", cluster_name)
 
     filter_expr = '(labels.{key} = {value})'.format(
         key=CLOUDTIK_TAG_CLUSTER_NAME, value=cluster_name)
 
     disks = []
-    paged_disks = _get_cluster_disks(
+    paged_disks = _get_cluster_zone_disks(
         compute, project_id, availability_zone,
         filter_expr)
 
@@ -3211,7 +3237,7 @@ def cleanup_cluster_disks(provider_config, cluster_name):
     next_page_token = paged_disks.get("nextPageToken", None)
 
     while next_page_token is not None:
-        paged_disks = _get_cluster_disks(
+        paged_disks = _get_cluster_zone_disks(
             compute, project_id, availability_zone,
             filter_expr, next_page_token=None)
 
@@ -3220,12 +3246,12 @@ def cleanup_cluster_disks(provider_config, cluster_name):
 
     num_disks = len(disks)
     cli_logger.print(
-        "Got {} disks to delete.", num_disks)
+        "Got {} zone disks to delete.", num_disks)
 
     if num_disks:
         # delete the disks
         cli_logger.print(
-            "Deleting {} disks...", num_disks)
+            "Deleting {} zone disks...", num_disks)
 
         for i, disk in enumerate(disks):
             disk_name = disk["name"]
@@ -3243,15 +3269,81 @@ def cleanup_cluster_disks(provider_config, cluster_name):
                 cli_logger.print("Successfully deleted.")
 
         cli_logger.print(
-            "Successfully deleted {} disks.", num_disks)
+            "Successfully deleted {} zone disks.", num_disks)
 
 
-def _get_cluster_disks(
+def _get_cluster_zone_disks(
         compute, project_id, availability_zone,
         filter_expr, next_page_token=None):
     response = compute.disks().list(
         project=project_id,
         zone=availability_zone,
+        filter=filter_expr,
+        pageToken=next_page_token
+    ).execute()
+    return response
+
+
+def delete_cluster_region_disks(
+        provider_config, cluster_name, compute):
+    project_id = provider_config["project_id"]
+    region = provider_config["region"]
+
+    cli_logger.print("Getting region disks for cluster: {}", cluster_name)
+
+    filter_expr = '(labels.{key} = {value})'.format(
+        key=CLOUDTIK_TAG_CLUSTER_NAME, value=cluster_name)
+
+    disks = []
+    paged_disks = _get_cluster_region_disks(
+        compute, project_id, region,
+        filter_expr)
+
+    disks.extend(paged_disks.get("items", []))
+    next_page_token = paged_disks.get("nextPageToken", None)
+
+    while next_page_token is not None:
+        paged_disks = _get_cluster_region_disks(
+            compute, project_id, region,
+            filter_expr, next_page_token=None)
+
+        disks.extend(paged_disks.get("items", []))
+        next_page_token = paged_disks.get("nextPageToken", None)
+
+    num_disks = len(disks)
+    cli_logger.print(
+        "Got {} region disks to delete.", num_disks)
+
+    if num_disks:
+        # delete the disks
+        cli_logger.print(
+            "Deleting {} region disks...", num_disks)
+
+        for i, disk in enumerate(disks):
+            disk_name = disk["name"]
+            with cli_logger.group(
+                    "Deleting region disk: {}",
+                    disk_name,
+                    _numbered=("()", i + 1, num_disks)):
+                operation = compute.regionDisks().delete(
+                    project=project_id,
+                    region=region,
+                    disk=disk_name,
+                ).execute()
+                wait_for_compute_region_operation(
+                    project_id, region, operation, compute)
+                cli_logger.print("Successfully deleted.")
+
+        cli_logger.print(
+            "Successfully deleted {} region disks.", num_disks)
+
+
+def _get_cluster_region_disks(
+        compute, project_id, region,
+        filter_expr, next_page_token=None):
+    response = compute.regionDisks().list(
+        project=project_id,
+        region=region,
         filter=filter_expr,
         pageToken=next_page_token
     ).execute()
