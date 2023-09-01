@@ -455,7 +455,7 @@ class AWSNodeProvider(NodeProvider):
                             "Create instances attempt failed: {}. Retrying...",
                             exc)
 
-        self.attach_node_volumes(
+        self._attach_node_volumes(
             created_nodes_dict, volumes_for_node)
         return created_nodes_dict
 
@@ -467,7 +467,8 @@ class AWSNodeProvider(NodeProvider):
                 self.ec2, created_nodes, volumes_for_node)
         except botocore.exceptions.ClientError as exc:
             # do clean up
-            for node_id, node in created_nodes.items():
+            nodes_to_terminate = list(created_nodes.items())
+            for node_id, node in nodes_to_terminate:
                 try:
                     # terminate the node
                     node.terminate()

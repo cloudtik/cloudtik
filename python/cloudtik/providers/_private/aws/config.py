@@ -3758,7 +3758,7 @@ def _create_volumes(
 
     # wait all volumes to be in available here to fail early if there is problem
     _wait_volumes_available(
-        ec2.meta.client, volumes_for_node.keys())
+        ec2.meta.client, list(volumes_for_node.keys()))
 
 
 def _create_volume(
@@ -3816,7 +3816,7 @@ def attach_volumes_for_node(
 
     # make sure again the volumes are available
     _wait_volumes_available(
-        ec2_client, volumes_for_node.keys())
+        ec2_client, list(volumes_for_node.keys()))
 
     for volume_id, volume_instance in volumes_for_node.items():
         volume = volume_instance["volume"]
