@@ -382,7 +382,7 @@ class AWSNodeProvider(NodeProvider):
                 else:
                     if volume_availability_zone:
                         subnet_id = self._get_subnet_of_zone(
-                            subnet_zone_mapping, volume_availability_zone)
+                            subnet_zone_mapping, subnet_ids, volume_availability_zone)
                     else:
                         subnet_id = subnet_ids[subnet_idx % len(subnet_ids)]
                         conf["SubnetId"] = subnet_id
@@ -396,16 +396,12 @@ class AWSNodeProvider(NodeProvider):
                 if volume_availability_zone:
                     # update subnet id to the same zone of volume
                     subnet_id = self._get_subnet_of_zone(
-                        subnet_zone_mapping, volume_availability_zone)
+                        subnet_zone_mapping, subnet_ids, volume_availability_zone)
                     conf["SubnetId"] = subnet_id
                     cli_logger_tags["subnet_id"] = subnet_id
 
                 created = self.ec2_fail_fast.create_instances(**conf)
                 created_nodes_dict = {n.id: n for n in created}
-
-                # attach volumes if needed
-                attach_volumes_for_node(
-                    self.ec2, created, volumes_for_node)
 
                 # todo: timed?
                 # todo: handle plurality?
@@ -459,12 +455,42 @@ class AWSNodeProvider(NodeProvider):
                             "Create instances attempt failed: {}. Retrying...",
                             exc)
 
+        self.attach_node_volumes(
+            created_nodes_dict, volumes_for_node)
         return created_nodes_dict
 
+    def _attach_node_volumes(
+            self, created_nodes, volumes_for_node):
+        try:
+            # attach volumes if needed ( if attach failed, terminate it the node)
+            attach_volumes_for_node(
+                self.ec2, created_nodes, volumes_for_node)
+        except botocore.exceptions.ClientError as exc:
+            # do clean up
+            for node_id, node in created_nodes.items():
+                try:
+                    # terminate the node
+                    node.terminate()
+                    created_nodes.pop(node_id, None)
+                except Exception as e:
+                    logger.warning(
+                        "Error terminating node after node creation failure: {}".format(
+                            str(e)))
+            try:
+                # clean up new created volumes
+                rollback_volumes_for_node(
+                    self.ec2, volumes_for_node)
+            except Exception as e:
+                logger.warning(
+                    "Error cleaning up the volumes after node creation failure: {}".format(
+                        str(e)))
+
+            self._fail_node_creation(exc, "Error attaching volumes.")
+
     @staticmethod
-    def _get_subnet_of_zone(subnet_zone_mapping, availability_zone):
+    def _get_subnet_of_zone(subnet_zone_mapping, subnet_ids, availability_zone):
         for subnet_id, zone in subnet_zone_mapping.items():
-            if availability_zone == zone:
+            if availability_zone == zone and subnet_id in subnet_ids:
                 return subnet_id
         raise RuntimeError(
             "Failed to get subnet id of availability zone: {}".format(availability_zone))

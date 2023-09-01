@@ -3657,6 +3657,28 @@ def _map_by_volume_name(volume_list):
     return volume_map
 
 
+def _wait_volumes_available(ec2_client, volume_ids):
+    waiter = ec2_client.get_waiter('volume_available')
+    waiter.wait(
+        VolumeIds=volume_ids,
+        WaiterConfig={
+            'Delay': 1,
+            'MaxAttempts': 120
+        }
+    )
+
+
+def _wait_instances_running(ec2_client, instance_ids):
+    waiter = ec2_client.get_waiter('instance_running')
+    waiter.wait(
+        InstanceIds=instance_ids,
+        WaiterConfig={
+            'Delay': 1,
+            'MaxAttempts': 120
+        }
+    )
+
+
 def create_volumes_for_node(
         provider_config, ec2, cluster_name,
         node_config, tags, conf, volumes_for_node, availability_zone):
@@ -3686,8 +3708,24 @@ def create_volumes_for_node(
         # new volume (if there is) will also need to be created in the same zone
         availability_zone = volume_availability_zone
 
+    _create_volumes(
+        ec2, cluster_name,
+        volumes_for_node, availability_zone,
+        data_disks[1:], existing_volumes, node_name_for_volume)
+
+    # since we attach separately the volumes
+    # remove the block device mappings for data disks
+    block_device_mappings = conf["BlockDeviceMappings"]
+    conf["BlockDeviceMappings"] = [block_device_mappings[0]]
+    return conf, volume_availability_zone
+
+
+def _create_volumes(
+        ec2, cluster_name,
+        volumes_for_node, availability_zone,
+        data_disks, existing_volumes, node_name_for_volume):
     data_disk_id = 0
-    for data_disk in data_disks[1:]:
+    for data_disk in data_disks:
         data_disk_id += 1
         volume_name = "{}-disk-{}".format(node_name_for_volume, data_disk_id)
         existing_volume = existing_volumes.get(volume_name)
@@ -3718,11 +3756,9 @@ def create_volumes_for_node(
             }
             volumes_for_node[existing_volume.id] = volume_instance
 
-    # since we attach separately the volumes
-    # remove the block device mappings for data disks
-    block_device_mappings = conf["BlockDeviceMappings"]
-    conf["BlockDeviceMappings"] = [block_device_mappings[0]]
-    return conf, volume_availability_zone
+    # wait all volumes to be in available here to fail early if there is problem
+    _wait_volumes_available(
+        ec2.meta.client, volumes_for_node.keys())
 
 
 def _create_volume(
@@ -3766,12 +3802,21 @@ def attach_volumes_for_node(
         ec2, created, volumes_for_node):
     if not volumes_for_node:
         return
-    instance_ids = [n.id for n in created]
+    instance_ids = [node_id for node_id in created]
     if not instance_ids:
         return
     if len(instance_ids) != 1:
         raise RuntimeError("Invalid number of instances. Must be one instance.")
     instance_id = instance_ids[0]
+    ec2_client = ec2.meta.client
+
+    # we need to wait for the instance to be the running state
+    _wait_instances_running(
+        ec2_client, instance_ids)
+
+    # make sure again the volumes are available
+    _wait_volumes_available(
+        ec2_client, volumes_for_node.keys())
 
     for volume_id, volume_instance in volumes_for_node.items():
         volume = volume_instance["volume"]
@@ -3792,16 +3837,23 @@ def rollback_volumes_for_node(
         if existing:
             continue
         try:
-            volume = ec2.Volume(volume_id)
-            if volume.state == "available":
-                volume.delete()
-                volumes_deleted.add(volume_id)
+            _delete_volume(ec2, volume_id)
+            volumes_deleted.add(volume_id)
         except Exception as e:
             cli_logger.error("Failed to delete volume: {}", str(e))
 
     # remove the deleted volumes from map
     for volume_id in volumes_deleted:
         del volumes_for_node[volume_id]
+
+
+def _delete_volume(ec2, volume_id):
+    ec2_client = ec2.meta.client
+    volume = ec2.Volume(volume_id)
+    if volume.state != "available":
+        # wait for its available
+        _wait_volumes_available(ec2_client, [volume_id])
+    ec2_client.delete_volume(VolumeId=volume_id)
 
 
 def delete_cluster_volumes(provider_config, cluster_name):
@@ -3831,12 +3883,9 @@ def delete_cluster_volumes(provider_config, cluster_name):
                     volume_name,
                     _numbered=("()", i + 1, num_volumes)):
                 try:
-                    if volume.state == "available":
-                        volume.delete()
-                        num_deleted_volumes += 1
-                        cli_logger.print("Successfully deleted.")
-                    else:
-                        cli_logger.print("Can't delete volume attached to EC2 instance. Skip deletion.")
+                    _delete_volume(ec2, volume_id)
+                    num_deleted_volumes += 1
+                    cli_logger.print("Successfully deleted.")
                 except Exception as e:
                     cli_logger.error("Failed to delete volume: {}", str(e))
 
