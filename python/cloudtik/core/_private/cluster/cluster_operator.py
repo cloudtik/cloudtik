@@ -69,7 +69,8 @@ from cloudtik.core._private.utils import hash_runtime_conf, \
     sum_nodes_resource, get_gpus_of_node_info, get_resource_of_node_info, get_resource_info_of_node_type, \
     get_worker_node_type, save_server_process, get_resource_requests_for, _get_head_resource_requests, \
     get_resource_list_str, with_verbose_option, run_script, NODE_INFO_NODE_ID, is_alive_time_at, \
-    get_runtime_encryption_key, with_runtime_encryption_key, set_runtime_encryption_key
+    get_runtime_encryption_key, with_runtime_encryption_key, set_runtime_encryption_key, is_use_managed_cloud_storage, \
+    print_dict_info, is_use_managed_cloud_database
 
 from cloudtik.core._private.provider_factory import _get_node_provider, _NODE_PROVIDERS
 from cloudtik.core.tags import (
@@ -2068,6 +2069,26 @@ def _show_cluster_info(config: Dict[str, Any],
     cli_logger.print(
         cf.bold("The total worker memory: {}."),
         memory_to_gb_string(cluster_info["total-worker-memory"]))
+
+    if is_use_managed_cloud_storage(config):
+        # show default managed cloud storage information
+        cli_logger.newline()
+        default_cloud_storage = cluster_info.get("default-cloud-storage")
+        if not default_cloud_storage:
+            cli_logger.print(cf.bold("No cluster default cloud storage configured."))
+        else:
+            with cli_logger.group("Cluster default cloud storage:"):
+                print_dict_info(default_cloud_storage)
+
+    if is_use_managed_cloud_database(config):
+        # show default managed cloud database information
+        cli_logger.newline()
+        default_cloud_database = cluster_info.get("default-cloud-database")
+        if not default_cloud_database:
+            cli_logger.print(cf.bold("No cluster default cloud database configured."))
+        else:
+            with cli_logger.group("Cluster default cloud database:"):
+                print_dict_info(default_cloud_database)
 
     head_node = cluster_info["head-id"]
     show_useful_commands(call_context=cli_call_context(),

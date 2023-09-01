@@ -510,7 +510,7 @@ def get_default_gcp_cloud_database(provider_config):
 
     cloud_database_info = {}
     cloud_database_info.update(cloud_database)
-    cloud_database_info.pop("password")
+    cloud_database_info.pop("password", None)
     return cloud_database_info
 
 

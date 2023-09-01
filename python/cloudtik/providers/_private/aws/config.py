@@ -2099,6 +2099,8 @@ def _create_db_subnet_group(
             DBSubnetGroupDescription='CloudTik workspace DB subnet group',
             SubnetIds=subnet_ids
         )
+        cli_logger.print(
+            "Successfully created DB subnet group.")
     except Exception as e:
         cli_logger.error("Failed to create DB subnet group. {}", str(e))
         raise e
@@ -2194,7 +2196,7 @@ def _create_managed_database_instance(
         {'Key': CLOUDTIK_TAG_WORKSPACE_NAME, 'Value': workspace_name}
     ]
 
-    cli_logger.print("Creating database instance in the workspace: {}...".format(workspace_name))
+    cli_logger.print("Creating database instance in the workspace: {}...".format(db_instance_name))
     # Port: If not specified RDS for MySQL - 3306, RDS for PostgreSQL - 5432
     # Engine Version: MySQL 8.0, PostgreSQL (14 or 16 any time soon)
     try:
@@ -2216,6 +2218,8 @@ def _create_managed_database_instance(
             Tags=tags
         )
         wait_db_instance_creation(rds_client, db_instance_name)
+        cli_logger.print(
+            "Successfully created database instance.")
     except Exception as e:
         cli_logger.error("Failed to create database instance. {}", str(e))
         raise e
