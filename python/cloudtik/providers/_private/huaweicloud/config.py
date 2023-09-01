@@ -61,7 +61,7 @@ from cloudtik.core._private.utils import check_cidr_conflict, \
     is_peering_firewall_allow_working_subnet, is_use_internal_ip, \
     is_use_managed_cloud_storage, \
     is_use_peering_vpc, \
-    is_use_working_vpc, is_worker_role_for_cloud_storage
+    is_use_working_vpc, is_worker_role_for_cloud_storage, _get_managed_cloud_storage_name
 from cloudtik.core.tags import CLOUDTIK_TAG_CLUSTER_NAME, \
     CLOUDTIK_TAG_NODE_KIND, NODE_KIND_HEAD, CLOUDTIK_TAG_WORKSPACE_NAME
 from cloudtik.core.workspace_provider import \
@@ -1812,15 +1812,18 @@ def _check_key_pair_exist(ecs_client, key_name):
 def _configure_cloud_storage_from_workspace(config):
     use_managed_cloud_storage = is_use_managed_cloud_storage(config)
     if use_managed_cloud_storage:
-        _configure_managed_cloud_storage_from_workspace(config,
-                                                        config["provider"])
+        _configure_managed_cloud_storage_from_workspace(
+            config, config["provider"])
     return config
 
 
 def _configure_managed_cloud_storage_from_workspace(config, cloud_provider):
     workspace_name = config["workspace_name"]
+    managed_cloud_storage_name = _get_managed_cloud_storage_name(cloud_provider)
     obs_client = _make_obs_client(cloud_provider)
-    obs_bucket_name = _get_managed_obs_bucket(obs_client, workspace_name)
+    obs_bucket_name = _get_managed_obs_bucket(
+        obs_client, workspace_name,
+        object_storage_name=managed_cloud_storage_name)
     if obs_bucket_name is None:
         cli_logger.abort(
             "No managed OBS bucket was found. If you want to use managed OBS "

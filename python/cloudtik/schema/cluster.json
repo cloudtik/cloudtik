@@ -56,14 +56,14 @@
             "type": "string",
             "description": "The CloudTik wheel URL from which to download and install when needed"
         },
-        "disable_node_seq_id": {
-            "type": "boolean",
-            "description": "Whether disable the feature of assigning node sequence id to each node",
-            "default": false
-        },
         "stable_node_seq_id": {
             "type": "boolean",
             "description": "Whether the node sequence id assigned to each node is stable. If a node is dead, a new node will be launched with the seq id of this node.",
+            "default": false
+        },
+        "disable_node_seq_id": {
+            "type": "boolean",
+            "description": "Whether disable the feature of assigning node sequence id to each node",
             "default": false
         },
         "retry_setup_command": {
@@ -134,6 +134,10 @@
                     "description": "Whether to use managed cloud storage of workspace.",
                     "default": true
                 },
+                "managed_cloud_storage_name": {
+                    "type": "string",
+                    "description": "The storage name of the workspace to use. If not specified, the workspace default storage will be used."
+                },
                 "worker_role_for_cloud_storage": {
                     "type": "boolean",
                     "description": "Whether to assign worker with the role to access cloud storage.",
@@ -143,6 +147,10 @@
                     "type": "boolean",
                     "description": "Whether to use managed cloud database of workspace.",
                     "default": false
+                },
+                "managed_cloud_database_name": {
+                    "type": "string",
+                    "description": "The database name of the workspace to use. If not specified, the workspace default database will be used."
                 },
                 "public_ip_bandwidth": {
                     "type": "integer",

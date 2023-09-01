@@ -2854,6 +2854,14 @@ def _is_use_managed_cloud_storage(provider_config: Dict[str, Any]) -> bool:
     return provider_config.get("use_managed_cloud_storage", False)
 
 
+def get_managed_cloud_storage_name(config: Dict[str, Any]):
+    return _get_managed_cloud_storage_name(config["provider"])
+
+
+def _get_managed_cloud_storage_name(provider_config: Dict[str, Any]):
+    return provider_config.get("managed_cloud_storage_name")
+
+
 def is_managed_cloud_database(workspace_config: Dict[str, Any]) -> bool:
     return _is_managed_cloud_database(workspace_config["provider"])
 
@@ -2868,6 +2876,14 @@ def is_use_managed_cloud_database(config: Dict[str, Any]) -> bool:
 
 def _is_use_managed_cloud_database(provider_config: Dict[str, Any]) -> bool:
     return provider_config.get("use_managed_cloud_database", False)
+
+
+def get_managed_cloud_database_name(config: Dict[str, Any]):
+    return _get_managed_cloud_database_name(config["provider"])
+
+
+def _get_managed_cloud_database_name(provider_config: Dict[str, Any]):
+    return provider_config.get("managed_cloud_database_name")
 
 
 def is_worker_role_for_cloud_storage(config: Dict[str, Any]) -> bool:

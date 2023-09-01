@@ -19,7 +19,8 @@ from cloudtik.core._private.cli_logger import cli_logger, cf
 from cloudtik.core._private.utils import check_cidr_conflict, is_use_internal_ip, _is_use_working_vpc, \
     is_use_working_vpc, is_use_peering_vpc, \
     is_managed_cloud_storage, is_use_managed_cloud_storage, _is_use_managed_cloud_storage, update_nested_dict, \
-    is_gpu_runtime, is_managed_cloud_database, is_use_managed_cloud_database, _is_permanent_data_volumes
+    is_gpu_runtime, is_managed_cloud_database, is_use_managed_cloud_database, _is_permanent_data_volumes, \
+    _get_managed_cloud_storage_name, _get_managed_cloud_database_name
 from cloudtik.core.workspace_provider import Existence, CLOUDTIK_MANAGED_CLOUD_STORAGE, \
     CLOUDTIK_MANAGED_CLOUD_STORAGE_URI, CLOUDTIK_MANAGED_CLOUD_DATABASE, CLOUDTIK_MANAGED_CLOUD_DATABASE_ENDPOINT, \
     CLOUDTIK_MANAGED_CLOUD_STORAGE_NAME, CLOUDTIK_MANAGED_CLOUD_DATABASE_PORT, CLOUDTIK_MANAGED_CLOUD_DATABASE_ENGINE, \
@@ -3168,8 +3169,10 @@ def _configure_cloud_storage_from_workspace(config):
 def _configure_managed_cloud_storage_from_workspace(
         config, cloud_provider, resource_group_name):
     workspace_name = config["workspace_name"]
+    managed_cloud_storage_name = _get_managed_cloud_storage_name(cloud_provider)
     azure_cloud_storage = _get_managed_azure_cloud_storage(
-        cloud_provider, workspace_name, resource_group_name)
+        cloud_provider, workspace_name, resource_group_name,
+        object_storage_name=managed_cloud_storage_name)
     if azure_cloud_storage is None:
         cli_logger.abort("No managed azure storage container was found. If you want to use managed azure storage, "
                          "you should set managed_cloud_storage equal to True when you creating workspace.")
@@ -3195,8 +3198,11 @@ def _configure_cloud_database_from_workspace(config):
 def _configure_managed_cloud_database_from_workspace(
         config, cloud_provider, resource_group_name):
     workspace_name = config["workspace_name"]
+    managed_cloud_database_name = _get_managed_cloud_database_name(cloud_provider)
+    # TODO: convenient way to we know the engine. Currently use the database config
     database_instance = get_managed_database_instance(
-        cloud_provider, workspace_name, resource_group_name)
+        cloud_provider, workspace_name, resource_group_name,
+        db_instance_name=managed_cloud_database_name)
     if database_instance is None:
         cli_logger.abort("No managed database was found. If you want to use managed database, "
                          "you should set managed_cloud_database equal to True when you creating workspace.")

@@ -14,7 +14,7 @@ from cloudtik.core._private.services import get_node_ip_address
 from cloudtik.core._private.utils import check_cidr_conflict, is_use_internal_ip, \
     is_managed_cloud_storage, is_use_managed_cloud_storage, is_worker_role_for_cloud_storage, is_use_working_vpc, \
     is_use_peering_vpc, is_peering_firewall_allow_ssh_only, is_peering_firewall_allow_working_subnet, DOCKER_CONFIG_KEY, \
-    is_gpu_runtime
+    is_gpu_runtime, _get_managed_cloud_storage_name
 from cloudtik.core.tags import CLOUDTIK_TAG_CLUSTER_NAME, CLOUDTIK_TAG_NODE_KIND, NODE_KIND_HEAD, \
     CLOUDTIK_TAG_WORKSPACE_NAME
 from cloudtik.core.workspace_provider import Existence, CLOUDTIK_MANAGED_CLOUD_STORAGE, \
@@ -1897,14 +1897,18 @@ def _configure_node_config_from_launch_template(
 def _configure_cloud_storage_from_workspace(config):
     use_managed_cloud_storage = is_use_managed_cloud_storage(config)
     if use_managed_cloud_storage:
-        _configure_managed_cloud_storage_from_workspace(config, config["provider"])
+        _configure_managed_cloud_storage_from_workspace(
+            config, config["provider"])
 
     return config
 
 
 def _configure_managed_cloud_storage_from_workspace(config, cloud_provider):
     workspace_name = config["workspace_name"]
-    oss_bucket = get_managed_oss_bucket(cloud_provider, workspace_name)
+    managed_cloud_storage_name = _get_managed_cloud_storage_name(cloud_provider)
+    oss_bucket = get_managed_oss_bucket(
+        cloud_provider, workspace_name,
+        object_storage_name=managed_cloud_storage_name)
     if oss_bucket is None:
         cli_logger.abort("No managed OSS bucket was found. If you want to use managed OSS bucket, "
                          "you should set managed_cloud_storage equal to True when you creating workspace.")

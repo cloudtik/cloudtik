@@ -28,7 +28,8 @@ from cloudtik.core._private.utils import check_cidr_conflict, unescape_private_k
     is_managed_cloud_storage, is_use_managed_cloud_storage, is_worker_role_for_cloud_storage, \
     _is_use_managed_cloud_storage, is_use_peering_vpc, is_use_working_vpc, _is_use_working_vpc, \
     is_peering_firewall_allow_working_subnet, is_peering_firewall_allow_ssh_only, is_gpu_runtime, \
-    is_managed_cloud_database, is_use_managed_cloud_database, is_permanent_data_volumes, _is_permanent_data_volumes
+    is_managed_cloud_database, is_use_managed_cloud_database, is_permanent_data_volumes, _is_permanent_data_volumes, \
+    _get_managed_cloud_storage_name, _get_managed_cloud_database_name
 from cloudtik.providers._private.gcp.node import GCPCompute
 from cloudtik.providers._private.gcp.utils import _get_node_info, construct_clients_from_provider_config, \
     wait_for_compute_global_operation, wait_for_compute_region_operation, _create_storage, \
@@ -2926,14 +2927,18 @@ def _configure_allowed_ssh_sources(config):
 def _configure_cloud_storage_from_workspace(config):
     use_managed_cloud_storage = is_use_managed_cloud_storage(config)
     if use_managed_cloud_storage:
-        _configure_managed_cloud_storage_from_workspace(config, config["provider"])
+        _configure_managed_cloud_storage_from_workspace(
+            config, config["provider"])
 
     return config
 
 
 def _configure_managed_cloud_storage_from_workspace(config, cloud_provider):
     workspace_name = config["workspace_name"]
-    gcs_bucket = get_managed_gcs_bucket(cloud_provider, workspace_name)
+    managed_cloud_storage_name = _get_managed_cloud_storage_name(cloud_provider)
+    gcs_bucket = get_managed_gcs_bucket(
+        cloud_provider, workspace_name,
+        object_storage_name=managed_cloud_storage_name)
     if gcs_bucket is None:
         cli_logger.abort("No managed GCS bucket was found. If you want to use managed GCS bucket, "
                          "you should set managed_cloud_storage equal to True when you creating workspace.")
@@ -2953,7 +2958,10 @@ def _configure_cloud_database_from_workspace(config):
 
 def _configure_managed_cloud_database_from_workspace(config, cloud_provider):
     workspace_name = config["workspace_name"]
-    database_instance = get_managed_database_instance(cloud_provider, workspace_name)
+    managed_cloud_database_name = _get_managed_cloud_database_name(cloud_provider)
+    database_instance = get_managed_database_instance(
+        cloud_provider, workspace_name,
+        db_instance_name=managed_cloud_database_name)
     if database_instance is None:
         cli_logger.abort("No managed database was found. If you want to use managed database, "
                          "you should set managed_cloud_database equal to True when you creating workspace.")
