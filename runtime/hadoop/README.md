@@ -33,7 +33,7 @@ The first thing we will do is to git clone the CloudTik repository.
 As the current folder is hadoop folder, we move to its parent and clone.
 ```
 cd ..
-git clone https://github.com/oap-project/cloudtik.git && cd cloudtik
+git clone https://github.com/cloudtik/cloudtik.git && cd cloudtik
 ```
 Execute the following command to apply the patches and compile Hadoop:
 

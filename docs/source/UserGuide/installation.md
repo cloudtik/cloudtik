@@ -7,7 +7,7 @@ CloudTik requires a Python environment on Linux. We recommend using Conda to man
 If you don't have Conda installed, please refer to `dev/install-conda.sh` to install Conda on Linux.
 
 ```
-git clone https://github.com/oap-project/cloudtik.git && cd cloudtik
+git clone https://github.com/cloudtik/cloudtik.git && cd cloudtik
 bash dev/install-conda.sh
 ```
 
@@ -51,7 +51,7 @@ After created a Python environment as above, you can build wheel for CloudTik on
 Run the following command to start the building CloudTik with provided scripts.
 
 ```
-git clone https://github.com/oap-project/cloudtik.git && cd cloudtik
+git clone https://github.com/cloudtik/cloudtik.git && cd cloudtik
 bash build.sh
 ```
 

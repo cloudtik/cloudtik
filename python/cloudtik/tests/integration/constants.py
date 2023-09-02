@@ -12,22 +12,22 @@ HUAWEICLOUD_BASIC_CLUSTER_CONF_FILE = "examples/cluster/huaweicloud/example-stan
 HUAWEICLOUD_BASIC_WORKSPACE_CONF_FILE = "examples/cluster/huaweicloud/example-workspace.yaml"
 
 TPCDS_BENCHMARK = {
-    "script_file": "https://raw.githubusercontent.com/oap-project/cloudtik/main/tools/benchmarks/spark/scripts/tpcds-power-test.scala",
+    "script_file": "https://raw.githubusercontent.com/cloudtik/cloudtik/main/tools/benchmarks/spark/scripts/tpcds-power-test.scala",
     "script_args": ' --conf spark.driver.fsdir="/tpcds" --jars /home/cloudtik/runtime/benchmark-tools/spark-sql-perf/target/scala-2.12/spark-sql-perf_2.12-0.5.1-SNAPSHOT.jar'
 }
 
 TPC_DATAGEN_BENCHMARK = {
-    "script_file": "https://raw.githubusercontent.com/oap-project/cloudtik/main/tools/benchmarks/spark/scripts/tpcds-datagen.scala",
+    "script_file": "https://raw.githubusercontent.com/cloudtik/cloudtik/main/tools/benchmarks/spark/scripts/tpcds-datagen.scala",
     "script_args": ' --conf spark.driver.fsdir="/tpcds" --jars /home/cloudtik/runtime/benchmark-tools/spark-sql-perf/target/scala-2.12/spark-sql-perf_2.12-0.5.1-SNAPSHOT.jar'
 }
 
 KAFKA_BENCHMARK = {
-    "script_file": "https://raw.githubusercontent.com/oap-project/cloudtik/main/tools/benchmarks/kafka/scripts/kafka-benchmark.sh",
+    "script_file": "https://raw.githubusercontent.com/cloudtik/cloudtik/main/tools/benchmarks/kafka/scripts/kafka-benchmark.sh",
     "script_args": ""
 }
 
 PRESTO_BENCHMARK = {
-    "script_file": "https://raw.githubusercontent.com/oap-project/cloudtik/main/tools/benchmarks/presto/scripts/tpcds-tpch-power-test.sh",
+    "script_file": "https://raw.githubusercontent.com/cloudtik/cloudtik/main/tools/benchmarks/presto/scripts/tpcds-tpch-power-test.sh",
     "script_args": " --workload=tpcds --scale=1 --iteration=1"
 }
 

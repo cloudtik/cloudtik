@@ -7,7 +7,7 @@ CloudTik requires a Python environment on Linux. We recommend using Conda to man
 If you don't have Conda installed, please refer to `dev/install-conda.sh` to install Conda on Linux.
 
 ```
-git clone https://github.com/oap-project/cloudtik.git && cd cloudtik
+git clone https://github.com/cloudtik/cloudtik.git && cd cloudtik
 bash dev/install-conda.sh
 ```
 
@@ -144,7 +144,7 @@ Use the following command to create and provision a Workspace:
 cloudtik workspace create /path/to/your-workspace-config.yaml
 ```
 
-Check [Configuration Examples](https://github.com/oap-project/cloudtik/tree/main/examples/cluster) folder for more Workspace configuration file examples
+Check [Configuration Examples](https://github.com/cloudtik/cloudtik/tree/main/examples/cluster) folder for more Workspace configuration file examples
 for AWS, Azure, GCP, Kubernetes (AWS EKS or GCP GKE).
 
 If you encounter problems on creating a Workspace, a common cause is that your current login account
@@ -241,14 +241,14 @@ Running a Spark job is very straight forward. Spark PI job for example,
 cloudtik exec ./your-cluster-config.yaml "spark-submit --master yarn --deploy-mode cluster --name spark-pi --class org.apache.spark.examples.SparkPi --conf spark.yarn.submit.waitAppCompletion=false \$SPARK_HOME/examples/jars/spark-examples.jar 12345" --job-waiter=spark
 ```
 
-Refer to [Run Spark PI Example](https://github.com/oap-project/cloudtik/tree/main/examples/spark) for more details.
+Refer to [Run Spark PI Example](https://github.com/cloudtik/cloudtik/tree/main/examples/spark) for more details.
 
 #### Running analytics benchmarks
 
 CloudTik provides ready to use tools for running TPC-DS benchmark
 on a CloudTik spark runtime cluster.
 
-Refer to [Run TPC-DS performance benchmark for Spark](https://github.com/oap-project/cloudtik/tree/main/tools/benchmarks/spark)
+Refer to [Run TPC-DS performance benchmark for Spark](https://github.com/cloudtik/cloudtik/tree/main/tools/benchmarks/spark)
 for a detailed step-by-step guide.
 
 #### Running machine learning and deep learning examples
@@ -256,14 +256,14 @@ for a detailed step-by-step guide.
 CloudTik provides ready to run examples for demonstrating
 how distributed AI jobs can be implemented in CloudTik Spark and AI runtime cluster.
 
-Refer to [Distributed AI Examples](https://github.com/oap-project/cloudtik/tree/main/examples/ai)
+Refer to [Distributed AI Examples](https://github.com/cloudtik/cloudtik/tree/main/examples/ai)
 for a detailed step-by-step guide.
 
 #### Workflow examples
 User can integrate CloudTik with external workflows using bash scripts or python
 for running on-demand cluster and jobs.
 
-Refer to [Workflow Integration Examples](https://github.com/oap-project/cloudtik/tree/main/examples/workflows) for example scripts.
+Refer to [Workflow Integration Examples](https://github.com/cloudtik/cloudtik/tree/main/examples/workflows) for example scripts.
 
 ### 7. Managing clusters
 

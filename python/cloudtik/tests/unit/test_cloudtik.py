@@ -1130,7 +1130,7 @@ class CloudTikTest(unittest.TestCase):
         runner.assert_has_call("1.2.3.4", "head_start_cmd")
 
     def testValidateNetworkConfig(self):
-        web_yaml = ("https://raw.githubusercontent.com/oap-project/cloudtik/main/python/cloudtik/templates/aws/small"
+        web_yaml = ("https://raw.githubusercontent.com/cloudtik/cloudtik/main/python/cloudtik/templates/aws/small"
                     ".yaml")
         response = urllib.request.urlopen(web_yaml, timeout=5)
         content = response.read()
