@@ -70,9 +70,6 @@ do
     --build-spark)
         BUILD_SPARK=YES
         ;;
-    --build-spark-native-sql)
-        BUILD_SPARK_NATIVE_SQL=YES
-        ;;
     --build-spark-optimized)
         BUILD_SPARK_OPTIMIZED=YES
         ;;
@@ -100,19 +97,16 @@ do
     --build-spark-benchmark)
         BUILD_SPARK_BENCHMARK=YES
         ;;
-    --build-spark-native-sql-benchmark)
-        BUILD_SPARK_NATIVE_SQL_BENCHMARK=YES
-        ;;
     --build-spark-optimized-benchmark)
         BUILD_SPARK_OPTIMIZED_BENCHMARK=YES
         ;;
     *)
         echo "Usage: build-docker.sh [ --gpu ] [ --base-image ] [ --region ] [ --no-cache-build ] [ --shas-only ] [ --wheel-to-use ] [ --python-version ] [ --image-tag ]"
         echo "Images to build options:"
-        echo "[ --build-all ] [ --build-cloudtik ] [ --build-dev ] [ --build-spark ] [ --build-optimized ] [ --build-spark-native-sql ]"
+        echo "[ --build-all ] [ --build-cloudtik ] [ --build-dev ] [ --build-spark ] [ --build-optimized ]"
         echo "[ --build-ai-base ] [ --build-ai ] [ --build-ai-oneapi ]"
         echo "[ --build-universe ] [ --build-presto ] [ --build-trino ]"
-        echo "[ --build-spark-benchmark ] [ --build-optimized-benchmark ] [ --build-spark-native-sql-benchmark ]"
+        echo "[ --build-spark-benchmark ] [ --build-optimized-benchmark ]"
         exit 1
     esac
     shift
@@ -202,12 +196,6 @@ do
     fi
 
     if [ "$GPU" == "" ]; then
-        if [ -d "docker/${DOCKER_FILE_PATH}runtime/spark/native-sql" ] && ([ $BUILD_SPARK_NATIVE_SQL ] || [ $BUILD_ALL ]); then
-            docker build $NO_CACHE --build-arg BASE_IMAGE=$IMAGE_TAG \
-              -t ${DOCKER_REGISTRY}cloudtik/spark-native-sql:$IMAGE_TAG \
-              docker/${DOCKER_FILE_PATH}runtime/spark/native-sql
-        fi
-
         if [ -d "docker/${DOCKER_FILE_PATH}runtime/spark/optimized" ] && ([ $BUILD_SPARK_OPTIMIZED ] || [ $BUILD_ALL ]); then
             docker build $NO_CACHE --build-arg BASE_IMAGE=$IMAGE_TAG \
               -t ${DOCKER_REGISTRY}cloudtik/spark-optimized:$IMAGE_TAG \
@@ -265,12 +253,6 @@ do
             docker build $NO_CACHE --build-arg BASE_IMAGE=$IMAGE_TAG \
               -t ${DOCKER_REGISTRY}cloudtik/spark-runtime-benchmark:$IMAGE_TAG \
               docker/${DOCKER_FILE_PATH}runtime/spark/benchmark
-        fi
-
-        if [ -d "docker/${DOCKER_FILE_PATH}runtime/spark/benchmark/native-sql" ] && ([ $BUILD_SPARK_NATIVE_SQL_BENCHMARK ] || [ $BUILD_ALL ]); then
-            docker build $NO_CACHE --build-arg BASE_IMAGE=$IMAGE_TAG \
-              -t ${DOCKER_REGISTRY}cloudtik/spark-native-sql-benchmark:$IMAGE_TAG \
-              docker/${DOCKER_FILE_PATH}runtime/spark/benchmark/native-sql
         fi
 
         if [ -d "docker/${DOCKER_FILE_PATH}runtime/spark/benchmark/optimized" ] && ([ $BUILD_SPARK_OPTIMIZED_BENCHMARK ] || [ $BUILD_ALL ]); then

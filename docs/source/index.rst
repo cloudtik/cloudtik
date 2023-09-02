@@ -17,11 +17,12 @@ achieve "Develop once, run everywhere" with the following core capabilities:
 * Out of box optimized runtimes for analytics and AI
 
   * Optimized Spark runtime with CloudTik optimizations
-  * Optimized AI runtime with Intel oneAPI
-* Infrastructure and runtimes to support microservices orchestration with:
+  * Optimized AI runtime support both CPU and GPU
+* Microservices infrastructure and runtimes with:
 
   * Service discovery - service registry, service discover, service DNS naming
   * Load balancing -  Layer 4 or Layer 7 load balancer working with built-in service discovery
+  * Metrics and monitoring
 * Support of major public cloud providers:
 
   * AWS - Amazon Elastic Compute Cloud (EC2) or Amazon Elastic Kubernetes Service (EKS)
