@@ -232,13 +232,13 @@ if os.path.isdir(build_dir):
 setuptools.setup(
     name=setup_spec.name,
     version=setup_spec.version,
-    author="Intel Corporation",
+    author="Chen Haifeng",
     description=setup_spec.description,
     long_description=io.open(
         os.path.join(ROOT_DIR, os.path.pardir, "README.md"), "r", encoding="utf-8").read(),
     long_description_content_type="text/markdown",
-    url="https://github.com/oap-project/cloudtik.git",
-    keywords="Distributed Cloud Analytic AI Spark",
+    url="https://github.com/cloudtik/cloudtik.git",
+    keywords="Distributed Cloud Data Analytic AI Spark",
     classifiers=[
         f"Programming Language :: Python :: {MINIMUM_SUPPORTED_PYTHON_VERSION}",
     ],

@@ -12,7 +12,7 @@ And export CLOUDTIK_HOME environment variable with value pointing to the CloudTi
 
 ```buildoutcfg
 # Clone CloudTik repository
-git clone https://github.com/oap-project/cloudtik.git
+git clone https://github.com/cloudtik/cloudtik.git
 
 # Export CLOUDTIK_HOME
 export CLOUDTIK_HOME=$PWD/cloudtik
