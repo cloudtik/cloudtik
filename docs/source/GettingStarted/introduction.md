@@ -15,7 +15,7 @@ CloudTik provides:
   - Local or on-premise clusters
 - Out of box optimized runtimes for analytics and AI
   - Optimized Spark runtime with CloudTik optimizations and native SQL
-  - Optimized AI runtime with Intel oneAPI
+  - Optimized AI runtime with both CPU and GPU
 - Infrastructure and runtimes to support microservices orchestration with:
   - Service discovery - service registry, service discover, service DNS naming
   - Load balancing -  Layer 4 or Layer 7 load balancer working with built-in service discovery

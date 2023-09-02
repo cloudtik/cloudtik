@@ -16,7 +16,7 @@ provider:
 auth:
     ssh_user: ubuntu
     # Set proxy if you are in corporation network. For example,
-    # ssh_proxy_command: "ncat --proxy-type socks5 --proxy proxy-shz.intel.com:1080 %h %p"
+    # ssh_proxy_command: "ncat --proxy-type socks5 --proxy your-proxy-host:your-proxy-port %h %p"
 
 available_node_types:
     worker.default:
@@ -31,8 +31,3 @@ runtime:
 bootstrap_commands:
     - sudo apt-get update && sudo apt-get install openjdk-8-jdk -y
     - wget -O ~/bootstrap-benchmark.sh https://raw.githubusercontent.com/cloudtik/cloudtik/main/tools/benchmarks/spark/scripts/bootstrap-benchmark.sh && bash ~/bootstrap-benchmark.sh --workload=tpcds
-    - wget -O ~/bootstrap_oap.sh https://raw.githubusercontent.com/cloudtik/cloudtik/main/tools/integrations/oap/bootstrap_oap.sh && bash ~/bootstrap_oap.sh 1.4.0.spark32
-    - echo 'export CC=$HOME/runtime/oap/bin/x86_64-conda_cos6-linux-gnu-cc' >> ~/.bashrc
-    - echo 'export LD_LIBRARY_PATH=$HOME/runtime/oap/lib/:$LD_LIBRARY_PATH' >> ~/.bashrc
-    - echo 'export LIBARROW_DIR=$HOME/runtime/oap/' >> ~/.bashrc
-    - echo 'export CODEGEN_OPTION=" -O1 -march=native -fno-semantic-interposition "' >> ~/.bashrc

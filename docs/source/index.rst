@@ -17,7 +17,7 @@ achieve "Develop once, run everywhere" with the following core capabilities:
 * Out of box optimized runtimes for analytics and AI
 
   * Optimized Spark runtime with CloudTik optimizations
-  * Optimized AI runtime with Intel oneAPI
+  * Optimized AI runtime support both CPU and GPU
 * Infrastructure and runtimes to support microservices orchestration with:
 
   * Service discovery - service registry, service discover, service DNS naming

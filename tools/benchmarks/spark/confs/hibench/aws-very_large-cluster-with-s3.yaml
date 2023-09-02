@@ -16,7 +16,7 @@ provider:
 auth:
     ssh_user: ubuntu
     # Set proxy if you are in corporation network. For example,
-#    ssh_proxy_command: "ncat --proxy-type socks5 --proxy proxy-shz.intel.com:1080 %h %p"
+    # ssh_proxy_command: "ncat --proxy-type socks5 --proxy your-proxy-host:your-proxy-port %h %p"
 
 available_node_types:
     worker.default:
@@ -31,4 +31,3 @@ runtime:
 bootstrap_commands:
     - sudo apt-get install bc
     - wget -O ~/bootstrap-benchmark.sh https://raw.githubusercontent.com/cloudtik/cloudtik/main/tools/benchmarks/spark/scripts/bootstrap-benchmark.sh && bash ~/bootstrap-benchmark.sh --workload=hibench
-    - wget -O ~/bootstrap_oap.sh https://raw.githubusercontent.com/cloudtik/cloudtik/main/tools/integrations/oap/bootstrap_oap.sh && bash ~/bootstrap_oap.sh 1.4.0.spark32

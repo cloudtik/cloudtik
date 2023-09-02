@@ -24,7 +24,7 @@ focuses on business development and achieve "Develop once, run everywhere" with 
   - Local or on-premise clusters
 - Out of box optimized runtimes for storage, database, analytics and AI
   - Optimized Spark runtime with CloudTik optimizations
-  - Optimized AI runtime with Intel oneAPI
+  - Optimized AI runtime support both CPU and GPU
 - Infrastructure and runtimes to support microservices orchestration with:
   - Service discovery - service registry, service discover, service DNS naming
   - Load balancing -  Layer 4 or Layer 7 load balancer working with built-in service discovery
