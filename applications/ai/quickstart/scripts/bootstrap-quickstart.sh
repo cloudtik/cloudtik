@@ -58,7 +58,7 @@ function install_quickstart() {
     mkdir -p $QUICKSTART_TMP
     cd $QUICKSTART_TMP
     rm -rf $QUICKSTART_TMP/cloudtik
-    git clone https://github.com/oap-project/cloudtik.git
+    git clone https://github.com/cloudtik/cloudtik.git
     rm -rf $QUICKSTART_HOME/*
     mkdir -p $QUICKSTART_HOME
     cp -r cloudtik/applications/ai/quickstart/* $QUICKSTART_HOME/

@@ -75,7 +75,7 @@ CloudTik requires a Python environment on Linux. We recommend using Conda to man
 If you don't have Conda installed, please refer to `dev/install-conda.sh` to install Conda on Linux.
 
 ```
-git clone https://github.com/oap-project/cloudtik.git && cd cloudtik
+git clone https://github.com/cloudtik/cloudtik.git && cd cloudtik
 bash dev/install-conda.sh
 ```
 
@@ -213,7 +213,7 @@ Use the following command to create and provision a Workspace:
 cloudtik workspace create /path/to/your-workspace-config.yaml
 ```
 
-Check [Configuration Examples](https://github.com/oap-project/cloudtik/tree/main/examples/cluster) folder for more Workspace configuration file examples
+Check [Configuration Examples](https://github.com/cloudtik/cloudtik/tree/main/examples/cluster) folder for more Workspace configuration file examples
 for AWS, Azure, GCP, Kubernetes (AWS EKS or GCP GKE).
 
 If you encounter problems on creating a Workspace, a common cause is that your current login account

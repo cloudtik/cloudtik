@@ -7,7 +7,7 @@ To compiling Spark with these optimizations easily, please follow the below step
 
 The first thing we will do is to git clone the CloudTik repository.
 ```
-git clone https://github.com/oap-project/cloudtik.git && cd cloudtik
+git clone https://github.com/cloudtik/cloudtik.git && cd cloudtik
 ```
 
 If the necessary tools needed for building Spark,
