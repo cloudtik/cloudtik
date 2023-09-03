@@ -15,7 +15,7 @@ do
     key="$1"
     case $key in
     --gpu)
-        DEVICE_TYPE="-gpu"
+        DEVICE_TYPE="gpu"
         DEVICE_TAG="-gpu"
         ;;
     --image-tag)
