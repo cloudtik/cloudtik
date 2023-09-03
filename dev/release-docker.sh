@@ -18,6 +18,10 @@ do
         DEVICE_TYPE="gpu"
         DEVICE_TAG="-gpu"
         ;;
+    --hpu)
+        DEVICE_TYPE="hpu"
+        DEVICE_TAG="-hpu"
+        ;;
     --image-tag)
         # Override for the image tag.
         shift
@@ -76,7 +80,9 @@ do
         RELEASE_SPARK_AI_ONEAPI=YES
         ;;
     *)
-        echo "Usage: release-docker.sh [ --gpu ] [ --image-tag ] [ --region ] [ --python-version ] --clean --tag-nightly --no-build --no-push"
+        echo "Usage: release-docker.sh [ --image-tag ] [ --region ] [ --python-version ] --clean --tag-nightly --no-build --no-push"
+        echo "Device type options (can only specify one):"
+        echo "[ --gpu ] [ --hpu ]"
         echo "Images to release options:"
         echo "[ --release-all ] [ --release-cloudtik ] [ --release-spark ]"
         echo "[ --release-ai-base ] [ --release-ai ] [ --release-ai-oneapi ]"
@@ -90,6 +96,11 @@ PYTHON_TAG=${PYTHON_VERSION//./}
 DOCKER_REGISTRY_PRC="registry.cn-shanghai.aliyuncs.com/"
 
 cd $CLOUDTIK_HOME
+
+# building necessary global base images
+if [ "$DEVICE_TYPE" == "hpu" ]; then
+    bash $CLOUDTIK_HOME/tools/runtime/ai/docker/hpu/build-base-image.sh
+if
 
 registry_regions=('GLOBAL')
 if [ "${CLOUDTIK_REGION}" == "PRC" ]; then
