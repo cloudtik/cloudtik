@@ -5,7 +5,8 @@ CLOUDTIK_HOME=$( cd -- "$( dirname -- "${SCRIPT_DIR}" )" &> /dev/null && pwd )
 # Import the default vars
 . "$SCRIPT_DIR"/set-default-vars.sh
 
-GPU=""
+DEVICE_TYPE=""
+DEVICE_TAG=""
 IMAGE_TAG="nightly"
 CLOUDTIK_REGION="GLOBAL"
 
@@ -14,7 +15,8 @@ do
     key="$1"
     case $key in
     --gpu)
-        GPU="-gpu"
+        DEVICE_TYPE="-gpu"
+        DEVICE_TAG="-gpu"
         ;;
     --image-tag)
         # Override for the image tag.
@@ -111,7 +113,7 @@ if [ $DO_CLEAN ]; then
 
         for image_name in ${CLEAN_IMAGE_NAMES[@]}
         do
-            image=${DOCKER_REGISTRY}cloudtik/$image_name:$IMAGE_TAG$GPU
+            image=${DOCKER_REGISTRY}cloudtik/$image_name:$IMAGE_TAG$DEVICE_TAG
             if [ "$(sudo docker images -q $image 2> /dev/null)" != "" ]; then
                 sudo docker rmi $image
             fi
@@ -146,8 +148,8 @@ if [ $TAG_NIGHTLY ]; then
 
         for image_name in ${TAG_IMAGE_NAMES[@]}
         do
-            image_nightly=${DOCKER_REGISTRY}cloudtik/$image_name:nightly$GPU
-            image=${DOCKER_REGISTRY}cloudtik/$image_name:$IMAGE_TAG$GPU
+            image_nightly=${DOCKER_REGISTRY}cloudtik/$image_name:nightly$DEVICE_TAG
+            image=${DOCKER_REGISTRY}cloudtik/$image_name:$IMAGE_TAG$DEVICE_TAG
             if [ "$(sudo docker images -q $image_nightly 2> /dev/null)" != "" ]; then
                 sudo docker tag $image_nightly $image
             fi
@@ -158,8 +160,8 @@ fi
 # Default build
 if [ ! $NO_BUILD ]; then
     BUILD_FLAGS=""
-    if [ "$GPU" != "" ]; then
-        BUILD_FLAGS="${BUILD_FLAGS} --gpu"
+    if [ "$DEVICE_TYPE" != "" ]; then
+        BUILD_FLAGS="${BUILD_FLAGS} --$DEVICE_TYPE"
     fi
     if [ $RELEASE_CLOUDTIK ] || [ $RELEASE_ALL ]; then
         BUILD_FLAGS="${BUILD_FLAGS} --build-cloudtik"
@@ -205,7 +207,7 @@ if [ ! $NO_PUSH ]; then
 
         for image_name in ${PUSH_IMAGE_NAMES[@]}
         do
-            image=${DOCKER_REGISTRY}cloudtik/$image_name:$IMAGE_TAG$GPU
+            image=${DOCKER_REGISTRY}cloudtik/$image_name:$IMAGE_TAG$DEVICE_TAG
             if [ "$(sudo docker images -q $image 2> /dev/null)" != "" ]; then
                 sudo docker push $image
             fi
