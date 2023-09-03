@@ -26,6 +26,11 @@ do
         DEVICE_TAG="-gpu"
         BASE_IMAGE="nvidia/cuda:11.7.1-cudnn8-devel-ubuntu20.04"
         ;;
+    --hpu)
+        DEVICE_TYPE="hpu"
+        DEVICE_TAG="-hpu"
+        BASE_IMAGE="habana/synapseai:1.11.0-ubuntu20.04"
+        ;;
     --base-image)
         # Override for the base image.
         shift
@@ -103,7 +108,9 @@ do
         BUILD_SPARK_OPTIMIZED_BENCHMARK=YES
         ;;
     *)
-        echo "Usage: build-docker.sh [ --gpu ] [ --base-image ] [ --region ] [ --no-cache-build ] [ --shas-only ] [ --wheel-to-use ] [ --python-version ] [ --image-tag ]"
+        echo "Usage: build-docker.sh [ --base-image ] [ --region ] [ --no-cache-build ] [ --shas-only ] [ --wheel-to-use ] [ --python-version ] [ --image-tag ]"
+        echo "Device type options (can only specify one):"
+        echo "[ --gpu ] [ --hpu ]"
         echo "Images to build options:"
         echo "[ --build-all ] [ --build-cloudtik ] [ --build-dev ] [ --build-spark ] [ --build-optimized ]"
         echo "[ --build-ai-base ] [ --build-ai ] [ --build-ai-oneapi ]"
