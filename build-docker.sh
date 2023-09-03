@@ -11,7 +11,8 @@ set -x
 
 CLOUDTIK_VERSION=$(sed -n 's/__version__ = \"\(..*\)\"/\1/p' ./python/cloudtik/__init__.py)
 CONDA_ENV_NAME="cloudtik"
-GPU=""
+DEVICE_TYPE=""
+DEVICE_TAG=""
 BASE_IMAGE="ubuntu:focal"
 IMAGE_TAG="nightly"
 CLOUDTIK_REGION="GLOBAL"
@@ -21,7 +22,8 @@ do
     key="$1"
     case $key in
     --gpu)
-        GPU="-gpu"
+        DEVICE_TYPE="gpu"
+        DEVICE_TAG="-gpu"
         BASE_IMAGE="nvidia/cuda:11.7.1-cudnn8-devel-ubuntu20.04"
         ;;
     --base-image)
@@ -130,10 +132,10 @@ if [ $BUILD_CLOUDTIK ] || [ $BUILD_ALL ]; then
     do
         cp "$WHEEL" "docker/$IMAGE/$(basename "$WHEEL")"
         if [ $OUTPUT_SHA ]; then
-            IMAGE_SHA=$(docker build $NO_CACHE --build-arg GPU="$GPU" --build-arg BASE_IMAGE="$BASE_IMAGE" --build-arg WHEEL_PATH="$(basename "$WHEEL")" --build-arg PYTHON_VERSION="$PYTHON_VERSION" --build-arg CONDA_ENV_NAME="$CONDA_ENV_NAME" -q -t cloudtik/$IMAGE:$IMAGE_TAG$GPU docker/$IMAGE)
-            echo "cloudtik/$IMAGE:$IMAGE_TAG$GPU SHA:$IMAGE_SHA"
+            IMAGE_SHA=$(docker build $NO_CACHE --build-arg DEVICE_TYPE="$DEVICE_TYPE" --build-arg BASE_IMAGE="$BASE_IMAGE" --build-arg WHEEL_PATH="$(basename "$WHEEL")" --build-arg PYTHON_VERSION="$PYTHON_VERSION" --build-arg CONDA_ENV_NAME="$CONDA_ENV_NAME" -q -t cloudtik/$IMAGE:$IMAGE_TAG$DEVICE_TAG docker/$IMAGE)
+            echo "cloudtik/$IMAGE:$IMAGE_TAG$DEVICE_TAG SHA:$IMAGE_SHA"
         else
-            docker build $NO_CACHE --build-arg GPU="$GPU" --build-arg BASE_IMAGE="$BASE_IMAGE" --build-arg WHEEL_PATH="$(basename "$WHEEL")" --build-arg PYTHON_VERSION="$PYTHON_VERSION" --build-arg CONDA_ENV_NAME="$CONDA_ENV_NAME" -t cloudtik/$IMAGE:$IMAGE_TAG$GPU docker/$IMAGE
+            docker build $NO_CACHE --build-arg DEVICE_TYPE="$DEVICE_TYPE" --build-arg BASE_IMAGE="$BASE_IMAGE" --build-arg WHEEL_PATH="$(basename "$WHEEL")" --build-arg PYTHON_VERSION="$PYTHON_VERSION" --build-arg CONDA_ENV_NAME="$CONDA_ENV_NAME" -t cloudtik/$IMAGE:$IMAGE_TAG$DEVICE_TAG docker/$IMAGE
         fi
         rm "docker/$IMAGE/$(basename "$WHEEL")"
     done
@@ -142,10 +144,10 @@ if [ $BUILD_CLOUDTIK ] || [ $BUILD_ALL ]; then
     do
         cp "$WHEEL" "docker/$IMAGE/$(basename "$WHEEL")"
         if [ $OUTPUT_SHA ]; then
-            IMAGE_SHA=$(docker build $NO_CACHE --build-arg GPU="$GPU" --build-arg BASE_IMAGE=$IMAGE_TAG$GPU --build-arg WHEEL_PATH="$(basename "$WHEEL")" --build-arg PYTHON_VERSION="$PYTHON_VERSION" -q -t cloudtik/$IMAGE:$IMAGE_TAG$GPU docker/$IMAGE)
-            echo "cloudtik/$IMAGE:$IMAGE_TAG$GPU SHA:$IMAGE_SHA"
+            IMAGE_SHA=$(docker build $NO_CACHE --build-arg DEVICE_TYPE="$DEVICE_TYPE" --build-arg BASE_IMAGE=$IMAGE_TAG$DEVICE_TAG --build-arg WHEEL_PATH="$(basename "$WHEEL")" --build-arg PYTHON_VERSION="$PYTHON_VERSION" -q -t cloudtik/$IMAGE:$IMAGE_TAG$DEVICE_TAG docker/$IMAGE)
+            echo "cloudtik/$IMAGE:$IMAGE_TAG$DEVICE_TAG SHA:$IMAGE_SHA"
         else
-            docker build $NO_CACHE --build-arg GPU="$GPU" --build-arg BASE_IMAGE=$IMAGE_TAG$GPU --build-arg WHEEL_PATH="$(basename "$WHEEL")" --build-arg PYTHON_VERSION="$PYTHON_VERSION" -t cloudtik/$IMAGE:$IMAGE_TAG$GPU docker/$IMAGE
+            docker build $NO_CACHE --build-arg DEVICE_TYPE="$DEVICE_TYPE" --build-arg BASE_IMAGE=$IMAGE_TAG$DEVICE_TAG --build-arg WHEEL_PATH="$(basename "$WHEEL")" --build-arg PYTHON_VERSION="$PYTHON_VERSION" -t cloudtik/$IMAGE:$IMAGE_TAG$DEVICE_TAG docker/$IMAGE
         fi
         rm "docker/$IMAGE/$(basename "$WHEEL")"
     done
@@ -183,19 +185,19 @@ do
     if [ "${DOCKER_FILE_PATH}" != "" ]; then
         # for building localized cloudtik image
         if [ -d "docker/${DOCKER_FILE_PATH}cloudtik" ] && ([ $BUILD_CLOUDTIK ] || [ $BUILD_ALL ]); then
-            docker build $NO_CACHE --build-arg BASE_IMAGE=$IMAGE_TAG$GPU \
-              -t ${DOCKER_REGISTRY}cloudtik/cloudtik:$IMAGE_TAG$GPU \
+            docker build $NO_CACHE --build-arg BASE_IMAGE=$IMAGE_TAG$DEVICE_TAG \
+              -t ${DOCKER_REGISTRY}cloudtik/cloudtik:$IMAGE_TAG$DEVICE_TAG \
               docker/${DOCKER_FILE_PATH}cloudtik
         fi
     fi
 
     if [ -d "docker/${DOCKER_FILE_PATH}runtime/spark" ] && ([ $BUILD_SPARK ] || [ $BUILD_ALL ]); then
-        docker build $NO_CACHE --build-arg BASE_IMAGE=$IMAGE_TAG$GPU \
-          -t ${DOCKER_REGISTRY}cloudtik/spark-runtime:$IMAGE_TAG$GPU \
+        docker build $NO_CACHE --build-arg BASE_IMAGE=$IMAGE_TAG$DEVICE_TAG \
+          -t ${DOCKER_REGISTRY}cloudtik/spark-runtime:$IMAGE_TAG$DEVICE_TAG \
           docker/${DOCKER_FILE_PATH}runtime/spark
     fi
 
-    if [ "$GPU" == "" ]; then
+    if [ "$DEVICE_TYPE" == "" ]; then
         if [ -d "docker/${DOCKER_FILE_PATH}runtime/spark/optimized" ] && ([ $BUILD_SPARK_OPTIMIZED ] || [ $BUILD_ALL ]); then
             docker build $NO_CACHE --build-arg BASE_IMAGE=$IMAGE_TAG \
               -t ${DOCKER_REGISTRY}cloudtik/spark-optimized:$IMAGE_TAG \
@@ -223,12 +225,12 @@ do
 
     # Build the AI base image which is needed as the base image for all other AI runtime image
     if [ -d "docker/${DOCKER_FILE_PATH}runtime/ai/base" ] && ([ $BUILD_AI_BASE ] || [ $BUILD_AI ] || [ $BUILD_AI_ONEAPI ] || [ $BUILD_ALL ]); then
-        docker build $NO_CACHE --build-arg BASE_IMAGE=$IMAGE_TAG$GPU \
-          -t ${DOCKER_REGISTRY}cloudtik/spark-ai-base:$IMAGE_TAG$GPU \
+        docker build $NO_CACHE --build-arg BASE_IMAGE=$IMAGE_TAG$DEVICE_TAG \
+          -t ${DOCKER_REGISTRY}cloudtik/spark-ai-base:$IMAGE_TAG$DEVICE_TAG \
           docker/${DOCKER_FILE_PATH}runtime/ai/base
     fi
 
-    if [ "$GPU" == "" ]; then
+    if [ "$DEVICE_TYPE" == "" ]; then
         if [ -d "docker/${DOCKER_FILE_PATH}runtime/ai/cpu" ] && ([ $BUILD_AI ] || [ $BUILD_ALL ]); then
             docker build $NO_CACHE --build-arg BASE_IMAGE=$IMAGE_TAG \
               -t ${DOCKER_REGISTRY}cloudtik/spark-ai-runtime:$IMAGE_TAG \
@@ -241,14 +243,14 @@ do
               docker/${DOCKER_FILE_PATH}runtime/ai/oneapi
         fi
     else
-        if [ -d "docker/${DOCKER_FILE_PATH}runtime/ai/gpu" ] && ([ $BUILD_AI ] || [ $BUILD_ALL ]); then
-            docker build $NO_CACHE --build-arg BASE_IMAGE=$IMAGE_TAG$GPU \
-              -t ${DOCKER_REGISTRY}cloudtik/spark-ai-runtime:$IMAGE_TAG$GPU \
-              docker/${DOCKER_FILE_PATH}runtime/ai/gpu
+        if [ -d "docker/${DOCKER_FILE_PATH}runtime/ai/$DEVICE_TYPE" ] && ([ $BUILD_AI ] || [ $BUILD_ALL ]); then
+            docker build $NO_CACHE --build-arg BASE_IMAGE=$IMAGE_TAG$DEVICE_TAG \
+              -t ${DOCKER_REGISTRY}cloudtik/spark-ai-runtime:$IMAGE_TAG$DEVICE_TAG \
+              docker/${DOCKER_FILE_PATH}runtime/ai/$DEVICE_TYPE
         fi
     fi
 
-    if [ "$GPU" == "" ]; then
+    if [ "$DEVICE_TYPE" == "" ]; then
         if [ -d "docker/${DOCKER_FILE_PATH}runtime/spark/benchmark" ] && ([ $BUILD_SPARK_BENCHMARK ] || [ $BUILD_ALL ]); then
             docker build $NO_CACHE --build-arg BASE_IMAGE=$IMAGE_TAG \
               -t ${DOCKER_REGISTRY}cloudtik/spark-runtime-benchmark:$IMAGE_TAG \
@@ -263,8 +265,8 @@ do
     fi
 
     if [ -d "docker/${DOCKER_FILE_PATH}runtime/ai/benchmark" ] && ([ $BUILD_AI_BENCHMARK ] || [ $BUILD_ALL ]); then
-        docker build $NO_CACHE --build-arg BASE_IMAGE=$IMAGE_TAG$GPU \
-          -t ${DOCKER_REGISTRY}cloudtik/spark-ai-runtime-benchmark:$IMAGE_TAG$GPU \
+        docker build $NO_CACHE --build-arg BASE_IMAGE=$IMAGE_TAG$DEVICE_TAG \
+          -t ${DOCKER_REGISTRY}cloudtik/spark-ai-runtime-benchmark:$IMAGE_TAG$DEVICE_TAG \
           docker/${DOCKER_FILE_PATH}runtime/ai/benchmark
     fi
 done
