@@ -8,8 +8,6 @@ from itertools import chain
 
 logger = logging.getLogger(__name__)
 
-SUPPORTED_PYTHONS = [(3, 7), (3, 8), (3, 9)]
-
 ROOT_DIR = os.path.dirname(__file__)
 
 SCHEMA_SUBDIR = os.path.join("cloudtik", "schema")
