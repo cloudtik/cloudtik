@@ -87,11 +87,6 @@ DOCKER_REGISTRY_PRC="registry.cn-shanghai.aliyuncs.com/"
 
 cd $CLOUDTIK_HOME
 
-# building necessary global base images
-if [ "$DEVICE_TYPE" == "hpu" ]; then
-    bash $CLOUDTIK_HOME/tools/runtime/ai/docker/hpu/build-base-image.sh
-if
-
 registry_regions=('GLOBAL')
 if [ "${CLOUDTIK_REGION}" == "PRC" ]; then
     registry_regions[1]='PRC'
@@ -170,6 +165,11 @@ fi
 
 # Default build
 if [ ! $NO_BUILD ]; then
+    # building necessary global base images
+    if [ "$DEVICE_TYPE" == "hpu" ]; then
+        bash $CLOUDTIK_HOME/tools/runtime/ai/docker/hpu/build-base-image.sh
+    fi
+
     BUILD_FLAGS=""
     if [ "$DEVICE_TYPE" != "" ]; then
         BUILD_FLAGS="${BUILD_FLAGS} --$DEVICE_TYPE"
