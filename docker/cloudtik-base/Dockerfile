@@ -12,7 +12,6 @@ ARG CLOUDTIK_UID=1000
 ARG CLOUDTIK_GID=100
 
 ENV TZ=America/Los_Angeles
-ENV PATH="/home/cloudtik/miniconda/bin:$PATH"
 
 RUN apt-get update -y \
     && apt-get install -y sudo tzdata \
@@ -23,7 +22,10 @@ RUN apt-get update -y \
     && apt-get clean
 
 USER $CLOUDTIK_UID
+
 ENV HOME=/home/cloudtik
+ENV CONDA_ROOT=$HOME/miniconda
+ENV PATH=$CONDA_ROOT/bin:$PATH
 ENV CLOUDTIK_ENV=$CONDA_ENV_NAME
 
 SHELL ["/bin/bash", "-c"]
@@ -46,11 +48,11 @@ RUN sudo apt-get update -y && sudo apt-get upgrade -y \
     && wget \
         --quiet "https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-${CPU_ARCH}.sh" \
         -O /tmp/miniconda.sh \
-    && /bin/bash /tmp/miniconda.sh -b -u -p $HOME/miniconda \
-    && $HOME/miniconda/bin/conda init \ 
+    && /bin/bash /tmp/miniconda.sh -b -u -p $CONDA_ROOT \
+    && $CONDA_ROOT/bin/conda init \
     && echo 'export CONDA_ROOT=$HOME/miniconda' >> $HOME/.bashrc \
     && echo "export CLOUDTIK_ENV=$CLOUDTIK_ENV" >> $HOME/.bashrc \
-    && echo 'export PATH=$HOME/miniconda/bin:$PATH' >> $HOME/.bashrc \
+    && echo 'export PATH=${CONDA_ROOT}/bin:$PATH' >> $HOME/.bashrc \
     && rm /tmp/miniconda.sh \
     # Install kubectl
     && wget -O - -q https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add - \
@@ -64,14 +66,14 @@ RUN sudo apt-get update -y && sudo apt-get upgrade -y \
     && sudo apt-get clean
 
 RUN if [[ "${PYTHON_VERSION}" = "3.11" || "${PYTHON_VERSION}" =~ ^3\.11\. ]]; then \
-        $HOME/miniconda/bin/conda create -n $CLOUDTIK_ENV -y python=$PYTHON_VERSION; \
+        $CONDA_ROOT/bin/conda create -n $CLOUDTIK_ENV -y python=$PYTHON_VERSION; \
     else \
         # Conda issue #12287: ping libffi=3.3 for python version below 3.11
         # TODO: Remove libffi=3.3 once it is resolved
-        $HOME/miniconda/bin/conda create -n $CLOUDTIK_ENV -y libffi=3.3 python=$PYTHON_VERSION; \
+        $CONDA_ROOT/bin/conda create -n $CLOUDTIK_ENV -y libffi=3.3 python=$PYTHON_VERSION; \
     fi \
-    && $HOME/miniconda/bin/conda clean -itqy
-ENV CONDA_ROOT=$HOME/miniconda
+    && $CONDA_ROOT/bin/conda clean -itqy
+
 ENV PATH=$CONDA_ROOT/envs/$CLOUDTIK_ENV/bin:$PATH
 ENV CLOUDTIK_DOWNLOADS="https://d30257nes7d4fq.cloudfront.net/downloads"
 

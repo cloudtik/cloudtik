@@ -25,15 +25,15 @@ setup_commands:
     - >-
         which conda >/dev/null 2>&1 || (arch=$(uname -m) && wget -q --show-progress "https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-${arch}.sh" -O /tmp/miniconda.sh &&
         /bin/bash /tmp/miniconda.sh -b -u -p ~/miniconda && ~/miniconda/bin/conda init && rm -rf /tmp/miniconda.sh)
-    - ((! grep -Fxq 'export CONDA_ROOT=$HOME/miniconda' ~/.bashrc) &&
+    - ([ "$CONDA_ROOT" == "" ] && (! grep -Fxq 'export CONDA_ROOT=$HOME/miniconda' ~/.bashrc) &&
         echo 'export CONDA_ROOT=$HOME/miniconda' >> ~/.bashrc) || true
     - ((! grep -Fxq 'export CLOUDTIK_ENV=cloudtik' ~/.bashrc) &&
         echo 'export CLOUDTIK_ENV=cloudtik' >> ~/.bashrc) || true
     - conda activate ${CLOUDTIK_ENV} || conda create -n ${CLOUDTIK_ENV} -y libffi=3.3 python=${CLOUDTIK_PYTHON_VERSION}
-    - (stat $HOME/miniconda/envs/${CLOUDTIK_ENV}/ >/dev/null 2>&1 &&
-        (! grep -Fxq 'export PATH=$HOME/miniconda/envs/${CLOUDTIK_ENV}/bin:$PATH' ~/.bashrc) &&
-        echo 'export PATH=$HOME/miniconda/envs/${CLOUDTIK_ENV}/bin:$PATH' >> ~/.bashrc) || true
-    - (stat $HOME/miniconda/envs/${CLOUDTIK_ENV}/ >/dev/null 2>&1 &&
+    - (stat ${CONDA_ROOT}/envs/${CLOUDTIK_ENV}/ >/dev/null 2>&1 &&
+        (! grep -Fxq 'export PATH=${CONDA_ROOT}/envs/${CLOUDTIK_ENV}/bin:$PATH' ~/.bashrc) &&
+        echo 'export PATH=${CONDA_ROOT}/envs/${CLOUDTIK_ENV}/bin:$PATH' >> ~/.bashrc) || true
+    - (stat ${CONDA_ROOT}/envs/${CLOUDTIK_ENV}/ >/dev/null 2>&1 &&
         (! grep -Fxq 'source ${CONDA_ROOT}/bin/activate ${CLOUDTIK_ENV}' ~/.bashrc) &&
         echo 'source ${CONDA_ROOT}/bin/activate ${CLOUDTIK_ENV}' >> ~/.bashrc) || true
 

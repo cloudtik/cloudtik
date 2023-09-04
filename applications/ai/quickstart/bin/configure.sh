@@ -22,11 +22,11 @@ else
 fi
 
 # Set Jemalloc Preload for better performance
-export LD_PRELOAD=$HOME/miniconda/envs/cloudtik/lib/libjemalloc.so:$LD_PRELOAD
+export LD_PRELOAD=${CONDA_ROOT}/envs/${CLOUDTIK_ENV}/lib/libjemalloc.so:$LD_PRELOAD
 export MALLOC_CONF="oversize_threshold:1,background_thread:true,metadata_thp:auto,dirty_decay_ms:9000000000,muzzy_decay_ms:9000000000"
 
 # Set IOMP preload for better performance
-export LD_PRELOAD=$HOME/miniconda/envs/cloudtik/lib/libiomp5.so:$LD_PRELOAD
+export LD_PRELOAD=${CONDA_ROOT}/envs/${CLOUDTIK_ENV}/lib/libiomp5.so:$LD_PRELOAD
 
 function move_to_workspace() {
     # Move a folder (the parameter) into workspace
