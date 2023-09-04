@@ -54,7 +54,11 @@
         },
         "cloudtik_wheel_url": {
             "type": "string",
-            "description": "The CloudTik wheel URL from which to download and install when needed"
+            "description": "The CloudTik wheel URL from which to download and install when needed. If not given, will use pip to install."
+        },
+        "python_version": {
+            "type": "string",
+            "description": "The python version to use if there is a need to creating python environment if it doesn't exist."
         },
         "stable_node_seq_id": {
             "type": "boolean",
