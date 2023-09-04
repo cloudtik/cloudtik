@@ -26,9 +26,7 @@ mkdir -p $WORKING_DIR
 cd $WORKING_DIR
 git clone https://github.com/HabanaAI/Setup_and_Install.git
 cd $WORKING_DIR/Setup_and_Install/dockerfiles/base
-
-# fix issue: https://github.com/HabanaAI/Setup_and_Install/issues/5
-sed -i "s#RUN ./install_efa.sh#RUN /bin/bash ./install_efa.sh#g" ./Dockerfile.ubuntu20.04
+cp $SCRIPT_DIR/Dockerfile.ubuntu20.04 ./Dockerfile.ubuntu20.04
 
 make build BUILD_OS=$BUILD_OS
 
