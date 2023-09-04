@@ -28,13 +28,13 @@ ENV PIP_DISABLE_PIP_VERSION_CHECK=1
 
 COPY requirements.txt /tmp/requirements.txt
 RUN pip --no-cache-dir install -r /tmp/requirements.txt \
-    && rm /tmp/requirements.txt \
+    && sudo rm /tmp/requirements.txt \
     && pip --no-cache-dir install habana_media_loader=="${VERSION}"."${REVISION}"
 
 # PyTorch packages
 COPY install_packages.sh .
 RUN export PIP_NO_CACHE_DIR=on && \
-    sudo /bin/bash ./install_packages.sh && rm -f install_packages.sh && \
+    /bin/bash ./install_packages.sh && rm -f install_packages.sh && \
     sudo /sbin/ldconfig && echo "source /etc/profile.d/habanalabs.sh" >> ~/.bashrc
 
 ENV LD_PRELOAD=/lib/x86_64-linux-gnu/libtcmalloc.so.4
