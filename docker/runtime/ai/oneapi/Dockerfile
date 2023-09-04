@@ -25,7 +25,7 @@ RUN wget -O- https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRO
 
 WORKDIR /home/cloudtik/
 COPY requirements.txt /tmp/requirements.txt
-RUN export PATH="$HOME/anaconda3/envs/$CLOUDTIK_ENV/bin:$PATH" \
+RUN export PATH="$CONDA_ROOT/envs/$CLOUDTIK_ENV/bin:$PATH" \
     # Install deep learning libraries (Tensorflow, Keras)
     && pip --no-cache-dir install -r /tmp/requirements.txt \
     && sudo rm /tmp/requirements.txt \
@@ -33,7 +33,7 @@ RUN export PATH="$HOME/anaconda3/envs/$CLOUDTIK_ENV/bin:$PATH" \
     && pip --no-cache-dir install torch==1.13.1 torchvision==0.14.1 \
         --extra-index-url https://download.pytorch.org/whl/cpu \
     # Install Jemalloc and intel-openmp for better performance for Intel Extension for PyTorch
-    && conda install jemalloc intel-openmp -p $HOME/anaconda3/envs/$CLOUDTIK_ENV -y \
+    && conda install jemalloc intel-openmp -p $CONDA_ROOT/envs/$CLOUDTIK_ENV -y \
     && conda clean -itqy \
     # Install Intel Extension for PyTorch and oneCCL binding
     && pip --no-cache-dir install intel-extension-for-pytorch==1.13.100+cpu \

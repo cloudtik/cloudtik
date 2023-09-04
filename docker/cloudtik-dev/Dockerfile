@@ -13,6 +13,6 @@ COPY git-rev ./git-rev
 RUN tar -xf /tmp/cloudtik.tar && sudo chown -R cloudtik:users /cloudtik && git init \
     && bash build.sh
 WORKDIR /cloudtik/python/
-RUN export PATH="$HOME/anaconda3/envs/$CLOUDTIK_ENV/bin:$PATH" \
+RUN export PATH="$CONDA_ROOT/envs/$CLOUDTIK_ENV/bin:$PATH" \
     && pip install -e .
 WORKDIR /cloudtik

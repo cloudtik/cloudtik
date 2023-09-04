@@ -68,7 +68,7 @@ RUN wget ${CLOUDTIK_DOWNLOADS}/spark/spark-${SPARK_VERSION}-bin-hadoop3.tgz -O s
 # Install python packages
 WORKDIR /home/cloudtik/
 COPY requirements.txt /tmp/requirements.txt
-RUN export PATH="$HOME/anaconda3/envs/${CLOUDTIK_ENV}/bin:$PATH" \
+RUN export PATH="$CONDA_ROOT/envs/$CLOUDTIK_ENV/bin:$PATH" \
     && pip --no-cache-dir install -r /tmp/requirements.txt \
     && sudo rm /tmp/requirements.txt \
     && python -m spylon_kernel install --user

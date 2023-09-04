@@ -3,7 +3,7 @@ FROM cloudtik/spark-ai-base:"$BASE_IMAGE"
 
 WORKDIR /home/cloudtik/
 COPY requirements.txt /tmp/requirements.txt
-RUN export PATH="$HOME/anaconda3/envs/$CLOUDTIK_ENV/bin:$PATH" \
+RUN export PATH="$CONDA_ROOT/envs/$CLOUDTIK_ENV/bin:$PATH" \
     # Install deep learning libraries (Tensorflow, Keras)
     && pip --no-cache-dir install -r /tmp/requirements.txt \
     && sudo rm /tmp/requirements.txt \

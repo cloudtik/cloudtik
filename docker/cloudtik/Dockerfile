@@ -6,6 +6,6 @@ ENV LC_ALL=C.UTF-8
 ENV LANG=C.UTF-8
 
 COPY $WHEEL_PATH .
-RUN export PATH="$HOME/anaconda3/envs/$CLOUDTIK_ENV/bin:$PATH" \
+RUN export PATH="$CONDA_ROOT/envs/$CLOUDTIK_ENV/bin:$PATH" \
     && pip --no-cache-dir install `basename $WHEEL_PATH`[all] \
     && sudo rm `basename $WHEEL_PATH`
