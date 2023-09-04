@@ -29,7 +29,7 @@ from cloudtik.core._private.call_context import CallContext
 from cloudtik.core._private.cli_logger import cli_logger, cf
 from cloudtik.core._private.cluster.cluster_metrics import ClusterMetricsSummary
 from cloudtik.core._private.concurrent_cache import ConcurrentObjectCache
-from cloudtik.core._private.constants import CLOUDTIK_WHEELS, CLOUDTIK_CLUSTER_PYTHON_VERSION, \
+from cloudtik.core._private.constants import CLOUDTIK_WHEELS, \
     CLOUDTIK_DEFAULT_MAX_WORKERS, CLOUDTIK_NODE_SSH_INTERVAL_S, CLOUDTIK_NODE_START_WAIT_S, MAX_PARALLEL_EXEC_NODES, \
     CLOUDTIK_CLUSTER_URI_TEMPLATE, CLOUDTIK_RUNTIME_NAME, CLOUDTIK_RUNTIME_ENV_NODE_IP, CLOUDTIK_RUNTIME_ENV_HEAD_IP, \
     CLOUDTIK_DEFAULT_PORT, CLOUDTIK_REDIS_DEFAULT_PASSWORD, \
@@ -1122,8 +1122,25 @@ def filter_commands_of_runtimes(commands_to_run, runtimes: Optional[List[str]] =
     return runtime_commands
 
 
-def get_default_cloudtik_wheel_url() -> str:
-    python_tag = CLOUDTIK_CLUSTER_PYTHON_VERSION.replace(".", "")
+def get_default_python_version(config):
+    python_version = config.get("python_version")
+    if not python_version:
+        # if python version is not specified explicitly, use the current running version
+        python_version = ".".join(map(str, sys.version_info[:3]))
+    return python_version
+
+
+def get_python_tag_from_version(version):
+    parts = version.split('.')
+    if len(parts) < 2 or len(parts) > 3:
+        raise ValueError("Invalid python version: {}. "
+                         "Must specify the major and minor version.".format(version))
+    return "{}{}".format(parts[0], parts[1])
+
+
+def get_default_cloudtik_wheel_url(config) -> str:
+    python_version = get_default_python_version(config)
+    python_tag = get_python_tag_from_version(python_version)
     wheel_url = CLOUDTIK_WHEELS
     wheel_url += "/cloudtik-"
     wheel_url += cloudtik.__version__
@@ -1157,7 +1174,7 @@ def get_cloudtik_setup_command(config) -> str:
     setup_command = "which cloudtik >/dev/null 2>&1 || "
     setup_command += get_pip_install_command(provider_type, wheel_url)
     if not wheel_url:
-        default_wheel_url = get_default_cloudtik_wheel_url()
+        default_wheel_url = get_default_cloudtik_wheel_url(config)
         setup_command += " || "
         setup_command += get_pip_install_command(provider_type, default_wheel_url)
 
