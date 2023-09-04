@@ -114,7 +114,6 @@ For example, list the items under $USER directory as below.
 
 ```
 $ cloudtik exec /path/to/your-cluster-config.yaml ls
-anaconda3  cloudtik_bootstrap_config.yaml  cloudtik_bootstrap_key.pem  jupyter  runtime
 ```
 
 Execute commands on specified worker node 

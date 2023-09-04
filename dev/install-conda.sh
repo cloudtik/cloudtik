@@ -6,6 +6,6 @@ conda_download_url="https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-
 wget \
         --quiet ${conda_download_url} \
         -O /tmp/miniconda.sh \
-    && /bin/bash /tmp/miniconda.sh -b -u -p $HOME/anaconda3 \
-    && $HOME/anaconda3/bin/conda init \
+    && /bin/bash /tmp/miniconda.sh -b -u -p $HOME/miniconda \
+    && $HOME/miniconda/bin/conda init \
     && rm /tmp/miniconda.sh \

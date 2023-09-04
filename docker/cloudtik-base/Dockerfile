@@ -4,14 +4,14 @@
 ARG BASE_IMAGE="ubuntu:focal"
 FROM ${BASE_IMAGE}
 # FROM directive resets ARG
-ENV TZ=America/Los_Angeles
-ENV PATH="/home/cloudtik/anaconda3/bin:$PATH"
 ARG DEBIAN_FRONTEND=noninteractive
 ARG PYTHON_VERSION=3.8
 ARG CPU_ARCH=${CPU_ARCH:-x86_64}
 ARG CONDA_ENV_NAME=cloudtik
 ARG CLOUDTIK_UID=1000
 ARG CLOUDTIK_GID=100
+
+ENV TZ=America/Los_Angeles
 
 RUN apt-get update -y \
     && apt-get install -y sudo tzdata \
@@ -22,7 +22,10 @@ RUN apt-get update -y \
     && apt-get clean
 
 USER $CLOUDTIK_UID
+
 ENV HOME=/home/cloudtik
+ENV CONDA_ROOT=$HOME/miniconda
+ENV PATH=$CONDA_ROOT/bin:$PATH
 ENV CLOUDTIK_ENV=$CONDA_ENV_NAME
 
 SHELL ["/bin/bash", "-c"]
@@ -45,11 +48,11 @@ RUN sudo apt-get update -y && sudo apt-get upgrade -y \
     && wget \
         --quiet "https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-${CPU_ARCH}.sh" \
         -O /tmp/miniconda.sh \
-    && /bin/bash /tmp/miniconda.sh -b -u -p $HOME/anaconda3 \
-    && $HOME/anaconda3/bin/conda init \ 
-    && echo 'export CONDA_ROOT=$HOME/anaconda3' >> $HOME/.bashrc \
+    && /bin/bash /tmp/miniconda.sh -b -u -p $CONDA_ROOT \
+    && $CONDA_ROOT/bin/conda init \
+    && echo 'export CONDA_ROOT=$HOME/miniconda' >> $HOME/.bashrc \
     && echo "export CLOUDTIK_ENV=$CLOUDTIK_ENV" >> $HOME/.bashrc \
-    && echo 'export PATH=$HOME/anaconda3/bin:$PATH' >> $HOME/.bashrc \
+    && echo 'export PATH=${CONDA_ROOT}/bin:$PATH' >> $HOME/.bashrc \
     && rm /tmp/miniconda.sh \
     # Install kubectl
     && wget -O - -q https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add - \
@@ -63,15 +66,15 @@ RUN sudo apt-get update -y && sudo apt-get upgrade -y \
     && sudo apt-get clean
 
 RUN if [[ "${PYTHON_VERSION}" = "3.11" || "${PYTHON_VERSION}" =~ ^3\.11\. ]]; then \
-        $HOME/anaconda3/bin/conda create -n $CLOUDTIK_ENV -y python=$PYTHON_VERSION; \
+        $CONDA_ROOT/bin/conda create -n $CLOUDTIK_ENV -y python=$PYTHON_VERSION; \
     else \
         # Conda issue #12287: ping libffi=3.3 for python version below 3.11
         # TODO: Remove libffi=3.3 once it is resolved
-        $HOME/anaconda3/bin/conda create -n $CLOUDTIK_ENV -y libffi=3.3 python=$PYTHON_VERSION; \
+        $CONDA_ROOT/bin/conda create -n $CLOUDTIK_ENV -y libffi=3.3 python=$PYTHON_VERSION; \
     fi \
-    && $HOME/anaconda3/bin/conda clean -itqy
-ENV CONDA_ROOT=$HOME/anaconda3
-ENV PATH=$HOME/anaconda3/envs/$CLOUDTIK_ENV/bin:$PATH
+    && $CONDA_ROOT/bin/conda clean -itqy
+
+ENV PATH=$CONDA_ROOT/envs/$CLOUDTIK_ENV/bin:$PATH
 ENV CLOUDTIK_DOWNLOADS="https://d30257nes7d4fq.cloudfront.net/downloads"
 
 WORKDIR $HOME
