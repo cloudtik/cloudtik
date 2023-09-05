@@ -12,6 +12,17 @@ function cleanup_oneapi_repository() {
     sudo rm -f /etc/apt/sources.list.d/oneAPI.list
 }
 
+function install_oneapi_mpi() {
+    echo "Installing Intel MPI..."
+    ONEAPI_MPI_HOME=/opt/intel/oneapi/mpi
+    if [ ! -d "${ONEAPI_MPI_HOME}" ]; then
+        sudo DEBIAN_FRONTEND=noninteractive apt-get -qq install -y \
+          intel-oneapi-mpi-2021.8.0 intel-oneapi-mpi-devel-2021.8.0 > /dev/null
+        echo "if [ -f '/opt/intel/oneapi/mpi/latest/env/vars.sh' ]; then . '/opt/intel/oneapi/mpi/latest/env/vars.sh'; fi" >> ~/.bashrc
+    fi
+    source ${ONEAPI_MPI_HOME}/latest/env/vars.sh
+}
+
 function install_oneapi_ccl() {
     echo "Installing oneCCL..."
     ONEAPI_COMPILER_HOME=/opt/intel/oneapi/compiler
@@ -51,17 +62,6 @@ function install_ipex() {
     conda install jemalloc intel-openmp -p ${CLOUDTIK_ENV_ROOT} -y > /dev/null
     pip --no-cache-dir -qq install intel-extension-for-pytorch==1.13.100+cpu \
         oneccl_bind_pt==1.13.0+cpu -f https://developer.intel.com/ipex-whl-stable-cpu
-}
-
-function install_oneapi_mpi() {
-    echo "Installing Intel MPI..."
-    ONEAPI_MPI_HOME=/opt/intel/oneapi/mpi
-    if [ ! -d "${ONEAPI_MPI_HOME}" ]; then
-        sudo DEBIAN_FRONTEND=noninteractive apt-get -qq install -y \
-          intel-oneapi-mpi-2021.8.0 intel-oneapi-mpi-devel-2021.8.0 > /dev/null
-        echo "if [ -f '/opt/intel/oneapi/mpi/latest/env/vars.sh' ]; then . '/opt/intel/oneapi/mpi/latest/env/vars.sh'; fi" >> ~/.bashrc
-    fi
-    source ${ONEAPI_MPI_HOME}/latest/env/vars.sh
 }
 
 function install_ai_oneapi() {
