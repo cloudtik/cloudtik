@@ -24,8 +24,6 @@ export RUNTIME_PATH=$USER_HOME/runtime
 function install_tools() {
     which jq > /dev/null || (sudo apt-get -qq update -y > /dev/null; \
       sudo DEBIAN_FRONTEND=noninteractive apt-get -qq install jq -y > /dev/null)
-    which vim > /dev/null || (sudo apt-get -qq update -y > /dev/null; \
-      sudo DEBIAN_FRONTEND=noninteractive apt-get -qq install vim -y > /dev/null)
 }
 
 set_head_option "$@"
