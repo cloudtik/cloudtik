@@ -1,0 +1,98 @@
+#!/bin/bash
+
+# Current bin directory
+BIN_DIR=`dirname "$0"`
+ROOT_DIR="$(dirname "$(dirname "$BIN_DIR")")"
+
+args=$(getopt -a -o h:: -l head:: -- "$@")
+eval set -- "${args}"
+
+USER_HOME=/home/$(whoami)
+RUNTIME_PATH=$USER_HOME/runtime
+
+# Util functions
+. "$ROOT_DIR"/common/scripts/util-functions.sh
+
+# Hadoop cloud credential configuration functions
+. "$ROOT_DIR"/common/scripts/hadoop-cloud-credential.sh
+
+function prepare_base_conf() {
+    source_dir=$(dirname "${BIN_DIR}")/conf
+    output_dir=/tmp/yarn/conf
+    rm -rf  $output_dir
+    mkdir -p $output_dir
+    cp -r $source_dir/* $output_dir
+}
+
+function check_hadoop_installed() {
+    if [ ! -n "${HADOOP_HOME}" ]; then
+        echo "Hadoop is not installed. HADOOP_HOME environment variable is not set."
+        exit 1
+    fi
+}
+
+function set_resources_for_yarn() {
+    # For nodemanager
+    memory_ratio=0.8
+    if [ ! -z "${YARN_RESOURCE_MEMORY_RATIO}" ]; then
+        memory_ratio=${YARN_RESOURCE_MEMORY_RATIO}
+    fi
+    total_memory=$(awk -v ratio=${memory_ratio} -v total_physical_memory=$(cloudtik node resources --memory --in-mb) 'BEGIN{print ratio * total_physical_memory}')
+    total_memory=${total_memory%.*}
+    total_vcores=$(cloudtik node resources --cpu)
+
+    # For Head Node
+    if [ $IS_HEAD_NODE == "true" ]; then
+        yarn_container_maximum_vcores=$(cat ~/cloudtik_bootstrap_config.yaml | jq '."runtime"."yarn"."yarn_container_resource"."yarn_container_maximum_vcores"')
+        yarn_container_maximum_memory=$(cat ~/cloudtik_bootstrap_config.yaml | jq '."runtime"."yarn"."yarn_container_resource"."yarn_container_maximum_memory"')
+    fi
+}
+
+function update_yarn_config() {
+    yarn_scheduler_class="org.apache.hadoop.yarn.server.resourcemanager.scheduler.capacity.CapacityScheduler"
+    if [ "${YARN_SCHEDULER}" == "fair" ];then
+        yarn_scheduler_class="org.apache.hadoop.yarn.server.resourcemanager.scheduler.fair.FairScheduler"
+    fi
+    sed -i "s/{%yarn.resourcemanager.scheduler.class%}/${yarn_scheduler_class}/g" $yarn_config_file
+    if [ $IS_HEAD_NODE == "true" ];then
+        sed -i "s/{%yarn.scheduler.maximum-allocation-mb%}/${yarn_container_maximum_memory}/g" $yarn_config_file
+        sed -i "s/{%yarn.scheduler.maximum-allocation-vcores%}/${yarn_container_maximum_vcores}/g" $yarn_config_file
+        sed -i "s/{%yarn.nodemanager.resource.memory-mb%}/${yarn_container_maximum_memory}/g" $yarn_config_file
+        sed -i "s/{%yarn.nodemanager.resource.cpu-vcores%}/${yarn_container_maximum_vcores}/g" $yarn_config_file
+    else
+        sed -i "s/{%yarn.scheduler.maximum-allocation-mb%}/${total_memory}/g" $yarn_config_file
+        sed -i "s/{%yarn.scheduler.maximum-allocation-vcores%}/${total_vcores}/g" $yarn_config_file
+        sed -i "s/{%yarn.nodemanager.resource.memory-mb%}/${total_memory}/g" $yarn_config_file
+        sed -i "s/{%yarn.nodemanager.resource.cpu-vcores%}/${total_vcores}/g" $yarn_config_file
+    fi
+}
+
+function update_data_disks_config() {
+    # set nodemanager.local-dirs
+    nodemanager_local_dirs=$(get_data_disk_dirs)
+    if [ -z "$nodemanager_local_dirs" ]; then
+        nodemanager_local_dirs="${HADOOP_HOME}/data/nodemanager/local-dir"
+    fi
+    sed -i "s!{%yarn.nodemanager.local-dirs%}!${nodemanager_local_dirs}!g" $yarn_config_file
+}
+
+function configure_yarn() {
+    prepare_base_conf
+    mkdir -p ${HADOOP_HOME}/logs
+    yarn_config_file=${output_dir}/hadoop/yarn-site.xml
+
+    sed -i "s/HEAD_ADDRESS/${HEAD_ADDRESS}/g" $yarn_config_file
+
+    set_resources_for_yarn
+    update_yarn_config
+    update_data_disks_config
+
+    cp -r $yarn_config_file ${HADOOP_HOME}/etc/hadoop/
+}
+
+set_head_option "$@"
+check_hadoop_installed
+set_head_address
+configure_yarn
+
+exit 0
