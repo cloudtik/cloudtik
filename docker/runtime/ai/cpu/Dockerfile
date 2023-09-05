@@ -1,5 +1,6 @@
-ARG BASE_IMAGE="nightly"
-FROM cloudtik/spark-ai-base:"$BASE_IMAGE"
+ARG BASE_PREFIX=""
+ARG BASE_TAG="nightly"
+FROM cloudtik/${BASE_PREFIX}ai-base:$BASE_TAG
 
 WORKDIR /home/cloudtik/
 COPY requirements.txt /tmp/requirements.txt

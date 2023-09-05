@@ -1,5 +1,5 @@
-ARG BASE_IMAGE="nightly"
-FROM cloudtik/spark-runtime:"$BASE_IMAGE"
+ARG BASE_TAG="nightly"
+FROM cloudtik/spark-runtime:$BASE_TAG
 
 ARG ZOOKEEPER_VERSION=3.7.1
 ARG KAFKA_VERSION=3.5.1

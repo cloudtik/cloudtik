@@ -1,5 +1,5 @@
-ARG BASE_IMAGE="nightly"
-FROM cloudtik/spark-ai-runtime:"$BASE_IMAGE"
+ARG BASE_TAG="nightly"
+FROM cloudtik/spark-ai-runtime:$BASE_TAG
 
 COPY requirements.txt /tmp/requirements.txt
 RUN export PATH="$CONDA_ROOT/envs/$CLOUDTIK_ENV/bin:$PATH" \

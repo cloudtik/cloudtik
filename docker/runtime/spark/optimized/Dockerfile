@@ -1,5 +1,5 @@
-ARG BASE_IMAGE="nightly"
-FROM cloudtik/cloudtik:"$BASE_IMAGE"
+ARG BASE_TAG="nightly"
+FROM cloudtik/cloudtik:$BASE_TAG
 
 ARG NODE_EXPORTER_VERSION=1.6.1
 ARG PROMETHEUS_VERSION=2.45.0
