@@ -1,5 +1,5 @@
-ARG BASE_IMAGE="nightly"
-FROM cloudtik/cloudtik-deps:"$BASE_IMAGE"
+ARG BASE_TAG="nightly"
+FROM cloudtik/cloudtik-deps:$BASE_TAG
 
 ENV RUNTIME_PATH /home/cloudtik/runtime
 RUN mkdir -p $RUNTIME_PATH

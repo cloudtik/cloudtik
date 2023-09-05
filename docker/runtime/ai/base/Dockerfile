@@ -1,5 +1,6 @@
-ARG BASE_IMAGE="nightly"
-FROM cloudtik/spark-runtime:"$BASE_IMAGE"
+ARG BASE_NAME="cloudtik-deps"
+ARG BASE_TAG="nightly"
+FROM cloudtik/$BASE_NAME:$BASE_TAG
 
 RUN sudo apt-get update -y \
     && sudo apt-get install -y \

@@ -1,5 +1,6 @@
-ARG BASE_IMAGE="nightly"
-FROM cloudtik/spark-ai-base:"$BASE_IMAGE"
+ARG BASE_PREFIX=""
+ARG BASE_TAG="nightly"
+FROM cloudtik/${BASE_PREFIX}ai-base:$BASE_TAG
 
 RUN wget -O- https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB \
         | gpg --dearmor | sudo tee /usr/share/keyrings/oneapi-archive-keyring.gpg > /dev/null \

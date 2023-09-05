@@ -1,5 +1,5 @@
-ARG BASE_IMAGE="nightly"
-FROM cloudtik/cloudtik-base:"$BASE_IMAGE"
+ARG BASE_TAG="nightly"
+FROM cloudtik/cloudtik-base:$BASE_TAG
 ARG WHEEL_PATH
 # For Click
 ENV LC_ALL=C.UTF-8
