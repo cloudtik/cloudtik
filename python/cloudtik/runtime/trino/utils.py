@@ -2,12 +2,11 @@ import os
 from typing import Any, Dict
 
 from cloudtik.core._private.core_utils import double_quote
-from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_METASTORE, BUILT_IN_RUNTIME_TRINO
+from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_TRINO
 from cloudtik.core._private.service_discovery.utils import get_canonical_service_name, define_runtime_service_on_head, \
     get_service_discovery_config, SERVICE_DISCOVERY_FEATURE_ANALYTICS
 from cloudtik.core._private.utils import \
-    get_node_type, get_resource_of_node_type, get_runtime_config
-from cloudtik.runtime.common.service_discovery.cluster import has_runtime_in_cluster
+    get_node_type, get_resource_of_node_type
 from cloudtik.runtime.common.service_discovery.runtime_discovery import \
     discover_metastore_from_workspace, discover_metastore_on_head, METASTORE_URI_KEY
 
@@ -75,11 +74,6 @@ def _with_runtime_environment_variables(
         runtime_config, config, provider, node_id: str):
     runtime_envs = {"TRINO_ENABLED": True}
     trino_config = _get_config(runtime_config)
-    cluster_runtime_config = get_runtime_config(config)
-
-    if has_runtime_in_cluster(
-            cluster_runtime_config, BUILT_IN_RUNTIME_METASTORE):
-        runtime_envs["METASTORE_ENABLED"] = True
 
     _with_memory_configurations(
         runtime_envs, trino_config=trino_config,
