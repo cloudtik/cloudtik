@@ -6,7 +6,7 @@ from cloudtik.core._private.cli_logger import cli_logger
 from cloudtik.core._private.cluster.cluster_config import _load_cluster_config
 from cloudtik.core._private.cluster.cluster_tunnel_request import _request_rest_to_head
 from cloudtik.core._private.core_utils import double_quote, get_env_string_value
-from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_HDFS, BUILT_IN_RUNTIME_METASTORE, \
+from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_HDFS, \
     BUILT_IN_RUNTIME_SPARK
 from cloudtik.core._private.service_discovery.runtime_services import get_service_discovery_runtime
 from cloudtik.core._private.service_discovery.utils import get_canonical_service_name, define_runtime_service_on_head, \
@@ -278,16 +278,7 @@ def _with_runtime_environment_variables(
     if yarn_scheduler:
         runtime_envs["YARN_SCHEDULER"] = yarn_scheduler
 
-    # We now support co-existence of local HDFS and remote HDFS, and cloud storage
-    if has_runtime_in_cluster(
-            cluster_runtime_config, BUILT_IN_RUNTIME_HDFS):
-        runtime_envs["HDFS_ENABLED"] = True
-
     _with_hdfs_mount_method(spark_config, runtime_envs)
-
-    if has_runtime_in_cluster(
-            cluster_runtime_config, BUILT_IN_RUNTIME_METASTORE):
-        runtime_envs["METASTORE_ENABLED"] = True
     return runtime_envs
 
 
