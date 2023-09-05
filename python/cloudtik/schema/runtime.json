@@ -287,6 +287,62 @@
                 }
             }
         },
+        "yarn": {
+            "type": "object",
+            "description": "Hadoop YARN runtime configurations",
+            "additionalProperties": true,
+            "properties": {
+                "scaling:": {
+                    "type": "object",
+                    "description": "YARN scaling configurations",
+                    "additionalProperties": true,
+                    "properties": {
+                        "scaling_mode": {
+                            "type": "string",
+                            "description": "The YARN scaling mode. Values: apps-pending, aggressive"
+                        },
+                        "scaling_step": {
+                            "type": "integer",
+                            "default": 1,
+                            "description": "The number of nodes for each scale up step."
+                        },
+                        "scaling_resource": {
+                            "type": "string",
+                            "default": "memory",
+                            "description": "The resource type to check for scale: CPU or memory"
+                        },
+                        "apps_pending_threshold": {
+                            "type": "integer",
+                            "default": 1,
+                            "description": "The number of pending apps threshold to trigger scaling."
+                        },
+                        "apps_pending_free_cores_threshold": {
+                            "type": "integer",
+                            "default": 4,
+                            "description": "The number of free cores threshold below which to trigger scaling."
+                        },
+                        "apps_pending_free_memory_threshold": {
+                            "type": "integer",
+                            "default": 1024,
+                            "description": "The size of free memory threshold in MB below which to trigger scaling."
+                        },
+                        "aggressive_free_ratio_threshold": {
+                            "type": "number",
+                            "default": 0.1,
+                            "description": "The free cpu or memory ratio below which to trigger scaling for aggressive mode."
+                        }
+                    }
+                },
+                "yarn_resource_memory_ratio": {
+                    "type": "number",
+                    "description": "The yarn node virtual memory ratio vs the available physical memory."
+                },
+                "yarn_scheduler": {
+                    "type": "string",
+                    "description": "The yarn scheduler to use: capacity or fair"
+                }
+            }
+        },
         "ray": {
             "type": "object",
             "description": "Ray runtime configurations",
