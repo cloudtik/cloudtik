@@ -1,5 +1,6 @@
-ARG BASE_IMAGE="nightly"
-FROM cloudtik/cloudtik-deps:"$BASE_IMAGE"
+ARG BASE_PREFIX=""
+ARG BASE_TAG="nightly"
+FROM cloudtik/${BASE_PREFIX}ai-base:$BASE_TAG
 
 ARG VERSION="1.11.0"
 ARG REVISION="587"
