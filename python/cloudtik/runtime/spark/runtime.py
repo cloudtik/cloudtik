@@ -1,8 +1,8 @@
 import logging
 from typing import Any, Dict, Optional, List
 
-from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_METASTORE, BUILT_IN_RUNTIME_HDFS, \
-    BUILT_IN_RUNTIME_YARN
+from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_METASTORE, \
+    BUILT_IN_RUNTIME_YARN, BUILT_IN_RUNTIME_HADOOP
 from cloudtik.core.node_provider import NodeProvider
 from cloudtik.runtime.common.runtime_base import RuntimeBase
 from cloudtik.runtime.spark.utils import _config_runtime_resources, _with_runtime_environment_variables, \
@@ -91,8 +91,8 @@ class SparkRuntime(RuntimeBase):
 
     @staticmethod
     def get_dependencies():
-        return [BUILT_IN_RUNTIME_HDFS, BUILT_IN_RUNTIME_METASTORE]
+        return [BUILT_IN_RUNTIME_METASTORE]
 
     @staticmethod
     def get_required():
-        return [BUILT_IN_RUNTIME_YARN]
+        return [BUILT_IN_RUNTIME_YARN, BUILT_IN_RUNTIME_HADOOP]

@@ -173,28 +173,6 @@
                     "type": "object",
                     "description": "Map of spark configurations, e.g. {\"spark.executor.cores\": \"45\"}"
                 },
-                "hadoop_default_cluster": {
-                    "type": "boolean",
-                    "description": "Whether to set Hadoop default to cluster storage if available.",
-                    "default": false
-                },
-                "hdfs_service_discovery": {
-                    "type": "boolean",
-                    "description": "Whether to discover and use HDFS service in the same workspace.",
-                    "default": false
-                },
-                "hdfs_service_selector": {
-                    "$ref": "#/definitions/service_selector",
-                    "description": "The selector for HDFS service if service discovery is enabled."
-                },
-                "hdfs_namenode_uri": {
-                    "type": "string",
-                    "description": "HDFS service endpoint if Spark need to access HDFS."
-                },
-                "hdfs_mount_method": {
-                    "type": "string",
-                    "description": "HDFS mount method: nfs or fuse. Default fuse if not specified."
-                },
                 "metastore_service_discovery": {
                     "type": "boolean",
                     "description": "Whether to discover and use metastore service in the same workspace.",
@@ -235,6 +213,35 @@
                 "database_service_selector": {
                     "$ref": "#/definitions/service_selector",
                     "description": "The selector for database service if service discovery is enabled."
+                }
+            }
+        },
+        "hadoop": {
+            "type": "object",
+            "description": "Hadoop Client runtime configurations",
+            "additionalProperties": true,
+            "properties": {
+                "hadoop_default_cluster": {
+                    "type": "boolean",
+                    "description": "Whether to set Hadoop default to cluster storage if available.",
+                    "default": false
+                },
+                "hdfs_service_discovery": {
+                    "type": "boolean",
+                    "description": "Whether to discover and use HDFS service in the same workspace.",
+                    "default": false
+                },
+                "hdfs_service_selector": {
+                    "$ref": "#/definitions/service_selector",
+                    "description": "The selector for HDFS service if service discovery is enabled."
+                },
+                "hdfs_namenode_uri": {
+                    "type": "string",
+                    "description": "HDFS service endpoint if Spark need to access HDFS."
+                },
+                "hdfs_mount_method": {
+                    "type": "string",
+                    "description": "HDFS mount method: nfs or fuse. Default fuse if not specified."
                 }
             }
         },
@@ -322,24 +329,14 @@
                     "type": "object",
                     "description": "Map of flink configurations"
                 },
-                "hadoop_default_cluster": {
-                    "type": "boolean",
-                    "description": "Whether to set Hadoop default to cluster storage if available.",
-                    "default": false
-                },
-                "hdfs_service_discovery": {
-                    "type": "boolean",
-                    "description": "Whether to discover and use HDFS service in the same workspace.",
-                    "default": false
-                },
-                "hdfs_namenode_uri": {
-                    "type": "string",
-                    "description": "HDFS service endpoint if Flink need to access HDFS."
-                },
                 "metastore_service_discovery": {
                     "type": "boolean",
                     "description": "Whether to discover and use metastore service in the same workspace.",
                     "default": true
+                },
+                "metastore_service_selector": {
+                    "$ref": "#/definitions/service_selector",
+                    "description": "The selector for Metastore service if service discovery is enabled."
                 },
                 "hive_metastore_uri": {
                     "type": "string",

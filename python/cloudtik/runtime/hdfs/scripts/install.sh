@@ -24,4 +24,3 @@ export RUNTIME_PATH=$USER_HOME/runtime
 set_head_option "$@"
 install_jdk
 install_hadoop
-clean_install_cache
