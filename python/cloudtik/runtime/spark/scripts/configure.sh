@@ -359,12 +359,21 @@ function update_metastore_config() {
     fi
 }
 
+function configure_spark_shuffle() {
+    # We assume other modifications to this list follow the same pattern:
+    # Always add its value before the mapreduce_shuffle value.
+    (! grep -Fq 'spark_shuffle,' ${HADOOP_HOME}/etc/hadoop/yarn-site.xml) && \
+    sed -i "s#mapreduce_shuffle</value>#spark_shuffle,mapreduce_shuffle</value>#g" \
+      ${HADOOP_HOME}/etc/hadoop/yarn-site.xml
+}
+
 function configure_hadoop_and_spark() {
     prepare_base_conf
     SPARK_DEFAULTS=${output_dir}/spark/spark-defaults.conf
 
     sed -i "s/HEAD_ADDRESS/${HEAD_ADDRESS}/g" `grep "HEAD_ADDRESS" -rl ./`
 
+    configure_spark_shuffle
     update_spark_runtime_config
     update_spark_local_dir
     update_config_for_storage
