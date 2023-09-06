@@ -24,7 +24,10 @@ logger = logging.getLogger(__name__)
     type=str,
     help=constants.LOGGER_FORMAT_HELP)
 @click.version_option()
-def cli(logging_level, logging_format):
+def yarn(logging_level, logging_format):
+    """
+    Commands for YARN runtime.
+    """
     level = logging.getLevelName(logging_level.upper())
     logging_utils.setup_logger(level, logging_format)
     cli_logger.set_format(format_tmpl=logging_format)
@@ -44,16 +47,8 @@ def cli(logging_level, logging_format):
     type=str,
     help="The resource endpoint for the YARN rest API")
 @add_click_logging_options
-def yarn(cluster_config_file, cluster_name, endpoint):
+def rest(cluster_config_file, cluster_name, endpoint):
     print_request_rest_yarn(cluster_config_file, cluster_name, endpoint)
 
 
-cli.add_command(yarn)
-
-
-def main():
-    return cli()
-
-
-if __name__ == "__main__":
-    main()
+yarn.add_command(rest)

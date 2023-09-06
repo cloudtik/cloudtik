@@ -26,7 +26,10 @@ logger = logging.getLogger(__name__)
     type=str,
     help=constants.LOGGER_FORMAT_HELP)
 @click.version_option()
-def cli(logging_level, logging_format):
+def flink(logging_level, logging_format):
+    """
+    Commands for Flink runtime.
+    """
     level = logging.getLevelName(logging_level.upper())
     logging_utils.setup_logger(level, logging_format)
     cli_logger.set_format(format_tmpl=logging_format)
@@ -73,13 +76,5 @@ def info(cluster_config_file, cluster_name, default_storage):
             click.echo(default_storage_uri)
 
 
-cli.add_command(jobs)
-cli.add_command(info)
-
-
-def main():
-    return cli()
-
-
-if __name__ == "__main__":
-    main()
+flink.add_command(jobs)
+flink.add_command(info)
