@@ -1,0 +1,2 @@
+# Source by anyone need to HADOOP_FS_DEFAULT
+HADOOP_FS_DEFAULT="{%hadoop.fs.default%}"

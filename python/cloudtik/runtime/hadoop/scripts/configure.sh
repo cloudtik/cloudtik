@@ -201,6 +201,9 @@ function update_config_for_hadoop() {
     update_config_for_hadoop_default
     update_local_storage_config
 
+    sed -i "s!{%hadoop.fs.default%}!${HADOOP_FS_DEFAULT}!g" ${output_dir}/hadoop-fs-default
+    cp ${output_dir}/hadoop-fs-default ${HADOOP_HOME}/etc/hadoop/hadoop-fs-default
+
     if [ "${cloud_storage_provider}" != "none" ];then
         cp -r ${output_dir}/hadoop/${cloud_storage_provider}/core-site.xml ${HADOOP_HOME}/etc/hadoop/
     else

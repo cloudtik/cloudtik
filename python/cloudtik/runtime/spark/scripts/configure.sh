@@ -62,6 +62,11 @@ function update_spark_credential_config() {
 }
 
 function update_spark_storage_dirs() {
+    HADOOP_FS_DEFAULT_FILE=${HADOOP_HOME}/etc/hadoop/hadoop-fs-default
+    if [ -f "${HADOOP_FS_DEFAULT_FILE}" ]; then
+        . ${HADOOP_FS_DEFAULT_FILE}
+    fi
+
     # event log dir
     if [ -z "${HADOOP_FS_DEFAULT}" ]; then
         event_log_dir="file:///tmp/spark-events"
