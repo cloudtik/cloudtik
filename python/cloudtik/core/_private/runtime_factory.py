@@ -23,6 +23,7 @@ BUILT_IN_RUNTIME_NONE = "none"
 
 BUILT_IN_RUNTIME_AI = "ai"
 BUILT_IN_RUNTIME_SPARK = "spark"
+BUILT_IN_RUNTIME_HADOOP = "hadoop"
 BUILT_IN_RUNTIME_YARN = "yarn"
 BUILT_IN_RUNTIME_HDFS = "hdfs"
 BUILT_IN_RUNTIME_METASTORE = "metastore"
@@ -59,6 +60,11 @@ def _import_ai():
 def _import_spark():
     from cloudtik.runtime.spark.runtime import SparkRuntime
     return SparkRuntime
+
+
+def _import_hadoop():
+    from cloudtik.runtime.hadoop.runtime import HadoopRuntime
+    return HadoopRuntime
 
 
 def _import_yarn():
@@ -184,6 +190,7 @@ def _import_apisix():
 _RUNTIMES = {
     BUILT_IN_RUNTIME_AI: _import_ai,
     BUILT_IN_RUNTIME_SPARK: _import_spark,
+    BUILT_IN_RUNTIME_HADOOP: _import_hadoop,
     BUILT_IN_RUNTIME_YARN: _import_yarn,
     BUILT_IN_RUNTIME_HDFS: _import_hdfs,
     BUILT_IN_RUNTIME_METASTORE: _import_metastore,

@@ -2,21 +2,16 @@ import os
 from typing import Any, Dict
 
 from cloudtik.core._private.cluster.cluster_tunnel_request import _request_rest_to_head
-from cloudtik.core._private.core_utils import double_quote, get_env_string_value
-from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_HDFS, \
-    BUILT_IN_RUNTIME_SPARK, BUILT_IN_RUNTIME_YARN
-from cloudtik.core._private.service_discovery.runtime_services import get_service_discovery_runtime
+from cloudtik.core._private.core_utils import double_quote
+from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_SPARK, BUILT_IN_RUNTIME_YARN
 from cloudtik.core._private.service_discovery.utils import get_canonical_service_name, define_runtime_service_on_head, \
     get_service_discovery_config, SERVICE_DISCOVERY_PROTOCOL_HTTP
 from cloudtik.core._private.utils import \
     round_memory_size_to_gb, load_head_cluster_config, \
-    RUNTIME_CONFIG_KEY, load_properties_file, save_properties_file, is_use_managed_cloud_storage, \
-    get_config_for_update, get_runtime_config, PROVIDER_STORAGE_CONFIG_KEY, \
+    RUNTIME_CONFIG_KEY, load_properties_file, save_properties_file, get_config_for_update, get_runtime_config, \
     get_node_type_resources
-from cloudtik.runtime.common.service_discovery.cluster import has_runtime_in_cluster
 from cloudtik.runtime.common.service_discovery.runtime_discovery import \
-    discover_metastore_on_head, discover_hdfs_on_head, discover_hdfs_from_workspace, \
-    discover_metastore_from_workspace, is_hdfs_service_discovery, HDFS_URI_KEY, METASTORE_URI_KEY
+    discover_metastore_on_head, discover_metastore_from_workspace, METASTORE_URI_KEY
 from cloudtik.runtime.common.utils import get_runtime_endpoints_of, get_runtime_default_storage_of
 
 RUNTIME_PROCESSES = [
@@ -86,8 +81,6 @@ def get_spark_executor_overhead(spark_executor_memory_all: int) -> int:
 
 
 def _config_depended_services(cluster_config: Dict[str, Any]) -> Dict[str, Any]:
-    cluster_config = discover_hdfs_from_workspace(
-        cluster_config, BUILT_IN_RUNTIME_SPARK)
     cluster_config = discover_metastore_from_workspace(
         cluster_config, BUILT_IN_RUNTIME_SPARK)
 
@@ -95,8 +88,6 @@ def _config_depended_services(cluster_config: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def _prepare_config_on_head(cluster_config: Dict[str, Any]):
-    cluster_config = discover_hdfs_on_head(
-        cluster_config, BUILT_IN_RUNTIME_SPARK)
     cluster_config = discover_metastore_on_head(
         cluster_config, BUILT_IN_RUNTIME_SPARK)
 
@@ -224,17 +215,6 @@ def _with_runtime_environment_variables(
 
 def _configure(runtime_config, head: bool):
     spark_config = _get_config(runtime_config)
-
-    hadoop_default_cluster = spark_config.get(
-        "hadoop_default_cluster", False)
-    if hadoop_default_cluster:
-        os.environ["HADOOP_DEFAULT_CLUSTER"] = get_env_string_value(
-            hadoop_default_cluster)
-
-    hdfs_uri = spark_config.get(HDFS_URI_KEY)
-    if hdfs_uri:
-        os.environ["HDFS_NAMENODE_URI"] = hdfs_uri
-
     metastore_uri = spark_config.get(METASTORE_URI_KEY)
     if metastore_uri:
         os.environ["HIVE_METASTORE_URI"] = metastore_uri
@@ -249,33 +229,8 @@ def get_runtime_logs():
     return all_logs
 
 
-def _is_valid_storage_config(config: Dict[str, Any], final=False):
-    runtime_config = get_runtime_config(config)
-    # if HDFS enabled, we ignore the cloud storage configurations
-    if has_runtime_in_cluster(runtime_config, BUILT_IN_RUNTIME_HDFS):
-        return True
-    # check if there is remote HDFS configured
-    spark_config = _get_config(runtime_config)
-    if spark_config.get(HDFS_URI_KEY) is not None:
-        return True
-
-    # Check any cloud storage is configured
-    provider_config = config["provider"]
-    if (PROVIDER_STORAGE_CONFIG_KEY in provider_config or
-            (not final and is_use_managed_cloud_storage(config))):
-        return True
-
-    # if there is service discovery mechanism, assume we can get from service discovery
-    if (not final and is_hdfs_service_discovery(spark_config) and
-            get_service_discovery_runtime(runtime_config)):
-        return True
-
-    return False
-
-
 def _validate_config(config: Dict[str, Any], final=False):
-    if not _is_valid_storage_config(config, final=final):
-        raise ValueError("No storage configuration found for Spark.")
+    pass
 
 
 def _get_runtime_endpoints(cluster_head_ip):

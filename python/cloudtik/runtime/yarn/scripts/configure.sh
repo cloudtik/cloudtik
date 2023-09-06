@@ -13,9 +13,6 @@ RUNTIME_PATH=$USER_HOME/runtime
 # Util functions
 . "$ROOT_DIR"/common/scripts/util-functions.sh
 
-# Hadoop cloud credential configuration functions
-. "$ROOT_DIR"/common/scripts/hadoop-cloud-credential.sh
-
 function prepare_base_conf() {
     source_dir=$(dirname "${BIN_DIR}")/conf
     output_dir=/tmp/yarn/conf

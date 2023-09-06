@@ -9,9 +9,6 @@ eval set -- "${args}"
 
 USER_HOME=/home/$(whoami)
 
-# Hadoop cloud credential configuration functions
-. "$ROOT_DIR"/common/scripts/hadoop-cloud-credential.sh
-
 # Util functions
 . "$ROOT_DIR"/common/scripts/util-functions.sh
 
@@ -25,7 +22,7 @@ function prepare_base_conf() {
 
 function check_hadoop_installed() {
     if [ ! -n "${HADOOP_HOME}" ]; then
-        echo "HADOOP_HOME environment variable is not set."
+        echo "Hadoop is not installed for HADOOP_HOME environment variable is not set."
         exit 1
     fi
 }
