@@ -1,4 +1,7 @@
+import importlib
 import logging
+import os
+import pkgutil
 from typing import Optional
 
 import click
@@ -22,6 +25,25 @@ from cloudtik.core._private.utils import CLOUDTIK_CLUSTER_SCALING_ERROR, \
 from cloudtik.scripts.utils import NaturalOrderGroup, add_command_alias
 
 logger = logging.getLogger(__name__)
+
+
+def _register_head_runtime_commands():
+    from cloudtik import runtime
+
+    base_dir = os.path.dirname(runtime.__file__)
+    for loader, module_name, is_pkg in pkgutil.walk_packages(runtime.__path__):
+        if not is_pkg:
+            continue
+        scripts_file = os.path.join(base_dir, module_name, "scripts.py")
+        if not os.path.exists(scripts_file):
+            continue
+
+        scripts_module_name = runtime.__name__ + '.' + module_name + "." + "scripts"
+        _module = importlib.import_module(scripts_module_name)
+        command_group_name = module_name + "_on_head"
+        if command_group_name in _module.__dict__:
+            runtime_command_group = _module.__dict__[command_group_name]
+            head.add_command(runtime_command_group)
 
 
 @click.group(cls=NaturalOrderGroup)
@@ -745,9 +767,12 @@ def cluster_dump(hosts: Optional[str] = None,
         silent=silent)
 
 
-@head.command()
+@head.command(hidden=True)
 @add_click_logging_options
 def prepare():
+    """
+    Run a configuration preparation on head.
+    """
     # Note that this is used for head node only
     config = load_head_cluster_config()
     prepare_runtime_config_on_head(config)
@@ -756,7 +781,7 @@ def prepare():
 @click.group(cls=NaturalOrderGroup)
 def runtime():
     """
-    Commands running on head for runtime control
+    Commands running on head for runtime control.
     """
     pass
 
@@ -862,7 +887,6 @@ def runtime_add_command_alias(command, name, hidden):
 
 
 runtime.add_command(start)
-runtime_add_command_alias(start, name="restart", hidden=True)
 runtime.add_command(stop)
 
 # commands running on head node
@@ -892,3 +916,6 @@ head.add_command(resource_metrics)
 head.add_command(health_check)
 head.add_command(cluster_dump)
 head.add_command(prepare)
+
+# dynamic command of runtime
+_register_head_runtime_commands()

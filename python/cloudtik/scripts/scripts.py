@@ -51,8 +51,8 @@ def _register_runtime_commands():
         scripts_module_name = runtime.__name__ + '.' + module_name + "." + "scripts"
         _module = importlib.import_module(scripts_module_name)
         if module_name in _module.__dict__:
-            yarn_command_group = _module.__dict__[module_name]
-            cli.add_command(yarn_command_group)
+            runtime_command_group = _module.__dict__[module_name]
+            cli.add_command(runtime_command_group)
 
 
 @click.group(cls=NaturalOrderGroup)

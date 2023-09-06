@@ -2,35 +2,22 @@ import logging
 
 import click
 
-from cloudtik.core._private import constants
-from cloudtik.core._private import logging_utils
-from cloudtik.core._private.cli_logger import (cli_logger, add_click_logging_options)
-from cloudtik.runtime.yarn.utils import print_request_rest_yarn
+from cloudtik.core._private.cli_logger import (add_click_logging_options)
+from cloudtik.core._private.cluster.cluster_config import _load_cluster_config
+from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_YARN
+from cloudtik.core._private.utils import load_head_cluster_config, print_json_formatted
+from cloudtik.runtime.yarn.utils import request_rest_yarn
+from cloudtik.scripts.utils import NaturalOrderGroup
 
 logger = logging.getLogger(__name__)
 
 
-@click.group()
-@click.option(
-    "--logging-level",
-    required=False,
-    default=constants.LOGGER_LEVEL_INFO,
-    type=str,
-    help=constants.LOGGER_LEVEL_HELP)
-@click.option(
-    "--logging-format",
-    required=False,
-    default=constants.LOGGER_FORMAT,
-    type=str,
-    help=constants.LOGGER_FORMAT_HELP)
-@click.version_option()
-def yarn(logging_level, logging_format):
+@click.group(cls=NaturalOrderGroup)
+def yarn():
     """
     Commands for YARN runtime.
     """
-    level = logging.getLevelName(logging_level.upper())
-    logging_utils.setup_logger(level, logging_format)
-    cli_logger.set_format(format_tmpl=logging_format)
+    pass
 
 
 @click.command()
@@ -48,7 +35,37 @@ def yarn(logging_level, logging_format):
     help="The resource endpoint for the YARN rest API")
 @add_click_logging_options
 def rest(cluster_config_file, cluster_name, endpoint):
-    print_request_rest_yarn(cluster_config_file, cluster_name, endpoint)
+    config = _load_cluster_config(cluster_config_file, cluster_name)
+    _rest(config, endpoint)
+
+
+def _rest(config, endpoint, on_head=False):
+    response = request_rest_yarn(
+        config, endpoint, on_head=on_head)
+    print_json_formatted(response)
 
 
 yarn.add_command(rest)
+
+
+@click.group(name=BUILT_IN_RUNTIME_YARN, cls=NaturalOrderGroup)
+def yarn_on_head():
+    """
+    Commands running on head for YARN runtime.
+    """
+    pass
+
+
+@click.command(name='rest')
+@click.option(
+    "--endpoint",
+    required=False,
+    type=str,
+    help="The resource endpoint for the YARN rest API")
+@add_click_logging_options
+def rest_on_head(endpoint):
+    config = load_head_cluster_config()
+    _rest(config, endpoint, on_head=True)
+
+
+yarn_on_head.add_command(rest_on_head)

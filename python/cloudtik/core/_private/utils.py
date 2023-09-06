@@ -2102,7 +2102,7 @@ def get_head_bootstrap_config():
     bootstrap_config_file = os.path.expanduser("~/cloudtik_bootstrap_config.yaml")
     if os.path.exists(bootstrap_config_file):
         return bootstrap_config_file
-    raise RuntimeError("Cluster boostrap config not found. Incorrect head environment!")
+    raise RuntimeError("Cluster bootstrap config not found. Incorrect head environment!")
 
 
 def load_head_cluster_config() -> Dict[str, Any]:
