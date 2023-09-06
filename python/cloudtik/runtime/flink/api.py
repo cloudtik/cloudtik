@@ -3,7 +3,7 @@
 from typing import Union, Optional
 
 from cloudtik.core.api import Cluster, ThisCluster
-from cloudtik.runtime.flink.utils import request_rest_jobs, request_rest_yarn, get_runtime_default_storage, \
+from cloudtik.runtime.flink.utils import request_rest_jobs, get_runtime_default_storage, \
     get_runtime_endpoints
 
 
@@ -31,19 +31,11 @@ class FlinkCluster(Cluster):
         """
         return request_rest_jobs(self.config, endpoint)
 
-    def yarn(self, endpoint: str):
-        """Make a rest request to YARN Resource Manager
-
-        Args:
-            endpoint (str): The Spark history server rest endpoint to request
-        """
-        return request_rest_yarn(self.config, endpoint)
-
     def get_default_storage(self):
         return get_runtime_default_storage(self.config)
 
     def get_endpoints(self):
-        return get_runtime_endpoints(self.config, "")
+        return get_runtime_endpoints(self.config)
 
 
 class ThisFlinkCluster(ThisCluster):
@@ -58,14 +50,6 @@ class ThisFlinkCluster(ThisCluster):
             endpoint (str): The Spark history server rest endpoint to request
         """
         return request_rest_jobs(self.config, endpoint, on_head=True)
-
-    def yarn(self, endpoint: str):
-        """Make a rest request to YARN Resource Manager
-
-        Args:
-            endpoint (str): The Spark history server rest endpoint to request
-        """
-        return request_rest_yarn(self.config, endpoint, on_head=True)
 
     def get_default_storage(self):
         return get_runtime_default_storage(self.config)

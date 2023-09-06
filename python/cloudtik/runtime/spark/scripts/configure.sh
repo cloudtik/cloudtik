@@ -39,39 +39,22 @@ function prepare_base_conf() {
 
 function check_spark_installed() {
     if [ ! -n "${HADOOP_HOME}" ]; then
-        echo "HADOOP_HOME environment variable is not set."
+        echo "Hadoop is not installed for HADOOP_HOME environment variable is not set."
         exit 1
     fi
 
     if [ ! -n "${SPARK_HOME}" ]; then
-        echo "SPARK_HOME environment variable is not set."
+        echo "Spark is not installed for SPARK_HOME environment variable is not set."
         exit 1
     fi
 }
 
-function configure_system_folders() {
-    # Create dirs for data
-    mkdir -p ${RUNTIME_PATH}/jupyter/logs
-    mkdir -p ${HADOOP_HOME}/logs
-}
-
 function set_resources_for_spark() {
-    # For nodemanager
-    memory_ratio=0.8
-    if [ ! -z "${YARN_RESOURCE_MEMORY_RATIO}" ]; then
-        memory_ratio=${YARN_RESOURCE_MEMORY_RATIO}
-    fi
-    total_memory=$(awk -v ratio=${memory_ratio} -v total_physical_memory=$(cloudtik node resources --memory --in-mb) 'BEGIN{print ratio * total_physical_memory}')
-    total_memory=${total_memory%.*}
-    total_vcores=$(cloudtik node resources --cpu)
-
     # For Head Node
     if [ $IS_HEAD_NODE == "true" ];then
         spark_executor_cores=$(cat ~/cloudtik_bootstrap_config.yaml | jq '."runtime"."spark"."spark_executor_resource"."spark_executor_cores"')
         spark_executor_memory=$(cat ~/cloudtik_bootstrap_config.yaml | jq '."runtime"."spark"."spark_executor_resource"."spark_executor_memory"')M
         spark_driver_memory=$(cat ~/cloudtik_bootstrap_config.yaml | jq '."runtime"."spark"."spark_executor_resource"."spark_driver_memory"')M
-        yarn_container_maximum_vcores=$(cat ~/cloudtik_bootstrap_config.yaml | jq '."runtime"."spark"."yarn_container_resource"."yarn_container_maximum_vcores"')
-        yarn_container_maximum_memory=$(cat ~/cloudtik_bootstrap_config.yaml | jq '."runtime"."spark"."yarn_container_resource"."yarn_container_maximum_memory"')
     fi
 }
 
@@ -281,28 +264,28 @@ function update_local_storage_config_remote_hdfs() {
     REMOTE_HDFS_CONF_DIR=${HADOOP_HOME}/etc/remote
     # copy the existing hadoop conf
     mkdir -p ${REMOTE_HDFS_CONF_DIR}
-    cp -r  ${HADOOP_HOME}/etc/hadoop/* ${REMOTE_HDFS_CONF_DIR}/
+    cp -r ${HADOOP_HOME}/etc/hadoop/* ${REMOTE_HDFS_CONF_DIR}/
 
     fs_default_dir="${HDFS_NAMENODE_URI}"
     sed -i "s!{%remote.fs.default.name%}!${fs_default_dir}!g" ${output_dir}/hadoop/core-site-remote.xml
 
     # override with remote hdfs conf
     cp ${output_dir}/hadoop/core-site-remote.xml ${REMOTE_HDFS_CONF_DIR}/core-site.xml
-    cp -r ${output_dir}/hadoop/hdfs-site.xml  ${REMOTE_HDFS_CONF_DIR}/
+    cp -r ${output_dir}/hadoop/hdfs-site.xml ${REMOTE_HDFS_CONF_DIR}/
 }
 
 function update_local_storage_config_local_hdfs() {
     LOCAL_HDFS_CONF_DIR=${HADOOP_HOME}/etc/local
     # copy the existing hadoop conf
     mkdir -p ${LOCAL_HDFS_CONF_DIR}
-    cp -r  ${HADOOP_HOME}/etc/hadoop/* ${LOCAL_HDFS_CONF_DIR}/
+    cp -r ${HADOOP_HOME}/etc/hadoop/* ${LOCAL_HDFS_CONF_DIR}/
 
     fs_default_dir="hdfs://${HEAD_ADDRESS}:9000"
     sed -i "s!{%local.fs.default.name%}!${fs_default_dir}!g" ${output_dir}/hadoop/core-site-local.xml
 
     # override with local hdfs conf
     cp ${output_dir}/hadoop/core-site-local.xml ${LOCAL_HDFS_CONF_DIR}/core-site.xml
-    cp -r ${output_dir}/hadoop/hdfs-site.xml  ${LOCAL_HDFS_CONF_DIR}/
+    cp -r ${output_dir}/hadoop/hdfs-site.xml ${LOCAL_HDFS_CONF_DIR}/
 }
 
 function update_local_storage_config() {
@@ -330,25 +313,6 @@ function update_config_for_storage() {
     fi
 }
 
-function update_yarn_config() {
-    yarn_scheduler_class="org.apache.hadoop.yarn.server.resourcemanager.scheduler.capacity.CapacityScheduler"
-    if [ "${YARN_SCHEDULER}" == "fair" ];then
-        yarn_scheduler_class="org.apache.hadoop.yarn.server.resourcemanager.scheduler.fair.FairScheduler"
-    fi
-    sed -i "s/{%yarn.resourcemanager.scheduler.class%}/${yarn_scheduler_class}/g" `grep "{%yarn.resourcemanager.scheduler.class%}" -rl ./`
-    if [ $IS_HEAD_NODE == "true" ];then
-        sed -i "s/{%yarn.scheduler.maximum-allocation-mb%}/${yarn_container_maximum_memory}/g" `grep "{%yarn.scheduler.maximum-allocation-mb%}" -rl ./`
-        sed -i "s/{%yarn.scheduler.maximum-allocation-vcores%}/${yarn_container_maximum_vcores}/g" `grep "{%yarn.scheduler.maximum-allocation-vcores%}" -rl ./`
-        sed -i "s/{%yarn.nodemanager.resource.memory-mb%}/${yarn_container_maximum_memory}/g" `grep "{%yarn.nodemanager.resource.memory-mb%}" -rl ./`
-        sed -i "s/{%yarn.nodemanager.resource.cpu-vcores%}/${yarn_container_maximum_vcores}/g" `grep "{%yarn.nodemanager.resource.cpu-vcores%}" -rl ./`
-    else
-        sed -i "s/{%yarn.scheduler.maximum-allocation-mb%}/${total_memory}/g" `grep "{%yarn.scheduler.maximum-allocation-mb%}" -rl ./`
-        sed -i "s/{%yarn.scheduler.maximum-allocation-vcores%}/${total_vcores}/g" `grep "{%yarn.scheduler.maximum-allocation-vcores%}" -rl ./`
-        sed -i "s/{%yarn.nodemanager.resource.memory-mb%}/${total_memory}/g" `grep "{%yarn.nodemanager.resource.memory-mb%}" -rl ./`
-        sed -i "s/{%yarn.nodemanager.resource.cpu-vcores%}/${total_vcores}/g" `grep "{%yarn.nodemanager.resource.cpu-vcores%}" -rl ./`
-    fi
-}
-
 function update_spark_runtime_config() {
     if [ $IS_HEAD_NODE == "true" ];then
         sed -i "s/{%spark.executor.cores%}/${spark_executor_cores}/g" `grep "{%spark.executor.cores%}" -rl ./`
@@ -357,28 +321,9 @@ function update_spark_runtime_config() {
     fi
 }
 
-function update_data_disks_config() {
-    local_dirs=""
-    if [ -d "/mnt/cloudtik" ]; then
-        for data_disk in /mnt/cloudtik/*; do
-            [ -d "$data_disk" ] || continue
-            if [ -z "$local_dirs" ]; then
-                local_dirs=$data_disk
-            else
-                local_dirs="$local_dirs,$data_disk"
-            fi
-        done
-    fi
-
-    # set nodemanager.local-dirs
-    nodemanager_local_dirs=$local_dirs
-    if [ -z "$nodemanager_local_dirs" ]; then
-        nodemanager_local_dirs="${HADOOP_HOME}/data/nodemanager/local-dir"
-    fi
-    sed -i "s!{%yarn.nodemanager.local-dirs%}!${nodemanager_local_dirs}!g" `grep "{%yarn.nodemanager.local-dirs%}" -rl ./`
-
+function update_spark_local_dir() {
     # set spark local dir
-    spark_local_dir=$local_dirs
+    spark_local_dir=$(get_data_disk_dirs)
     if [ -z "$spark_local_dir" ]; then
         spark_local_dir="/tmp"
     fi
@@ -420,22 +365,20 @@ function configure_hadoop_and_spark() {
 
     sed -i "s/HEAD_ADDRESS/${HEAD_ADDRESS}/g" `grep "HEAD_ADDRESS" -rl ./`
 
-    update_yarn_config
     update_spark_runtime_config
-    update_data_disks_config
+    update_spark_local_dir
     update_config_for_storage
-
-    cp -r ${output_dir}/hadoop/yarn-site.xml ${HADOOP_HOME}/etc/hadoop/
 
     if [ $IS_HEAD_NODE == "true" ];then
         update_metastore_config
-
         cp -r ${output_dir}/spark/* ${SPARK_HOME}/conf
     fi
 }
 
 function configure_jupyter_for_spark() {
   if [ $IS_HEAD_NODE == "true" ]; then
+      mkdir -p ${RUNTIME_PATH}/jupyter/logs
+
       echo Y | jupyter lab --generate-config;
       # Set default password(cloudtik) for JupyterLab
       sed -i  "1 ic.NotebookApp.password = 'argon2:\$argon2id\$v=19\$m=10240,t=10,p=8\$Y+sBd6UhAyKNsI+/mHsy9g\$WzJsUujSzmotUkblSTpMwCFoOBVSwm7S5oOPzpC+tz8'" ~/.jupyter/jupyter_lab_config.py
@@ -452,7 +395,6 @@ set_head_option "$@"
 check_spark_installed
 set_head_address
 set_resources_for_spark
-configure_system_folders
 configure_hadoop_and_spark
 configure_jupyter_for_spark
 configure_cloud_fs

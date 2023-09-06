@@ -11,12 +11,12 @@ eval set -- "${args}"
 . "$ROOT_DIR"/common/scripts/util-functions.sh
 
 if [ ! -n "${HADOOP_HOME}" ]; then
-    echo "HADOOP_HOME environment variable is not set."
+    echo "Hadoop is not installed for HADOOP_HOME environment variable is not set."
     exit 1
 fi
 
 if [ ! -n "${SPARK_HOME}" ]; then
-    echo "SPARK_HOME environment variable is not set."
+    echo "Spark is not installed for SPARK_HOME environment variable is not set."
     exit 1
 fi
 
@@ -45,19 +45,14 @@ start)
         # This needs to be done after hadoop file system has been configured correctly
         ${HADOOP_HOME}/bin/hadoop --loglevel WARN fs -mkdir -p /shared/spark-events
 
-        echo "Starting Resource Manager..."
-        $HADOOP_HOME/bin/yarn --daemon start resourcemanager
         echo "Starting Spark History Server..."
         export SPARK_LOCAL_IP=${CLOUDTIK_NODE_IP}; $SPARK_HOME/sbin/start-history-server.sh > /dev/null
         echo "Starting Jupyter..."
         nohup jupyter lab --no-browser > $RUNTIME_PATH/jupyter/logs/jupyterlab.log 2>&1 &
-    else
-        $HADOOP_HOME/bin/yarn --daemon start nodemanager
     fi
     ;;
 stop)
     if [ $IS_HEAD_NODE == "true" ]; then
-        $HADOOP_HOME/bin/yarn --daemon stop resourcemanager
         $SPARK_HOME/sbin/stop-history-server.sh
         # workaround for stopping jupyter when password being set
         JUPYTER_PID=$(pgrep jupyter)
@@ -65,8 +60,6 @@ stop)
           echo "Stopping Jupyter..."
           kill $JUPYTER_PID >/dev/null 2>&1
         fi
-    else
-        $HADOOP_HOME/bin/yarn --daemon stop nodemanager
     fi
 
     # Unmount cloud filesystem or hdfs

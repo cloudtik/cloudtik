@@ -63,7 +63,7 @@ the system load, user can use auto-scaling.
 CloudTik built-in with 3 auto-scaling policy for use:
 - Scaling with Load
 - Scaling with Time
-- Scaling with Spark
+- Scaling with YARN
 
 ### Scaling with Load
 If you want to scale the cluster based on the CPU or memory utilization (load),
@@ -217,26 +217,26 @@ runtime:
 ```
 
 
-### Scaling with Spark
-If you want to scale the cluster based Spark application and resource utilization
+### Scaling with YARN
+If you want to scale the cluster based YARN application and resource utilization
 tracked by YARN, use this scaling policy.
 
-To use this scaling policy, specify the following configuration in spark runtime
+To use this scaling policy, specify the following configuration in YARN runtime
 configuration,
 
 ```
 runtime:
-    spark:
+    yarn:
         scaling:
             scaling_mode: apps-pending
 ```
 
-This will enable and use Spark scaling policy based on apps-pending with default parameters.
+This will enable and use YARN scaling policy based on apps-pending with default parameters.
 User can override the parameter values,
 
 ```
 runtime:
-    spark:
+    yarn:
         scaling:
             scaling_mode: apps-pending
             scaling_resource: CPU
@@ -246,7 +246,7 @@ runtime:
             apps_pending_free_memory_threshold: 1024
             aggressive_free_ratio_threshold: 0.1
 ```
-- scaling_mode: The Spark scaling mode. Values: apps-pending, aggressive or none
+- scaling_mode: The scaling mode. Values: apps-pending, aggressive or none
 - scaling_resource: The resource type to check for scale: CPU or memory
 - scaling_step: The number of nodes for each scale up step
 - apps_pending_threshold: The number of pending apps threshold above which to trigger scaling
@@ -262,7 +262,7 @@ the minimum number of workers or manually scaled number of workers.
 
 The auto-scaling policy will override the way of deciding a worker's idle status.
 For example, for Scaling with Load, the CPU utilization is used to decide whether
-a node is idle or not; for Scaling with Spark, if there is no YARN container running
+a node is idle or not; for Scaling with YARN, if there is no YARN container running
 on a node, the worker is considered to be idle.
 
 ## Configuring idle time for node termination

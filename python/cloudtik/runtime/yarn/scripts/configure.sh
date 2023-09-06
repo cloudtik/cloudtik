@@ -26,7 +26,7 @@ function prepare_base_conf() {
 
 function check_hadoop_installed() {
     if [ ! -n "${HADOOP_HOME}" ]; then
-        echo "Hadoop is not installed. HADOOP_HOME environment variable is not set."
+        echo "Hadoop is not installed for HADOOP_HOME environment variable is not set."
         exit 1
     fi
 }

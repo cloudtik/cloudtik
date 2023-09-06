@@ -221,3 +221,10 @@ class Runtime:
         If there is no such information, the runtime will installed and started in the user order
         """
         return []
+
+    @staticmethod
+    def get_required():
+        """Return a list of runtimes which must be there for this runtime to work.
+        If the required runtime is not explicitly listed. It will be automatically added.
+        """
+        return []
