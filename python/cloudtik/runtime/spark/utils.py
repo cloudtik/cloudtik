@@ -1,7 +1,6 @@
 import os
 from typing import Any, Dict
 
-from cloudtik.core._private.cluster.cluster_config import _load_cluster_config
 from cloudtik.core._private.cluster.cluster_tunnel_request import _request_rest_to_head
 from cloudtik.core._private.core_utils import double_quote, get_env_string_value
 from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_HDFS, \
@@ -12,7 +11,7 @@ from cloudtik.core._private.service_discovery.utils import get_canonical_service
 from cloudtik.core._private.utils import \
     round_memory_size_to_gb, load_head_cluster_config, \
     RUNTIME_CONFIG_KEY, load_properties_file, save_properties_file, is_use_managed_cloud_storage, \
-    print_json_formatted, get_config_for_update, get_runtime_config, PROVIDER_STORAGE_CONFIG_KEY, \
+    get_config_for_update, get_runtime_config, PROVIDER_STORAGE_CONFIG_KEY, \
     get_node_type_resources
 from cloudtik.runtime.common.service_discovery.cluster import has_runtime_in_cluster
 from cloudtik.runtime.common.service_discovery.runtime_discovery import \
@@ -320,15 +319,6 @@ def _get_runtime_services(
             protocol=SERVICE_DISCOVERY_PROTOCOL_HTTP),
     }
     return services
-
-
-def print_request_rest_applications(
-        cluster_config_file: str, cluster_name: str, endpoint: str,
-        on_head: bool = False):
-    config = _load_cluster_config(cluster_config_file, cluster_name)
-    response = request_rest_applications(config, endpoint,
-                                         on_head=on_head)
-    print_json_formatted(response)
 
 
 def request_rest_applications(

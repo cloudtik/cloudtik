@@ -319,7 +319,6 @@ def runtime_add_command_alias(command, name, hidden):
 
 
 runtime.add_command(start)
-runtime_add_command_alias(start, name="restart", hidden=True)
 runtime.add_command(stop)
 
 runtime.add_command(install)

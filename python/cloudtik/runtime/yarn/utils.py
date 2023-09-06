@@ -3,13 +3,12 @@ import time
 from typing import Any, Dict, Optional
 
 from cloudtik.core._private.cli_logger import cli_logger
-from cloudtik.core._private.cluster.cluster_config import _load_cluster_config
 from cloudtik.core._private.cluster.cluster_tunnel_request import _request_rest_to_head
 from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_YARN
 from cloudtik.core._private.service_discovery.utils import get_canonical_service_name, define_runtime_service_on_head, \
     get_service_discovery_config, SERVICE_DISCOVERY_FEATURE_SCHEDULER
 from cloudtik.core._private.utils import \
-    round_memory_size_to_gb, RUNTIME_CONFIG_KEY, print_json_formatted, get_config_for_update, get_node_type_resources
+    round_memory_size_to_gb, RUNTIME_CONFIG_KEY, get_config_for_update, get_node_type_resources
 from cloudtik.core.scaling_policy import ScalingPolicy
 from cloudtik.runtime.common.utils import get_runtime_endpoints_of
 from cloudtik.runtime.yarn.scaling_policy import YARNScalingPolicy
@@ -146,15 +145,6 @@ def _get_scaling_policy(
     return YARNScalingPolicy(
         cluster_config, head_ip,
         rest_port=YARN_WEB_API_PORT)
-
-
-def print_request_rest_yarn(
-        cluster_config_file: str, cluster_name: str, endpoint: Optional[str],
-        on_head: bool = False):
-    config = _load_cluster_config(cluster_config_file, cluster_name)
-    response = request_rest_yarn(
-        config, endpoint, on_head=on_head)
-    print_json_formatted(response)
 
 
 def request_rest_yarn(

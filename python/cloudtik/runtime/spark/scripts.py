@@ -2,36 +2,23 @@ import logging
 
 import click
 
-from cloudtik.core._private import constants
-from cloudtik.core._private import logging_utils
-from cloudtik.core._private.cli_logger import (cli_logger, add_click_logging_options)
+from cloudtik.core._private.cli_logger import (add_click_logging_options)
 from cloudtik.core._private.cluster.cluster_config import _load_cluster_config
-from cloudtik.runtime.spark.utils import print_request_rest_applications, get_runtime_default_storage
+from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_SPARK
+from cloudtik.core._private.utils import print_json_formatted, load_head_cluster_config
+from cloudtik.runtime.spark.utils import get_runtime_default_storage, \
+    request_rest_applications
+from cloudtik.scripts.utils import NaturalOrderGroup
 
 logger = logging.getLogger(__name__)
 
 
-@click.group()
-@click.option(
-    "--logging-level",
-    required=False,
-    default=constants.LOGGER_LEVEL_INFO,
-    type=str,
-    help=constants.LOGGER_LEVEL_HELP)
-@click.option(
-    "--logging-format",
-    required=False,
-    default=constants.LOGGER_FORMAT,
-    type=str,
-    help=constants.LOGGER_FORMAT_HELP)
-@click.version_option()
-def spark(logging_level, logging_format):
+@click.group(cls=NaturalOrderGroup)
+def spark():
     """
     Commands for Spark runtime.
     """
-    level = logging.getLevelName(logging_level.upper())
-    logging_utils.setup_logger(level, logging_format)
-    cli_logger.set_format(format_tmpl=logging_format)
+    pass
 
 
 @click.command()
@@ -49,7 +36,14 @@ def spark(logging_level, logging_format):
     help="The resource endpoint for the history server rest API")
 @add_click_logging_options
 def applications(cluster_config_file, cluster_name, endpoint):
-    print_request_rest_applications(cluster_config_file, cluster_name, endpoint)
+    config = _load_cluster_config(cluster_config_file, cluster_name)
+    _applications(config, endpoint)
+
+
+def _applications(config, endpoint, on_head=False):
+    response = request_rest_applications(
+        config, endpoint, on_head=on_head)
+    print_json_formatted(response)
 
 
 @click.command()
@@ -68,6 +62,10 @@ def applications(cluster_config_file, cluster_name, endpoint):
 @add_click_logging_options
 def info(cluster_config_file, cluster_name, default_storage):
     config = _load_cluster_config(cluster_config_file, cluster_name)
+    _info(config, default_storage)
+
+
+def _info(config, default_storage):
     if default_storage:
         # show default storage
         default_storage_uri = get_runtime_default_storage(config)
@@ -77,3 +75,39 @@ def info(cluster_config_file, cluster_name, default_storage):
 
 spark.add_command(applications)
 spark.add_command(info)
+
+
+@click.group(name=BUILT_IN_RUNTIME_SPARK, cls=NaturalOrderGroup)
+def spark_on_head():
+    """
+    Commands running on head for Spark runtime.
+    """
+    pass
+
+
+@click.command(name='applications')
+@click.option(
+    "--endpoint",
+    required=False,
+    type=str,
+    help="The resource endpoint for the history server rest API")
+@add_click_logging_options
+def applications_on_head(endpoint):
+    config = load_head_cluster_config()
+    _applications(config, endpoint, on_head=True)
+
+
+@click.command(name='info')
+@click.option(
+    "--default-storage",
+    is_flag=True,
+    default=False,
+    help="Show the default storage of the cluster.")
+@add_click_logging_options
+def info_on_head(default_storage):
+    config = load_head_cluster_config()
+    _info(config, default_storage)
+
+
+spark_on_head.add_command(applications_on_head)
+spark_on_head.add_command(info_on_head)
