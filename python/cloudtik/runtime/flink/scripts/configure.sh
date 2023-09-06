@@ -47,6 +47,11 @@ function update_flink_storage_dirs() {
     PATH_SAVEPOINTS="flink-savepoints"
     PATH_HISTORY_SERVER="history-server"
 
+    HADOOP_FS_DEFAULT_FILE=${HADOOP_HOME}/etc/hadoop/hadoop-fs-default
+    if [ -f "${HADOOP_FS_DEFAULT_FILE}" ]; then
+        . ${HADOOP_FS_DEFAULT_FILE}
+    fi
+
     # checkpoints dir
     if [ -z "${HADOOP_FS_DEFAULT}" ]; then
         checkpoints_dir="file:///tmp/${PATH_CHECKPOINTS}"
