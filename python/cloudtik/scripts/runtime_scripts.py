@@ -118,7 +118,7 @@ def _run_runtime_services(runtime_type, head: bool):
 @click.group(cls=NaturalOrderGroup)
 def runtime():
     """
-    Commands for runtime service control
+    Commands for runtime service control.
     """
     pass
 

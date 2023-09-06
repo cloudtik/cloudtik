@@ -1,4 +1,7 @@
+import importlib
 import logging
+import os
+import pkgutil
 import shlex
 import traceback
 import urllib
@@ -32,6 +35,24 @@ from cloudtik.scripts.storage import storage
 from cloudtik.scripts.database import database
 
 logger = logging.getLogger(__name__)
+
+
+def _register_runtime_commands():
+    from cloudtik import runtime
+
+    base_dir = os.path.dirname(runtime.__file__)
+    for loader, module_name, is_pkg in pkgutil.walk_packages(runtime.__path__):
+        if not is_pkg:
+            continue
+        scripts_file = os.path.join(base_dir, module_name, "scripts.py")
+        if not os.path.exists(scripts_file):
+            continue
+
+        scripts_module_name = runtime.__name__ + '.' + module_name + "." + "scripts"
+        _module = importlib.import_module(scripts_module_name)
+        if module_name in _module.__dict__:
+            yarn_command_group = _module.__dict__[module_name]
+            cli.add_command(yarn_command_group)
 
 
 @click.group(cls=NaturalOrderGroup)
@@ -1368,6 +1389,9 @@ cli.add_command(head)
 
 # node commands (not facing, running on node)
 cli.add_command(node)
+
+# dynamic command of runtime
+_register_runtime_commands()
 
 
 def main():
