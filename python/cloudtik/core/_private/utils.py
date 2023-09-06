@@ -768,7 +768,7 @@ def _get_required_runtimes_of(runtime_type, chain=None):
 def _fix_runtimes_with_required(runtime_types):
     runtimes_with_required = _get_runtimes_with_required(runtime_types)
     existing_runtime_types = set(runtime_types)
-    missing_required = runtimes_with_required.intersection(
+    missing_required = runtimes_with_required.difference(
         existing_runtime_types)
 
     if missing_required:
