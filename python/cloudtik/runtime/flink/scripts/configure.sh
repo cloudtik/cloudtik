@@ -22,45 +22,36 @@ function prepare_base_conf() {
     rm -rf  $output_dir
     mkdir -p $output_dir
     cp -r $source_dir/* $output_dir
+
     # Include hadoop config file for cloud providers
     cp -r "$ROOT_DIR"/common/conf/hadoop $output_dir
+    # Make copy for local and remote HDFS
+    cp $output_dir/hadoop/core-site.xml $output_dir/hadoop/core-site-local.xml
+    sed -i "s!{%fs.default.name%}!{%local.fs.default.name%}!g" $output_dir/hadoop/core-site-local.xml
+    cp $output_dir/hadoop/core-site.xml $output_dir/hadoop/core-site-remote.xml
+    sed -i "s!{%fs.default.name%}!{%remote.fs.default.name%}!g" $output_dir/hadoop/core-site-remote.xml
+
+    cd $output_dir
 }
 
 function check_flink_installed() {
     if [ ! -n "${HADOOP_HOME}" ]; then
-        echo "HADOOP_HOME environment variable is not set."
+        echo "Hadoop is not installed for HADOOP_HOME environment variable is not set."
         exit 1
     fi
 
     if [ ! -n "${FLINK_HOME}" ]; then
-        echo "FLINK_HOME environment variable is not set."
+        echo "Flink is not installed for FLINK_HOME environment variable is not set."
         exit 1
     fi
 }
 
-function configure_system_folders() {
-    # Create dirs for data
-    mkdir -p ${RUNTIME_PATH}/jupyter/logs
-}
-
 function set_resources_for_flink() {
-    # For nodemanager
-    memory_ratio=0.8
-    if [ ! -z "${YARN_RESOURCE_MEMORY_RATIO}" ]; then
-        memory_ratio=${YARN_RESOURCE_MEMORY_RATIO}
-    fi
-    total_memory=$(awk -v ratio=${memory_ratio} -v total_physical_memory=$(cloudtik node resources --memory --in-mb) 'BEGIN{print ratio * total_physical_memory}')
-    total_memory=${total_memory%.*}
-    total_vcores=$(cloudtik node resources --cpu)
-
     # For Head Node
     if [ $IS_HEAD_NODE == "true" ];then
         flink_taskmanager_cores=$(cat ~/cloudtik_bootstrap_config.yaml | jq '."runtime"."flink"."flink_resource"."flink_taskmanager_cores"')
         flink_taskmanager_memory=$(cat ~/cloudtik_bootstrap_config.yaml | jq '."runtime"."flink"."flink_resource"."flink_taskmanager_memory"')M
         flink_jobmanager_memory=$(cat ~/cloudtik_bootstrap_config.yaml | jq '."runtime"."flink"."flink_resource"."flink_jobmanager_memory"')M
-
-        yarn_container_maximum_vcores=$(cat ~/cloudtik_bootstrap_config.yaml | jq '."runtime"."flink"."yarn_container_resource"."yarn_container_maximum_vcores"')
-        yarn_container_maximum_memory=$(cat ~/cloudtik_bootstrap_config.yaml | jq '."runtime"."flink"."yarn_container_resource"."yarn_container_maximum_memory"')
     fi
 }
 
@@ -251,6 +242,56 @@ function update_config_for_hadoop_storage() {
     fi
 }
 
+function update_nfs_dump_dir() {
+    # set nfs gateway dump dir
+    data_disk_dir=$(get_first_data_disk_dir)
+    if [ -z "$data_disk_dir" ]; then
+        nfs_dump_dir="/tmp/.hdfs-nfs"
+    else
+        nfs_dump_dir="$data_disk_dir/tmp/.hdfs-nfs"
+    fi
+    sed -i "s!{%dfs.nfs3.dump.dir%}!${nfs_dump_dir}!g" `grep "{%dfs.nfs3.dump.dir%}" -rl ./`
+}
+
+function update_local_storage_config_remote_hdfs() {
+    REMOTE_HDFS_CONF_DIR=${HADOOP_HOME}/etc/remote
+    # copy the existing hadoop conf
+    mkdir -p ${REMOTE_HDFS_CONF_DIR}
+    cp -r ${HADOOP_HOME}/etc/hadoop/* ${REMOTE_HDFS_CONF_DIR}/
+
+    fs_default_dir="${HDFS_NAMENODE_URI}"
+    sed -i "s!{%remote.fs.default.name%}!${fs_default_dir}!g" ${output_dir}/hadoop/core-site-remote.xml
+
+    # override with remote hdfs conf
+    cp ${output_dir}/hadoop/core-site-remote.xml ${REMOTE_HDFS_CONF_DIR}/core-site.xml
+    cp -r ${output_dir}/hadoop/hdfs-site.xml ${REMOTE_HDFS_CONF_DIR}/
+}
+
+function update_local_storage_config_local_hdfs() {
+    LOCAL_HDFS_CONF_DIR=${HADOOP_HOME}/etc/local
+    # copy the existing hadoop conf
+    mkdir -p ${LOCAL_HDFS_CONF_DIR}
+    cp -r ${HADOOP_HOME}/etc/hadoop/* ${LOCAL_HDFS_CONF_DIR}/
+
+    fs_default_dir="hdfs://${HEAD_ADDRESS}:9000"
+    sed -i "s!{%local.fs.default.name%}!${fs_default_dir}!g" ${output_dir}/hadoop/core-site-local.xml
+
+    # override with local hdfs conf
+    cp ${output_dir}/hadoop/core-site-local.xml ${LOCAL_HDFS_CONF_DIR}/core-site.xml
+    cp -r ${output_dir}/hadoop/hdfs-site.xml ${LOCAL_HDFS_CONF_DIR}/
+}
+
+function update_local_storage_config() {
+    update_nfs_dump_dir
+
+    if [ "${HDFS_STORAGE}" == "true" ]; then
+        update_local_storage_config_remote_hdfs
+    fi
+    if [ "${HDFS_ENABLED}" == "true" ]; then
+        update_local_storage_config_local_hdfs
+    fi
+}
+
 function update_config_for_storage() {
     PATH_CHECKPOINTS="shared/flink-checkpoints"
     PATH_SAVEPOINTS="shared/flink-savepoints"
@@ -259,31 +300,13 @@ function update_config_for_storage() {
     check_hdfs_storage
     set_cloud_storage_provider
     update_config_for_hadoop_storage
+    update_local_storage_config
 
     if [ "${cloud_storage_provider}" != "none" ];then
-        cp -r ${output_dir}/hadoop/${cloud_storage_provider}/core-site.xml  ${HADOOP_HOME}/etc/hadoop/
+        cp -r ${output_dir}/hadoop/${cloud_storage_provider}/core-site.xml ${HADOOP_HOME}/etc/hadoop/
     else
         # Possible hdfs without cloud storage
-        cp -r ${output_dir}/hadoop/core-site.xml  ${HADOOP_HOME}/etc/hadoop/
-    fi
-}
-
-function update_yarn_config() {
-    yarn_scheduler_class="org.apache.hadoop.yarn.server.resourcemanager.scheduler.capacity.CapacityScheduler"
-    if [ ${YARN_SCHEDULER} == "fair" ];then
-        yarn_scheduler_class="org.apache.hadoop.yarn.server.resourcemanager.scheduler.fair.FairScheduler"
-    fi
-    sed -i "s/{%yarn.resourcemanager.scheduler.class%}/${yarn_scheduler_class}/g" `grep "{%yarn.resourcemanager.scheduler.class%}" -rl ./`
-    if [ $IS_HEAD_NODE == "true" ];then
-        sed -i "s/{%yarn.scheduler.maximum-allocation-mb%}/${yarn_container_maximum_memory}/g" `grep "{%yarn.scheduler.maximum-allocation-mb%}" -rl ./`
-        sed -i "s/{%yarn.scheduler.maximum-allocation-vcores%}/${yarn_container_maximum_vcores}/g" `grep "{%yarn.scheduler.maximum-allocation-vcores%}" -rl ./`
-        sed -i "s/{%yarn.nodemanager.resource.memory-mb%}/${yarn_container_maximum_memory}/g" `grep "{%yarn.nodemanager.resource.memory-mb%}" -rl ./`
-        sed -i "s/{%yarn.nodemanager.resource.cpu-vcores%}/${yarn_container_maximum_vcores}/g" `grep "{%yarn.nodemanager.resource.cpu-vcores%}" -rl ./`
-    else
-        sed -i "s/{%yarn.scheduler.maximum-allocation-mb%}/${total_memory}/g" `grep "{%yarn.scheduler.maximum-allocation-mb%}" -rl ./`
-        sed -i "s/{%yarn.scheduler.maximum-allocation-vcores%}/${total_vcores}/g" `grep "{%yarn.scheduler.maximum-allocation-vcores%}" -rl ./`
-        sed -i "s/{%yarn.nodemanager.resource.memory-mb%}/${total_memory}/g" `grep "{%yarn.nodemanager.resource.memory-mb%}" -rl ./`
-        sed -i "s/{%yarn.nodemanager.resource.cpu-vcores%}/${total_vcores}/g" `grep "{%yarn.nodemanager.resource.cpu-vcores%}" -rl ./`
+        cp -r ${output_dir}/hadoop/core-site.xml ${HADOOP_HOME}/etc/hadoop/
     fi
 }
 
@@ -295,26 +318,7 @@ function update_flink_runtime_config() {
     fi
 }
 
-function update_data_disks_config() {
-    local_dirs=""
-    if [ -d "/mnt/cloudtik" ]; then
-        for data_disk in /mnt/cloudtik/*; do
-            [ -d "$data_disk" ] || continue
-            if [ -z "$local_dirs" ]; then
-                local_dirs=$data_disk
-            else
-                local_dirs="$local_dirs,$data_disk"
-            fi
-      done
-    fi
-
-    # set nodemanager.local-dirs
-    nodemanager_local_dirs=$local_dirs
-    if [ -z "$nodemanager_local_dirs" ]; then
-        nodemanager_local_dirs="${HADOOP_HOME}/data/nodemanager/local-dir"
-    fi
-    sed -i "s!{%yarn.nodemanager.local-dirs%}!${nodemanager_local_dirs}!g" `grep "{%yarn.nodemanager.local-dirs%}" -rl ./`
-
+function update_flink_local_dir() {
     # set flink local dir
     flink_local_dir=$local_dirs
     if [ -z "$flink_local_dir" ]; then
@@ -356,25 +360,22 @@ function update_metastore_config() {
 function configure_hadoop_and_flink() {
     prepare_base_conf
 
-    cd $output_dir
     sed -i "s/HEAD_ADDRESS/${HEAD_ADDRESS}/g" `grep "HEAD_ADDRESS" -rl ./`
 
-    update_yarn_config
     update_flink_runtime_config
-    update_data_disks_config
+    update_flink_local_dir
     update_config_for_storage
 
-    cp -r ${output_dir}/hadoop/yarn-site.xml  ${HADOOP_HOME}/etc/hadoop/
-
     if [ $IS_HEAD_NODE == "true" ];then
-        # update_metastore_config
-
-        cp -r ${output_dir}/flink/*  ${FLINK_HOME}/conf
+        update_metastore_config
+        cp -r ${output_dir}/flink/* ${FLINK_HOME}/conf
     fi
 }
 
-function configure_jupyter() {
+function configure_jupyter_for_flink() {
   if [ $IS_HEAD_NODE == "true" ]; then
+      mkdir -p ${RUNTIME_PATH}/jupyter/logs
+
       echo Y | jupyter lab --generate-config;
       # Set default password(cloudtik) for JupyterLab
       sed -i  "1 ic.NotebookApp.password = 'argon2:\$argon2id\$v=19\$m=10240,t=10,p=8\$Y+sBd6UhAyKNsI+/mHsy9g\$WzJsUujSzmotUkblSTpMwCFoOBVSwm7S5oOPzpC+tz8'" ~/.jupyter/jupyter_lab_config.py
@@ -391,8 +392,7 @@ set_head_option "$@"
 check_flink_installed
 set_head_address
 set_resources_for_flink
-configure_system_folders
 configure_hadoop_and_flink
-configure_jupyter
+configure_jupyter_for_flink
 
 exit 0

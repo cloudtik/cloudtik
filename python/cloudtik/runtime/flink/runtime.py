@@ -1,13 +1,13 @@
 import logging
 from typing import Any, Dict, Optional, List
 
-from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_METASTORE, BUILT_IN_RUNTIME_HDFS
+from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_METASTORE, BUILT_IN_RUNTIME_HDFS, \
+    BUILT_IN_RUNTIME_YARN
 from cloudtik.core.node_provider import NodeProvider
-from cloudtik.core.scaling_policy import ScalingPolicy
 from cloudtik.runtime.common.runtime_base import RuntimeBase
 from cloudtik.runtime.flink.utils import _config_runtime_resources, _with_runtime_environment_variables, \
     _is_runtime_scripts, _get_runnable_command, get_runtime_processes, _validate_config, \
-    get_runtime_logs, _get_runtime_endpoints, _config_depended_services, _get_head_service_ports, _get_scaling_policy, \
+    get_runtime_logs, _get_runtime_endpoints, _config_depended_services, _get_head_service_ports, \
     _get_runtime_services, _prepare_config_on_head, _configure
 
 logger = logging.getLogger(__name__)
@@ -59,7 +59,6 @@ class FlinkRuntime(RuntimeBase):
         """
         if not _is_runtime_scripts(target):
             return None
-
         return _get_runnable_command(target)
 
     def get_runtime_endpoints(self, cluster_head_ip: str):
@@ -70,11 +69,6 @@ class FlinkRuntime(RuntimeBase):
 
     def get_runtime_services(self, cluster_name: str):
         return _get_runtime_services(self.runtime_config, cluster_name)
-
-    def get_scaling_policy(
-            self, cluster_config: Dict[str, Any], head_ip: str
-    ) -> Optional[ScalingPolicy]:
-        return _get_scaling_policy(self.runtime_config, cluster_config, head_ip)
 
     @staticmethod
     def get_logs() -> Dict[str, str]:
@@ -98,3 +92,7 @@ class FlinkRuntime(RuntimeBase):
     @staticmethod
     def get_dependencies():
         return [BUILT_IN_RUNTIME_HDFS, BUILT_IN_RUNTIME_METASTORE]
+
+    @staticmethod
+    def get_required():
+        return [BUILT_IN_RUNTIME_YARN]

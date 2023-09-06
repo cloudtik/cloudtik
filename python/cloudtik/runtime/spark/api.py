@@ -3,7 +3,7 @@
 from typing import Union, Optional
 
 from cloudtik.core.api import Cluster, ThisCluster
-from cloudtik.runtime.spark.utils import request_rest_applications, request_rest_yarn, get_runtime_default_storage, \
+from cloudtik.runtime.spark.utils import request_rest_applications, get_runtime_default_storage, \
     get_runtime_endpoints
 
 
@@ -31,14 +31,6 @@ class SparkCluster(Cluster):
         """
         return request_rest_applications(self.config, endpoint)
 
-    def yarn(self, endpoint: str):
-        """Make a rest request to YARN Resource Manager
-
-        Args:
-            endpoint (str): The Spark history server rest endpoint to request
-        """
-        return request_rest_yarn(self.config, endpoint)
-
     def get_default_storage(self):
         return get_runtime_default_storage(self.config)
 
@@ -58,14 +50,6 @@ class ThisSparkCluster(ThisCluster):
             endpoint (str): The Spark history server rest endpoint to request
         """
         return request_rest_applications(self.config, endpoint, on_head=True)
-
-    def yarn(self, endpoint: str):
-        """Make a rest request to YARN Resource Manager
-
-        Args:
-            endpoint (str): The Spark history server rest endpoint to request
-        """
-        return request_rest_yarn(self.config, endpoint, on_head=True)
 
     def get_default_storage(self):
         return get_runtime_default_storage(self.config)

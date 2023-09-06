@@ -9,7 +9,7 @@ from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_YARN
 from cloudtik.core._private.service_discovery.utils import get_canonical_service_name, define_runtime_service_on_head, \
     get_service_discovery_config, SERVICE_DISCOVERY_FEATURE_SCHEDULER
 from cloudtik.core._private.utils import \
-    round_memory_size_to_gb, RUNTIME_CONFIG_KEY, print_json_formatted, get_config_for_update
+    round_memory_size_to_gb, RUNTIME_CONFIG_KEY, print_json_formatted, get_config_for_update, get_node_type_resources
 from cloudtik.core.scaling_policy import ScalingPolicy
 from cloudtik.runtime.common.utils import get_runtime_endpoints_of
 from cloudtik.runtime.yarn.scaling_policy import YARNScalingPolicy
@@ -47,43 +47,8 @@ def get_yarn_resource_memory_ratio(cluster_config: Dict[str, Any]):
     return yarn_resource_memory_ratio
 
 
-def _get_cluster_resources(
-        cluster_config: Dict[str, Any]) -> Dict[str, Any]:
-    """Fills out resources for available_node_types."""
-    cluster_resource = {}
-    if "available_node_types" not in cluster_config:
-        return cluster_resource
-
-    # Since we have filled the resources for node types
-    # We simply don't retrieve it from cloud provider again
-    available_node_types = cluster_config["available_node_types"]
-    head_node_type = cluster_config["head_node_type"]
-    for node_type in available_node_types:
-        resources = available_node_types[node_type].get("resources", {})
-        memory_total_in_mb = int(resources.get("memory", 0) / (1024 * 1024))
-        cpu_total = resources.get("CPU", 0)
-        if node_type != head_node_type:
-            if memory_total_in_mb > 0:
-                cluster_resource["worker_memory"] = memory_total_in_mb
-            if cpu_total > 0:
-                cluster_resource["worker_cpu"] = cpu_total
-        else:
-            if memory_total_in_mb > 0:
-                cluster_resource["head_memory"] = memory_total_in_mb
-            if cpu_total > 0:
-                cluster_resource["head_cpu"] = cpu_total
-
-    # If there is only one node type, worker type uses the head type
-    if ("worker_memory" not in cluster_resource) and ("head_memory" in cluster_resource):
-        cluster_resource["worker_memory"] = cluster_resource["head_memory"]
-    if ("worker_cpu" not in cluster_resource) and ("head_cpu" in cluster_resource):
-        cluster_resource["worker_cpu"] = cluster_resource["head_cpu"]
-
-    return cluster_resource
-
-
 def _config_runtime_resources(cluster_config: Dict[str, Any]) -> Dict[str, Any]:
-    cluster_resource = _get_cluster_resources(cluster_config)
+    cluster_resource = get_node_type_resources(cluster_config)
     worker_cpu = cluster_resource["worker_cpu"]
 
     container_resource = {"yarn_container_maximum_vcores": worker_cpu}

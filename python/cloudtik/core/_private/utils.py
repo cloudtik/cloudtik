@@ -736,6 +736,46 @@ def _reorder_runtimes_for_dependency_of_node_types(config):
         _reorder_runtimes_for_dependency(node_type_config)
 
 
+def _get_runtimes_with_required(runtime_types, chain=None):
+    all_required = set(runtime_types)
+    for runtime_type in runtime_types:
+        required = _get_required_runtimes_of(runtime_type, chain)
+        if not required:
+            continue
+        all_required.update(required)
+    return all_required
+
+
+def _get_required_runtimes_of(runtime_type, chain=None):
+    runtime_cls = _get_runtime_cls(runtime_type)
+    required = runtime_cls.get_required()
+    if not required:
+        return None
+
+    # for loop check
+    if chain:
+        loop = chain.intersection(required)
+        if loop:
+            raise RuntimeError("There is a loop in the required runtimes.")
+        chain = copy.deepcopy(chain)
+        chain.add(runtime_type)
+    else:
+        chain = {runtime_type}
+
+    return _get_runtimes_with_required(required, chain)
+
+
+def _fix_runtimes_with_required(runtime_types):
+    runtimes_with_required = _get_runtimes_with_required(runtime_types)
+    existing_runtime_types = set(runtime_types)
+    missing_required = runtimes_with_required.intersection(
+        existing_runtime_types)
+
+    if missing_required:
+        # Keep the original runtime order
+        runtime_types += list(missing_required)
+
+
 def _reorder_runtimes_for_dependency(config):
     runtime_config = config.get(RUNTIME_CONFIG_KEY)
     if runtime_config is None:
@@ -745,12 +785,20 @@ def _reorder_runtimes_for_dependency(config):
     if len(runtime_types) == 0:
         return
 
+    # fix the required runtimes before reorder
+    _fix_runtimes_with_required(runtime_types)
+
     reordered_runtimes = copy.deepcopy(runtime_types)
     for runtime_type in runtime_types:
         runtime_cls = _get_runtime_cls(runtime_type)
         dependencies = runtime_cls.get_dependencies()
-        if dependencies is None:
+        required = runtime_cls.get_required()
+        if not dependencies and not required:
             continue
+        if not dependencies:
+            dependencies = required
+        elif required:
+            dependencies += required
 
         # For each dependency, if it is appeared behind the current runtime, move it ahead
         for dependency in dependencies:
@@ -3382,3 +3430,38 @@ def clear_cloud_credentials(provider_config, credentials_key):
         return
     if credentials_key in credentials_config:
         credentials_config.pop(credentials_key, None)
+
+
+def get_node_type_resources(
+        cluster_config: Dict[str, Any]) -> Dict[str, Any]:
+    """Fills out resources for available_node_types."""
+    cluster_resource = {}
+    if "available_node_types" not in cluster_config:
+        return cluster_resource
+
+    # Since we have filled the resources for node types
+    # We simply don't retrieve it from cloud provider again
+    available_node_types = cluster_config["available_node_types"]
+    head_node_type = cluster_config["head_node_type"]
+    for node_type in available_node_types:
+        resources = available_node_types[node_type].get("resources", {})
+        memory_total_in_mb = int(resources.get("memory", 0) / (1024 * 1024))
+        cpu_total = resources.get("CPU", 0)
+        if node_type != head_node_type:
+            if memory_total_in_mb > 0:
+                cluster_resource["worker_memory"] = memory_total_in_mb
+            if cpu_total > 0:
+                cluster_resource["worker_cpu"] = cpu_total
+        else:
+            if memory_total_in_mb > 0:
+                cluster_resource["head_memory"] = memory_total_in_mb
+            if cpu_total > 0:
+                cluster_resource["head_cpu"] = cpu_total
+
+    # If there is only one node type, worker type uses the head type
+    if ("worker_memory" not in cluster_resource) and ("head_memory" in cluster_resource):
+        cluster_resource["worker_memory"] = cluster_resource["head_memory"]
+    if ("worker_cpu" not in cluster_resource) and ("head_cpu" in cluster_resource):
+        cluster_resource["worker_cpu"] = cluster_resource["head_cpu"]
+
+    return cluster_resource

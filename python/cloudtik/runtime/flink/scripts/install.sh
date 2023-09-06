@@ -12,20 +12,11 @@ if [ -z "$FLINK_VERSION" ]; then
     export FLINK_VERSION=1.14.5
 fi
 
-# Set Hadoop version based on Flink version
-export HADOOP_VERSION=3.3.1
-
 export USER_HOME=/home/$(whoami)
 export RUNTIME_PATH=$USER_HOME/runtime
 
 # Util functions
 . "$ROOT_DIR"/common/scripts/util-functions.sh
-
-# JDK install function
-. "$ROOT_DIR"/common/scripts/jdk-install.sh
-
-# Hadoop install function
-. "$ROOT_DIR"/common/scripts/hadoop-install.sh
 
 function install_flink() {
     # install Flink
@@ -144,11 +135,9 @@ function install_flink_with_cloud_jars() {
 }
 
 set_head_option "$@"
-install_jdk
-install_hadoop
+install_tools
 install_flink
 install_jupyter_for_flink
-install_tools
 install_hadoop_with_cloud_jars
 #install_flink_with_cloud_jars
 clean_install_cache

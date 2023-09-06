@@ -12,20 +12,11 @@ if [ -z "$SPARK_VERSION" ]; then
     export SPARK_VERSION=3.2.1
 fi
 
-# Set Hadoop version based on Spark version
-export HADOOP_VERSION=3.3.1
-
 export USER_HOME=/home/$(whoami)
 export RUNTIME_PATH=$USER_HOME/runtime
 
 # Util functions
 . "$ROOT_DIR"/common/scripts/util-functions.sh
-
-# JDK install function
-. "$ROOT_DIR"/common/scripts/jdk-install.sh
-
-# Hadoop install function
-. "$ROOT_DIR"/common/scripts/hadoop-install.sh
 
 # Cloud storage fuse functions
 . "$ROOT_DIR"/common/scripts/cloud-storage-fuse.sh
@@ -164,11 +155,9 @@ function install_spark_with_cloud_jars() {
 }
 
 set_head_option "$@"
-install_jdk
-install_hadoop
+install_tools
 install_spark
 install_jupyter_for_spark
-install_tools
 install_yarn_with_spark_jars
 install_hadoop_with_cloud_jars
 install_spark_with_cloud_jars

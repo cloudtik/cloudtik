@@ -7,7 +7,7 @@ from cloudtik.core._private import logging_utils
 from cloudtik.core._private.cli_logger import (cli_logger, add_click_logging_options)
 from cloudtik.core._private.cluster.cluster_config import _load_cluster_config
 from cloudtik.runtime.flink.utils import print_request_rest_jobs, \
-    print_request_rest_yarn, get_runtime_default_storage
+    get_runtime_default_storage
 
 logger = logging.getLogger(__name__)
 
@@ -59,24 +59,6 @@ def jobs(cluster_config_file, cluster_name, endpoint):
     type=str,
     help="Override the configured cluster name.")
 @click.option(
-    "--endpoint",
-    required=False,
-    type=str,
-    help="The resource endpoint for the YARN rest API")
-@add_click_logging_options
-def yarn(cluster_config_file, cluster_name, endpoint):
-    print_request_rest_yarn(cluster_config_file, cluster_name, endpoint)
-
-
-@click.command()
-@click.argument("cluster_config_file", required=True, type=str)
-@click.option(
-    "--cluster-name",
-    "-n",
-    required=False,
-    type=str,
-    help="Override the configured cluster name.")
-@click.option(
     "--default-storage",
     is_flag=True,
     default=False,
@@ -92,7 +74,6 @@ def info(cluster_config_file, cluster_name, default_storage):
 
 
 cli.add_command(jobs)
-cli.add_command(yarn)
 cli.add_command(info)
 
 

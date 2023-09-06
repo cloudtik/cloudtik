@@ -13,10 +13,10 @@ cloudtik start $cluster_config -y
 cloudtik wait-for-ready $cluster_config
 
 # Exec a job and wait for the spark job to finish
-cloudtik exec $cluster_config "$job_cmd" --job-waiter=spark
+cloudtik exec $cluster_config "$job_cmd" --job-waiter=yarn
 
 # Stop the cluster
 cloudtik stop $cluster_config -y
 
 # The above can also be done with a single exec command
-# cloudtik exec $cluster_config "$job_cmd" --start --wait-for-workers  --job-waiter=spark --stop
+# cloudtik exec $cluster_config "$job_cmd" --start --wait-for-workers  --job-waiter=yarn --stop

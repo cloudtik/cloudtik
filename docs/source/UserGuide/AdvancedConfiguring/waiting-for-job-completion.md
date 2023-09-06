@@ -76,7 +76,7 @@ And you want to stop the cluster after the job completed.
 ```
 cloudtik exec your-cluster-config.yaml \
     "spark-submit --master yarn --deploy-mode cluster --name spark-pi --class org.apache.spark.examples.SparkPi \$SPARK_HOME/examples/jars/spark-examples.jar" \
-    --tmux --job-waiter=chain[tmux, spark] --stop
+    --tmux --job-waiter=chain[tmux, yarn] --stop
 ```
 
 Because you used --tmux parameter, you need tmux job waiter in the chain to wait for the tmux session completion
