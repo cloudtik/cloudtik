@@ -15,6 +15,7 @@ RUNTIME_PROCESSES = [
     ["gcsfuse", True, "GCS Fuse", "node"],
     ["ossfs", True, "OSS Fuse", "node"],
     ["fuse_dfs", True, "HDFS Fuse", "node"],
+    ["proc_nfs3", False, "HDFS NFS", "node"],
 ]
 
 

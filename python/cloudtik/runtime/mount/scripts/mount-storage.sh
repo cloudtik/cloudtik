@@ -177,17 +177,21 @@ function configure_cloud_fs() {
 function install_hdfs_fuse() {
     if ! type fuse_dfs >/dev/null 2>&1; then
         arch=$(uname -m)
-        sudo wget -q ${CLOUDTIK_DOWNLOADS}/hadoop/fuse_dfs-${HADOOP_VERSION}-${arch} -O /usr/bin/fuse_dfs
-        sudo wget -q ${CLOUDTIK_DOWNLOADS}/hadoop/fuse_dfs_wrapper-${HADOOP_VERSION}.sh -O /usr/bin/fuse_dfs_wrapper.sh
+        sudo wget -q ${CLOUDTIK_DOWNLOADS}/hadoop/fuse_dfs-${HADOOP_VERSION}-${arch} \
+          -O /usr/bin/fuse_dfs
+        sudo wget -q ${CLOUDTIK_DOWNLOADS}/hadoop/fuse_dfs_wrapper-${HADOOP_VERSION}.sh \
+          -O /usr/bin/fuse_dfs_wrapper.sh
         sudo chmod +x /usr/bin/fuse_dfs
         sudo chmod +x /usr/bin/fuse_dfs_wrapper.sh
     fi
 
     # nfs mount may needed
-    which mount.nfs > /dev/null || (sudo  apt-get -qq update -y > /dev/null; sudo DEBIAN_FRONTEND=noninteractive apt-get -qq install nfs-common -y > /dev/null)
+    which mount.nfs > /dev/null || (sudo  apt-get -qq update -y > /dev/null; \
+      sudo DEBIAN_FRONTEND=noninteractive apt-get -qq install nfs-common -y > /dev/null)
 
     # install HDFS NFS fix if not installed
-    wget -q ${CLOUDTIK_DOWNLOADS}/hadoop/hadoop-hdfs-nfs-${HADOOP_VERSION}.jar -O ${HADOOP_HOME}/share/hadoop/hdfs/hadoop-hdfs-nfs-${HADOOP_VERSION}.jar
+    wget -q ${CLOUDTIK_DOWNLOADS}/hadoop/hadoop-hdfs-nfs-${HADOOP_VERSION}.jar \
+      -O ${HADOOP_HOME}/share/hadoop/hdfs/hadoop-hdfs-nfs-${HADOOP_VERSION}.jar
 }
 
 function install_s3_fuse() {
@@ -269,7 +273,8 @@ function mount_local_hdfs_fs() {
     if [ "${HDFS_NFS_MOUNTED}" != "true" ] && [ "${HDFS_MOUNT_METHOD}" == "nfs" ]; then
         HDFS_NFS_MOUNTED=true
 
-        # Use the local HDFS dedicated core-site.xml and hdfs-site.xml
+        # Use the local HDFS dedicated core-site.xml and hdfs-site.xml if exists
+        # if it is not exists, it will use the default Hadoop conf
         LOCAL_HDFS_CONF_DIR=${HADOOP_HOME}/etc/local
         if [ -d "${LOCAL_HDFS_CONF_DIR}" ]; then
             export HADOOP_CONF_DIR=${LOCAL_HDFS_CONF_DIR}

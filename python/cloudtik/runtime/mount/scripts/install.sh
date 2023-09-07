@@ -7,6 +7,8 @@ ROOT_DIR="$(dirname "$(dirname "$BIN_DIR")")"
 args=$(getopt -a -o h:: -l head:: -- "$@")
 eval set -- "${args}"
 
+export HADOOP_VERSION=3.3.1
+
 USER_HOME=/home/$(whoami)
 RUNTIME_PATH=$USER_HOME/runtime
 
