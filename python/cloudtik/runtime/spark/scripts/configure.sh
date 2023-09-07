@@ -13,9 +13,6 @@ RUNTIME_PATH=$USER_HOME/runtime
 # Util functions
 . "$ROOT_DIR"/common/scripts/util-functions.sh
 
-# Cloud storage fuse functions
-. "$ROOT_DIR"/common/scripts/cloud-storage-fuse.sh
-
 function prepare_base_conf() {
     source_dir=$(dirname "${BIN_DIR}")/conf
     output_dir=/tmp/spark/conf
@@ -172,6 +169,5 @@ set_head_address
 set_resources_for_spark
 configure_spark
 configure_jupyter_for_spark
-configure_cloud_fs
 
 exit 0

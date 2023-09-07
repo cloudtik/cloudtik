@@ -7,9 +7,6 @@ ROOT_DIR="$(dirname "$(dirname "$BIN_DIR")")"
 args=$(getopt -a -o h:: -l head:: -- "$@")
 eval set -- "${args}"
 
-# import util functions
-. "$ROOT_DIR"/common/scripts/util-functions.sh
-
 if [ ! -n "${HADOOP_HOME}" ]; then
     echo "Hadoop is not installed for HADOOP_HOME environment variable is not set."
     exit 1
@@ -22,14 +19,9 @@ fi
 
 USER_HOME=/home/$(whoami)
 RUNTIME_PATH=$USER_HOME/runtime
-export CLOUD_FS_MOUNT_PATH=/cloudtik/fs
-export LOCAL_FS_MOUNT_PATH=/cloudtik/localfs
 
 # Util functions
 . "$ROOT_DIR"/common/scripts/util-functions.sh
-
-# Cloud storage fuse functions
-. "$ROOT_DIR"/common/scripts/cloud-storage-fuse.sh
 
 set_head_option "$@"
 set_service_command "$@"
@@ -37,9 +29,6 @@ set_head_address
 
 case "$SERVICE_COMMAND" in
 start)
-    # Mount cloud filesystem or hdfs
-    mount_cloud_fs
-
     if [ $IS_HEAD_NODE == "true" ]; then
         # Create event log dir on cloud storage if needed
         # This needs to be done after hadoop file system has been configured correctly
@@ -61,9 +50,6 @@ stop)
           kill $JUPYTER_PID >/dev/null 2>&1
         fi
     fi
-
-    # Unmount cloud filesystem or hdfs
-    unmount_cloud_fs
     ;;
 -h|--help)
     echo "Usage: $0 start|stop --head" >&2

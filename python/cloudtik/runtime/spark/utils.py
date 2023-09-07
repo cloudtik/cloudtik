@@ -199,17 +199,9 @@ def update_spark_configurations():
     save_properties_file(spark_conf_file, spark_conf, separator=' ', comments=comments)
 
 
-def _with_hdfs_mount_method(spark_config, runtime_envs):
-    mount_method = spark_config.get("hdfs_mount_method")
-    if mount_method:
-        runtime_envs["HDFS_MOUNT_METHOD"] = mount_method
-
-
 def _with_runtime_environment_variables(
         runtime_config, config, provider, node_id: str):
     runtime_envs = {}
-    spark_config = _get_config(runtime_config)
-    _with_hdfs_mount_method(spark_config, runtime_envs)
     return runtime_envs
 
 

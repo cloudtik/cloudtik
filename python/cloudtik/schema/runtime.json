@@ -238,7 +238,14 @@
                 "hdfs_namenode_uri": {
                     "type": "string",
                     "description": "HDFS service endpoint if Spark need to access HDFS."
-                },
+                }
+            }
+        },
+        "mount": {
+            "type": "object",
+            "description": "Mount runtime configurations",
+            "additionalProperties": true,
+            "properties": {
                 "hdfs_mount_method": {
                     "type": "string",
                     "description": "HDFS mount method: nfs or fuse. Default fuse if not specified."
