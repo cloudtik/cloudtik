@@ -48,61 +48,15 @@ Please refer to [User Guide: Running Clusters Locally](../UserGuide/running-loca
 for detailed guide for this case.
 
 ### 3. Authentication to Cloud Providers API
-
 After CloudTik is installed on your working machine, you need to configure or log into your Cloud account to 
-authenticate the cloud provider CLI on this machine.
+authenticate the cloud provider CLI on the working machine.
 
-#### AWS
+Take AWS for example, install AWS CLI (command line interface),
+run `aws configure` command and input your *AWS Access Key ID* and *AWS Secret Access Key*.
+CloudTik is able to pick up your client credentials you configured through `aws configure`.
 
-First, install AWS CLI (command line interface) on your working machine. Please refer to
-[Installing AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html)
-for detailed instructions.
-
-After AWS CLI is installed, you need to configure AWS CLI about credentials. The quickest way to configure it 
-is to run `aws configure` command, and you can refer to
-[Managing access keys](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_access-keys.html#Using_CreateAccessKey)
-to get *AWS Access Key ID* and *AWS Secret Access Key*.
-
-More details for AWS CLI can be found in [AWS CLI Getting Started](https://github.com/aws/aws-cli/tree/v2#getting-started).
-
-#### Azure
-
-After CloudTik is installed on your working machine, login to Azure using `az login`.
-Refer to [Sign in with Azure CLI](https://docs.microsoft.com/en-us/cli/azure/authenticate-azure-cli) for more details.
-
-#### GCP
-
-If you use service account authentication, follow [Creating a service account](https://cloud.google.com/docs/authentication/getting-started#creating_a_service_account)
-to create a service account on Google Cloud. 
-
-A JSON file should be safely downloaded to your local computer, and then set the `GOOGLE_APPLICATION_CREDENTIALS` environment
-variable as described in the [Setting the environment variable](https://cloud.google.com/docs/authentication/getting-started#setting_the_environment_variable)
-on your working machine.
-
-If you use user account authentication, refer to [User Guide: Login to Cloud](../UserGuide/login-to-cloud.md#gcp) for details.
-
-#### Alibaba Cloud
-The simple way to set up Alibaba Cloud credentials for CloudTik use is
-to export the access key ID and access key secret of your cloud account:
-
-export ALIBABA_CLOUD_ACCESS_KEY_ID=xxxxxxxxxxxxxxxxxxxxxxxx
-export ALIBABA_CLOUD_ACCESS_KEY_SECRET=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-
-For more options of Alibaba Cloud credentials configuration in CloudTik,
-refer to [User Guide: Login to Cloud](../UserGuide/login-to-cloud.md#alibaba-cloud).
-
-Note: please activate OSS through Alibaba Cloud Console before going to the next step.
-
-#### Kubernetes
-If you are running CloudTik on a generic Kubernetes cluster, the authentication setup is simple.
-You just need to authenticate your kubectl at your working machine to be able to access the Kubernetes cluster.
-
-If you are running cloud Kubernetes engine (such as AWS EKS, GCP GKE or Azure AKE)
-with cloud integrations with access to cloud resources such as cloud storage,
-you need both kubectl authentication to cloud Kubernetes cluster and cloud API credentials configuration above.
-
-For detailed information of how configure Kubernetes with cloud integrations,
-refer to [User Guide: Login to Cloud - Kubernetes](../UserGuide/login-to-cloud.md#kubernetes)
+For detailed information of how to authenticate with public cloud providers,
+refer to [User Guide: Login to Cloud](../UserGuide/login-to-cloud.html)
 
 ### 4. Creating a Workspace for Clusters.
 Once you authenticated with your cloud provider, you can start to create a Workspace.
@@ -154,7 +108,8 @@ all these privileges.
 
 ### 5. Starting a cluster with default runtimes
 
-Now you can start a cluster running Spark by default:
+Now you can start a cluster with a combination of runtimes you want.
+By default, it will include Spark runtime.
 
 ```
 cloudtik start /path/to/your-cluster-config.yaml
