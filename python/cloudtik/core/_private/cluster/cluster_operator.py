@@ -3387,7 +3387,8 @@ def _do_stop_node_on_head(
             environment_variables=environment_variables)
 
         updater_envs = updater.get_update_environment_variables()
-        updater.exec_commands("Stopping", stop_commands, updater_envs)
+        updater.exec_commands(
+            "Stopping", list(reversed(stop_commands)), updater_envs)
 
     _cli_logger = call_context.cli_logger
 
