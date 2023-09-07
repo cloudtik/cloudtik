@@ -143,15 +143,25 @@ Finally, Cluster Controller provides various coordinating services to the runtim
 to each node.
 
 ## Runtime Design
-Belows diagram shows the current design of analytics runtimes (AI to come).
+CloudTik runtimes are functional components to provide virtually some services.
+Although the runtimes are decoupled and can be selected to include in a cluster independently,
+CloudTik runtimes are designed to connect and consume other runtime services in the same workspace
+through various service discovery mechanisms.
+
+For example, if you configure a cluster to run HDFS, MySQL, Metastore and Spark runtimes,
+no need for additional configuration, Metastore will discover MySQL service
+and will use it as Metastore database; Spark will discover HDFS and Metastore service
+and will use HDFS as Spark storage and Metastore as Spark catalog store.
+The same will work smartly even if the runtimes are in different clusters
+as long as they are in the same workspace.
+
+Belows diagram shows the current design of analytics runtimes:
 
 ![Analytics Runtimes](../../image/analytics-runtimes.jpg)
 
-CloudTik targets to support a systematic of analytics and AI services to efficiently solve
-end-to-end and distributed analytics and AI problems.
-
-For now, we support a distributed analytics environment by using a combination of runtimes.
-We will continue to optimize and advance to include AI features as next step.
+CloudTik supports a systematic of data, analytics and AI services to efficiently solve
+end-to-end and distributed data, analytics and AI problems as well as
+the runtimes for running CloudTik as a platform with microservice architecture.
 
 ## Execution Mode
 CloudTik supports two execution mode: Host mode and Container mode.
