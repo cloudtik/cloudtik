@@ -18,9 +18,6 @@ export RUNTIME_PATH=$USER_HOME/runtime
 # Util functions
 . "$ROOT_DIR"/common/scripts/util-functions.sh
 
-# Cloud storage fuse functions
-. "$ROOT_DIR"/common/scripts/cloud-storage-fuse.sh
-
 function install_spark() {
     # install Spark
     export SPARK_HOME=$RUNTIME_PATH/spark
@@ -137,5 +134,4 @@ install_spark
 install_jupyter_for_spark
 install_yarn_with_spark_jars
 install_spark_with_cloud_jars
-install_cloud_fuse
 clean_install_cache
