@@ -7,7 +7,7 @@ from uuid import uuid4
 from kubernetes.client.rest import ApiException
 
 from cloudtik.core._private.call_context import CallContext
-from cloudtik.core._private.utils import is_use_internal_ip, _is_use_internal_ip
+from cloudtik.core._private.utils import is_use_internal_ip, _is_use_internal_ip, _is_permanent_data_volumes
 from cloudtik.core.node_provider import NodeProvider
 from cloudtik.core.tags import NODE_KIND_HEAD
 from cloudtik.core.tags import CLOUDTIK_TAG_CLUSTER_NAME
@@ -161,7 +161,9 @@ class KubernetesNodeProvider(NodeProvider):
             _pod_spec["spec"]["hostname"] = get_head_hostname() if (
                     tags[CLOUDTIK_TAG_NODE_KIND] == NODE_KIND_HEAD) else get_worker_hostname()
             created_pvcs = create_and_configure_pvc_for_pod(
-                _pod_spec, data_disks, self.cluster_name, self.namespace)
+                self.provider_config, tags,
+                _pod_spec, data_disks,
+                self.cluster_name, self.namespace)
             try:
                 pod = core_api().create_namespaced_pod(self.namespace, _pod_spec)
                 new_nodes.append(pod)
@@ -211,7 +213,8 @@ class KubernetesNodeProvider(NodeProvider):
                 raise
 
         try:
-            delete_persistent_volume_claims_by_name(pod_pvcs, self.namespace)
+            if not _is_permanent_data_volumes(self.provider_config):
+                delete_persistent_volume_claims_by_name(pod_pvcs, self.namespace)
         except ApiException:
             logger.warning(log_prefix + f"Error happened when deleting PVCs of pod {node_id}.")
             pass
@@ -270,7 +273,8 @@ class KubernetesNodeProvider(NodeProvider):
             self, cluster_config: Dict[str, Any], deep: bool = False):
         """Finalize the cluster by cleanup additional resources other than the nodes."""
         cleanup_kubernetes_cluster(
-            cluster_config, self.cluster_name, self.namespace)
+            self.provider_config, self.cluster_name, self.namespace,
+            cluster_config, deep)
 
     @staticmethod
     def bootstrap_config_for_api(cluster_config: Dict[str, Any]) -> Dict[str, Any]:
