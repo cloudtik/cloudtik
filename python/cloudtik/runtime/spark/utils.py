@@ -3,7 +3,8 @@ from typing import Any, Dict
 
 from cloudtik.core._private.cluster.cluster_tunnel_request import _request_rest_to_head
 from cloudtik.core._private.core_utils import double_quote
-from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_SPARK, BUILT_IN_RUNTIME_YARN
+from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_SPARK, BUILT_IN_RUNTIME_YARN, \
+    BUILT_IN_RUNTIME_HADOOP
 from cloudtik.core._private.service_discovery.utils import get_canonical_service_name, define_runtime_service_on_head, \
     get_service_discovery_config, SERVICE_DISCOVERY_PROTOCOL_HTTP
 from cloudtik.core._private.utils import \
@@ -282,7 +283,7 @@ def request_rest_applications(
 
 
 def get_runtime_default_storage(config: Dict[str, Any]):
-    return get_runtime_default_storage_of(config, BUILT_IN_RUNTIME_SPARK)
+    return get_runtime_default_storage_of(config, BUILT_IN_RUNTIME_HADOOP)
 
 
 def get_runtime_endpoints(config: Dict[str, Any]):
