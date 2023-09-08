@@ -4,7 +4,8 @@ import logging
 from kubernetes.client.rest import ApiException
 
 from cloudtik.core._private.cli_logger import cli_logger
-from cloudtik.core.tags import CLOUDTIK_TAG_CLUSTER_NAME
+from cloudtik.core._private.utils import _is_permanent_data_volumes
+from cloudtik.core.tags import CLOUDTIK_TAG_CLUSTER_NAME, CLOUDTIK_TAG_NODE_SEQ_ID, CLOUDTIK_TAG_NODE_NAME
 from cloudtik.providers._private._kubernetes import core_api
 
 # For example cloudtik-{workspace-name}-worker-kb7w7
@@ -88,6 +89,9 @@ def _get_service_account(namespace, name):
 
 
 def delete_persistent_volume_claims(pvcs, namespace):
+    if not pvcs:
+        return
+
     for pvc in pvcs:
         delete_persistent_volume_claim(pvc.metadata.name, namespace)
 
@@ -108,54 +112,161 @@ def delete_persistent_volume_claim(name, namespace):
             raise
 
 
-def create_and_configure_pvc_for_pod(_pod_spec, data_disks, cluster_name, namespace):
+def create_and_configure_pvc_for_pod(
+        provider_config, tags,
+        _pod_spec, data_disks,
+        cluster_name, namespace):
     if data_disks is None or len(data_disks) == 0:
         return None
 
+    if not _is_permanent_data_volumes(provider_config):
+        created_pvcs = _create_pvcs(data_disks, cluster_name, namespace)
+        pod_pvcs = created_pvcs
+    else:
+        # reuse the existing pvcs if there is one
+        # node name for disk is in the format of cloudtik-{cluster_name}-{seq_id}
+        seq_id = tags.get(CLOUDTIK_TAG_NODE_SEQ_ID) if tags else None
+        if not seq_id:
+            raise RuntimeError("No node sequence id assigned for using permanent data volumes.")
+        node_name_for_volume = "cloudtik-{}-node-{}".format(
+            cluster_name, seq_id)
+        pod_pvcs, created_pvcs = _get_or_create_pvcs(
+            data_disks, cluster_name, namespace, node_name_for_volume)
+
+    _configure_pvc_for_pod(pod_pvcs, _pod_spec)
+    return created_pvcs
+
+
+def _create_pvcs(
+        data_disks, cluster_name, namespace):
     created_pvcs = []
     for data_disk in data_disks:
-        pvc_spec = {
-            "apiVersion": "v1",
-            "kind": "PersistentVolumeClaim",
-            "metadata": {
-                "generateName": "cloudtik-{}-{}-".format(cluster_name, data_disk["name"])
-            },
-            "spec": {
-                "accessModes": ["ReadWriteOnce"],
-                "resources": {
-                    "requests": {
-                        "storage": data_disk["diskSize"]
-                    }
-                }
-            },
-        }
-
-        if "storageClass" in data_disk:
-            pvc_spec["spec"]["storageClassName"] = data_disk["storageClass"]
-
-        tags = {CLOUDTIK_TAG_CLUSTER_NAME: cluster_name}
-        pvc_spec["metadata"]["namespace"] = namespace
-        if "labels" in pvc_spec["metadata"]:
-            pvc_spec["metadata"]["labels"].update(tags)
-        else:
-            pvc_spec["metadata"]["labels"] = tags
         try:
-            pvc = core_api().create_namespaced_persistent_volume_claim(namespace, pvc_spec)
+            pvc = _create_pvc(data_disk, cluster_name, namespace)
             created_pvcs.append(pvc)
         except ApiException:
             logger.error("Error happened creating persistent volume claims for pod. Try clean up...")
             delete_persistent_volume_claims(created_pvcs, namespace)
             raise
+    return created_pvcs
 
+
+def _create_pvc(
+        data_disk, cluster_name, namespace):
+    pvc_spec = {
+        "apiVersion": "v1",
+        "kind": "PersistentVolumeClaim",
+        "metadata": {
+            "generateName": "cloudtik-{}-{}-".format(cluster_name, data_disk["name"])
+        },
+        "spec": {
+            "accessModes": ["ReadWriteOnce"],
+            "resources": {
+                "requests": {
+                    "storage": data_disk["diskSize"]
+                }
+            }
+        },
+    }
+
+    if "storageClass" in data_disk:
+        pvc_spec["spec"]["storageClassName"] = data_disk["storageClass"]
+
+    pvc_tags = {CLOUDTIK_TAG_CLUSTER_NAME: cluster_name}
+    pvc_spec["metadata"]["namespace"] = namespace
+    if "labels" in pvc_spec["metadata"]:
+        pvc_spec["metadata"]["labels"].update(pvc_tags)
+    else:
+        pvc_spec["metadata"]["labels"] = pvc_tags
+    pvc = core_api().create_namespaced_persistent_volume_claim(namespace, pvc_spec)
+    return pvc
+
+
+def _create_named_pvc(
+        data_disk, cluster_name, namespace, node_name, pvc_name):
+    pvc_spec = {
+        "apiVersion": "v1",
+        "kind": "PersistentVolumeClaim",
+        "metadata": {
+            "name": pvc_name,
+        },
+        "spec": {
+            "accessModes": ["ReadWriteOnce"],
+            "resources": {
+                "requests": {
+                    "storage": data_disk["diskSize"]
+                }
+            }
+        },
+    }
+
+    if "storageClass" in data_disk:
+        pvc_spec["spec"]["storageClassName"] = data_disk["storageClass"]
+
+    pvc_tags = {
+        CLOUDTIK_TAG_CLUSTER_NAME: cluster_name,
+        CLOUDTIK_TAG_NODE_NAME: node_name,
+    }
+    pvc_spec["metadata"]["namespace"] = namespace
+    if "labels" in pvc_spec["metadata"]:
+        pvc_spec["metadata"]["labels"].update(pvc_tags)
+    else:
+        pvc_spec["metadata"]["labels"] = pvc_tags
+
+    pvc = core_api().create_namespaced_persistent_volume_claim(namespace, pvc_spec)
+    return pvc
+
+
+def _get_node_pvcs(cluster_name, namespace, node_name):
+    tag_filters = {
+        CLOUDTIK_TAG_CLUSTER_NAME: cluster_name,
+        CLOUDTIK_TAG_NODE_NAME: node_name
+    }
+    label_selector = to_label_selector(tag_filters)
+    pvc_list = core_api().list_namespaced_persistent_volume_claim(
+        namespace,
+        label_selector=label_selector)
+    node_pvcs = pvc_list.items
+    if node_pvcs is None:
+        return {}
+    return {pvc.metadata.name: pvc for pvc in node_pvcs}
+
+
+def _get_or_create_pvcs(
+        data_disks, cluster_name, namespace, node_name):
+    existing_pvcs = _get_node_pvcs(
+        cluster_name, namespace, node_name)
+    pod_pvcs = []
+    created_pvcs = []
+    data_disk_id = 0
+    for data_disk in data_disks:
+        data_disk_id += 1
+        pvc_name = "{}-disk-{}".format(node_name, data_disk_id)
+        pvc = existing_pvcs.get(pvc_name)
+        if pvc is None:
+            try:
+                # create a new volume claim
+                pvc = _create_named_pvc(
+                    data_disk, cluster_name, namespace, node_name, pvc_name)
+                created_pvcs.append(pvc)
+            except ApiException:
+                logger.error("Error happened creating persistent volume claims for pod. Try clean up...")
+                delete_persistent_volume_claims(created_pvcs, namespace)
+                raise
+        pod_pvcs.append(pvc)
+    return pod_pvcs, created_pvcs
+
+
+def _configure_pvc_for_pod(pod_pvcs, _pod_spec):
     new_volumes = []
     new_mounts = []
     index = 1
-    for created_pvc in created_pvcs:
+    for pod_pvc in pod_pvcs:
         volume_name = "data-disk-{}".format(index)
         volume = {
             "name": volume_name,
             "persistentVolumeClaim": {
-                "claimName": created_pvc.metadata.name,
+                "claimName": pod_pvc.metadata.name,
             }
         }
         mount = {
@@ -175,8 +286,6 @@ def create_and_configure_pvc_for_pod(_pod_spec, data_disks, cluster_name, namesp
         mounts = container.get("volumeMounts", [])
         mounts += new_mounts
         container["volumeMounts"] = mounts
-
-    return created_pvcs
 
 
 def _get_data_disk_pvc(volume, cluster_name, namespace):

@@ -16,7 +16,7 @@ from cloudtik.core._private.docker import get_versioned_image
 from cloudtik.core._private.provider_factory import _get_node_provider
 from cloudtik.core._private.utils import is_use_internal_ip, get_running_head_node, binary_to_hex, hex_to_binary, \
     get_head_service_ports, _is_use_managed_cloud_storage, _is_use_internal_ip, is_gpu_runtime, \
-    PROVIDER_DATABASE_CONFIG_KEY, PROVIDER_STORAGE_CONFIG_KEY
+    PROVIDER_DATABASE_CONFIG_KEY, PROVIDER_STORAGE_CONFIG_KEY, _is_permanent_data_volumes
 from cloudtik.core.tags import CLOUDTIK_TAG_CLUSTER_NAME, CLOUDTIK_TAG_NODE_KIND, NODE_KIND_HEAD, \
     CLOUDTIK_GLOBAL_VARIABLE_KEY, CLOUDTIK_GLOBAL_VARIABLE_KEY_PREFIX
 from cloudtik.core.workspace_provider import Existence
@@ -1221,12 +1221,15 @@ def configure_for_ssh(config):
                          "{}".format(ssh_private_key))
 
 
-def cleanup_kubernetes_cluster(config, cluster_name, namespace):
+def cleanup_kubernetes_cluster(
+        provider_config, cluster_name, namespace,
+        config, deep):
     # Delete services associated with the cluster
     _delete_services(config)
 
-    # Clean up the PVCs if there are any not deleted by Pod deletion
-    cleanup_orphan_pvcs(cluster_name, namespace)
+    if not _is_permanent_data_volumes(provider_config) or deep:
+        # Clean up the PVCs if there are any not deleted by Pod deletion
+        cleanup_orphan_pvcs(cluster_name, namespace)
 
 
 def _configure_namespace_from_workspace(config):
