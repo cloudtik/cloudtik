@@ -4,7 +4,7 @@ from typing import Any, Dict
 from cloudtik.core._private.core_utils import get_env_string_value
 from cloudtik.core._private.provider_factory import _get_node_provider
 from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_AI
-from cloudtik.core._private.service_discovery.utils import get_canonical_service_name, define_runtime_service_on_head, \
+from cloudtik.core._private.service_discovery.utils import get_canonical_service_name, \
     get_service_discovery_config, SERVICE_DISCOVERY_PROTOCOL_HTTP, define_runtime_service_on_head_or_all
 from cloudtik.core._private.util.database_utils import is_database_configured, export_database_environment_variables
 from cloudtik.core._private.utils import export_runtime_flags
@@ -45,7 +45,7 @@ def _get_runtime_processes():
     return RUNTIME_PROCESSES
 
 
-def _config_depended_services(cluster_config: Dict[str, Any]) -> Dict[str, Any]:
+def _prepare_config(cluster_config: Dict[str, Any]) -> Dict[str, Any]:
     cluster_config = discover_hdfs_from_workspace(
         cluster_config, BUILT_IN_RUNTIME_AI)
     cluster_config = discover_database_from_workspace(

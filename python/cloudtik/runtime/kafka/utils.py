@@ -29,7 +29,7 @@ def _get_config(runtime_config: Dict[str, Any]):
     return runtime_config.get(BUILT_IN_RUNTIME_KAFKA, {})
 
 
-def _config_depended_services(cluster_config: Dict[str, Any]) -> Dict[str, Any]:
+def _prepare_config(cluster_config: Dict[str, Any]) -> Dict[str, Any]:
     cluster_config = discover_zookeeper_from_workspace(
         cluster_config, BUILT_IN_RUNTIME_KAFKA)
     return cluster_config

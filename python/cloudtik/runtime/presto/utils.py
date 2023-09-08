@@ -47,7 +47,7 @@ def get_memory_heap_headroom_per_node(jvm_max_memory):
     return int(jvm_max_memory * MEMORY_HEAP_HEADROOM_PER_NODE_RATIO)
 
 
-def _config_depended_services(cluster_config: Dict[str, Any]) -> Dict[str, Any]:
+def _prepare_config(cluster_config: Dict[str, Any]) -> Dict[str, Any]:
     cluster_config = discover_metastore_from_workspace(
         cluster_config, BUILT_IN_RUNTIME_PRESTO)
     return cluster_config

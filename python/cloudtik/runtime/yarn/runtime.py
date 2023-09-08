@@ -7,7 +7,7 @@ from cloudtik.core.node_provider import NodeProvider
 from cloudtik.core.scaling_policy import ScalingPolicy
 from cloudtik.runtime.common.runtime_base import RuntimeBase
 from cloudtik.runtime.yarn.job_waiter import YARNJobWaiter
-from cloudtik.runtime.yarn.utils import _config_runtime_resources, _with_runtime_environment_variables, \
+from cloudtik.runtime.yarn.utils import _prepare_config, _with_runtime_environment_variables, \
     get_runtime_processes, get_runtime_logs, _get_runtime_endpoints, \
     _get_head_service_ports, _get_scaling_policy, _get_runtime_services
 
@@ -22,8 +22,7 @@ class YARNRuntime(RuntimeBase):
 
     def prepare_config(self, cluster_config: Dict[str, Any]) -> Dict[str, Any]:
         """Prepare runtime specific configurations"""
-        cluster_config = _config_runtime_resources(cluster_config)
-        return cluster_config
+        return _prepare_config(cluster_config)
 
     def with_environment_variables(
             self, config: Dict[str, Any], provider: NodeProvider,

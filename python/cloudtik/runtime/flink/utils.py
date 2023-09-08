@@ -70,10 +70,10 @@ def get_flink_taskmanager_overhead(flink_taskmanager_memory_all: int) -> int:
                FLINK_TASKMANAGER_OVERHEAD_MINIMUM)
 
 
-def _config_depended_services(cluster_config: Dict[str, Any]) -> Dict[str, Any]:
+def _prepare_config(cluster_config: Dict[str, Any]) -> Dict[str, Any]:
+    cluster_config = _configure_runtime_resources(cluster_config)
     cluster_config = discover_metastore_from_workspace(
         cluster_config, BUILT_IN_RUNTIME_FLINK)
-
     return cluster_config
 
 
@@ -87,7 +87,7 @@ def _prepare_config_on_head(cluster_config: Dict[str, Any]):
     return cluster_config
 
 
-def _config_runtime_resources(cluster_config: Dict[str, Any]) -> Dict[str, Any]:
+def _configure_runtime_resources(cluster_config: Dict[str, Any]) -> Dict[str, Any]:
     cluster_resource = get_node_type_resources(cluster_config)
 
     yarn_resource_memory_ratio = get_yarn_resource_memory_ratio(cluster_config)

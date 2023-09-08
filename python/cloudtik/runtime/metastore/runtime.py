@@ -8,7 +8,7 @@ from cloudtik.runtime.common.runtime_base import RuntimeBase
 from cloudtik.runtime.metastore.utils import _with_runtime_environment_variables, \
     _get_runtime_processes, _get_runtime_logs, \
     _get_runtime_endpoints, register_service, _get_head_service_ports, _get_runtime_services, \
-    _prepare_config_on_head, _config_depended_services, _configure, _services
+    _prepare_config_on_head, _prepare_config, _configure, _services
 
 logger = logging.getLogger(__name__)
 
@@ -21,8 +21,7 @@ class MetastoreRuntime(RuntimeBase):
 
     def prepare_config(self, cluster_config: Dict[str, Any]) -> Dict[str, Any]:
         """Prepare runtime specific configurations"""
-        cluster_config = _config_depended_services(cluster_config)
-        return cluster_config
+        return _prepare_config(cluster_config)
 
     def prepare_config_on_head(
             self, cluster_config: Dict[str, Any]
