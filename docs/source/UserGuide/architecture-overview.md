@@ -5,11 +5,9 @@ more easily if such knowledge is in mind.
 
 - [High Level Architecture](#high-level-architecture)
 - [Cluster Architecture](#cluster-architecture)
+- [Runtime Architecture](#runtime-architecture)
 - [Cluster Networking](#cluster-networking)
-- [Head and Worker Services](#head-and-worker-services)
 - [Cluster Controller](#cluster-controller)
-- [Runtime Design](#runtime-design)
-- [Execution Mode](#execution-mode)
 
 ## High Level Architecture
 Blow diagram shows the high level system architecture of CloudTik.
@@ -53,6 +51,46 @@ The process of starting a cluster:
 - Once the head instance is launched, CLI/API connect to head node through SSH, install and configure the head node. And run all head services on head node. Once head node is ready and running, the cluster launch from CLI/API is finished.
 - Cluster controller from head node calls Cloud API to launch worker instances.
 - For each worker instance launched, Cluster Controller connects to the worker node through SSH, install and configure the worker node, run all worker services, all in parallel.
+
+## Runtime Architecture
+CloudTik runtimes are functional components to provide virtually some services.
+Although the runtimes are decoupled and can be selected to include in a cluster independently,
+CloudTik runtimes are designed to connect and consume other runtime services in the same workspace
+through various service discovery mechanisms.
+
+CloudTik supports a systematic of data, analytics and AI services to efficiently solve
+end-to-end and distributed data, analytics and AI problems as well as
+the runtimes for running CloudTik as a platform with microservice architecture.
+
+Currently, we implemented the following runtimes:
+- Spark Runtime: to provide distributed analytics capabilities.
+- AI Runtime: to provide distributed AI training and inference capabilities.
+- Metastore Runtime: to provide catalog services for SQL.
+- HDFS Runtime: to provide local distributed data storage.
+- YARN Runtime: to provide in cluster resource scheduling service.
+- Hadoop Runtime: to provide in cluster Hadoop client service for other runtimes. 
+- Mount Runtime: to provide in cluster service for mounting distributed storage to local path.
+- Flink Runtime: to provide distributed streaming analytics capabilities.
+- Presto Runtime or Trino Runtime: to provide interactive analytics capabilities.
+- Kafka Runtime: to provide event streaming services.
+- Ray Runtime: to provide Ray based training and tuning capabilities.
+- Prometheus Runtime: to provide metric monitoring for all nodes.
+- Grafana Runtime: to provide metric monitoring visualization.
+- MySQL Runtime: to provide a high available replicated MySQL database cluster.
+- Postgres Runtime: to provide a high available replicated Postgres database cluster.
+- Consul: to provide service registry and service discovery service.
+- ZooKeeper Runtime: to provide coordinating and distributed consistency services.
+- ETCD Runtime: to provide distributed consistent key value store.
+- Bind, CoreDNS or dnsmasq Runtime: to provide DNS forward service.
+- HAProxy: to provide L4 (TCP) load balancer.
+- NGINX: to provide L7 (HTTP) load balancer or web server.
+- Kong or APISix: to provide API Gateway capabilities.
+- Node Exporter Runtime: to export node metrics for Prometheus.
+- SSH Server Runtime: to provide password-less SSH capability within cluster.
+
+Belows diagram shows the current design runtimes:
+
+![Runtime Architecture](../../image/runtime-architecture.jpg)
 
 ## Cluster Networking
 CloudTik designed to support three useful network scenarios.
@@ -100,26 +138,6 @@ Below diagram shows this networking scenario:
 ![VPC with Private IP and VPC Sharing](../../image/vpc-with-private-ip-and-sharing.jpg)
 
 
-## Head and Worker Services
-Let's have a look to what services are running on head node and worker nodes.
-
-![Head and Worker Services](../../image/head-and-worker-services.jpg)
-
-Head node is the brain of the cluster. It runs the core services for both CloudTik and the runtimes such as Spark.
-Head node runs the following services:
-- Core Services
-  - Cluster Controller: Responsible for creating, setting up, or terminating worker instances.
-  - Redis Shards: Multiple Redis instance for serving shared cluster state.
-  - Node Controller: Heart beating and monitoring node and services health.
-- Runtime Services
-  - Head services of Runtimes (depending on what Runtimes are enabled).
-
-Worker nodes are horse force providing computation power. On worker node, it runs the following services.
-- Core Services
-  - Node Controller: Heart beating and monitoring node and services health.
-- Runtime Services
-  - Worker services of Runtimes (depending on what Runtimes are enabled).
-
 ## Cluster Controller
 As mentioned that cluster controller is the braining of cluster scaling capabilities.
 Below shows the key controller loop for what cluster controller does for managing the scaling and cluster availability.
@@ -141,41 +159,3 @@ nodes to satisfy the resource requirements.
 
 Finally, Cluster Controller provides various coordinating services to the runtime such as allocating unique node id
 to each node.
-
-## Runtime Design
-CloudTik runtimes are functional components to provide virtually some services.
-Although the runtimes are decoupled and can be selected to include in a cluster independently,
-CloudTik runtimes are designed to connect and consume other runtime services in the same workspace
-through various service discovery mechanisms.
-
-For example, if you configure a cluster to run HDFS, MySQL, Metastore and Spark runtimes,
-no need for additional configuration, Metastore will discover MySQL service
-and will use it as Metastore database; Spark will discover HDFS and Metastore service
-and will use HDFS as Spark storage and Metastore as Spark catalog store.
-The same will work smartly even if the runtimes are in different clusters
-as long as they are in the same workspace.
-
-Belows diagram shows the current design of analytics runtimes:
-
-![Analytics Runtimes](../../image/analytics-runtimes.jpg)
-
-CloudTik supports a systematic of data, analytics and AI services to efficiently solve
-end-to-end and distributed data, analytics and AI problems as well as
-the runtimes for running CloudTik as a platform with microservice architecture.
-
-## Execution Mode
-CloudTik supports two execution mode: Host mode and Container mode.
-
-![Execution Mode](../../image/execution-mode.jpg)
-
-For Host mode, all CloudTik and runtime services are running directly on the VM instance
-launched from the cloud provider. The software packages are downloaded, installed and configured
-on the fly of cluster creation process.
-
-For Container mode, all CloudTik and runtime services are running in a Docker container running
-on the VM instance. Docker will be installed and configured automatically after the VM is launched.
-The software packages can be preinstalled in Docker image so that the cluster launched time can be saved
-if the package download is slow. In this mode, almost all the management operations and commands will be run in the container
-instead of on the VM instance. Container mode is enabled by default.
-
-CloudTik will handle transparently for user as to the difference of the two modes.

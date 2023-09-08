@@ -24,16 +24,16 @@ focuses on business development and achieve "Develop once, run everywhere" with 
 - Out of box optimized runtimes for storage, database, analytics and AI
   - Optimized Spark runtime with CloudTik optimizations
   - Optimized AI runtime support both CPU and GPU
-- Microservices infrastructure and runtimes with:
-  - Service discovery - service registry, service discover, service DNS naming
-  - Load balancing -  Layer 4 or Layer 7 load balancer working with built-in service discovery
-  - Metrics and monitoring
-- Support of major public cloud providers:
+- Support of major public cloud providers and cloud native:
   - AWS - Amazon Elastic Compute Cloud (EC2) or Amazon Elastic Kubernetes Service (EKS)
   - Azure - Azure Virtual Machines or Azure Kubernetes Service (AKS)
   - GCP -  Google Compute Engine (GCE) or Google Kubernetes Engine (GKE)
   - Alibaba Cloud - Elastic Compute Service (ECS)
   - Kubernetes and more
+- Microservices infrastructure and runtimes with:
+  - Service discovery - service registry, service discover, service DNS naming
+  - Load balancing -  Layer 4 or Layer 7 load balancer working with built-in service discovery
+  - Metrics and monitoring
 - A fully open architecture and open-sourced platform
 
 ## High Level Concepts

@@ -15,6 +15,7 @@ platform. These resources include
 - firewall or security groups
 - gateways
 - identities and roles
+- cloud object storage and databases
 
 These resources are usually created once and shared among different clusters. CloudTik provides the commands to help user
 create or delete a workspace on a specific Cloud, which will provision and configured the right resources to be ready to use.
@@ -74,14 +75,24 @@ starting, stopping and so on. CloudTik provides infrastructure for orchestration
 to handle its very specific implementation. In this way, a runtime can easy be implemented and orchestrated into
 CloudTik and works together with other runtimes by providing services to other runtimes or consuming other runtime services.
 
-Currently, we implemented the following runtimes:
-- Spark Runtime: to provide distributed analytics capabilities.
-- AI Runtime: to provide distributed AI training and inference capabilities.
-- Metastore Runtime: to provide catalog services for SQL.
-- Flink Runtime: to provide distributed streaming analytics capabilities.
-- Presto Runtime or Trino Runtime: to provide interactive analytics capabilities.
-- Kafka Runtime: to provide event streaming services.
-- Ray Runtime: to provide Ray based training and tuning capabilities.
-- SSH Server Runtime: to provide password-less SSH capability within cluster.
-- ZooKeeper Runtime: to provide coordinating and distributed consistency services.
-- Prometheus Runtime: to provide metric monitoring for all nodes.
+CloudTik runtimes are functional components to provide virtually some services.
+Although the runtimes are decoupled and can be selected to include in a cluster independently,
+CloudTik runtimes are designed to connect and consume other runtime services in the same workspace
+through various service discovery mechanisms.
+
+For example, if you configure a cluster to run HDFS, MySQL, Metastore and Spark runtimes,
+no need for additional configuration, Metastore will discover MySQL service
+and will use it as Metastore database; Spark will discover HDFS and Metastore service
+and will use HDFS as Spark storage and Metastore as Spark catalog store.
+The same will work smartly even if the runtimes are in different clusters
+as long as they are in the same workspace.
+
+A more comprehensive example is running with microservices architecture.
+A cluster configured with consul on server mode started as the first cluster in the workspace,
+which provide service registry, service discovery and service DNS capabilities to the workspace.
+One cluster started with other runtimes, for example, Metastore and Spark runtimes.
+When there is service discovery runtime in the workspace, the workspace runtimes will automatically
+register the service of the runtime and will discover any potential runtime services it consumes.
+Another cluster started with HAProxy runtime with a simple configuration of a service
+name to load balancing for. HAProxy runtime which will automatically discover all the
+service instances that are running and be configured to do load balancing for the configured service.
