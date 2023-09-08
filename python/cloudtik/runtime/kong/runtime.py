@@ -5,7 +5,7 @@ from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_POSTGRES
 from cloudtik.core.node_provider import NodeProvider
 from cloudtik.runtime.common.runtime_base import RuntimeBase
 from cloudtik.runtime.kong.utils import _get_runtime_processes, \
-    _get_runtime_services, _with_runtime_environment_variables, _config_depended_services, _prepare_config_on_head, \
+    _get_runtime_services, _with_runtime_environment_variables, _prepare_config, _prepare_config_on_head, \
     _validate_config, _get_runtime_endpoints, _get_head_service_ports, _get_runtime_logs, _configure, _services
 
 logger = logging.getLogger(__name__)
@@ -19,8 +19,7 @@ class KongRuntime(RuntimeBase):
 
     def prepare_config(self, cluster_config: Dict[str, Any]) -> Dict[str, Any]:
         """Prepare runtime specific configurations"""
-        cluster_config = _config_depended_services(cluster_config)
-        return cluster_config
+        return _prepare_config(cluster_config)
 
     def prepare_config_on_head(
             self, cluster_config: Dict[str, Any]

@@ -46,7 +46,12 @@ def get_yarn_resource_memory_ratio(cluster_config: Dict[str, Any]):
     return yarn_resource_memory_ratio
 
 
-def _config_runtime_resources(cluster_config: Dict[str, Any]) -> Dict[str, Any]:
+def _prepare_config(cluster_config: Dict[str, Any]) -> Dict[str, Any]:
+    cluster_config = _configure_runtime_resources(cluster_config)
+    return cluster_config
+
+
+def _configure_runtime_resources(cluster_config: Dict[str, Any]) -> Dict[str, Any]:
     cluster_resource = get_node_type_resources(cluster_config)
     worker_cpu = cluster_resource["worker_cpu"]
 

@@ -80,10 +80,10 @@ def get_spark_executor_overhead(spark_executor_memory_all: int) -> int:
                SPARK_EXECUTOR_OVERHEAD_MINIMUM)
 
 
-def _config_depended_services(cluster_config: Dict[str, Any]) -> Dict[str, Any]:
+def _prepare_config(cluster_config: Dict[str, Any]) -> Dict[str, Any]:
+    cluster_config = _configure_runtime_resources(cluster_config)
     cluster_config = discover_metastore_from_workspace(
         cluster_config, BUILT_IN_RUNTIME_SPARK)
-
     return cluster_config
 
 
@@ -96,7 +96,7 @@ def _prepare_config_on_head(cluster_config: Dict[str, Any]):
     return cluster_config
 
 
-def _config_runtime_resources(cluster_config: Dict[str, Any]) -> Dict[str, Any]:
+def _configure_runtime_resources(cluster_config: Dict[str, Any]) -> Dict[str, Any]:
     cluster_resource = get_node_type_resources(cluster_config)
     worker_cpu = cluster_resource["worker_cpu"]
 

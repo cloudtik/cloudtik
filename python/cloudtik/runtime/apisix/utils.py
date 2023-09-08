@@ -58,7 +58,7 @@ def _get_runtime_logs():
     return {BUILT_IN_RUNTIME_APISIX: logs_dir}
 
 
-def _config_depended_services(cluster_config: Dict[str, Any]) -> Dict[str, Any]:
+def _prepare_config(cluster_config: Dict[str, Any]) -> Dict[str, Any]:
     cluster_config = discover_etcd_from_workspace(
         cluster_config, BUILT_IN_RUNTIME_APISIX)
     return cluster_config

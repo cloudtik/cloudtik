@@ -45,7 +45,7 @@ def _get_runtime_processes():
     return RUNTIME_PROCESSES
 
 
-def _config_depended_services(cluster_config: Dict[str, Any]) -> Dict[str, Any]:
+def _prepare_config(cluster_config: Dict[str, Any]) -> Dict[str, Any]:
     cluster_config = discover_database_from_workspace(
         cluster_config, BUILT_IN_RUNTIME_METASTORE)
     return cluster_config
