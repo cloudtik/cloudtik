@@ -6,7 +6,7 @@ from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_APISIX
 from cloudtik.core._private.runtime_utils import get_runtime_config_from_node, load_and_save_yaml
 from cloudtik.core._private.service_discovery.runtime_services import get_service_discovery_runtime
 from cloudtik.core._private.service_discovery.utils import \
-    get_canonical_service_name, define_runtime_service, \
+    get_canonical_service_name, define_runtime_service_on_head_or_all, \
     get_service_discovery_config, SERVICE_DISCOVERY_FEATURE_API_GATEWAY, SERVICE_DISCOVERY_PROTOCOL_HTTP
 from cloudtik.core._private.utils import get_runtime_config
 from cloudtik.runtime.common.service_discovery.runtime_discovery import discover_etcd_from_workspace, \
@@ -23,6 +23,7 @@ RUNTIME_PROCESSES = [
 
 APISIX_SERVICE_PORT_CONFIG_KEY = "port"
 APISIX_ADMIN_PORT_CONFIG_KEY = "admin_port"
+APISIX_HIGH_AVAILABILITY_CONFIG_KEY = "high_availability"
 
 APISIX_SERVICE_NAME = BUILT_IN_RUNTIME_APISIX
 APISIX_SERVICE_PORT_DEFAULT = 9080
@@ -41,6 +42,11 @@ def _get_service_port(apisix_config: Dict[str, Any]):
 def _get_admin_port(apisix_config: Dict[str, Any]):
     return apisix_config.get(
         APISIX_ADMIN_PORT_CONFIG_KEY, APISIX_ADMIN_PORT_DEFAULT)
+
+
+def _is_high_availability(apisix_config: Dict[str, Any]):
+    return apisix_config.get(
+        APISIX_HIGH_AVAILABILITY_CONFIG_KEY, False)
 
 
 def _get_home_dir():
@@ -95,6 +101,10 @@ def _with_runtime_environment_variables(
     admin_port = _get_admin_port(apisix_config)
     runtime_envs["APISIX_ADMIN_PORT"] = admin_port
 
+    high_availability = _is_high_availability(apisix_config)
+    if high_availability:
+        runtime_envs["APISIX_HIGH_AVAILABILITY"] = high_availability
+
     return runtime_envs
 
 
@@ -131,8 +141,9 @@ def _get_runtime_services(
         service_discovery_config, cluster_name, APISIX_SERVICE_NAME)
     service_port = _get_service_port(apisix_config)
     services = {
-        service_name: define_runtime_service(
+        service_name: define_runtime_service_on_head_or_all(
             service_discovery_config, service_port,
+            _is_high_availability(apisix_config),
             protocol=SERVICE_DISCOVERY_PROTOCOL_HTTP,
             features=[SERVICE_DISCOVERY_FEATURE_API_GATEWAY]),
     }

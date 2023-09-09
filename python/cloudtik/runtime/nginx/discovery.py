@@ -45,8 +45,6 @@ class DiscoverBackendServers(DiscoverJob):
 
         for service_name in selected_services:
             service_nodes = self._query_service_nodes(service_name)
-            # each node is a data source. if many nodes form a load balancer in a cluster
-            # it should be filtered by service selector using service name ,tags or labels
             for service_node in service_nodes:
                 server_address = get_service_address_of_node(service_node)
                 server_key = get_address_string(server_address[0], server_address[1])
@@ -84,9 +82,6 @@ class DiscoverAPIGatewayBackendServers(DiscoverJob):
         api_gateway_backends = {}
         for service_name in selected_services:
             service_nodes = self._query_service_nodes(service_name)
-            # each node is a data source. if many nodes form a load balancer in a cluster
-            # it should be filtered by service selector using service name ,tags or labels
-
             backend_servers = {}
             for service_node in service_nodes:
                 server_address = get_service_address_of_node(service_node)

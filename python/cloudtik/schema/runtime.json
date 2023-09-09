@@ -942,6 +942,15 @@
                 "database_service_selector": {
                     "$ref": "#/definitions/service_selector",
                     "description": "The selector for database service if service discovery is enabled."
+                },
+                "upstream_selector": {
+                    "$ref": "#/definitions/service_selector",
+                    "description": "The selector for upstream services if service discovery is enabled."
+                },
+                "balance": {
+                    "type": "string",
+                    "description": "The balance method used for upstream servers: round-robin, consistent-hashing, least-connections, latency",
+                    "default": "round-robin"
                 }
             }
         }

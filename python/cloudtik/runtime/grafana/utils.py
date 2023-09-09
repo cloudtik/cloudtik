@@ -230,7 +230,7 @@ def _get_pull_identifier():
     return "{}-discovery".format(GRAFANA_SERVICE_NAME)
 
 
-def _get_grafana_api_endpoint(node_ip, grafana_port):
+def _get_admin_api_endpoint(node_ip, grafana_port):
     return "http://{}:{}".format(
         node_ip, grafana_port)
 
@@ -241,7 +241,7 @@ def start_pull_server(head):
     grafana_port = _get_service_port(grafana_config)
 
     node_ip = get_runtime_node_ip()
-    address = _get_grafana_api_endpoint(node_ip, grafana_port)
+    admin_api_endpoint = _get_admin_api_endpoint(node_ip, grafana_port)
 
     service_selector = grafana_config.get(
             GRAFANA_DATA_SOURCES_SERVICES_CONFIG_KEY, {})
@@ -254,7 +254,7 @@ def start_pull_server(head):
     cmd += ["--interval={}".format(
         GRAFANA_PULL_DATA_SOURCES_INTERVAL)]
     # job parameters
-    cmd += ["grafana_endpoint={}".format(quote(address))]
+    cmd += ["admin_endpoint={}".format(quote(admin_api_endpoint))]
     if service_selector_str:
         cmd += ["service_selector={}".format(service_selector_str)]
 

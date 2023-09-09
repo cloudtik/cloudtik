@@ -4,18 +4,16 @@ from cloudtik.core._private.core_utils import get_list_for_update
 from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_PROMETHEUS
 from cloudtik.core._private.service_discovery.utils import SERVICE_SELECTOR_RUNTIMES, deserialize_service_selector
 from cloudtik.core._private.util.pull.pull_job import PullJob
-from cloudtik.core._private.util.rest_api import rest_api_get_json, rest_api_post_json, rest_api_delete_json, \
+from cloudtik.core._private.util.rest_api import \
     REST_API_AUTH_TYPE, REST_API_AUTH_BASIC, REST_API_AUTH_BASIC_USERNAME, REST_API_AUTH_BASIC_PASSWORD
 from cloudtik.runtime.common.service_discovery.consul import query_services, query_service_nodes, get_service_name_of_node, \
     get_service_address_of_node, get_service_cluster_of_node
+from cloudtik.runtime.grafana.admin_api import list_data_sources, add_data_source, delete_data_source
 from cloudtik.runtime.grafana.utils import get_data_source_name, get_prometheus_data_source, \
     GRAFANA_DATA_SOURCE_AUTO_CREATED
 
 logger = logging.getLogger(__name__)
 
-
-REST_API_ENDPOINT_DATA_SOURCES = "/api/datasources"
-REST_API_ENDPOINT_DATA_SOURCES_BY_NAME = REST_API_ENDPOINT_DATA_SOURCES + "/name"
 DATA_SOURCE_RUNTIMES = [
     BUILT_IN_RUNTIME_PROMETHEUS,
 ]
@@ -65,14 +63,14 @@ class DiscoverDataSources(PullJob):
     """Pulling job for discovering data sources through service discovery"""
 
     def __init__(self,
-                 grafana_endpoint=None,
+                 admin_endpoint=None,
                  service_selector=None):
-        if not grafana_endpoint:
+        if not admin_endpoint:
             raise RuntimeError("Grafana endpoint is needed for pulling data sources.")
 
         self.service_selector = deserialize_service_selector(
             service_selector)
-        self.grafana_endpoint = grafana_endpoint
+        self.admin_endpoint = admin_endpoint
         self._apply_data_source_runtime_selector()
         self.auth = {
             REST_API_AUTH_TYPE: REST_API_AUTH_BASIC,
@@ -124,11 +122,8 @@ class DiscoverDataSources(PullJob):
         self._delete_data_sources(delete_data_sources)
 
     def _query_data_sources(self):
-        endpoint_url = "{}{}".format(
-            self.grafana_endpoint, REST_API_ENDPOINT_DATA_SOURCES)
-        # The response is a list of data sources
-        data_sources = rest_api_get_json(
-            endpoint_url, auth=self.auth)
+        data_sources = list_data_sources(
+            self.admin_endpoint, auth=self.auth)
         # filter all the data sources that added by us
         return {
             data_source["name"]: data_source
@@ -143,13 +138,8 @@ class DiscoverDataSources(PullJob):
             self._delete_data_source(data_source_name)
 
     def _add_data_source(self, data_source_name, data_source):
-        endpoint_url = "{}{}".format(
-            self.grafana_endpoint, REST_API_ENDPOINT_DATA_SOURCES)
-        # The response is response object with data_source in it
-        # is there an exception when error?
-        response_for_add = rest_api_post_json(
-            endpoint_url, data_source, auth=self.auth)
-        added_data_source = response_for_add.get("datasource")
+        added_data_source = add_data_source(
+            self.admin_endpoint, self.auth, data_source)
         if added_data_source:
             logger.info("Data source {} created: {}".format(
                 data_source_name, added_data_source))
@@ -158,14 +148,8 @@ class DiscoverDataSources(PullJob):
                 data_source_name, data_source))
 
     def _delete_data_source(self, data_source_name):
-        # DELETE /api/datasources/name/:datasourceName
-        endpoint = "{}/{}".format(
-            REST_API_ENDPOINT_DATA_SOURCES_BY_NAME, data_source_name)
-        endpoint_url = "{}{}".format(
-            self.grafana_endpoint, endpoint)
-        # is there an exception when error?
-        response_for_delete = rest_api_delete_json(
-            endpoint_url, auth=self.auth)
+        response_for_delete = delete_data_source(
+            self.admin_endpoint, self.auth, data_source_name)
         if response_for_delete:
             logger.info("Data source {} deleted successfully.".format(
                 data_source_name))

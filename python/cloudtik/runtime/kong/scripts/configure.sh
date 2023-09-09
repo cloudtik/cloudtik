@@ -69,6 +69,9 @@ function configure_kong() {
     sed -i "s#{%admin.ui.port%}#${KONG_ADMIN_UI_PORT}#g" ${config_template_file}
     sed -i "s#{%admin.ui.ssl.port%}#${KONG_ADMIN_UI_SSL_PORT}#g" ${config_template_file}
 
+    # may need to configure in the future for high availability clustering
+    # refer to: https://docs.konghq.com/gateway/latest/production/clustering/
+
     configure_database
 
     cp ${config_template_file} ${KONG_CONF_DIR}/kong.conf
