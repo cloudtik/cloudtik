@@ -11,8 +11,7 @@ from cloudtik.core._private.service_discovery.utils import get_canonical_service
     get_service_discovery_config, define_runtime_service_on_head_or_all, exclude_runtime_of_cluster, \
     serialize_service_selector, SERVICE_DISCOVERY_PROTOCOL_HTTP, SERVICE_DISCOVERY_FEATURE_LOAD_BALANCER
 from cloudtik.core._private.utils import RUNTIME_CONFIG_KEY
-from cloudtik.runtime.common.service_discovery.consul import get_service_dns_name, \
-    get_service_fqdn_address
+from cloudtik.runtime.common.service_discovery.consul import get_service_dns_name
 
 RUNTIME_PROCESSES = [
     # The first element is the substring to filter.
@@ -342,7 +341,7 @@ def _save_load_balancer_router():
     config_file = os.path.join(
         routers_dir, "load-balancer.conf")
     _save_router_config(
-        config_file, "", NGINX_LOAD_BALANCER_UPSTREAM_NAME)
+        config_file, "/", NGINX_LOAD_BALANCER_UPSTREAM_NAME)
 
 
 def _save_upstream_config(
@@ -427,6 +426,18 @@ def update_load_balancer_configuration(
     exec_with_call("sudo service nginx reload")
 
 
+class APIGatewayBackendService:
+    def __init__(self, service_name, backend_servers,
+                 route_path=None):
+        self.service_name = service_name
+        self.backend_servers = backend_servers
+        self.route_path = route_path
+
+    def get_route_path(self):
+        route_path = self.route_path or "/" + self.service_name
+        return route_path
+
+
 def update_api_gateway_dynamic_backends(
         api_gateway_backends, balance_method):
     # sort to make the order to the backends are always the same
@@ -448,9 +459,10 @@ def _update_api_gateway_dynamic_upstreams(
     upstreams_dir = _get_upstreams_config_dir()
     remove_files(upstreams_dir)
 
-    for backend_name, backend_servers in sorted_api_gateway_backends:
+    for backend_name, backend_service in sorted_api_gateway_backends:
         upstream_config_file = os.path.join(
             upstreams_dir, "{}.conf".format(backend_name))
+        backend_servers = backend_service.backend_servers
         servers = [get_address_string(
             server_address[0], server_address[1]
         ) for _, server_address in backend_servers.items()]
@@ -467,16 +479,30 @@ def _update_api_gateway_dynamic_routers(
     for backend_name, backend_service in sorted_api_gateway_backends:
         router_file = os.path.join(
             routers_dir, "{}.conf".format(backend_name))
+        route_path = backend_service.get_route_path()
         _save_router_config(
-            router_file, backend_name, backend_name)
+            router_file, route_path, backend_name)
 
 
 def _save_router_config(router_file, location, backend_name):
     with open(router_file, "w") as f:
         # for each backend, we generate a location block
-        f.write("location /" + location + " {\n")
+        f.write("location " + location + " {\n")
         f.write(f"    proxy_pass http://{backend_name};\n")
         f.write("}\n")
+
+
+class APIGatewayDNSBackendService:
+    def __init__(self, service_name, service_port,
+                 service_dns_name, route_path=None):
+        self.service_name = service_name
+        self.service_port = service_port
+        self.service_dns_name = service_dns_name
+        self.route_path = route_path
+
+    def get_route_path(self):
+        route_path = self.route_path or "/" + self.service_name
+        return route_path
 
 
 def update_api_gateway_dns_backends(
@@ -491,15 +517,14 @@ def update_api_gateway_dns_backends(
         router_file = os.path.join(
             routers_dir, "{}.conf".format(backend_name))
 
-        service_port = backend_service["service_port"]
-        tags = backend_service.get("tags")
-        service_dns_name = get_service_fqdn_address(
-            backend_name, tags)
+        service_port = backend_service.service_port
+        service_dns_name = backend_service.service_dns_name
+        route_path = backend_service.get_route_path()
 
         variable_name = backend_name.replace('-', '_')
         with open(router_file, "w") as f:
             # for each backend, we generate a location block
-            f.write("location /" + backend_name + " {\n")
+            f.write("location " + route_path + " {\n")
             f.write(f"    set ${variable_name}_servers {service_dns_name};\n")
             f.write(f"    proxy_pass http://${variable_name}_servers:{service_port};\n")
             f.write("}\n")

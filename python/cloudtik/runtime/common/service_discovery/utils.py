@@ -1,6 +1,10 @@
 from cloudtik.core._private.core_utils import get_address_string
 
 
+API_GATEWAY_SERVICE_DISCOVERY_LABEL_ROUTE_PATH = "route-path"
+API_GATEWAY_SERVICE_DISCOVERY_LABEL_SERVICE_PATH = "service-path"
+
+
 class ServiceInstance:
     """A service instance returned by discovering processes"""
     def __init__(

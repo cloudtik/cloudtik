@@ -28,7 +28,6 @@ HAPROXY_SERVICE_PROTOCOL_CONFIG_KEY = "protocol"
 HAPROXY_HIGH_AVAILABILITY_CONFIG_KEY = "high_availability"
 HAPROXY_APP_MODE_CONFIG_KEY = "app_mode"
 
-
 HAPROXY_BACKEND_CONFIG_KEY = "backend"
 HAPROXY_BACKEND_CONFIG_MODE_CONFIG_KEY = "config_mode"
 HAPROXY_BACKEND_BALANCE_CONFIG_KEY = "balance"
@@ -456,6 +455,18 @@ def update_configuration(backend_servers):
     shutil.move(working_file, config_file)
 
 
+class APIGatewayBackendService:
+    def __init__(self, service_name, backend_servers,
+                 route_path=None):
+        self.service_name = service_name
+        self.backend_servers = backend_servers
+        self.route_path = route_path
+
+    def get_route_path(self):
+        route_path = self.route_path or "/" + self.service_name
+        return route_path
+
+
 def update_api_gateway_configuration(
         api_gateway_backends, new_backends,
         bind_ip, bind_port, balance_method):
@@ -481,22 +492,25 @@ def update_api_gateway_configuration(
         f.write(f"    mode {service_protocol}\n")
         f.write(f"    option {service_protocol}log\n")
         # route to a backend based on path's prefix
-        for backend_name, backend_servers in sorted_api_gateway_backends:
+        for backend_name, backend_service in sorted_api_gateway_backends:
+            route_path = backend_service.get_route_path()
             f.write("    use_backend " + backend_name +
-                    " if { path /" + backend_name +
-                    " } || { path_beg /" + backend_name +
+                    " if { path " + route_path +
+                    " } || { path_beg " + route_path +
                     "/ }\n")
 
         f.write("\n")
         # write each backend
-        for backend_name, backend_servers in sorted_api_gateway_backends:
+        for backend_name, backend_service in sorted_api_gateway_backends:
+            backend_servers = backend_service.backend_servers
+            route_path = backend_service.get_route_path()
             backend_server_block = _get_backend_server_block(
                 backend_servers)
             f.write(f"backend {backend_name}\n")
             f.write(f"    mode {service_protocol}\n")
             if balance_method:
                 f.write(f"    balance {balance_method}\n")
-            f.write("    http-request replace-path /" + backend_name +
+            f.write("    http-request replace-path " + route_path +
                     "(/)?(.*) /\\2\n")
             f.write(backend_server_block)
 

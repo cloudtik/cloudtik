@@ -169,17 +169,21 @@ def get_service_address_of_node(
 def get_service_cluster_of_node(service_node):
     # This is our service implementation specific
     # each service will be labeled with its cluster name
-    service_meta = service_node.get(
-        "ServiceMeta", {})
-    return service_meta.get(SERVICE_DISCOVERY_LABEL_CLUSTER)
+    return get_service_label_of_node(
+        service_node, SERVICE_DISCOVERY_LABEL_CLUSTER)
 
 
 def get_service_runtime_of_node(service_node):
     # This is our service implementation specific
     # each service will be labeled with its runtime name
+    return get_service_label_of_node(
+        service_node, SERVICE_DISCOVERY_LABEL_RUNTIME)
+
+
+def get_service_label_of_node(service_node, label_name):
     service_meta = service_node.get(
         "ServiceMeta", {})
-    return service_meta.get(SERVICE_DISCOVERY_LABEL_RUNTIME)
+    return service_meta.get(label_name)
 
 
 def get_service_dns_name(
@@ -238,26 +242,39 @@ def get_service_fqdn_address(service_name, service_tags):
     return get_service_dns_name(service_name, service_tag)
 
 
-def _get_cluster_of_service_nodes(service_nodes):
-    cluster_names = set()
-    for service_node in service_nodes:
-        cluster_name = get_service_cluster_of_node(service_node)
-        if cluster_name:
-            cluster_names.add(cluster_name)
-    if len(cluster_names) > 1:
+def get_common_label_of_service_nodes(
+        service_nodes, label_name, error_if_not_same=False):
+    # return the common label value of all the service nodes
+    # return None or raise error if it is not the same
+    if not service_nodes:
         return None
-    return next(iter(cluster_names))
+    service_node = service_nodes[0]
+    common_label_value = get_service_label_of_node(
+            service_node, label_name)
+    for service_node in service_nodes[1:]:
+        label_value = get_service_label_of_node(
+            service_node, label_name)
+        if label_value != common_label_value:
+            if error_if_not_same:
+                raise RuntimeError(
+                    "Label {} has more than one value in server nodes.".format(label_name))
+            else:
+                return None
+    return common_label_value
 
 
-def _get_runtime_of_service_nodes(service_nodes):
-    runtime_types = set()
-    for service_node in service_nodes:
-        runtime_type = get_service_runtime_of_node(service_node)
-        if runtime_type:
-            runtime_types.add(runtime_type)
-    if len(runtime_types) > 1:
-        return None
-    return next(iter(runtime_types))
+def _get_cluster_of_service_nodes(
+        service_nodes, error_if_not_same=False):
+    return get_common_label_of_service_nodes(
+        service_nodes, SERVICE_DISCOVERY_LABEL_CLUSTER,
+        error_if_not_same=error_if_not_same)
+
+
+def _get_runtime_of_service_nodes(
+        service_nodes, error_if_not_same=False):
+    return get_common_label_of_service_nodes(
+        service_nodes, SERVICE_DISCOVERY_LABEL_RUNTIME,
+        error_if_not_same=error_if_not_same)
 
 
 def get_tags_of_service_nodes(service_nodes):

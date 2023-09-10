@@ -64,25 +64,31 @@ def rest_api_get(
     return rest_api_open(req, timeout=timeout)
 
 
-def rest_api_post(
+def rest_api_method(
         endpoint_url, data, data_format=None,
-        auth=None, timeout=None):
+        method=None, auth=None, timeout=None):
     data_in_bytes = data.encode('utf-8')  # needs to be bytes
-    req = urllib.request.Request(endpoint_url, data=data_in_bytes)
+    req = urllib.request.Request(
+        endpoint_url, data=data_in_bytes, method=method)
     _add_content_type_header(req, data_format)
     _add_auth_header(req, auth)
     return rest_api_open(req, timeout=timeout)
+
+
+def rest_api_post(
+        endpoint_url, data, data_format=None,
+        auth=None, timeout=None):
+    return rest_api_method(
+        endpoint_url, data, data_format,
+        auth=auth, timeout=timeout)
 
 
 def rest_api_put(
         endpoint_url, data, data_format=None,
         auth=None, timeout=None):
-    data_in_bytes = data.encode('utf-8')  # needs to be bytes
-    req = urllib.request.Request(
-        endpoint_url, data=data_in_bytes, method="PUT")
-    _add_content_type_header(req, data_format)
-    _add_auth_header(req, auth)
-    return rest_api_open(req, timeout=timeout)
+    return rest_api_method(
+        endpoint_url, data, data_format,
+        method="PUT", auth=auth, timeout=timeout)
 
 
 def rest_api_delete(
@@ -112,6 +118,14 @@ def rest_api_put_json(
     data = json.dumps(body)
     response = rest_api_put(
         endpoint_url, data, "json", auth=auth, timeout=timeout)
+    return json.loads(response)
+
+
+def rest_api_method_json(
+        endpoint_url, body, method=None, auth=None, timeout=None):
+    data = json.dumps(body)
+    response = rest_api_method(
+        endpoint_url, data, "json", method=method, auth=auth, timeout=timeout)
     return json.loads(response)
 
 
