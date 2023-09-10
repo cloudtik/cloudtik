@@ -19,6 +19,7 @@ from cloudtik.runtime.common.service_discovery.discovery import query_one_servic
 from cloudtik.runtime.common.service_discovery.utils import get_service_addresses_string
 
 BUILT_IN_DATABASE_RUNTIMES = [BUILT_IN_RUNTIME_MYSQL, BUILT_IN_RUNTIME_POSTGRES]
+
 DATABASE_SERVICE_PORT_CONFIG_KEY = "port"
 MYSQL_ROOT_PASSWORD_CONFIG_KEY = "root_password"
 POSTGRES_ADMIN_USER_CONFIG_KEY = "admin_user"

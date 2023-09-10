@@ -4,9 +4,12 @@ from cloudtik.core._private.core_utils import get_json_object_hash, get_address_
 from cloudtik.core._private.service_discovery.utils import deserialize_service_selector
 from cloudtik.core._private.util.pull.pull_job import PullJob
 from cloudtik.runtime.common.service_discovery.consul \
-    import query_services, query_service_nodes, get_service_address_of_node, get_tags_of_service_nodes
+    import query_services, query_service_nodes, get_service_address_of_node, get_tags_of_service_nodes, \
+    get_service_fqdn_address, get_common_label_of_service_nodes
+from cloudtik.runtime.common.service_discovery.utils import API_GATEWAY_SERVICE_DISCOVERY_LABEL_ROUTE_PATH
 from cloudtik.runtime.nginx.utils import update_load_balancer_configuration, \
-    update_api_gateway_dynamic_backends, update_api_gateway_dns_backends
+    update_api_gateway_dynamic_backends, APIGatewayBackendService, update_api_gateway_dns_backends, \
+    APIGatewayDNSBackendService
 
 logger = logging.getLogger(__name__)
 
@@ -82,19 +85,13 @@ class DiscoverAPIGatewayBackendServers(DiscoverJob):
         api_gateway_backends = {}
         for service_name in selected_services:
             service_nodes = self._query_service_nodes(service_name)
-            backend_servers = {}
-            for service_node in service_nodes:
-                server_address = get_service_address_of_node(service_node)
-                server_key = get_address_string(server_address[0], server_address[1])
-                backend_servers[server_key] = server_address
-
-            # TODO: currently use service_name as backend_name and path prefix for simplicity
-            #  future to support more flexible cases
-            backend_name = service_name
-            if not backend_servers:
+            if not service_nodes:
                 logger.warning("No live servers return from the service selector.")
-
-            api_gateway_backends[backend_name] = backend_servers
+            else:
+                backend_name = service_name
+                backend_service = self.get_backend_service(
+                    service_name, service_nodes)
+                api_gateway_backends[backend_name] = backend_service
 
         backends_hash = get_json_object_hash(api_gateway_backends)
         if backends_hash != self.last_config_hash:
@@ -102,6 +99,22 @@ class DiscoverAPIGatewayBackendServers(DiscoverJob):
             update_api_gateway_dynamic_backends(
                 api_gateway_backends, self.balance_method)
             self.last_config_hash = backends_hash
+
+    @staticmethod
+    def get_backend_service(service_name, service_nodes):
+        backend_servers = {}
+        for service_node in service_nodes:
+            server_address = get_service_address_of_node(service_node)
+            server_key = get_address_string(server_address[0], server_address[1])
+            backend_servers[server_key] = server_address
+
+        route_path = get_common_label_of_service_nodes(
+            service_nodes, API_GATEWAY_SERVICE_DISCOVERY_LABEL_ROUTE_PATH,
+            error_if_not_same=True)
+
+        return APIGatewayBackendService(
+            service_name, backend_servers,
+            route_path=route_path)
 
 
 class DiscoverAPIGatewayBackends(DiscoverJob):
@@ -118,14 +131,12 @@ class DiscoverAPIGatewayBackends(DiscoverJob):
         api_gateway_backends = {}
         for service_name in selected_services:
             service_nodes = self._query_service_nodes(service_name)
-
-            # TODO: currently use service_name as backend_name and path prefix for simplicity
-            #  future to support more flexible cases
             if not service_nodes:
                 logger.warning("No live servers return from the service selector.")
             else:
                 backend_name = service_name
-                backend_service = self.get_dns_backend_service(service_nodes)
+                backend_service = self.get_dns_backend_service(
+                    service_name, service_nodes)
                 api_gateway_backends[backend_name] = backend_service
 
         backends_hash = get_json_object_hash(api_gateway_backends)
@@ -136,17 +147,22 @@ class DiscoverAPIGatewayBackends(DiscoverJob):
             self.last_config_hash = backends_hash
 
     @staticmethod
-    def get_dns_backend_service(service_nodes):
+    def get_dns_backend_service(service_name, service_nodes):
         # get service port in one of the servers
         service_node = service_nodes[0]
         server_address = get_service_address_of_node(service_node)
+        service_port = server_address[1]
 
         # get a common set of tags
         tags = get_tags_of_service_nodes(
             service_nodes)
+        service_dns_name = get_service_fqdn_address(
+            service_name, tags)
 
-        backend_service = {
-            "service_port": server_address[1],
-            "tags": tags,
-        }
-        return backend_service
+        route_path = get_common_label_of_service_nodes(
+            service_nodes, API_GATEWAY_SERVICE_DISCOVERY_LABEL_ROUTE_PATH,
+            error_if_not_same=True)
+
+        return APIGatewayDNSBackendService(
+            service_name, service_port, service_dns_name,
+            route_path=route_path)

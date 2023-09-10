@@ -6,7 +6,7 @@ from cloudtik.core._private.constants import CLOUDTIK_RUNTIME_ENV_CLUSTER
 from cloudtik.core._private.core_utils import get_address_string, exec_with_output
 from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_KONG, BUILT_IN_RUNTIME_POSTGRES
 from cloudtik.core._private.runtime_utils import get_runtime_bool, \
-    get_runtime_value, get_runtime_config_from_node, get_runtime_node_ip
+    get_runtime_value, get_runtime_config_from_node
 from cloudtik.core._private.service_discovery.runtime_services import get_service_discovery_runtime
 from cloudtik.core._private.service_discovery.utils import \
     get_canonical_service_name, define_runtime_service_on_head_or_all, \
@@ -253,8 +253,8 @@ def _get_admin_api_endpoint(node_ip, admin_port):
 def start_pull_server(head):
     runtime_config = get_runtime_config_from_node(head)
     kong_config = _get_config(runtime_config)
-    node_ip = get_runtime_node_ip()
-    admin_endpoint = _get_admin_api_endpoint(node_ip, KONG_ADMIN_PORT_DEFAULT)
+    admin_endpoint = _get_admin_api_endpoint(
+        "127.0.0.1", KONG_ADMIN_PORT_DEFAULT)
 
     service_selector = kong_config.get(
             KONG_UPSTREAM_SELECTOR_CONFIG_KEY, {})

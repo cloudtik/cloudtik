@@ -4,9 +4,11 @@ from cloudtik.core._private.core_utils import get_json_object_hash, get_address_
 from cloudtik.core._private.service_discovery.utils import deserialize_service_selector
 from cloudtik.core._private.util.pull.pull_job import PullJob
 from cloudtik.runtime.common.service_discovery.consul \
-    import query_services, query_service_nodes, get_service_address_of_node
+    import query_services, query_service_nodes, get_service_address_of_node, get_common_label_of_service_nodes
+from cloudtik.runtime.common.service_discovery.utils import API_GATEWAY_SERVICE_DISCOVERY_LABEL_ROUTE_PATH, \
+    API_GATEWAY_SERVICE_DISCOVERY_LABEL_SERVICE_PATH
 from cloudtik.runtime.kong.admin_api import list_upstreams, add_api_upstream, \
-    update_api_upstream, delete_api_upstream
+    update_api_upstream, delete_api_upstream, UpstreamService
 
 logger = logging.getLogger(__name__)
 
@@ -71,24 +73,42 @@ class DiscoverUpstreamServers(DiscoverJob):
         upstreams = {}
         for service_name in selected_services:
             service_nodes = self._query_service_nodes(service_name)
-            upstream_servers = {}
-            for service_node in service_nodes:
-                server_address = get_service_address_of_node(service_node)
-                server_key = get_address_string(server_address[0], server_address[1])
-                upstream_servers[server_key] = server_address
-
-            # TODO: currently use service_name as upstream_name and path prefix for simplicity
-            #  future to support more flexible cases
-            upstream_name = service_name
-            if not upstream_servers:
+            if not service_nodes:
                 logger.warning("No live servers return from the service selector.")
-
-            upstreams[upstream_name] = upstream_servers
+            else:
+                upstream_name = service_name
+                try:
+                    upstream_service = self.get_upstream_service(
+                        service_name, service_nodes)
+                    upstreams[upstream_name] = upstream_service
+                except Exception as e:
+                    logger.error(
+                        "Failed to get upstream service: {}.".format(
+                            str(e)))
 
         upstreams_hash = get_json_object_hash(upstreams)
         if upstreams_hash != self.last_config_hash:
             self._configure_upstreams(upstreams)
             self.last_config_hash = upstreams_hash
+
+    @staticmethod
+    def get_upstream_service(service_name, service_nodes):
+        upstream_servers = {}
+        for service_node in service_nodes:
+            server_address = get_service_address_of_node(service_node)
+            server_key = get_address_string(server_address[0], server_address[1])
+            upstream_servers[server_key] = server_address
+
+        route_path = get_common_label_of_service_nodes(
+            service_nodes, API_GATEWAY_SERVICE_DISCOVERY_LABEL_ROUTE_PATH,
+            error_if_not_same=True)
+        service_path = get_common_label_of_service_nodes(
+            service_nodes, API_GATEWAY_SERVICE_DISCOVERY_LABEL_SERVICE_PATH,
+            error_if_not_same=True)
+
+        return UpstreamService(
+            service_name, servers=upstream_servers,
+            route_path=route_path, service_path=service_path)
 
     def _configure_upstreams(self, upstreams):
         # 1. delete data sources was added but now exists
@@ -112,14 +132,14 @@ class DiscoverUpstreamServers(DiscoverJob):
             for upstream in upstreams}
 
     def _add_upstreams(self, new_upstreams):
-        for upstream_name, upstream_servers in new_upstreams.items():
-            self._add_upstream(upstream_name, upstream_servers)
+        for upstream_name, upstream_service in new_upstreams.items():
+            self._add_upstream(upstream_name, upstream_service)
 
     def _update_upstreams(self, update_upstreams):
         for upstream_name, update_upstream in update_upstreams.items():
-            upstream_servers, existing_upstream = update_upstream
+            upstream_service, existing_upstream = update_upstream
             self._update_upstream(
-                upstream_name, upstream_servers, existing_upstream)
+                upstream_name, upstream_service, existing_upstream)
 
     def _delete_upstreams(self, delete_upstreams):
         for upstream_name in delete_upstreams:

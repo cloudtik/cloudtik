@@ -3,11 +3,12 @@ import logging
 from cloudtik.core._private.service_discovery.utils import deserialize_service_selector
 from cloudtik.core._private.util.pull.pull_job import PullJob
 from cloudtik.runtime.common.service_discovery.consul \
-    import query_services, query_service_nodes, get_service_address_of_node
+    import query_services, query_service_nodes, get_service_address_of_node, get_common_label_of_service_nodes
+from cloudtik.runtime.common.service_discovery.utils import API_GATEWAY_SERVICE_DISCOVERY_LABEL_ROUTE_PATH
 from cloudtik.runtime.haproxy.admin_api import list_backend_servers, enable_backend_slot, disable_backend_slot, \
     add_backend_slot, get_backend_server_address, delete_backend_slot, list_backends
 from cloudtik.runtime.haproxy.utils import update_configuration, get_default_server_name, \
-    HAPROXY_BACKEND_DYNAMIC_FREE_SLOTS, update_api_gateway_configuration
+    HAPROXY_BACKEND_DYNAMIC_FREE_SLOTS, update_api_gateway_configuration, APIGatewayBackendService
 
 logger = logging.getLogger(__name__)
 
@@ -96,8 +97,6 @@ class DiscoverBackendServers(PullJob):
         backend_servers = []
         for service_name in selected_services:
             service_nodes = self._query_service_nodes(service_name)
-            # each node is a data source. if many nodes form a load balancer in a cluster
-            # it should be filtered by service selector using service name ,tags or labels
             for service_node in service_nodes:
                 server_address = get_service_address_of_node(service_node)
                 backend_servers.append(server_address)
@@ -140,26 +139,19 @@ class DiscoverAPIGatewayBackendServers(PullJob):
         api_gateway_backends = {}
         for service_name in selected_services:
             service_nodes = self._query_service_nodes(service_name)
-            # each node is a data source. if many nodes form a load balancer in a cluster
-            # it should be filtered by service selector using service name ,tags or labels
-
-            backend_servers = []
-            for service_node in service_nodes:
-                server_address = get_service_address_of_node(service_node)
-                backend_servers.append(server_address)
-
-            # TODO: currently use service_name as backend_name and path prefix for simplicity
-            #  future to support more flexible cases
+            backend_service = self.get_backend_service(
+                service_name, service_nodes)
             backend_name = service_name
-            if not backend_servers:
+            if not backend_service.backend_servers:
                 logger.warning("No live servers return from the service selector.")
 
             if backend_name in active_backends:
                 # update only backend servers for active backend
-                _update_backend(backend_name, backend_servers)
+                _update_backend(backend_name, backend_service.backend_servers)
             else:
                 new_backends.add(backend_name)
-            api_gateway_backends[service_name] = backend_servers
+
+            api_gateway_backends[backend_name] = backend_service
 
         # Finally, rebuild the HAProxy configuration for restarts/reloads
         update_api_gateway_configuration(
@@ -173,3 +165,18 @@ class DiscoverAPIGatewayBackendServers(PullJob):
 
     def _query_service_nodes(self, service_name):
         return query_service_nodes(service_name, self.service_selector)
+
+    @staticmethod
+    def get_backend_service(service_name, service_nodes):
+        backend_servers = []
+        for service_node in service_nodes:
+            server_address = get_service_address_of_node(service_node)
+            backend_servers.append(server_address)
+
+        route_path = get_common_label_of_service_nodes(
+            service_nodes, API_GATEWAY_SERVICE_DISCOVERY_LABEL_ROUTE_PATH,
+            error_if_not_same=True)
+
+        return APIGatewayBackendService(
+            service_name, backend_servers,
+            route_path=route_path)
