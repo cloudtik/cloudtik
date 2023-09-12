@@ -4,11 +4,13 @@ from cloudtik.core._private.core_utils import get_json_object_hash, get_address_
 from cloudtik.core._private.service_discovery.utils import deserialize_service_selector
 from cloudtik.core._private.util.pull.pull_job import PullJob
 from cloudtik.runtime.common.service_discovery.consul \
-    import query_services, query_service_nodes, get_service_address_of_node, get_common_label_of_service_nodes
+    import query_services, query_service_nodes, get_service_address_of_node, get_common_label_of_service_nodes, \
+    get_service_fqdn_address, get_tags_of_service_nodes
 from cloudtik.runtime.common.service_discovery.utils import API_GATEWAY_SERVICE_DISCOVERY_LABEL_ROUTE_PATH, \
     API_GATEWAY_SERVICE_DISCOVERY_LABEL_SERVICE_PATH
-from cloudtik.runtime.kong.admin_api import list_upstreams, add_api_upstream, \
-    update_api_upstream, delete_api_upstream, UpstreamService
+from cloudtik.runtime.kong.admin_api import add_or_update_api_upstream, \
+    delete_api_upstream, UpstreamService, list_services
+from cloudtik.runtime.kong.utils import KONG_CONFIG_MODE_DNS, KONG_CONFIG_MODE_RING_DNS
 
 logger = logging.getLogger(__name__)
 
@@ -22,9 +24,7 @@ def _get_new_and_update_upstreams(upstreams, existing_upstreams):
         if upstream_name not in existing_upstreams:
             new_upstreams[upstream_name] = upstream
         else:
-            # existing one
-            existing_upstream = existing_upstreams[upstream_name]
-            update_upstreams[upstream_name] = (upstream, existing_upstream)
+            update_upstreams[upstream_name] = upstream
     return new_upstreams, update_upstreams
 
 
@@ -41,11 +41,9 @@ def _get_delete_upstreams(upstreams, existing_upstreams):
 class DiscoverJob(PullJob):
     def __init__(self,
                  service_selector=None,
-                 balance_method=None
                  ):
         self.service_selector = deserialize_service_selector(
             service_selector)
-        self.balance_method = balance_method
         self.last_config_hash = None
 
     def _query_services(self):
@@ -61,10 +59,13 @@ class DiscoverUpstreamServers(DiscoverJob):
 
     def __init__(self,
                  service_selector=None,
+                 config_mode=None,
                  balance_method=None,
                  admin_endpoint=None,
                  ):
-        super().__init__(service_selector, balance_method)
+        super().__init__(service_selector)
+        self.config_mode = config_mode
+        self.balance_method = balance_method
         self.admin_endpoint = admin_endpoint
 
     def pull(self):
@@ -91,14 +92,8 @@ class DiscoverUpstreamServers(DiscoverJob):
             self._configure_upstreams(upstreams)
             self.last_config_hash = upstreams_hash
 
-    @staticmethod
-    def get_upstream_service(service_name, service_nodes):
-        upstream_servers = {}
-        for service_node in service_nodes:
-            server_address = get_service_address_of_node(service_node)
-            server_key = get_address_string(server_address[0], server_address[1])
-            upstream_servers[server_key] = server_address
-
+    def get_upstream_service(
+            self, service_name, service_nodes):
         route_path = get_common_label_of_service_nodes(
             service_nodes, API_GATEWAY_SERVICE_DISCOVERY_LABEL_ROUTE_PATH,
             error_if_not_same=True)
@@ -106,9 +101,43 @@ class DiscoverUpstreamServers(DiscoverJob):
             service_nodes, API_GATEWAY_SERVICE_DISCOVERY_LABEL_SERVICE_PATH,
             error_if_not_same=True)
 
-        return UpstreamService(
-            service_name, servers=upstream_servers,
-            route_path=route_path, service_path=service_path)
+        service_node = service_nodes[0]
+        server_address = get_service_address_of_node(service_node)
+        service_port = server_address[1]
+
+        if (self.config_mode == KONG_CONFIG_MODE_DNS or
+                self.config_mode == KONG_CONFIG_MODE_RING_DNS):
+            # get a common set of tags
+            tags = get_tags_of_service_nodes(
+                service_nodes)
+            service_dns_name = get_service_fqdn_address(
+                service_name, tags)
+
+            if self.config_mode == KONG_CONFIG_MODE_DNS:
+                # service DNS name with port in service
+                return UpstreamService(
+                    service_name, service_dns_name=service_dns_name,
+                    service_port=service_port,
+                    route_path=route_path, service_path=service_path)
+            else:
+                # a single server target with the service dns name in upstream
+                target_address = (service_dns_name, service_port)
+                server_key = get_address_string(target_address[0], target_address[1])
+                upstream_servers = {server_key: target_address}
+                return UpstreamService(
+                    service_name, servers=upstream_servers,
+                    service_port=service_port,
+                    route_path=route_path, service_path=service_path)
+        else:
+            upstream_servers = {}
+            for service_node in service_nodes:
+                server_address = get_service_address_of_node(service_node)
+                server_key = get_address_string(server_address[0], server_address[1])
+                upstream_servers[server_key] = server_address
+            return UpstreamService(
+                service_name, servers=upstream_servers,
+                service_port=service_port,
+                route_path=route_path, service_path=service_path)
 
     def _configure_upstreams(self, upstreams):
         # 1. delete data sources was added but now exists
@@ -119,52 +148,36 @@ class DiscoverUpstreamServers(DiscoverJob):
         delete_upstreams = _get_delete_upstreams(
             upstreams, existing_upstreams)
 
-        self._add_upstreams(new_upstreams)
-        self._update_upstreams(update_upstreams)
+        self._add_or_update_upstreams(new_upstreams)
+        self._add_or_update_upstreams(update_upstreams)
         self._delete_upstreams(delete_upstreams)
 
     def _query_upstreams(self):
-        upstreams = list_upstreams(self.admin_endpoint)
+        # This upstream concept are services
+        upstreams = list_services(self.admin_endpoint)
         if not upstreams:
             return {}
         return {
             upstream["name"]: upstream
             for upstream in upstreams}
 
-    def _add_upstreams(self, new_upstreams):
-        for upstream_name, upstream_service in new_upstreams.items():
-            self._add_upstream(upstream_name, upstream_service)
-
-    def _update_upstreams(self, update_upstreams):
-        for upstream_name, update_upstream in update_upstreams.items():
-            upstream_service, existing_upstream = update_upstream
-            self._update_upstream(
-                upstream_name, upstream_service, existing_upstream)
+    def _add_or_update_upstreams(self, upstreams):
+        for upstream_name, upstream_service in upstreams.items():
+            self._add_or_update_upstream(upstream_name, upstream_service)
 
     def _delete_upstreams(self, delete_upstreams):
         for upstream_name in delete_upstreams:
             self._delete_upstream(upstream_name)
 
-    def _add_upstream(self, upstream_name, upstream_servers):
+    def _add_or_update_upstream(self, upstream_name, upstream_service):
         try:
-            add_api_upstream(
+            add_or_update_api_upstream(
                 self.admin_endpoint, upstream_name,
-                self.balance_method, upstream_servers)
-            logger.info("Upstream {} created: {}".format(
-                upstream_name, upstream_servers))
+                self.balance_method, upstream_service)
+            logger.info("Upstream {} created or updated.".format(
+                upstream_name))
         except Exception as e:
-            logger.error("Upstream {} creation failed: {}".format(
-                upstream_name, str(e)))
-
-    def _update_upstream(self, upstream_name, upstream_servers, existing_upstream):
-        try:
-            update_api_upstream(
-                self.admin_endpoint, upstream_name,
-                self.balance_method, upstream_servers, existing_upstream)
-            logger.info("Upstream {} updated: {}".format(
-                upstream_name, upstream_servers))
-        except Exception as e:
-            logger.error("Upstream {} creation failed: {}".format(
+            logger.error("Upstream {} created or updated failed: {}".format(
                 upstream_name, str(e)))
 
     def _delete_upstream(self, upstream_name):
