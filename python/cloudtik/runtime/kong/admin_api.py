@@ -137,16 +137,16 @@ def get_service_endpoint_url(admin_endpoint, service_name):
 
 def add_service(
         admin_endpoint, service_name,
-        host, port=None,
+        service_host, service_port=None,
         service_path=None):
     endpoint_url = "{}{}".format(
             admin_endpoint, REST_API_ENDPOINT_SERVICES)
     body = {
         "name": service_name,
-        "host": host,
+        "host": service_host,
     }
-    if port:
-        body["port"] = port
+    if service_port:
+        body["port"] = service_port
     if service_path:
         body["path"] = service_path
     service = rest_api_post_json(
@@ -266,7 +266,7 @@ def add_or_update_api_upstream(
     if not service:
         add_service(
             admin_endpoint, service_name=upstream_name,
-            host=host, port=upstream_service.service_port,
+            service_host=host, service_port=upstream_service.service_port,
             service_path=upstream_service.service_path)
 
     # TODO: update other route properties if changed
