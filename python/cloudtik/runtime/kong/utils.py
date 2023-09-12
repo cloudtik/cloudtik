@@ -14,7 +14,8 @@ from cloudtik.core._private.service_discovery.utils import \
     exclude_runtime_of_cluster, serialize_service_selector
 from cloudtik.core._private.util.database_utils import is_database_configured, export_database_environment_variables, \
     DATABASE_ENGINE_POSTGRES, get_database_engine, DATABASE_ENV_ENABLED, DATABASE_ENV_ENGINE
-from cloudtik.core._private.utils import get_runtime_config, is_use_managed_cloud_database, PROVIDER_DATABASE_CONFIG_KEY
+from cloudtik.core._private.utils import get_runtime_config, is_use_managed_cloud_database, \
+    PROVIDER_DATABASE_CONFIG_KEY, RUNTIME_CONFIG_KEY
 from cloudtik.runtime.common.service_discovery.runtime_discovery import \
     DATABASE_CONNECT_KEY, is_database_service_discovery, discover_database_on_head, \
     discover_database_from_workspace
@@ -25,18 +26,21 @@ RUNTIME_PROCESSES = [
         # The second element, if True, is to filter ps results by command name.
         # The third element is the process name.
         # The forth element, if node, the process should on all nodes,if head, the process should on head node.
-        ["/usr/local/kong", False, "KONG", "node"],
+        ["/usr/local/kong", False, "Kong", "node"],
     ]
 
 KONG_SERVICE_PORT_CONFIG_KEY = "port"
 KONG_SERVICE_SSL_PORT_CONFIG_KEY = "ssl_port"
 KONG_HIGH_AVAILABILITY_CONFIG_KEY = "high_availability"
 
+KONG_UPSTREAM_CONFIG_KEY = "upstream"
 KONG_UPSTREAM_CONFIG_MODE_CONFIG_KEY = "config_mode"
-KONG_UPSTREAM_SELECTOR_CONFIG_KEY = "upstream_selector"
+KONG_UPSTREAM_SELECTOR_CONFIG_KEY = "selector"
 # "consistent-hashing", "least-connections", "round-robin", "latency"
 KONG_UPSTREAM_BALANCE_CONFIG_KEY = "balance"
 
+KONG_CONFIG_MODE_DNS = "dns"
+KONG_CONFIG_MODE_RING_DNS = "ring-dns"
 KONG_CONFIG_MODE_DYNAMIC = "dynamic"
 
 KONG_SERVICE_NAME = BUILT_IN_RUNTIME_KONG
@@ -73,6 +77,16 @@ def _get_service_ssl_port(kong_config: Dict[str, Any]):
 def _is_high_availability(kong_config: Dict[str, Any]):
     return kong_config.get(
         KONG_HIGH_AVAILABILITY_CONFIG_KEY, True)
+
+
+def _get_upstream_config(kong_config: Dict[str, Any]):
+    return kong_config.get(
+        KONG_UPSTREAM_CONFIG_KEY, {})
+
+
+def _get_config_mode(upstream_config: Dict[str, Any]):
+    return upstream_config.get(
+        KONG_UPSTREAM_CONFIG_MODE_CONFIG_KEY, KONG_CONFIG_MODE_DYNAMIC)
 
 
 def _get_home_dir():
@@ -137,6 +151,10 @@ def _validate_config(config: Dict[str, Any], final=False):
     if not _is_valid_database_config(config, final):
         raise ValueError("Postgres must be configured for Kong.")
 
+    cluster_runtime_config = config.get(RUNTIME_CONFIG_KEY)
+    if not get_service_discovery_runtime(cluster_runtime_config):
+        raise ValueError("Service discovery runtime is needed for Kong gateway.")
+
 
 def _with_runtime_environment_variables(
         runtime_config, config):
@@ -156,11 +174,11 @@ def _with_runtime_environment_variables(
     if high_availability:
         runtime_envs["KONG_HIGH_AVAILABILITY"] = high_availability
 
-    config_mode = kong_config.get(
-        KONG_UPSTREAM_CONFIG_MODE_CONFIG_KEY, KONG_CONFIG_MODE_DYNAMIC)
+    upstream_config = _get_upstream_config(kong_config)
+    config_mode = _get_config_mode(upstream_config)
     runtime_envs["KONG_CONFIG_MODE"] = config_mode
 
-    balance = kong_config.get(
+    balance = upstream_config.get(
         KONG_UPSTREAM_BALANCE_CONFIG_KEY)
     if balance:
         runtime_envs["KONG_UPSTREAM_BALANCE"] = balance
@@ -199,7 +217,7 @@ def _get_runtime_endpoints(
     service_port = _get_service_port(runtime_config)
     endpoints = {
         "kong": {
-            "name": "KONG",
+            "name": "Kong",
             "url": "http://{}".format(
                 get_address_string(cluster_head_ip, service_port))
         },
@@ -256,7 +274,9 @@ def start_pull_server(head):
     admin_endpoint = _get_admin_api_endpoint(
         "127.0.0.1", KONG_ADMIN_PORT_DEFAULT)
 
-    service_selector = kong_config.get(
+    upstream_config = _get_upstream_config(kong_config)
+    config_mode = _get_config_mode(upstream_config)
+    service_selector = upstream_config.get(
             KONG_UPSTREAM_SELECTOR_CONFIG_KEY, {})
     cluster_name = get_runtime_value(CLOUDTIK_RUNTIME_ENV_CLUSTER)
     exclude_runtime_of_cluster(
@@ -272,11 +292,12 @@ def start_pull_server(head):
     cmd += ["admin_endpoint={}".format(quote(admin_endpoint))]
     if service_selector_str:
         cmd += ["service_selector={}".format(service_selector_str)]
+    if config_mode:
+        cmd += ["config_mode={}".format(config_mode)]
     balance_method = get_runtime_value("KONG_UPSTREAM_BALANCE")
     if balance_method:
         cmd += ["balance_method={}".format(
             quote(balance_method))]
-
     cmd_str = " ".join(cmd)
     exec_with_output(cmd_str)
 

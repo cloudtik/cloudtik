@@ -1,21 +1,16 @@
 import argparse
 
-from cloudtik.core._private.runtime_utils import get_runtime_value, get_runtime_bool
+from cloudtik.core._private.runtime_utils import get_runtime_bool
 from cloudtik.runtime.kong.utils \
-    import start_pull_server, stop_pull_server, KONG_CONFIG_MODE_DYNAMIC
+    import start_pull_server, stop_pull_server
 
 
 def start_service(head):
-    config_mode = get_runtime_value("KONG_CONFIG_MODE")
-    if config_mode == KONG_CONFIG_MODE_DYNAMIC:
-        # needed pull server only for dynamic backend
-        start_pull_server(head)
+    start_pull_server(head)
 
 
 def stop_service():
-    config_mode = get_runtime_value("KONG_CONFIG_MODE")
-    if config_mode == KONG_CONFIG_MODE_DYNAMIC:
-        stop_pull_server()
+    stop_pull_server()
 
 
 def main():

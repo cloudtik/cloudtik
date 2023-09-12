@@ -9,10 +9,13 @@ REST_API_ENDPOINT_ROUTES = "/routes"
 
 
 class UpstreamService:
-    def __init__(self, service_name, servers,
+    def __init__(self, service_name, servers=None,
+                 service_dns_name=None, service_port=None,
                  route_path=None, service_path=None):
         self.service_name = service_name
         self.servers = servers
+        self.service_dns_name = service_dns_name
+        self.service_port = service_port
         self.route_path = route_path
         self.service_path = service_path
 
@@ -133,13 +136,17 @@ def get_service_endpoint_url(admin_endpoint, service_name):
 
 
 def add_service(
-        admin_endpoint, service_name, upstream_name, service_path=None):
+        admin_endpoint, service_name,
+        host, port=None,
+        service_path=None):
     endpoint_url = "{}{}".format(
             admin_endpoint, REST_API_ENDPOINT_SERVICES)
     body = {
         "name": service_name,
-        "host": upstream_name,
+        "host": host,
     }
+    if port:
+        body["port"] = port
     if service_path:
         body["path"] = service_path
     service = rest_api_post_json(
@@ -236,32 +243,39 @@ def update_upstream_targets(
             admin_endpoint, upstream_name, target_name)
 
 
-def add_api_upstream(
-        admin_endpoint, upstream_name, algorithm, upstream_service: UpstreamService):
-    add_upstream(
-        admin_endpoint, upstream_name, algorithm)
-    update_upstream_targets(
-        admin_endpoint, upstream_name, upstream_service.servers)
-    if not get_service(admin_endpoint, service_name=upstream_name):
+def add_or_update_api_upstream(
+        admin_endpoint, upstream_name, algorithm,
+        upstream_service: UpstreamService):
+    if upstream_service.service_dns_name:
+        # For pure DNS, we don't need upstream object, use service host instead
+        delete_upstream(admin_endpoint, upstream_name)
+        host = upstream_service.service_dns_name
+    else:
+        if not get_upstream(admin_endpoint, upstream_name=upstream_name):
+            add_upstream(
+                admin_endpoint, upstream_name, algorithm)
+        else:
+            update_upstream(
+                admin_endpoint, upstream_name, algorithm)
+        update_upstream_targets(
+            admin_endpoint, upstream_name, upstream_service.servers)
+        host = upstream_name
+
+    # TODO: update other service properties if changed
+    service = get_service(admin_endpoint, service_name=upstream_name)
+    if not service:
         add_service(
             admin_endpoint, service_name=upstream_name,
-            upstream_name=upstream_name, service_path=upstream_service.service_path)
-    if not get_route(admin_endpoint, route_name=upstream_name):
+            host=host, port=upstream_service.service_port,
+            service_path=upstream_service.service_path)
+
+    # TODO: update other route properties if changed
+    route = get_route(admin_endpoint, route_name=upstream_name)
+    if not route:
         route_path = upstream_service.get_route_path()
         add_route(
             admin_endpoint, route_name=upstream_name,
             service_name=upstream_name, route_path=route_path)
-
-
-def update_api_upstream(
-        admin_endpoint, upstream_name, algorithm, upstream_service: UpstreamService,
-        existing_upstream):
-    if existing_upstream.get("algorithm") != algorithm:
-        update_upstream(
-            admin_endpoint, upstream_name, algorithm)
-    update_upstream_targets(
-        admin_endpoint, upstream_name, upstream_service.servers)
-    # TODO update other properties like service path or route path?
 
 
 def delete_api_upstream(
@@ -272,5 +286,5 @@ def delete_api_upstream(
     if get_service(admin_endpoint, service_name=upstream_name):
         delete_service(admin_endpoint, service_name=upstream_name)
 
-    delete_upstream(
-        admin_endpoint, upstream_name)
+    if get_upstream(admin_endpoint, upstream_name=upstream_name):
+        delete_upstream(admin_endpoint, upstream_name)
