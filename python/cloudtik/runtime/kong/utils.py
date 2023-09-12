@@ -33,11 +33,11 @@ KONG_SERVICE_PORT_CONFIG_KEY = "port"
 KONG_SERVICE_SSL_PORT_CONFIG_KEY = "ssl_port"
 KONG_HIGH_AVAILABILITY_CONFIG_KEY = "high_availability"
 
-KONG_UPSTREAM_CONFIG_KEY = "upstream"
-KONG_UPSTREAM_CONFIG_MODE_CONFIG_KEY = "config_mode"
-KONG_UPSTREAM_SELECTOR_CONFIG_KEY = "selector"
+KONG_BACKEND_CONFIG_KEY = "backend"
+KONG_BACKEND_CONFIG_MODE_CONFIG_KEY = "config_mode"
+KONG_BACKEND_SELECTOR_CONFIG_KEY = "selector"
 # "consistent-hashing", "least-connections", "round-robin", "latency"
-KONG_UPSTREAM_BALANCE_CONFIG_KEY = "balance"
+KONG_BACKEND_BALANCE_CONFIG_KEY = "balance"
 
 KONG_CONFIG_MODE_DNS = "dns"
 KONG_CONFIG_MODE_RING_DNS = "ring-dns"
@@ -53,7 +53,7 @@ KONG_ADMIN_SSL_PORT_DEFAULT = 8444
 KONG_ADMIN_UI_PORT_DEFAULT = 8002
 KONG_ADMIN_UI_SSL_PORT_DEFAULT = 8445
 
-KONG_DISCOVER_UPSTREAM_SERVERS_INTERVAL = 15
+KONG_DISCOVER_BACKEND_SERVERS_INTERVAL = 15
 
 
 def _get_config(runtime_config: Dict[str, Any]):
@@ -79,14 +79,14 @@ def _is_high_availability(kong_config: Dict[str, Any]):
         KONG_HIGH_AVAILABILITY_CONFIG_KEY, True)
 
 
-def _get_upstream_config(kong_config: Dict[str, Any]):
+def _get_backend_config(kong_config: Dict[str, Any]):
     return kong_config.get(
-        KONG_UPSTREAM_CONFIG_KEY, {})
+        KONG_BACKEND_CONFIG_KEY, {})
 
 
-def _get_config_mode(upstream_config: Dict[str, Any]):
-    return upstream_config.get(
-        KONG_UPSTREAM_CONFIG_MODE_CONFIG_KEY, KONG_CONFIG_MODE_DYNAMIC)
+def _get_config_mode(backend_config: Dict[str, Any]):
+    return backend_config.get(
+        KONG_BACKEND_CONFIG_MODE_CONFIG_KEY, KONG_CONFIG_MODE_DYNAMIC)
 
 
 def _get_home_dir():
@@ -174,14 +174,14 @@ def _with_runtime_environment_variables(
     if high_availability:
         runtime_envs["KONG_HIGH_AVAILABILITY"] = high_availability
 
-    upstream_config = _get_upstream_config(kong_config)
-    config_mode = _get_config_mode(upstream_config)
+    backend_config = _get_backend_config(kong_config)
+    config_mode = _get_config_mode(backend_config)
     runtime_envs["KONG_CONFIG_MODE"] = config_mode
 
-    balance = upstream_config.get(
-        KONG_UPSTREAM_BALANCE_CONFIG_KEY)
+    balance = backend_config.get(
+        KONG_BACKEND_BALANCE_CONFIG_KEY)
     if balance:
-        runtime_envs["KONG_UPSTREAM_BALANCE"] = balance
+        runtime_envs["KONG_BACKEND_BALANCE"] = balance
 
     return runtime_envs
 
@@ -274,10 +274,10 @@ def start_pull_server(head):
     admin_endpoint = _get_admin_api_endpoint(
         "127.0.0.1", KONG_ADMIN_PORT_DEFAULT)
 
-    upstream_config = _get_upstream_config(kong_config)
-    config_mode = _get_config_mode(upstream_config)
-    service_selector = upstream_config.get(
-            KONG_UPSTREAM_SELECTOR_CONFIG_KEY, {})
+    backend_config = _get_backend_config(kong_config)
+    config_mode = _get_config_mode(backend_config)
+    service_selector = backend_config.get(
+            KONG_BACKEND_SELECTOR_CONFIG_KEY, {})
     cluster_name = get_runtime_value(CLOUDTIK_RUNTIME_ENV_CLUSTER)
     exclude_runtime_of_cluster(
         service_selector, BUILT_IN_RUNTIME_KONG, cluster_name)
@@ -285,16 +285,16 @@ def start_pull_server(head):
     pull_identifier = _get_pull_identifier()
 
     cmd = ["cloudtik", "node", "pull", pull_identifier, "start"]
-    cmd += ["--pull-class=cloudtik.runtime.kong.discovery.DiscoverUpstreamServers"]
+    cmd += ["--pull-class=cloudtik.runtime.kong.discovery.DiscoverBackendServers"]
     cmd += ["--interval={}".format(
-        KONG_DISCOVER_UPSTREAM_SERVERS_INTERVAL)]
+        KONG_DISCOVER_BACKEND_SERVERS_INTERVAL)]
     # job parameters
     cmd += ["admin_endpoint={}".format(quote(admin_endpoint))]
     if service_selector_str:
         cmd += ["service_selector={}".format(service_selector_str)]
     if config_mode:
         cmd += ["config_mode={}".format(config_mode)]
-    balance_method = get_runtime_value("KONG_UPSTREAM_BALANCE")
+    balance_method = get_runtime_value("KONG_BACKEND_BALANCE")
     if balance_method:
         cmd += ["balance_method={}".format(
             quote(balance_method))]
