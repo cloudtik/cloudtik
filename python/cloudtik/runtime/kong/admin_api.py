@@ -8,7 +8,7 @@ REST_API_ENDPOINT_SERVICES = "/services"
 REST_API_ENDPOINT_ROUTES = "/routes"
 
 
-class UpstreamService:
+class BackendService:
     def __init__(self, service_name, servers=None,
                  service_dns_name=None, service_port=None,
                  route_path=None, service_path=None):
@@ -243,48 +243,49 @@ def update_upstream_targets(
             admin_endpoint, upstream_name, target_name)
 
 
-def add_or_update_api_upstream(
-        admin_endpoint, upstream_name, algorithm,
-        upstream_service: UpstreamService):
-    if upstream_service.service_dns_name:
+def add_or_update_backend(
+        admin_endpoint, backend_name, algorithm,
+        backend_service: BackendService):
+    if backend_service.service_dns_name:
         # For pure DNS, we don't need upstream object, use service host instead
-        delete_upstream(admin_endpoint, upstream_name)
-        host = upstream_service.service_dns_name
+        delete_upstream(admin_endpoint, upstream_name=backend_name)
+        host = backend_service.service_dns_name
     else:
-        if not get_upstream(admin_endpoint, upstream_name=upstream_name):
+        if not get_upstream(admin_endpoint, upstream_name=backend_name):
             add_upstream(
-                admin_endpoint, upstream_name, algorithm)
+                admin_endpoint, upstream_name=backend_name, algorithm=algorithm)
         else:
             update_upstream(
-                admin_endpoint, upstream_name, algorithm)
+                admin_endpoint, upstream_name=backend_name, algorithm=algorithm)
         update_upstream_targets(
-            admin_endpoint, upstream_name, upstream_service.servers)
-        host = upstream_name
+            admin_endpoint, upstream_name=backend_name,
+            upstream_servers=backend_service.servers)
+        host = backend_name
 
     # TODO: update other service properties if changed
-    service = get_service(admin_endpoint, service_name=upstream_name)
+    service = get_service(admin_endpoint, service_name=backend_name)
     if not service:
         add_service(
-            admin_endpoint, service_name=upstream_name,
-            service_host=host, service_port=upstream_service.service_port,
-            service_path=upstream_service.service_path)
+            admin_endpoint, service_name=backend_name,
+            service_host=host, service_port=backend_service.service_port,
+            service_path=backend_service.service_path)
 
     # TODO: update other route properties if changed
-    route = get_route(admin_endpoint, route_name=upstream_name)
+    route = get_route(admin_endpoint, route_name=backend_name)
     if not route:
-        route_path = upstream_service.get_route_path()
+        route_path = backend_service.get_route_path()
         add_route(
-            admin_endpoint, route_name=upstream_name,
-            service_name=upstream_name, route_path=route_path)
+            admin_endpoint, route_name=backend_name,
+            service_name=backend_name, route_path=route_path)
 
 
-def delete_api_upstream(
-        admin_endpoint, upstream_name):
-    if get_route(admin_endpoint, route_name=upstream_name):
-        delete_route(admin_endpoint, route_name=upstream_name)
+def delete_backend(
+        admin_endpoint, backend_name):
+    if get_route(admin_endpoint, route_name=backend_name):
+        delete_route(admin_endpoint, route_name=backend_name)
 
-    if get_service(admin_endpoint, service_name=upstream_name):
-        delete_service(admin_endpoint, service_name=upstream_name)
+    if get_service(admin_endpoint, service_name=backend_name):
+        delete_service(admin_endpoint, service_name=backend_name)
 
-    if get_upstream(admin_endpoint, upstream_name=upstream_name):
-        delete_upstream(admin_endpoint, upstream_name)
+    if get_upstream(admin_endpoint, upstream_name=backend_name):
+        delete_upstream(admin_endpoint, upstream_name=backend_name)

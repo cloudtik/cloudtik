@@ -912,6 +912,26 @@
                 "etcd_uri": {
                     "type": "string",
                     "description": "Explicit set ETCD service to use."
+                },
+                "backend": {
+                    "type": "object",
+                    "description": "Backend configurations",
+                    "properties": {
+                        "config_mode": {
+                            "type": "string",
+                            "default": "dynamic",
+                            "description": "How the backend is configured: dns, ring-dns, dynamic"
+                        },
+                        "selector": {
+                            "$ref": "#/definitions/service_selector",
+                            "description": "The selector for backend services if service discovery is enabled."
+                        },
+                        "balance": {
+                            "type": "string",
+                            "description": "The balance method used for backend servers: round-robin, consistent-hashing, least-connections, latency",
+                            "default": "round-robin"
+                        }
+                    }
                 }
             }
         },
@@ -943,22 +963,22 @@
                     "$ref": "#/definitions/service_selector",
                     "description": "The selector for database service if service discovery is enabled."
                 },
-                "upstream": {
+                "backend": {
                     "type": "object",
-                    "description": "Upstream configurations",
+                    "description": "Backend configurations",
                     "properties": {
                         "config_mode": {
                             "type": "string",
                             "default": "dynamic",
-                            "description": "How the upstream is configured: dns, ring-dns, dynamic"
+                            "description": "How the backend is configured: dns, ring-dns, dynamic"
                         },
-                        "upstream_selector": {
+                        "selector": {
                             "$ref": "#/definitions/service_selector",
-                            "description": "The selector for upstream services if service discovery is enabled."
+                            "description": "The selector for backend services if service discovery is enabled."
                         },
                         "balance": {
                             "type": "string",
-                            "description": "The balance method used for upstream servers: round-robin, consistent-hashing, least-connections, latency",
+                            "description": "The balance method used for backend servers: round-robin, consistent-hashing, least-connections, latency",
                             "default": "round-robin"
                         }
                     }
