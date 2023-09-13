@@ -900,6 +900,10 @@
                     "default": 9180,
                     "description": "APISIX admin port."
                 },
+                "admin_key": {
+                    "type": "string",
+                    "description": "APISIX admin key. If not specified, there is a default."
+                },
                 "etcd_service_discovery": {
                     "type": "boolean",
                     "description": "Whether to discover and use ETCD service in the same workspace.",
@@ -928,8 +932,8 @@
                         },
                         "balance": {
                             "type": "string",
-                            "description": "The balance method used for backend servers: round-robin, consistent-hashing, least-connections, latency",
-                            "default": "round-robin"
+                            "description": "The balance method used for backend servers: roundrobin, chash, least_conn, ewma",
+                            "default": "roundrobin"
                         }
                     }
                 }

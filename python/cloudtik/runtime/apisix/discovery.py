@@ -3,14 +3,15 @@ import logging
 from cloudtik.core._private.core_utils import get_json_object_hash, get_address_string
 from cloudtik.core._private.service_discovery.utils import deserialize_service_selector
 from cloudtik.core._private.util.pull.pull_job import PullJob
+from cloudtik.core._private.util.rest_api import REST_API_AUTH_TYPE, REST_API_AUTH_API_KEY
 from cloudtik.runtime.common.service_discovery.consul \
     import query_services, query_service_nodes, get_service_address_of_node, get_common_label_of_service_nodes, \
     get_service_fqdn_address, get_tags_of_service_nodes
 from cloudtik.runtime.common.service_discovery.utils import API_GATEWAY_SERVICE_DISCOVERY_LABEL_ROUTE_PATH, \
     API_GATEWAY_SERVICE_DISCOVERY_LABEL_SERVICE_PATH
-from cloudtik.runtime.kong.admin_api import add_or_update_backend, \
+from cloudtik.runtime.apisix.admin_api import add_or_update_backend, \
     delete_backend, BackendService, list_services
-from cloudtik.runtime.kong.utils import KONG_CONFIG_MODE_DNS, KONG_CONFIG_MODE_RING_DNS
+from cloudtik.runtime.apisix.utils import APISIX_CONFIG_MODE_DNS, APISIX_CONFIG_MODE_CONSUL
 
 logger = logging.getLogger(__name__)
 
@@ -62,11 +63,16 @@ class DiscoverBackendServers(DiscoverJob):
                  config_mode=None,
                  balance_method=None,
                  admin_endpoint=None,
+                 admin_key=None,
                  ):
         super().__init__(service_selector)
         self.config_mode = config_mode
         self.balance_method = balance_method
         self.admin_endpoint = admin_endpoint
+        self.auth = {
+            REST_API_AUTH_TYPE: REST_API_AUTH_API_KEY,
+            REST_API_AUTH_API_KEY: admin_key,
+        }
 
     def pull(self):
         selected_services = self._query_services()
@@ -105,29 +111,24 @@ class DiscoverBackendServers(DiscoverJob):
         server_address = get_service_address_of_node(service_node)
         service_port = server_address[1]
 
-        if (self.config_mode == KONG_CONFIG_MODE_DNS or
-                self.config_mode == KONG_CONFIG_MODE_RING_DNS):
+        if self.config_mode == APISIX_CONFIG_MODE_DNS:
             # get a common set of tags
             tags = get_tags_of_service_nodes(
                 service_nodes)
             service_dns_name = get_service_fqdn_address(
                 service_name, tags)
 
-            if self.config_mode == KONG_CONFIG_MODE_DNS:
-                # service DNS name with port in service
-                return BackendService(
-                    service_name, service_dns_name=service_dns_name,
-                    service_port=service_port,
-                    route_path=route_path, service_path=service_path)
-            else:
-                # a single server target with the service dns name in backend
-                target_address = (service_dns_name, service_port)
-                server_key = get_address_string(target_address[0], target_address[1])
-                backend_servers = {server_key: target_address}
-                return BackendService(
-                    service_name, servers=backend_servers,
-                    service_port=service_port,
-                    route_path=route_path, service_path=service_path)
+            # service DNS name with port in service
+            return BackendService(
+                service_name, service_dns_name=service_dns_name,
+                service_port=service_port,
+                route_path=route_path, service_path=service_path)
+        elif self.config_mode == APISIX_CONFIG_MODE_CONSUL:
+            # service name with port in service
+            return BackendService(
+                service_name,
+                service_port=service_port,
+                route_path=route_path, service_path=service_path)
         else:
             backend_servers = {}
             for service_node in service_nodes:
@@ -154,7 +155,7 @@ class DiscoverBackendServers(DiscoverJob):
 
     def _query_backends(self):
         # This backend concept are services
-        services = list_services(self.admin_endpoint)
+        services = list_services(self.admin_endpoint, self.auth)
         if not services:
             return {}
         return {
@@ -172,7 +173,7 @@ class DiscoverBackendServers(DiscoverJob):
     def _add_or_update_backend(self, backend_name, backend_service):
         try:
             add_or_update_backend(
-                self.admin_endpoint, backend_name,
+                self.admin_endpoint, self.auth, backend_name,
                 self.balance_method, backend_service)
             logger.info("Backend {} created or updated.".format(
                 backend_name))
@@ -183,7 +184,7 @@ class DiscoverBackendServers(DiscoverJob):
     def _delete_backend(self, backend_name):
         try:
             delete_backend(
-                self.admin_endpoint, backend_name)
+                self.admin_endpoint, self.auth, backend_name)
             logger.info("Backend {} deleted successfully.".format(
                 backend_name))
         except Exception as e:

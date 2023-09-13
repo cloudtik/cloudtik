@@ -115,7 +115,7 @@ PROVIDER_STORAGE_CONFIG_KEY = "storage"
 PROVIDER_DATABASE_CONFIG_KEY = "database"
 
 
-PRIVACY_CONFIG_KEYS = ["credentials", "account.key", "secret", "access.key", "private.key", "encryption.key"]
+PRIVACY_CONFIG_KEYS = ["credentials", "secret", "password", ".key", "_key"]
 
 NODE_INFO_NODE_ID = "node_id"
 NODE_INFO_NODE_IP = "private_ip"
@@ -3060,6 +3060,20 @@ def decrypt_config_value(v, cipher):
 
     target_bytes = v[len(CLOUDTIK_ENCRYPTION_PREFIX):].encode("utf-8")
     return cipher.decrypt(target_bytes)
+
+
+def encrypt_string(v: str):
+    if v is None:
+        return v
+    cipher = get_config_cipher()
+    return cipher.encrypt(v).decode("utf-8")
+
+
+def decrypt_string(v: str):
+    if v is None:
+        return v
+    cipher = get_config_cipher()
+    return cipher.decrypt(v.encode("utf-8"))
 
 
 def get_runtime_encryption_key(config):

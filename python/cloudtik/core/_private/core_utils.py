@@ -913,4 +913,7 @@ def get_env_string_value(val):
 
 
 def get_address_string(host, port):
-    return "{}:{}".format(host, port)
+    if not port:
+        return host
+    else:
+        return "{}:{}".format(host, port)

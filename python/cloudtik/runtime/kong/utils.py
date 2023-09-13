@@ -254,9 +254,9 @@ def _get_runtime_services(
     return services
 
 
-###################################
-# Calls from node at running time
-###################################
+#######################################
+# Calls from node when running services
+#######################################
 
 
 def _get_pull_identifier():
