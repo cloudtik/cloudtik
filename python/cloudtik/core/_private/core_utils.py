@@ -852,9 +852,21 @@ def get_named_log_file_handles(logs_dir, name, redirect_output=None):
     return open_log(log_stdout), open_log(log_stderr)
 
 
-def get_json_object_hash(json_object):
+class JSONSerializableObject:
+    pass
+
+
+class JSONSerializableObjectEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, JSONSerializableObject):
+            return obj.__dict__
+        # Let the base class default method raise the TypeError
+        return json.JSONEncoder.default(self, obj)
+
+
+def get_json_object_hash(json_object, cls=JSONSerializableObjectEncoder):
     json_str = "" if json_object is None else json.dumps(
-        json_object, sort_keys=True)
+        json_object, sort_keys=True, cls=cls)
     return get_string_hash(json_str)
 
 
@@ -864,9 +876,9 @@ def get_string_hash(str_data):
     return hasher.hexdigest()
 
 
-def get_json_object_md5(json_object):
+def get_json_object_md5(json_object, cls=JSONSerializableObjectEncoder):
     json_str = "" if json_object is None else json.dumps(
-        json_object, sort_keys=True)
+        json_object, sort_keys=True, cls=cls)
     return get_string_hash(json_str)
 
 

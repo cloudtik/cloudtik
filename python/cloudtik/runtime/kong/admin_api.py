@@ -1,4 +1,4 @@
-from cloudtik.core._private.core_utils import get_address_string
+from cloudtik.core._private.core_utils import get_address_string, JSONSerializableObject
 from cloudtik.core._private.util.rest_api import rest_api_get_json, rest_api_post_json, rest_api_delete, \
     rest_api_method_json
 
@@ -8,7 +8,7 @@ REST_API_ENDPOINT_SERVICES = "/services"
 REST_API_ENDPOINT_ROUTES = "/routes"
 
 
-class BackendService:
+class BackendService(JSONSerializableObject):
     def __init__(self, service_name, servers=None,
                  service_dns_name=None, service_port=None,
                  route_path=None, service_path=None):

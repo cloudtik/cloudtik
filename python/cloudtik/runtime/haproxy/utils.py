@@ -4,7 +4,7 @@ from shlex import quote
 from typing import Any, Dict
 
 from cloudtik.core._private.constants import CLOUDTIK_RUNTIME_ENV_CLUSTER, CLOUDTIK_RUNTIME_ENV_NODE_IP
-from cloudtik.core._private.core_utils import exec_with_output, exec_with_call
+from cloudtik.core._private.core_utils import exec_with_output, exec_with_call, JSONSerializableObject
 from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_HAPROXY
 from cloudtik.core._private.runtime_utils import get_runtime_config_from_node, get_runtime_value
 from cloudtik.core._private.service_discovery.runtime_services import get_service_discovery_runtime
@@ -455,7 +455,7 @@ def update_configuration(backend_servers):
     shutil.move(working_file, config_file)
 
 
-class APIGatewayBackendService:
+class APIGatewayBackendService(JSONSerializableObject):
     def __init__(self, service_name, backend_servers,
                  route_path=None):
         self.service_name = service_name

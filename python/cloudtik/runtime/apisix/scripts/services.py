@@ -1,7 +1,7 @@
 import argparse
 
 from cloudtik.core._private.runtime_utils import get_runtime_bool
-from cloudtik.runtime.kong.utils \
+from cloudtik.runtime.apisix.utils \
     import start_pull_server, stop_pull_server
 
 
@@ -29,7 +29,7 @@ def main():
     )
     args = parser.parse_args()
 
-    high_availability = get_runtime_bool("KONG_HIGH_AVAILABILITY")
+    high_availability = get_runtime_bool("APISIX_HIGH_AVAILABILITY")
     if high_availability or args.head:
         if args.command == "start":
             start_service(args.head)
