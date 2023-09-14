@@ -159,7 +159,7 @@ class DiscoverBackendServers(DiscoverJob):
         if not services:
             return {}
         return {
-            service["name"]: service
+            service["value"]["id"]: service
             for service in services}
 
     def _add_or_update_backends(self, backends):

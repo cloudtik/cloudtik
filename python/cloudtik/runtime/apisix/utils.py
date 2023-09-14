@@ -39,6 +39,11 @@ APISIX_BACKEND_SELECTOR_CONFIG_KEY = "selector"
 # roundrobin, chash (consistent-hashing), least_conn, ewma (latency)
 APISIX_BACKEND_BALANCE_CONFIG_KEY = "balance"
 
+APISIX_BALANCE_TYPE_ROUND_ROBIN = "roundrobin"
+APISIX_BALANCE_TYPE_CONSISTENT_HASH = "chash"
+APISIX_BALANCE_TYPE_LEAST_CONN = "least_conn"
+APISIX_BALANCE_TYPE_LATENCY = "ewma"
+
 APISIX_ADMIN_KEY_DEFAULT = "edd1c9f035435d136f87ad84b625c8f2"
 
 APISIX_CONFIG_MODE_DNS = "dns"
@@ -151,9 +156,8 @@ def _with_runtime_environment_variables(
     runtime_envs["APISIX_CONFIG_MODE"] = config_mode
 
     balance = backend_config.get(
-        APISIX_BACKEND_BALANCE_CONFIG_KEY)
-    if balance:
-        runtime_envs["APISIX_BACKEND_BALANCE"] = balance
+        APISIX_BACKEND_BALANCE_CONFIG_KEY, APISIX_BALANCE_TYPE_ROUND_ROBIN)
+    runtime_envs["APISIX_BACKEND_BALANCE"] = balance
 
     return runtime_envs
 

@@ -1,6 +1,9 @@
+import urllib.error
+
 from cloudtik.core._private.core_utils import get_address_string, JSONSerializableObject
 from cloudtik.core._private.util.rest_api import rest_api_get_json, rest_api_delete, \
     rest_api_method_json, rest_api_put_json
+from cloudtik.runtime.apisix.utils import APISIX_BALANCE_TYPE_ROUND_ROBIN
 
 REST_API_ENDPOINT_ADMIN = "/apisix/admin"
 REST_API_ENDPOINT_UPSTREAMS = REST_API_ENDPOINT_ADMIN + "/upstreams"
@@ -40,6 +43,15 @@ def list_entities(admin_endpoint, auth, entities_url):
     return entities
 
 
+def get_entity(
+        endpoint_url, auth):
+    try:
+        return rest_api_get_json(endpoint_url, auth=auth)
+    except urllib.error.HTTPError as e:
+        if e.code == 404:
+            return None
+
+
 def list_upstreams(admin_endpoint, auth):
     return list_entities(
         admin_endpoint, auth, REST_API_ENDPOINT_UPSTREAMS)
@@ -55,6 +67,8 @@ def get_upstream_endpoint_url(admin_endpoint, upstream_name):
 def add_upstream(
         admin_endpoint, auth, upstream_name, balance_type,
         nodes=None, service_name=None, discovery_type=None):
+    if balance_type is None:
+        balance_type = APISIX_BALANCE_TYPE_ROUND_ROBIN
     endpoint = "{}/{}".format(
         REST_API_ENDPOINT_UPSTREAMS, upstream_name)
     endpoint_url = "{}{}".format(
@@ -83,7 +97,7 @@ def get_upstream(
         admin_endpoint, auth, upstream_name):
     endpoint_url = get_upstream_endpoint_url(
         admin_endpoint, upstream_name)
-    return rest_api_get_json(endpoint_url, auth=auth)
+    return get_entity(endpoint_url, auth=auth)
 
 
 def update_upstream(
@@ -146,7 +160,7 @@ def get_service(
         admin_endpoint, auth, service_name):
     endpoint_url = get_service_endpoint_url(
         admin_endpoint, service_name)
-    return rest_api_get_json(endpoint_url, auth=auth)
+    return get_entity(endpoint_url, auth=auth)
 
 
 def delete_service(
@@ -187,7 +201,7 @@ def get_route(
         admin_endpoint, auth, route_name):
     endpoint_url = get_route_endpoint_url(
         admin_endpoint, route_name)
-    return rest_api_get_json(endpoint_url, auth=auth)
+    return get_entity(endpoint_url, auth=auth)
 
 
 def delete_route(
@@ -244,6 +258,7 @@ def add_or_update_backend(
             nodes=nodes, service_name=service_name, discovery_type=discovery_type)
     else:
         # check what's changed with the existing upstream
+        upstream = upstream["value"]
         if upstream.get("type") == algorithm:
             algorithm = None
 
