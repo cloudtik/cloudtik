@@ -6,7 +6,7 @@ from typing import Dict
 import logging
 
 from cloudtik.core._private.command_executor.command_executor \
-    import _with_shutdown, _with_environment_variables, _with_interactive
+    import _with_shutdown, _with_environment_variables
 from cloudtik.core._private.command_executor.host_command_executor import HostCommandExecutor
 from cloudtik.core._private.cli_logger import cf
 from cloudtik.core._private.subprocess_output_util import ProcessRunnerError
