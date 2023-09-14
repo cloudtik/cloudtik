@@ -12,7 +12,7 @@ from cloudtik.core._private.service_discovery.utils import \
     get_canonical_service_name, define_runtime_service_on_head_or_all, \
     get_service_discovery_config, SERVICE_DISCOVERY_FEATURE_API_GATEWAY, SERVICE_DISCOVERY_PROTOCOL_HTTP, \
     exclude_runtime_of_cluster, serialize_service_selector
-from cloudtik.core._private.utils import get_runtime_config, RUNTIME_CONFIG_KEY
+from cloudtik.core._private.utils import get_runtime_config, RUNTIME_CONFIG_KEY, encrypt_string
 from cloudtik.runtime.common.service_discovery.runtime_discovery import discover_etcd_from_workspace, \
     discover_etcd_on_head, ETCD_URI_KEY, is_etcd_service_discovery
 from cloudtik.runtime.common.service_discovery.utils import get_service_addresses_from_string
@@ -273,8 +273,9 @@ def start_pull_server(head):
     apisix_config = _get_config(runtime_config)
     admin_endpoint = _get_admin_api_endpoint(
         "127.0.0.1", _get_admin_port(apisix_config))
-    # TODO: encrypt the admin key
-    admin_key = _get_admin_key(apisix_config)
+    # encrypt the admin key
+    admin_key = encrypt_string(
+        _get_admin_key(apisix_config))
 
     backend_config = _get_backend_config(apisix_config)
     config_mode = _get_config_mode(backend_config)

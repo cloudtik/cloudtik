@@ -110,10 +110,13 @@ def update_upstream(
         body["type"] = balance_type
     if service_name:
         body["service_name"] = service_name
+        body["nodes"] = None
     if discovery_type:
         body["discovery_type"] = discovery_type
     if nodes:
         body["nodes"] = nodes
+        body["service_name"] = None
+        body["discovery_type"] = None
     if not body:
         # no update is needed
         return None

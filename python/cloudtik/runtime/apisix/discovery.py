@@ -4,6 +4,7 @@ from cloudtik.core._private.core_utils import get_json_object_hash, get_address_
 from cloudtik.core._private.service_discovery.utils import deserialize_service_selector
 from cloudtik.core._private.util.pull.pull_job import PullJob
 from cloudtik.core._private.util.rest_api import REST_API_AUTH_TYPE, REST_API_AUTH_API_KEY
+from cloudtik.core._private.utils import decrypt_string
 from cloudtik.runtime.common.service_discovery.consul \
     import query_services, query_service_nodes, get_service_address_of_node, get_common_label_of_service_nodes, \
     get_service_fqdn_address, get_tags_of_service_nodes
@@ -69,6 +70,7 @@ class DiscoverBackendServers(DiscoverJob):
         self.config_mode = config_mode
         self.balance_method = balance_method
         self.admin_endpoint = admin_endpoint
+        admin_key = decrypt_string(admin_key)
         self.auth = {
             REST_API_AUTH_TYPE: REST_API_AUTH_API_KEY,
             REST_API_AUTH_API_KEY: admin_key,
