@@ -1,3 +1,5 @@
+import urllib.error
+
 from cloudtik.core._private.core_utils import get_address_string, JSONSerializableObject
 from cloudtik.core._private.util.rest_api import rest_api_get_json, rest_api_post_json, rest_api_delete, \
     rest_api_method_json
@@ -43,6 +45,14 @@ def list_entities(admin_endpoint, entities_url):
     return entities
 
 
+def get_entity(endpoint_url):
+    try:
+        return rest_api_get_json(endpoint_url)
+    except urllib.error.HTTPError as e:
+        if e.code == 404:
+            return None
+
+
 def list_upstreams(admin_endpoint):
     return list_entities(
         admin_endpoint, REST_API_ENDPOINT_UPSTREAMS)
@@ -72,7 +82,7 @@ def get_upstream(
         admin_endpoint, upstream_name):
     endpoint_url = get_upstream_endpoint_url(
         admin_endpoint, upstream_name)
-    return rest_api_get_json(endpoint_url)
+    return get_entity(endpoint_url)
 
 
 def update_upstream(
@@ -158,7 +168,7 @@ def get_service(
         admin_endpoint, service_name):
     endpoint_url = get_service_endpoint_url(
         admin_endpoint, service_name)
-    return rest_api_get_json(endpoint_url)
+    return get_entity(endpoint_url)
 
 
 def delete_service(
@@ -200,7 +210,7 @@ def get_route(
         admin_endpoint, route_name):
     endpoint_url = get_route_endpoint_url(
         admin_endpoint, route_name)
-    return rest_api_get_json(endpoint_url)
+    return get_entity(endpoint_url)
 
 
 def delete_route(
