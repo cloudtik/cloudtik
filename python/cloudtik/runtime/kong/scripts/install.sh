@@ -12,6 +12,11 @@ KONG_VERSION=3.4
 # Util functions
 . "$ROOT_DIR"/common/scripts/util-functions.sh
 
+function install_database_tools() {
+    which psql > /dev/null || (sudo apt-get -qq update -y > /dev/null; \
+      sudo DEBIAN_FRONTEND=noninteractive apt-get -qq install postgresql-client -y > /dev/null)
+}
+
 function install_kong() {
     if ! command -v kong &> /dev/null
     then
@@ -27,5 +32,6 @@ function install_kong() {
 }
 
 set_head_option "$@"
+install_database_tools
 install_kong
 clean_install_cache
