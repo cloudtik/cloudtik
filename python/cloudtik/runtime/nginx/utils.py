@@ -3,7 +3,8 @@ from shlex import quote
 from typing import Any, Dict
 
 from cloudtik.core._private.constants import CLOUDTIK_RUNTIME_ENV_CLUSTER
-from cloudtik.core._private.core_utils import exec_with_call, exec_with_output, remove_files, get_address_string
+from cloudtik.core._private.core_utils import exec_with_call, exec_with_output, remove_files, get_address_string, \
+    JSONSerializableObject
 from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_NGINX
 from cloudtik.core._private.runtime_utils import get_runtime_value, get_runtime_config_from_node
 from cloudtik.core._private.service_discovery.runtime_services import get_service_discovery_runtime
@@ -426,7 +427,7 @@ def update_load_balancer_configuration(
     exec_with_call("sudo service nginx reload")
 
 
-class APIGatewayBackendService:
+class APIGatewayBackendService(JSONSerializableObject):
     def __init__(self, service_name, backend_servers,
                  route_path=None):
         self.service_name = service_name
@@ -492,7 +493,7 @@ def _save_router_config(router_file, location, backend_name):
         f.write("}\n")
 
 
-class APIGatewayDNSBackendService:
+class APIGatewayDNSBackendService(JSONSerializableObject):
     def __init__(self, service_name, service_port,
                  service_dns_name, route_path=None):
         self.service_name = service_name

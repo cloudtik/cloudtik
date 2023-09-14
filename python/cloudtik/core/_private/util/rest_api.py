@@ -12,6 +12,7 @@ REST_API_AUTH_BASIC_USERNAME = "username"
 REST_API_AUTH_BASIC_PASSWORD = "password"
 REST_API_AUTH_BEARER = "bearer"
 REST_API_AUTH_BEARER_TOKEN = "token"
+REST_API_AUTH_API_KEY = "api-key"
 
 
 def rest_api_open(url_or_req, timeout=None):
@@ -32,6 +33,9 @@ def _add_auth_header(req, auth):
         elif auth_type == REST_API_AUTH_BEARER:
             _add_bearer_auth_header(
                 req, auth[REST_API_AUTH_BEARER_TOKEN])
+        elif auth_type == REST_API_AUTH_API_KEY:
+            _add_api_key_auth_header(
+                req, auth[REST_API_AUTH_API_KEY])
 
 
 def _add_basic_auth_header(req, username, password):
@@ -44,6 +48,11 @@ def _add_basic_auth_header(req, username, password):
 def _add_bearer_auth_header(req, token):
     req.add_header(
         "Authorization", f'Bearer {token}')
+
+
+def _add_api_key_auth_header(req, api_key):
+    req.add_header(
+        "X-API-KEY", f'{api_key}')
 
 
 def _add_content_type_header(req, data_format):
