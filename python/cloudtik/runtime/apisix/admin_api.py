@@ -34,7 +34,7 @@ class BackendService(JSONSerializableObject):
 
     def get_service_path(self):
         service_path = self.service_path
-        return service_path.rstrip('/') if service_path else service_path
+        return service_path.rstrip('/') if service_path else None
 
 
 def list_entities(admin_endpoint, auth, entities_url):

@@ -449,7 +449,7 @@ class APIGatewayBackendService(JSONSerializableObject):
 
     def get_service_path(self):
         service_path = self.service_path
-        return service_path.rstrip('/') if service_path else service_path
+        return service_path.rstrip('/') if service_path else None
 
 
 def update_api_gateway_dynamic_backends(
@@ -533,7 +533,7 @@ class APIGatewayDNSBackendService(JSONSerializableObject):
 
     def get_service_path(self):
         service_path = self.service_path
-        return service_path.rstrip('/') if service_path else service_path
+        return service_path.rstrip('/') if service_path else None
 
 
 def update_api_gateway_dns_backends(
