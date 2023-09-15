@@ -4,7 +4,8 @@ from cloudtik.core._private.service_discovery.utils import deserialize_service_s
 from cloudtik.core._private.util.pull.pull_job import PullJob
 from cloudtik.runtime.common.service_discovery.consul \
     import query_services, query_service_nodes, get_service_address_of_node, get_common_label_of_service_nodes
-from cloudtik.runtime.common.service_discovery.utils import API_GATEWAY_SERVICE_DISCOVERY_LABEL_ROUTE_PATH
+from cloudtik.runtime.common.service_discovery.utils import API_GATEWAY_SERVICE_DISCOVERY_LABEL_ROUTE_PATH, \
+    API_GATEWAY_SERVICE_DISCOVERY_LABEL_SERVICE_PATH
 from cloudtik.runtime.haproxy.admin_api import list_backend_servers, enable_backend_slot, disable_backend_slot, \
     add_backend_slot, get_backend_server_address, delete_backend_slot, list_backends
 from cloudtik.runtime.haproxy.utils import update_configuration, get_default_server_name, \
@@ -176,7 +177,10 @@ class DiscoverAPIGatewayBackendServers(PullJob):
         route_path = get_common_label_of_service_nodes(
             service_nodes, API_GATEWAY_SERVICE_DISCOVERY_LABEL_ROUTE_PATH,
             error_if_not_same=True)
+        service_path = get_common_label_of_service_nodes(
+            service_nodes, API_GATEWAY_SERVICE_DISCOVERY_LABEL_SERVICE_PATH,
+            error_if_not_same=True)
 
         return APIGatewayBackendService(
             service_name, backend_servers,
-            route_path=route_path)
+            route_path=route_path, service_path=service_path)

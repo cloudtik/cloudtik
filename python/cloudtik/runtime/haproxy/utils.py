@@ -457,10 +457,11 @@ def update_configuration(backend_servers):
 
 class APIGatewayBackendService(JSONSerializableObject):
     def __init__(self, service_name, backend_servers,
-                 route_path=None):
+                 route_path=None, service_path=None):
         self.service_name = service_name
         self.backend_servers = backend_servers
         self.route_path = route_path
+        self.service_path = service_path
 
     def get_route_path(self):
         route_path = self.route_path or "/" + self.service_name
@@ -510,8 +511,12 @@ def update_api_gateway_configuration(
             f.write(f"    mode {service_protocol}\n")
             if balance_method:
                 f.write(f"    balance {balance_method}\n")
+
+            target_path = "/\\2"
+            if backend_service.service_path:
+                target_path = backend_service.service_path + target_path
             f.write("    http-request replace-path " + route_path +
-                    "(/)?(.*) /\\2\n")
+                    "(/)?(.*) " + target_path + "\n")
             f.write(backend_server_block)
 
     config_file = os.path.join(
