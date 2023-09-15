@@ -110,12 +110,10 @@ class NodeMonitor:
             time.sleep(constants.CLOUDTIK_UPDATE_INTERVAL_S)
 
     def _handle_failure(self, error):
-        logger.exception("Error in node monitor loop")
-        logger.exception(f"The node monitor failed with the following error:\n{error}")
+        logger.exception(f"Error in node monitor loop:\n{error}")
 
     def _signal_handler(self, sig, frame):
-        self._handle_failure(f"Terminated with signal {sig}\n" +
-                             "".join(traceback.format_stack(frame)))
+        logger.info(f"Terminated with signal {sig}")
         sys.exit(sig + 128)
 
     def _run_heartbeat(self):

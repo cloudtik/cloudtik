@@ -90,12 +90,10 @@ class PullServer:
             time.sleep(self.interval)
 
     def _handle_failure(self, error):
-        logger.exception("Error in pulling loop")
-        logger.exception(f"The pulling failed with the following error:\n{error}")
+        logger.exception(f"Error in pulling loop:\n{error}")
 
     def _signal_handler(self, sig, frame):
-        self._handle_failure(f"Terminated with signal {sig}\n" +
-                             "".join(traceback.format_stack(frame)))
+        logger.info(f"Terminated with signal {sig}")
         sys.exit(sig + 128)
 
     def run(self):
