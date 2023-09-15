@@ -1,6 +1,7 @@
 import urllib.error
 
-from cloudtik.core._private.core_utils import get_address_string, JSONSerializableObject
+from cloudtik.core._private.core_utils import get_address_string, JSONSerializableObject, get_config_for_update, \
+    get_list_for_update
 from cloudtik.core._private.util.rest_api import rest_api_get_json, rest_api_delete, \
     rest_api_method_json, rest_api_put_json
 from cloudtik.runtime.apisix.utils import APISIX_BALANCE_TYPE_ROUND_ROBIN
@@ -146,14 +147,36 @@ def get_service_endpoint_url(admin_endpoint, service_name):
 
 def add_service(
         admin_endpoint, auth, service_name,
-        upstream_name):
+        upstream_name, service_path=None, strip_path=None):
     endpoint = "{}/{}".format(
         REST_API_ENDPOINT_SERVICES, service_name)
     endpoint_url = "{}{}".format(
             admin_endpoint, endpoint)
     body = {
-        "upstream_id": upstream_name,
+        "upstream_id": upstream_name
     }
+
+    if service_path or strip_path:
+        plugins = get_config_for_update(body, "plugins")
+        proxy_rewrite = get_config_for_update(plugins, "proxy-rewrite")
+        if strip_path:
+            path_regex = "^" + strip_path + "/(.*)"
+        else:
+            path_regex = "^/(.*)"
+        if service_path:
+            path_uri = service_path + "/$1"
+        else:
+            path_uri = "/$1"
+        if strip_path:
+            path_regex_empty = "^" + strip_path + "$"
+        else:
+            path_regex_empty = "^$"
+        if service_path:
+            path_uri_empty = service_path
+        else:
+            path_uri_empty = "/"
+        proxy_rewrite["regex_uri"] = [path_regex, path_uri, path_regex_empty, path_uri_empty]
+
     service = rest_api_put_json(
         endpoint_url, body, auth=auth)
     return service
@@ -192,7 +215,7 @@ def add_route(
     endpoint_url = "{}{}".format(
             admin_endpoint, endpoint)
     body = {
-        "uris": [route_path],
+        "uris": [route_path, route_path + "/*"],
         "service_id": service_name
     }
     route = rest_api_put_json(
@@ -282,9 +305,11 @@ def add_or_update_backend(
     # TODO: update other service properties if changed
     service = get_service(admin_endpoint, auth=auth, service_name=backend_name)
     if not service:
+        route_path = backend_service.get_route_path()
         add_service(
             admin_endpoint, auth=auth,
-            service_name=backend_name, upstream_name=backend_name)
+            service_name=backend_name, upstream_name=backend_name,
+            service_path=backend_service.service_path, strip_path=route_path)
 
     # TODO: update other route properties if changed
     route = get_route(admin_endpoint, auth=auth, route_name=backend_name)
