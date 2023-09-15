@@ -27,14 +27,19 @@ start)
         # do schema check and init only on head
         init_schema
     fi
-
-    sudo env "PATH=$PATH" kong start \
-      -c ${KONG_CONFIG_FILE} \
-      >${KONG_HOME}/logs/kong.log 2>&1
+    if [ "${KONG_HIGH_AVAILABILITY}" == "true" ] \
+        || [ "${IS_HEAD_NODE}" == "true" ]; then
+        sudo env "PATH=$PATH" kong start \
+          -c ${KONG_CONFIG_FILE} \
+          >${KONG_HOME}/logs/kong.log 2>&1
+    fi
     ;;
 stop)
-    sudo env "PATH=$PATH" kong stop \
-      >${KONG_HOME}/logs/kong.log 2>&1
+    if [ "${KONG_HIGH_AVAILABILITY}" == "true" ] \
+        || [ "${IS_HEAD_NODE}" == "true" ]; then
+        sudo env "PATH=$PATH" kong stop \
+          >${KONG_HOME}/logs/kong.log 2>&1
+    fi
     ;;
 -h|--help)
     echo "Usage: $0 start|stop --head" >&2

@@ -1,7 +1,6 @@
 import urllib.error
 
-from cloudtik.core._private.core_utils import get_address_string, JSONSerializableObject, get_config_for_update, \
-    get_list_for_update
+from cloudtik.core._private.core_utils import get_address_string, JSONSerializableObject, get_config_for_update
 from cloudtik.core._private.util.rest_api import rest_api_get_json, rest_api_delete, \
     rest_api_method_json, rest_api_put_json
 from cloudtik.runtime.apisix.utils import APISIX_BALANCE_TYPE_ROUND_ROBIN
