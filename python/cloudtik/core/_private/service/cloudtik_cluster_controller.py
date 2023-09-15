@@ -219,8 +219,7 @@ class ClusterController:
             redis_client=redis_client)
 
     def _signal_handler(self, sig, frame):
-        self._handle_failure(f"Terminated with signal {sig}\n" +
-                             "".join(traceback.format_stack(frame)))
+        logger.info(f"Terminated with signal {sig}")
         sys.exit(sig + 128)
 
     def run(self):

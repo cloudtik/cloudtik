@@ -197,7 +197,7 @@ def add_route(
     body = {
         "name": route_name,
         "protocols": ["http", "https"],
-        "paths": [route_path],
+        "paths": ["~" + route_path + "$", route_path + "/"],
         "strip_path": True,
         "service": {"name": service_name}
     }

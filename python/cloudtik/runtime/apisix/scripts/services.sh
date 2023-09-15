@@ -20,13 +20,19 @@ set_service_command "$@"
 
 case "$SERVICE_COMMAND" in
 start)
-    sudo apisix start \
-      -c ${APISIX_CONFIG_FILE} \
-      >${APISIX_HOME}/logs/apisix.log 2>&1
+    if [ "${APISIX_HIGH_AVAILABILITY}" == "true" ] \
+        || [ "${IS_HEAD_NODE}" == "true" ]; then
+        sudo apisix start \
+          -c ${APISIX_CONFIG_FILE} \
+          >${APISIX_HOME}/logs/apisix.log 2>&1
+    fi
     ;;
 stop)
-    sudo apisix stop \
-      >${APISIX_HOME}/logs/apisix.log 2>&1
+    if [ "${APISIX_HIGH_AVAILABILITY}" == "true" ] \
+        || [ "${IS_HEAD_NODE}" == "true" ]; then
+        sudo apisix stop \
+          >${APISIX_HOME}/logs/apisix.log 2>&1
+    fi
     ;;
 -h|--help)
     echo "Usage: $0 start|stop --head" >&2
