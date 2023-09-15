@@ -25,6 +25,10 @@ class BackendService(JSONSerializableObject):
         route_path = self.route_path or "/" + self.service_name
         return route_path
 
+    def get_service_path(self):
+        service_path = self.service_path
+        return service_path.rstrip('/') if service_path else service_path
+
 
 def list_entities(admin_endpoint, entities_url):
     endpoint_url = "{}{}".format(
@@ -151,6 +155,8 @@ def add_service(
         service_path=None):
     endpoint_url = "{}{}".format(
             admin_endpoint, REST_API_ENDPOINT_SERVICES)
+    # IMPORTANT NODE:
+    # route path strip and service path replacing are done automatically
     body = {
         "name": service_name,
         "host": service_host,
@@ -194,6 +200,10 @@ def add_route(
         admin_endpoint, route_name, service_name, route_path):
     endpoint_url = "{}{}".format(
             admin_endpoint, REST_API_ENDPOINT_ROUTES)
+    # IMPORTANT NOTE:
+    # ~/abc$ will do an exact match of /abc
+    # /abc/ will match and path prefixed with /abc/
+    # The matched route path will be stripped based on strip_path flag
     body = {
         "name": route_name,
         "protocols": ["http", "https"],
@@ -278,7 +288,7 @@ def add_or_update_backend(
         add_service(
             admin_endpoint, service_name=backend_name,
             service_host=host, service_port=backend_service.service_port,
-            service_path=backend_service.service_path)
+            service_path=backend_service.get_service_path())
 
     # TODO: update other route properties if changed
     route = get_route(admin_endpoint, route_name=backend_name)

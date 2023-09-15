@@ -32,6 +32,10 @@ class BackendService(JSONSerializableObject):
         route_path = self.route_path or "/" + self.service_name
         return route_path
 
+    def get_service_path(self):
+        service_path = self.service_path
+        return service_path.rstrip('/') if service_path else service_path
+
 
 def list_entities(admin_endpoint, auth, entities_url):
     endpoint_url = "{}{}".format(
@@ -158,6 +162,9 @@ def add_service(
     if service_path or strip_path:
         plugins = get_config_for_update(body, "plugins")
         proxy_rewrite = get_config_for_update(plugins, "proxy-rewrite")
+        # IMPORTANT NOTE: match and strip for two cases
+        # match /abc/xyz and strip /abc and replace with /xyz or /service_path/xyz
+        # match /abc exactly and strip /abc and replace with / or /service_path
         if strip_path:
             path_regex = "^" + strip_path + "/(.*)"
         else:
@@ -213,6 +220,10 @@ def add_route(
         REST_API_ENDPOINT_ROUTES, route_name)
     endpoint_url = "{}{}".format(
             admin_endpoint, endpoint)
+    # IMPORTANT NOTE:
+    # /abc will do an exact match
+    # /abc/* will match the prefix
+    # The route will not strip the path by the default, we need proxy-rewrite to do this.
     body = {
         "uris": [route_path, route_path + "/*"],
         "service_id": service_name
@@ -308,7 +319,7 @@ def add_or_update_backend(
         add_service(
             admin_endpoint, auth=auth,
             service_name=backend_name, upstream_name=backend_name,
-            service_path=backend_service.service_path, strip_path=route_path)
+            service_path=backend_service.get_service_path(), strip_path=route_path)
 
     # TODO: update other route properties if changed
     route = get_route(admin_endpoint, auth=auth, route_name=backend_name)
