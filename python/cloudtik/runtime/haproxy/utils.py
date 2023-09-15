@@ -467,6 +467,10 @@ class APIGatewayBackendService(JSONSerializableObject):
         route_path = self.route_path or "/" + self.service_name
         return route_path
 
+    def get_service_path(self):
+        service_path = self.service_path
+        return service_path.rstrip('/') if service_path else None
+
 
 def update_api_gateway_configuration(
         api_gateway_backends, new_backends,
@@ -492,6 +496,9 @@ def update_api_gateway_configuration(
             f.write(f"    bind :{bind_port}\n")
         f.write(f"    mode {service_protocol}\n")
         f.write(f"    option {service_protocol}log\n")
+        # IMPORTANT NOTE: match two cases
+        # path /abc match exactly the /abc
+        # path_beg /abc/ match paths that prefixed by /abc/
         # route to a backend based on path's prefix
         for backend_name, backend_service in sorted_api_gateway_backends:
             route_path = backend_service.get_route_path()
@@ -512,9 +519,12 @@ def update_api_gateway_configuration(
             if balance_method:
                 f.write(f"    balance {balance_method}\n")
 
+            # IMPORTANT NOTE:
+            # strip the route path and replace this part with service path if there is one
             target_path = "/\\2"
-            if backend_service.service_path:
-                target_path = backend_service.service_path + target_path
+            service_path = backend_service.get_service_path()
+            if service_path:
+                target_path = service_path + target_path
             f.write("    http-request replace-path " + route_path +
                     "(/)?(.*) " + target_path + "\n")
             f.write(backend_server_block)

@@ -345,6 +345,14 @@ def _save_load_balancer_router():
         config_file, "/", NGINX_LOAD_BALANCER_UPSTREAM_NAME)
 
 
+def _save_router_config(router_file, location, backend_name):
+    with open(router_file, "w") as f:
+        # for each backend, we generate a location block
+        f.write("location " + location + " {\n")
+        f.write(f"    proxy_pass http://{backend_name};\n")
+        f.write("}\n")
+
+
 def _save_upstream_config(
         upstream_config_file, backend_name,
         servers, balance_method):
@@ -429,14 +437,19 @@ def update_load_balancer_configuration(
 
 class APIGatewayBackendService(JSONSerializableObject):
     def __init__(self, service_name, backend_servers,
-                 route_path=None):
+                 route_path=None, service_path=None):
         self.service_name = service_name
         self.backend_servers = backend_servers
         self.route_path = route_path
+        self.service_path = service_path
 
     def get_route_path(self):
         route_path = self.route_path or "/" + self.service_name
         return route_path
+
+    def get_service_path(self):
+        service_path = self.service_path
+        return service_path.rstrip('/') if service_path else None
 
 
 def update_api_gateway_dynamic_backends(
@@ -481,29 +494,46 @@ def _update_api_gateway_dynamic_routers(
         router_file = os.path.join(
             routers_dir, "{}.conf".format(backend_name))
         route_path = backend_service.get_route_path()
-        _save_router_config(
-            router_file, route_path, backend_name)
+        _save_api_gateway_router_config(
+            router_file, route_path, backend_name,
+            service_path=backend_service.get_service_path())
 
 
-def _save_router_config(router_file, location, backend_name):
+def _save_api_gateway_router_config(
+        router_file, route_path, backend_name, service_path=None):
     with open(router_file, "w") as f:
-        # for each backend, we generate a location block
-        f.write("location " + location + " {\n")
-        f.write(f"    proxy_pass http://{backend_name};\n")
+        # IMPORTANT NOTE: for each backend, we generate two location blocks
+        # one for exact match /abc and redirect to /abc/
+        # and one for prefix match with /abc/ and mapping to the target path
+        # the trailing slash (uri) in proxy_pass http://backend/ is key
+        # for striping and replace with the uri
+        target_path = "/"
+        if service_path:
+            target_path = service_path + target_path
+        f.write("location = " + route_path + " {\n")
+        f.write("    return 302 " + route_path + "/;\n")
+        f.write("}\n")
+        f.write("location " + route_path + "/ {\n")
+        f.write(f"    proxy_pass http://{backend_name}{target_path};\n")
         f.write("}\n")
 
 
 class APIGatewayDNSBackendService(JSONSerializableObject):
     def __init__(self, service_name, service_port,
-                 service_dns_name, route_path=None):
+                 service_dns_name, route_path=None, service_path=None):
         self.service_name = service_name
         self.service_port = service_port
         self.service_dns_name = service_dns_name
         self.route_path = route_path
+        self.service_path = service_path
 
     def get_route_path(self):
         route_path = self.route_path or "/" + self.service_name
         return route_path
+
+    def get_service_path(self):
+        service_path = self.service_path
+        return service_path.rstrip('/') if service_path else None
 
 
 def update_api_gateway_dns_backends(
@@ -522,13 +552,35 @@ def update_api_gateway_dns_backends(
         service_dns_name = backend_service.service_dns_name
         route_path = backend_service.get_route_path()
 
-        variable_name = backend_name.replace('-', '_')
-        with open(router_file, "w") as f:
-            # for each backend, we generate a location block
-            f.write("location " + route_path + " {\n")
-            f.write(f"    set ${variable_name}_servers {service_dns_name};\n")
-            f.write(f"    proxy_pass http://${variable_name}_servers:{service_port};\n")
-            f.write("}\n")
+        _save_api_gateway_dns_router_config(
+            router_file, route_path, backend_name,
+            service_dns_name, service_port,
+            service_path=backend_service.get_service_path())
 
     # Need reload nginx if there is new backend added
     exec_with_call("sudo service nginx reload")
+
+
+def _save_api_gateway_dns_router_config(
+        router_file, route_path, backend_name,
+        service_dns_name, service_port, service_path=None):
+    variable_name = backend_name.replace('-', '_')
+    target_path = "/"
+    if service_path:
+        target_path = service_path + target_path
+    with open(router_file, "w") as f:
+        # IMPORTANT NOTE: for each backend, we generate two location blocks
+        # one for exact match /abc and redirect to /abc/
+        # and one for prefix match with /abc/xyz using regex and set the target uri
+        # When the variable is used in proxy pass, it handled specially
+        # see nginx.org/r/proxy_pass
+        target_path = "/$1"
+        if service_path:
+            target_path = service_path + target_path
+        f.write("location = " + route_path + " {\n")
+        f.write("    return 302 " + route_path + "/;\n")
+        f.write("}\n")
+        f.write("location ~ ^" + route_path + "/(.*)$ {\n")
+        f.write(f"    set ${variable_name}_servers {service_dns_name};\n")
+        f.write(f"    proxy_pass http://${variable_name}_servers:{service_port}{target_path};\n")
+        f.write("}\n")
