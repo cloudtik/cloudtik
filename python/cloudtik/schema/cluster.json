@@ -88,6 +88,10 @@
             "type": "integer",
             "description": "The time interval in seconds for command retry"
         },
+        "encryption.key": {
+            "type": "string",
+            "description": "The 32 bytes hex encoded encryption key for data sharing among the cluster. Will not do encryption if not specified."
+        },
         "provider": {
             "type": "object",
             "description": "Cloud-provider specific configuration.",
