@@ -2967,6 +2967,11 @@ def _is_permanent_data_volumes(provider_config: Dict[str, Any]) -> bool:
     return provider_config.get("permanent_data_volumes", False)
 
 
+def enable_stable_node_seq_id(config):
+    config["disable_node_seq_id"] = False
+    config["stable_node_seq_id"] = True
+
+
 def check_workspace_name_format(workspace_name):
     return bool(re.match("^[a-z0-9-]*$", workspace_name))
 

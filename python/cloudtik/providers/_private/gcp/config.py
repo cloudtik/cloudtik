@@ -29,7 +29,7 @@ from cloudtik.core._private.utils import check_cidr_conflict, unescape_private_k
     _is_use_managed_cloud_storage, is_use_peering_vpc, is_use_working_vpc, _is_use_working_vpc, \
     is_peering_firewall_allow_working_subnet, is_peering_firewall_allow_ssh_only, is_gpu_runtime, \
     is_managed_cloud_database, is_use_managed_cloud_database, is_permanent_data_volumes, _is_permanent_data_volumes, \
-    _get_managed_cloud_storage_name, _get_managed_cloud_database_name
+    _get_managed_cloud_storage_name, _get_managed_cloud_database_name, enable_stable_node_seq_id
 from cloudtik.providers._private.gcp.node import GCPCompute
 from cloudtik.providers._private.gcp.utils import _get_node_info, construct_clients_from_provider_config, \
     wait_for_compute_global_operation, wait_for_compute_region_operation, _create_storage, \
@@ -2603,6 +2603,13 @@ def post_prepare_gcp(config: Dict[str, Any]) -> Dict[str, Any]:
     return config
 
 
+def _configure_project_id(config):
+    project_id = config["provider"].get("project_id")
+    if project_id is None and "workspace_name" in config:
+        config["provider"]["project_id"] = config["workspace_name"]
+    return config
+
+
 def fill_available_node_types_resources(
         cluster_config: Dict[str, Any]) -> Dict[str, Any]:
     """Fills out missing "resources" field for available_node_types."""
@@ -2660,6 +2667,12 @@ def fill_available_node_types_resources(
                              " is not available in GCP zone: " +
                              provider_config["availability_zone"] + ".")
     return cluster_config
+
+
+def _configure_permanent_data_volumes(config):
+    if is_permanent_data_volumes(config):
+        enable_stable_node_seq_id(config)
+    return config
 
 
 def _configure_disk_type_for_disk(provider_config, disk):
@@ -2875,21 +2888,6 @@ def bootstrap_gcp_workspace(config):
     # create a copy of the input config to modify
     config = copy.deepcopy(config)
     _configure_allowed_ssh_sources(config)
-    return config
-
-
-def _configure_project_id(config):
-    project_id = config["provider"].get("project_id")
-    if project_id is None and "workspace_name" in config:
-        config["provider"]["project_id"] = config["workspace_name"]
-    return config
-
-
-def _configure_permanent_data_volumes(config):
-    if is_permanent_data_volumes(config):
-        config["disable_node_seq_id"] = False
-        config["stable_node_seq_id"] = True
-
     return config
 
 

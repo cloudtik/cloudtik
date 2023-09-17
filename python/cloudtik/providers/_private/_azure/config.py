@@ -20,7 +20,8 @@ from cloudtik.core._private.utils import check_cidr_conflict, is_use_internal_ip
     is_use_working_vpc, is_use_peering_vpc, \
     is_managed_cloud_storage, is_use_managed_cloud_storage, _is_use_managed_cloud_storage, update_nested_dict, \
     is_gpu_runtime, is_managed_cloud_database, is_use_managed_cloud_database, _is_permanent_data_volumes, \
-    _get_managed_cloud_storage_name, _get_managed_cloud_database_name
+    _get_managed_cloud_storage_name, _get_managed_cloud_database_name, enable_stable_node_seq_id, \
+    is_permanent_data_volumes
 from cloudtik.core.workspace_provider import Existence, CLOUDTIK_MANAGED_CLOUD_STORAGE, \
     CLOUDTIK_MANAGED_CLOUD_STORAGE_URI, CLOUDTIK_MANAGED_CLOUD_DATABASE, CLOUDTIK_MANAGED_CLOUD_DATABASE_ENDPOINT, \
     CLOUDTIK_MANAGED_CLOUD_STORAGE_NAME, CLOUDTIK_MANAGED_CLOUD_DATABASE_PORT, CLOUDTIK_MANAGED_CLOUD_DATABASE_ENGINE, \
@@ -3020,6 +3021,7 @@ def post_prepare_azure(config: Dict[str, Any]) -> Dict[str, Any]:
             "Failed to detect node resources. Make sure you have properly configured the Azure credentials: {}.",
             str(exc))
         raise
+    config = _configure_permanent_data_volumes(config)
     return config
 
 
@@ -3084,6 +3086,12 @@ def fill_available_node_types_resources(
                              " is not available in Azure location: " +
                              location + ".")
     return cluster_config
+
+
+def _configure_permanent_data_volumes(config):
+    if is_permanent_data_volumes(config):
+        enable_stable_node_seq_id(config)
+    return config
 
 
 def bootstrap_azure_from_workspace(config):
