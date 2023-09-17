@@ -42,7 +42,6 @@ function configure_apisix() {
     sed -i "s#{%listen.port%}#${APISIX_SERVICE_PORT}#g" ${config_template_file}
     sed -i "s#{%admin.key%}#${APISIX_ADMIN_KEY}#g" ${config_template_file}
     sed -i "s#{%admin.port%}#${APISIX_ADMIN_PORT}#g" ${config_template_file}
-    sed -i "s#{%cluster.name%}#${CLOUDTIK_CLUSTER}#g" ${config_template_file}
 
     cp ${config_template_file} ${APISIX_CONF_DIR}/config.yaml
 }

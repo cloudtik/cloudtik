@@ -1,4 +1,3 @@
-import base64
 import collections
 import collections.abc
 import copy
@@ -172,15 +171,20 @@ def run_bash_scripts(script_path: str, command: str, script_args):
     run_system_command(final_cmd)
 
 
-def binary_to_hex(identifier):
-    hex_identifier = binascii.hexlify(identifier)
-    if sys.version_info >= (3, 0):
-        hex_identifier = hex_identifier.decode()
-    return hex_identifier
+def string_to_hex_string(s):
+    return to_hex_string(s.encode('utf-8'))
 
 
-def hex_to_binary(hex_identifier):
-    return binascii.unhexlify(hex_identifier)
+def string_from_hex_string(s):
+    return from_hex_string(s).decode('utf-8')
+
+
+def to_hex_string(b):
+    return binascii.hexlify(b).decode('utf-8')
+
+
+def from_hex_string(s):
+    return binascii.unhexlify(s)
 
 
 def _random_string():
@@ -2729,11 +2733,11 @@ def get_node_type_config_of_node_type(config, node_type: str):
 
 
 def encode_cluster_secrets(secrets):
-    return base64.b64encode(secrets).decode('utf-8')
+    return to_hex_string(secrets)
 
 
 def decode_cluster_secrets(encoded_secrets):
-    return base64.b64decode(encoded_secrets.encode('utf-8'))
+    return from_hex_string(encoded_secrets)
 
 
 def get_runtime_config_key(node_type: str):
@@ -3082,13 +3086,17 @@ def get_runtime_encryption_key(config):
     encryption_key = config.get(ENCRYPTION_KEY_CONFIG_KEY)
     if not encryption_key:
         return None
-    return decode_cluster_secrets(encryption_key)
-
-
-def set_runtime_encryption_key(config):
-    encryption_key = AESCipher.generate_key()
-    config[ENCRYPTION_KEY_CONFIG_KEY] = encode_cluster_secrets(
-        encryption_key)
+    secrets = decode_cluster_secrets(encryption_key)
+    # the key must be 32 bytes
+    n = len(secrets)
+    if n < 32:
+        # pad to 32 bytes if not
+        x = bytearray(secrets)
+        x.extend([i for i in range(32 - n)])
+        return bytes(x)
+    elif n > 32:
+        return secrets[:32]
+    return secrets
 
 
 def _get_runtime_scaling_policy(config, head_ip):
