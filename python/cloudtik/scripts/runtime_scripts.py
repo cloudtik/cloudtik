@@ -308,6 +308,10 @@ def services(runtime, command, head, reverse, script_args):
         # The redis state service is not available any longer and the runtime configuration
         # cannot be got for workers.
         _run_runtime_services(runtime, head)
+    elif command == "stop":
+        # for stop command, by default run python script first and then bash
+        # so we achieve this by reverse the reverse flag for stop command
+        reverse = False if reverse else True
 
     _run_runtime_script(
         runtime, command, head, reverse,
