@@ -21,7 +21,8 @@ from cloudtik.core._private.utils import check_cidr_conflict, is_use_internal_ip
     is_managed_cloud_storage, is_use_managed_cloud_storage, is_managed_cloud_database, is_use_managed_cloud_database, \
     is_worker_role_for_cloud_storage, is_use_working_vpc, is_use_peering_vpc, is_peering_firewall_allow_ssh_only, \
     is_peering_firewall_allow_working_subnet, is_gpu_runtime, _is_permanent_data_volumes, \
-    _get_managed_cloud_storage_name, _get_managed_cloud_database_name
+    _get_managed_cloud_storage_name, _get_managed_cloud_database_name, enable_stable_node_seq_id, \
+    is_permanent_data_volumes
 from cloudtik.core.workspace_provider import Existence, CLOUDTIK_MANAGED_CLOUD_STORAGE, \
     CLOUDTIK_MANAGED_CLOUD_STORAGE_URI, CLOUDTIK_MANAGED_CLOUD_DATABASE, CLOUDTIK_MANAGED_CLOUD_DATABASE_ENDPOINT, \
     CLOUDTIK_MANAGED_CLOUD_DATABASE_PORT, CLOUDTIK_MANAGED_CLOUD_STORAGE_NAME, \
@@ -2912,6 +2913,7 @@ def post_prepare_aws(config: Dict[str, Any]) -> Dict[str, Any]:
             "Failed to detect node resources. Make sure you have properly configured the AWS credentials: {}.",
             str(exc))
         raise
+    config = _configure_permanent_data_volumes(config)
     return config
 
 
@@ -2970,6 +2972,12 @@ def fill_available_node_types_resources(
                              " is not available in AWS region: " +
                              provider_config["region"] + ".")
     return cluster_config
+
+
+def _configure_permanent_data_volumes(config):
+    if is_permanent_data_volumes(config):
+        enable_stable_node_seq_id(config)
+    return config
 
 
 def log_to_cli(config: Dict[str, Any]) -> None:
