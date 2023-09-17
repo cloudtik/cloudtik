@@ -6,7 +6,7 @@ from cloudtik.providers._private.gcp.config import create_gcp_workspace, \
     get_workspace_head_nodes, list_gcp_clusters, bootstrap_gcp_workspace, check_gcp_workspace_existence, \
     get_gcp_workspace_info, update_gcp_workspace, list_gcp_storages, list_gcp_databases
 from cloudtik.core._private.provider_factory import _get_node_provider
-from cloudtik.core._private.utils import binary_to_hex, hex_to_binary, get_running_head_node, check_workspace_name_format
+from cloudtik.core._private.utils import string_to_hex_string, string_from_hex_string, get_running_head_node, check_workspace_name_format
 from cloudtik.core.tags import CLOUDTIK_GLOBAL_VARIABLE_KEY_PREFIX, CLOUDTIK_GLOBAL_VARIABLE_KEY
 from cloudtik.core.workspace_provider import WorkspaceProvider
 
@@ -68,9 +68,9 @@ class GCPWorkspaceProvider(WorkspaceProvider):
         global_variables_prefixed = {}
         for name in global_variables:
             prefixed_name = CLOUDTIK_GLOBAL_VARIABLE_KEY.format(
-                binary_to_hex(name.encode()))
-            global_variables_prefixed[prefixed_name] = binary_to_hex(
-                global_variables[name].encode())
+                string_to_hex_string(name))
+            global_variables_prefixed[prefixed_name] = string_to_hex_string(
+                global_variables[name])
 
         provider = _get_node_provider(cluster_config["provider"], cluster_config["cluster_name"])
         head_node_id = get_running_head_node(cluster_config, provider)
@@ -82,9 +82,9 @@ class GCPWorkspaceProvider(WorkspaceProvider):
         for head in head_nodes:
             for key, value in head.get("labels", {}).items():
                 if key.startswith(CLOUDTIK_GLOBAL_VARIABLE_KEY_PREFIX):
-                    global_variable_name = hex_to_binary(
-                        key[len(CLOUDTIK_GLOBAL_VARIABLE_KEY_PREFIX):]).decode()
-                    global_variables[global_variable_name] = hex_to_binary(value).decode()
+                    global_variable_name = string_from_hex_string(
+                        key[len(CLOUDTIK_GLOBAL_VARIABLE_KEY_PREFIX):])
+                    global_variables[global_variable_name] = string_from_hex_string(value)
 
         return global_variables
 

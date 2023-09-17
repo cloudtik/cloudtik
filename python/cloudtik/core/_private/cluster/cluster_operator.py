@@ -69,7 +69,7 @@ from cloudtik.core._private.utils import hash_runtime_conf, \
     sum_nodes_resource, get_gpus_of_node_info, get_resource_of_node_info, get_resource_info_of_node_type, \
     get_worker_node_type, save_server_process, get_resource_requests_for, _get_head_resource_requests, \
     get_resource_list_str, with_verbose_option, run_script, NODE_INFO_NODE_ID, is_alive_time_at, \
-    get_runtime_encryption_key, with_runtime_encryption_key, set_runtime_encryption_key, is_use_managed_cloud_storage, \
+    get_runtime_encryption_key, with_runtime_encryption_key, is_use_managed_cloud_storage, \
     print_dict_info, is_use_managed_cloud_database
 
 from cloudtik.core._private.provider_factory import _get_node_provider, _NODE_PROVIDERS
@@ -1072,9 +1072,6 @@ def _set_up_config_for_head_node(config: Dict[str, Any],
 
     # Set bootstrapped mark
     remote_config["bootstrapped"] = True
-
-    # Generate encryption secrets
-    set_runtime_encryption_key(remote_config)
 
     # drop proxy options if they exist, otherwise
     # head node won't be able to connect to workers

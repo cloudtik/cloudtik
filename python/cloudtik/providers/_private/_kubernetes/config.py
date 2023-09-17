@@ -14,7 +14,7 @@ from cloudtik.core._private.cli_logger import cli_logger, cf
 from cloudtik.core._private.core_utils import parse_memory_resource, generate_public_key
 from cloudtik.core._private.docker import get_versioned_image
 from cloudtik.core._private.provider_factory import _get_node_provider
-from cloudtik.core._private.utils import is_use_internal_ip, get_running_head_node, binary_to_hex, hex_to_binary, \
+from cloudtik.core._private.utils import is_use_internal_ip, get_running_head_node, string_to_hex_string, string_from_hex_string, \
     get_head_service_ports, _is_use_managed_cloud_storage, _is_use_internal_ip, is_gpu_runtime, \
     PROVIDER_DATABASE_CONFIG_KEY, PROVIDER_STORAGE_CONFIG_KEY, _is_permanent_data_volumes
 from cloudtik.core.tags import CLOUDTIK_TAG_CLUSTER_NAME, CLOUDTIK_TAG_NODE_KIND, NODE_KIND_HEAD, \
@@ -599,8 +599,8 @@ def publish_kubernetes_global_variables(
     global_variables_prefixed = {}
     for name in global_variables:
         prefixed_name = CLOUDTIK_GLOBAL_VARIABLE_KEY.format(name)
-        global_variables_prefixed[prefixed_name] = binary_to_hex(
-            global_variables[name].encode())
+        global_variables_prefixed[prefixed_name] = string_to_hex_string(
+            global_variables[name])
 
     provider = _get_node_provider(cluster_config["provider"], cluster_config["cluster_name"])
     head_node_id = get_running_head_node(cluster_config, provider)
@@ -620,7 +620,7 @@ def subscribe_kubernetes_global_variables(
         for key, value in labels.items():
             if key.startswith(CLOUDTIK_GLOBAL_VARIABLE_KEY_PREFIX):
                 global_variable_name = key[len(CLOUDTIK_GLOBAL_VARIABLE_KEY_PREFIX):]
-                hex_decoded_value = hex_to_binary(value).decode()
+                hex_decoded_value = string_from_hex_string(value)
                 global_variables[global_variable_name] = hex_decoded_value
 
     return global_variables
