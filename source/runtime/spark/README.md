@@ -19,5 +19,5 @@ Execute the following command to git clone the Spark repository,
 apply the patches and compile:
 
 ```
-bash ./runtime/spark/scripts/compile-spark.sh --patch
+bash ./source/runtime/spark/scripts/compile-spark.sh --patch
 ```
