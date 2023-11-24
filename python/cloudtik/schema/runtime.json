@@ -500,6 +500,11 @@
                 "data_center": {
                     "type": "string",
                     "description": "Override Consul data center name. By default is the workspace name."
+                },
+                "disable_cluster_node_name": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Whether to disable setting node name to cluster name combining seq id."
                 }
             }
         },
@@ -986,6 +991,28 @@
                             "default": "round-robin"
                         }
                     }
+                }
+            }
+        },
+        "minio": {
+            "type": "object",
+            "description": "MinIO runtime configurations",
+            "additionalProperties": true,
+            "properties": {
+                "port": {
+                    "type": "integer",
+                    "default": 9000,
+                    "description": "MinIO service port."
+                },
+                "console_port": {
+                    "type": "integer",
+                    "default": 9001,
+                    "description": "MinIO console port."
+                },
+                "server_pool_size": {
+                    "type": "integer",
+                    "default": 4,
+                    "description": "The number of nodes for a single server pool. The cluster size (including head) must be multiple times of the server pool size."
                 }
             }
         }

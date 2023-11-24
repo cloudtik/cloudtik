@@ -5,7 +5,7 @@ from cloudtik.core._private.service_discovery.utils import SERVICE_SELECTOR_SERV
     SERVICE_SELECTOR_LABELS, SERVICE_SELECTOR_EXCLUDE_LABELS, SERVICE_DISCOVERY_LABEL_CLUSTER, \
     SERVICE_SELECTOR_RUNTIMES, SERVICE_SELECTOR_CLUSTERS, SERVICE_SELECTOR_EXCLUDE_JOINED_LABELS, \
     SERVICE_DISCOVERY_TAG_CLUSTER_PREFIX, SERVICE_DISCOVERY_TAG_SYSTEM_PREFIX, ServiceAddressType, \
-    SERVICE_DISCOVERY_LABEL_RUNTIME
+    SERVICE_DISCOVERY_LABEL_RUNTIME, get_cluster_node_name
 from cloudtik.core._private.util.rest_api import rest_api_get_json
 from cloudtik.runtime.common.service_discovery.utils import ServiceInstance
 
@@ -160,10 +160,14 @@ def get_service_address_of_node(
         # use the node DNS FQDN: <node>.node[.<datacenter>.dc].<domain>
         node_name = service_node.get("Node")
         datacenter = service_node.get("Datacenter")
-        service_host = "{}.node.{}.cloudtik".format(node_name, datacenter)
+        service_host = get_dns_hostname_of_node(node_name, datacenter)
 
     port = service_node["ServicePort"]
     return service_host, port
+
+
+def get_dns_hostname_of_node(node_name, workspace_name):
+    return "{}.node.{}.cloudtik".format(node_name, workspace_name)
 
 
 def get_service_cluster_of_node(service_node):
