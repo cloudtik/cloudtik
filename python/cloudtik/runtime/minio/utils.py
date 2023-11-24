@@ -5,8 +5,7 @@ from cloudtik.core._private.constants import CLOUDTIK_RUNTIME_ENV_WORKSPACE, CLO
     CLOUDTIK_DATA_DISK_MOUNT_POINT, CLOUDTIK_DATA_DISK_MOUNT_NAME_PREFIX
 from cloudtik.core._private.core_utils import get_config_for_update
 from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_MINIO
-from cloudtik.core._private.runtime_utils import subscribe_nodes_info, \
-    sort_nodes_by_seq_id, RUNTIME_NODE_SEQ_ID, get_runtime_value, get_data_disk_dirs
+from cloudtik.core._private.runtime_utils import get_runtime_value, get_data_disk_dirs
 from cloudtik.core._private.service_discovery.runtime_services import get_service_discovery_runtime, \
     is_discoverable_cluster_node_name
 from cloudtik.core._private.service_discovery.utils import \
@@ -109,6 +108,12 @@ def _with_runtime_environment_variables(
     console_port = _get_console_port(minio_config)
     runtime_envs["MINIO_CONSOLE_PORT"] = console_port
 
+    server_pool_size = _get_server_pool_size(minio_config)
+    server_cluster_size = _get_server_cluster_size(minio_config)
+    server_pools = server_cluster_size // server_pool_size
+    valid_cluster_size = server_pools * server_pool_size
+    runtime_envs["MINIO_CLUSTER_SIZE"] = valid_cluster_size
+
     return runtime_envs
 
 
@@ -143,8 +148,6 @@ def _configure(runtime_config, head: bool):
             "The number of nodes ({}) is less than server pool size: {}".format(
                 server_cluster_size, server_pool_size))
 
-    valid_cluster_size = server_pools * server_pool_size
-    os.environ["MINIO_CLUSTER_SIZE"] = str(valid_cluster_size)
     os.environ["MINIO_VOLUMES"] = _get_minio_volumes(
         minio_config, server_pools, server_pool_size)
 
@@ -176,18 +179,24 @@ def _get_data_dir_spec():
 
     number_disk = len(data_disk_dirs)
     data_disk_prefix = os.path.join(
-        CLOUDTIK_DATA_DISK_MOUNT_POINT, CLOUDTIK_DATA_DISK_MOUNT_NAME_PREFIX)
-    return data_disk_prefix + "{1..." + str(number_disk) + "}/minio"
+        CLOUDTIK_DATA_DISK_MOUNT_POINT, CLOUDTIK_DATA_DISK_MOUNT_NAME_PREFIX + "_")
+    if number_disk > 1:
+        return data_disk_prefix + "{1..." + str(number_disk) + "}/minio"
+    else:
+        return data_disk_prefix + str(number_disk) + "/minio"
 
 
 def _get_server_pool_spec(
         minio_config,
         server_pool_id, server_pool_size,
         workspace_name, cluster_name, data_dir_spec):
-    # http://cluster-name-{1...n}.workspace-name.cloudtik:9000/mnt/cloudtik/data-disk{1...n}/minio
     id_start = server_pool_id * server_pool_size
-    id_end = id_start + server_pool_size
-    expansion = "{" + str(id_start) + "..." + str(id_end) + "}"
+    if server_pool_size == 1:
+        expansion = str(id_start + 1)
+    else:
+        # http://cluster-name-{1...n}.workspace-name.cloudtik:9000/mnt/cloudtik/data-disk{1...n}/minio
+        id_end = id_start + server_pool_size
+        expansion = "{" + str(id_start + 1) + "..." + str(id_end) + "}"
     node_name = get_cluster_node_name(cluster_name, expansion)
     hostname = get_dns_hostname_of_node(node_name, workspace_name)
     service_port = _get_service_port(minio_config)

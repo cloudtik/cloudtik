@@ -37,7 +37,7 @@ function prepare_data_disks() {
             if [ "$MINIO_FORCE_CLEAN" == "true" ]; then
                 sudo rm -rf $data_disk/minio
             fi
-            sudo midir -p $data_disk/minio
+            mkdir -p $data_disk/minio
             if [ -z "$minio_data_dirs" ]; then
                 minio_data_dirs=$data_disk/minio
             else
@@ -52,7 +52,7 @@ function prepare_data_disks() {
         if [ "$MINIO_FORCE_CLEAN" == "true" ]; then
             sudo rm -rf "$minio_data_dirs"
         fi
-        sudo midir -p "$minio_data_dirs"
+        mkdir -p "$minio_data_dirs"
     fi
 }
 
@@ -60,6 +60,7 @@ function configure_minio() {
     prepare_base_conf
     config_template_file=${output_dir}/minio
 
+    mkdir -p ${MINIO_HOME}/conf
     mkdir -p ${MINIO_HOME}/logs
     prepare_data_disks
 
