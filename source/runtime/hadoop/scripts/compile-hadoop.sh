@@ -1,6 +1,6 @@
 #!/bin/bash
 
-CLOUDTIK_HOME=$(cd $(dirname ${BASH_SOURCE[0]})/../../..;pwd)
+CLOUDTIK_HOME=$(cd $(dirname ${BASH_SOURCE[0]})/../../../..;pwd)
 HADOOP_VERSION=3.3.1
 
 while [[ $# -gt 0 ]]
@@ -37,8 +37,8 @@ cd $HADOOP_SRC_DIR && git checkout rel/release-${HADOOP_VERSION}
 
 if [ $APPLY_PATCH ]; then
     # Apply patches if we have
-    if [ -d "$CLOUDTIK_HOME/runtime/hadoop/hadoop-${HADOOP_VERSION}" ]; then
-        for patch in $CLOUDTIK_HOME/runtime/hadoop/hadoop-${HADOOP_VERSION}/*.patch; do
+    if [ -d "$CLOUDTIK_HOME/source/runtime/hadoop/hadoop-${HADOOP_VERSION}" ]; then
+        for patch in $CLOUDTIK_HOME/source/runtime/hadoop/hadoop-${HADOOP_VERSION}/*.patch; do
             git apply $patch
         done
     fi
