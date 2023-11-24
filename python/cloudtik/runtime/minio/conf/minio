@@ -1,4 +1,3 @@
-# This is a placeholder. No configuration file needed.
 # Set the hosts and volumes MinIO uses at startup
 # The command uses MinIO expansion notation {x...y} to denote a
 # sequential series.
@@ -18,9 +17,12 @@ MINIO_VOLUMES="{%minio.volumes%}"
 
 MINIO_OPTS="--address {%bind.ip%}:{%service.port%} --console-address {%bind.ip%}:{%console.port%}"
 
-# Set the root username. This user has unrestricted permissions to
-# perform S3 and administrative API operations on any resource in the
-# deployment.
+# MINIO_ROOT_USER and MINIO_ROOT_PASSWORD sets the root account for the MinIO server.
+# This user has unrestricted permissions to perform S3 and administrative API operations
+on any resource in the deployment.
+# If not set, the default values are 'minioadmin:minioadmin'.
+
+# Set the root username.
 #
 # Defer to your organizations requirements for superadmin user name.
 
@@ -31,7 +33,7 @@ MINIO_ROOT_USER=minioadmin
 # Use a long, random, unique string that meets your organizations
 # requirements for passwords.
 
-MINIO_ROOT_PASSWORD=minio-secret-key-default
+MINIO_ROOT_PASSWORD=minioadmin
 
 # Set to the URL of the load balancer for the MinIO deployment
 # This value *must* match across all MinIO servers. If you do
