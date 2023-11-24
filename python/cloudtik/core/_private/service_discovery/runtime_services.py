@@ -17,6 +17,7 @@ SERVICE_DISCOVERY_RUNTIMES = [BUILT_IN_RUNTIME_CONSUL]
 
 CONSUL_CONFIG_JOIN_LIST = "join_list"
 CONSUL_CONFIG_RPC_PORT = "rpc_port"
+CONSUL_CONFIG_DISABLE_CLUSTER_NODE_NAME = "disable_cluster_node_name"
 
 
 def get_runtime_services_by_node_type(config: Dict[str, Any]):
@@ -107,3 +108,13 @@ def get_consul_server_addresses(runtime_config: Dict[str, Any]):
     hosts = join_list.split(',')
     port = consul_config.get(CONSUL_CONFIG_RPC_PORT)
     return [(host, port) for host in hosts]
+
+
+def is_discoverable_cluster_node_name(runtime_config: Dict[str, Any]):
+    runtime_type = get_service_discovery_runtime(runtime_config)
+    if not runtime_type:
+        return False
+    consul_config = runtime_config.get(runtime_type, {})
+    if consul_config.get(CONSUL_CONFIG_DISABLE_CLUSTER_NODE_NAME, False):
+        return False
+    return True

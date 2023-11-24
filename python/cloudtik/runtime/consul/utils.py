@@ -5,18 +5,19 @@ import os
 from typing import Any, Dict
 
 from cloudtik.core._private.constants import CLOUDTIK_RUNTIME_ENV_NODE_IP, CLOUDTIK_RUNTIME_ENV_QUORUM_JOIN, \
-    CLOUDTIK_RUNTIME_ENV_HEAD_IP, CLOUDTIK_RUNTIME_ENV_CLUSTER
-from cloudtik.core._private.core_utils import get_list_for_update, get_config_for_update
+    CLOUDTIK_RUNTIME_ENV_HEAD_IP, CLOUDTIK_RUNTIME_ENV_CLUSTER, CLOUDTIK_RUNTIME_ENV_NODE_SEQ_ID
+from cloudtik.core._private.core_utils import get_list_for_update, get_config_for_update, is_valid_dns_name
 from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_CONSUL
 from cloudtik.core._private.runtime_utils import get_runtime_node_type, get_runtime_node_ip, \
     get_runtime_config_from_node, RUNTIME_NODE_SEQ_ID, RUNTIME_NODE_IP, subscribe_nodes_info, sort_nodes_by_seq_id, \
     load_and_save_json, get_runtime_value
-from cloudtik.core._private.service_discovery.runtime_services import get_runtime_services_by_node_type
+from cloudtik.core._private.service_discovery.runtime_services import get_runtime_services_by_node_type, \
+    CONSUL_CONFIG_DISABLE_CLUSTER_NODE_NAME
 from cloudtik.core._private.service_discovery.utils import SERVICE_DISCOVERY_PORT, \
     SERVICE_DISCOVERY_TAGS, SERVICE_DISCOVERY_LABELS, SERVICE_DISCOVERY_LABEL_RUNTIME, \
     SERVICE_DISCOVERY_CHECK_INTERVAL, SERVICE_DISCOVERY_CHECK_TIMEOUT, SERVICE_DISCOVERY_LABEL_CLUSTER, \
     SERVICE_DISCOVERY_TAG_CLUSTER_PREFIX, ServiceRegisterException, \
-    get_runtime_service_features, SERVICE_DISCOVERY_TAG_FEATURE_PREFIX
+    get_runtime_service_features, SERVICE_DISCOVERY_TAG_FEATURE_PREFIX, get_cluster_node_name
 from cloudtik.core._private.utils import \
     RUNTIME_TYPES_CONFIG_KEY, _get_node_type_specific_runtime_config, \
     RUNTIME_CONFIG_KEY
@@ -67,6 +68,10 @@ def _is_agent_server_mode(runtime_config):
     # Whether this is a consul server cluster or deploy at client
     consul_config = _get_config(runtime_config)
     return consul_config.get("server", False)
+
+
+def _is_disable_cluster_node_name(consul_config):
+    return consul_config.get(CONSUL_CONFIG_DISABLE_CLUSTER_NODE_NAME, False)
 
 
 def _get_consul_config_for_update(cluster_config):
@@ -301,11 +306,20 @@ def _get_services_of_node_type(runtime_config, node_type):
 # Calls from node when configuring
 ###################################
 
+def configure_consul(head):
+    runtime_config = get_runtime_config_from_node(head)
 
-def configure_agent(head):
+    # configure join
+    configure_agent(head, runtime_config)
+
+    # Configure the Consul services
+    configure_services(runtime_config)
+
+
+def configure_agent(runtime_config, head):
     consul_server = get_runtime_value("CONSUL_SERVER")
     server_mode = True if consul_server == "true" else False
-    _configure_agent(server_mode, head)
+    _configure_agent(runtime_config, server_mode, head)
 
     if server_mode:
         quorum_join = get_runtime_value(CLOUDTIK_RUNTIME_ENV_QUORUM_JOIN)
@@ -313,7 +327,8 @@ def configure_agent(head):
             _update_server_config_for_join()
 
 
-def _configure_agent(server_mode, head):
+def _configure_agent(runtime_config, server_mode, head):
+    consul_config = _get_config(runtime_config)
     # Configure the retry join list for all the cases
 
     if server_mode:
@@ -335,7 +350,7 @@ def _configure_agent(server_mode, head):
         join_list = join_list_str.split(',')
 
     cluster_name = get_runtime_value(CLOUDTIK_RUNTIME_ENV_CLUSTER)
-    _update_agent_config(join_list, cluster_name)
+    _update_agent_config(consul_config, join_list, cluster_name)
 
 
 def _get_join_list_from_nodes_info():
@@ -350,7 +365,7 @@ def _get_join_list_from_nodes_info():
     return join_list
 
 
-def _update_agent_config(join_list, cluster_name):
+def _update_agent_config(consul_config, join_list, cluster_name):
     home_dir = _get_home_dir()
     config_file = os.path.join(home_dir, "consul.d", "consul.json")
 
@@ -359,6 +374,11 @@ def _update_agent_config(join_list, cluster_name):
         if cluster_name:
             node_meta = get_config_for_update(config_object, "node_meta")
             node_meta[SERVICE_DISCOVERY_LABEL_CLUSTER] = cluster_name
+            if not _is_disable_cluster_node_name(consul_config):
+                seq_id = get_runtime_value(CLOUDTIK_RUNTIME_ENV_NODE_SEQ_ID)
+                if seq_id and is_valid_dns_name(cluster_name):
+                    config_object["node_name"] = get_cluster_node_name(
+                        cluster_name, seq_id)
 
     load_and_save_json(config_file, update_retry_join)
 
@@ -373,11 +393,10 @@ def _update_server_config_for_join():
     load_and_save_json(config_file, update_server_config)
 
 
-def configure_services(head):
+def configure_services(runtime_config):
     """This method is called from configure.py script which is running on node.
     """
     node_type = get_runtime_node_type()
-    runtime_config = get_runtime_config_from_node(head)
     services_config = _get_services_of_node_type(runtime_config, node_type)
 
     home_dir = _get_home_dir()

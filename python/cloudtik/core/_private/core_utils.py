@@ -929,3 +929,7 @@ def get_address_string(host, port):
         return host
     else:
         return "{}:{}".format(host, port)
+
+
+def is_valid_dns_name(name):
+    return bool(re.match("^[a-z0-9-]*$", name))

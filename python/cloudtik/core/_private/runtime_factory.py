@@ -26,6 +26,7 @@ BUILT_IN_RUNTIME_SPARK = "spark"
 BUILT_IN_RUNTIME_HADOOP = "hadoop"
 BUILT_IN_RUNTIME_YARN = "yarn"
 BUILT_IN_RUNTIME_HDFS = "hdfs"
+BUILT_IN_RUNTIME_MINIO = "minio"
 BUILT_IN_RUNTIME_MOUNT = "mount"
 BUILT_IN_RUNTIME_METASTORE = "metastore"
 BUILT_IN_RUNTIME_PRESTO = "presto"
@@ -76,6 +77,11 @@ def _import_yarn():
 def _import_hdfs():
     from cloudtik.runtime.hdfs.runtime import HDFSRuntime
     return HDFSRuntime
+
+
+def _import_minio():
+    from cloudtik.runtime.minio.runtime import MinIORuntime
+    return MinIORuntime
 
 
 def _import_mount():
@@ -199,6 +205,7 @@ _RUNTIMES = {
     BUILT_IN_RUNTIME_HADOOP: _import_hadoop,
     BUILT_IN_RUNTIME_YARN: _import_yarn,
     BUILT_IN_RUNTIME_HDFS: _import_hdfs,
+    BUILT_IN_RUNTIME_MINIO: _import_minio,
     BUILT_IN_RUNTIME_MOUNT: _import_mount,
     BUILT_IN_RUNTIME_METASTORE: _import_metastore,
     BUILT_IN_RUNTIME_PRESTO: _import_presto,

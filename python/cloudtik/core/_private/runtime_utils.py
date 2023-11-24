@@ -5,7 +5,8 @@ from typing import Dict, Any
 import yaml
 
 from cloudtik.core._private.constants import CLOUDTIK_RUNTIME_ENV_NODE_TYPE, CLOUDTIK_RUNTIME_ENV_NODE_IP, \
-    CLOUDTIK_RUNTIME_ENV_SECRETS, CLOUDTIK_RUNTIME_ENV_HEAD_IP, env_bool
+    CLOUDTIK_RUNTIME_ENV_SECRETS, CLOUDTIK_RUNTIME_ENV_HEAD_IP, env_bool, CLOUDTIK_DATA_DISK_MOUNT_POINT, \
+    CLOUDTIK_DATA_DISK_MOUNT_NAME_PREFIX
 from cloudtik.core._private.crypto import AESCipher
 from cloudtik.core._private.utils import load_head_cluster_config, _get_node_type_specific_runtime_config, \
     get_runtime_config_key, _get_key_from_kv, decode_cluster_secrets, CLOUDTIK_CLUSTER_NODES_INFO_NODE_TYPE
@@ -162,3 +163,18 @@ def load_and_save_yaml(config_file, update_func):
 def save_yaml(config_file, config_object):
     with open(config_file, "w") as f:
         yaml.dump(config_object, f, default_flow_style=False)
+
+
+def get_data_disk_dirs():
+    data_disk_dirs = []
+    if not os.path.isdir(CLOUDTIK_DATA_DISK_MOUNT_POINT):
+        return data_disk_dirs
+
+    for name in os.listdir(CLOUDTIK_DATA_DISK_MOUNT_POINT):
+        if not name.startswith(CLOUDTIK_DATA_DISK_MOUNT_NAME_PREFIX):
+            continue
+        data_disk_dir = os.path.join(CLOUDTIK_DATA_DISK_MOUNT_POINT, name)
+        if not os.path.isdir(data_disk_dir):
+            continue
+        data_disk_dirs.append(data_disk_dir)
+    return data_disk_dirs
