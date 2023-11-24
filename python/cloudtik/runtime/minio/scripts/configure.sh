@@ -15,7 +15,7 @@ MINIO_HOME=$RUNTIME_PATH/minio
 . "$ROOT_DIR"/common/scripts/util-functions.sh
 
 function check_minio_installed() {
-    if [ ! -f "${MINIO_HOME}/minio" ]; then
+    if [ ! -f "${MINIO_HOME}/bin/minio" ]; then
         echo "MinIO is not installed for minio command is not available."
         exit 1
     fi
