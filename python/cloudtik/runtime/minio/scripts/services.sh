@@ -20,13 +20,19 @@ MINIO_HOME=$RUNTIME_PATH/minio
 
 case "$SERVICE_COMMAND" in
 start)
-    # Will set MINIO_OPTS and MINIO_VOLUMES
-    . $MINIO_HOME/conf/minio
-    nohup ${MINIO_HOME}/minio \
-          server $MINIO_OPTS $MINIO_VOLUMES >${MINIO_HOME}/logs/minio.log 2>&1 &
+    # only start services for the seq id that in valid range
+    if [ "$CLOUDTIK_RUNTIME_ENV_NODE_SEQ_ID" -le "$MINIO_CLUSTER_SIZE" ]; then
+        # Will set MINIO_OPTS and MINIO_VOLUMES
+        . $MINIO_HOME/conf/minio
+        nohup ${MINIO_HOME}/minio \
+              server $MINIO_OPTS $MINIO_VOLUMES >${MINIO_HOME}/logs/minio.log 2>&1 &
+    fi
     ;;
 stop)
-    stop_process_by_name "minio"
+    # only start services for the seq id that in valid range
+    if [ "$CLOUDTIK_RUNTIME_ENV_NODE_SEQ_ID" -le "$MINIO_CLUSTER_SIZE" ]; then
+        stop_process_by_name "minio"
+    fi
     ;;
 -h|--help)
     echo "Usage: $0 start|stop --head" >&2

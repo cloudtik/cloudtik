@@ -3,6 +3,7 @@ from typing import Any, Dict
 
 from cloudtik.core._private.constants import CLOUDTIK_RUNTIME_ENV_WORKSPACE, CLOUDTIK_RUNTIME_ENV_CLUSTER, \
     CLOUDTIK_DATA_DISK_MOUNT_POINT, CLOUDTIK_DATA_DISK_MOUNT_NAME_PREFIX
+from cloudtik.core._private.core_utils import get_config_for_update
 from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_MINIO
 from cloudtik.core._private.runtime_utils import subscribe_nodes_info, \
     sort_nodes_by_seq_id, RUNTIME_NODE_SEQ_ID, get_runtime_value, get_data_disk_dirs
@@ -12,7 +13,7 @@ from cloudtik.core._private.service_discovery.utils import \
     get_canonical_service_name, define_runtime_service, \
     get_service_discovery_config, SERVICE_DISCOVERY_PROTOCOL_HTTP, SERVICE_DISCOVERY_FEATURE_METRICS, \
     get_cluster_node_name
-from cloudtik.core._private.utils import get_runtime_config
+from cloudtik.core._private.utils import get_runtime_config, get_runtime_config_for_update, _sum_min_workers
 from cloudtik.runtime.common.service_discovery.consul import get_dns_hostname_of_node
 
 RUNTIME_PROCESSES = [
@@ -26,6 +27,8 @@ RUNTIME_PROCESSES = [
 MINIO_SERVICE_PORT_CONFIG_KEY = "port"
 MINIO_CONSOLE_PORT_CONFIG_KEY = "console_port"
 MINIO_SERVER_POOL_SIZE_CONFIG_KEY = "server_pool_size"
+# automatically set by runtime bootstrap to the cluster total nodes
+MINIO_SERVER_CLUSTER_SIZE_CONFIG_KEY = "server_cluster_size"
 
 MINIO_SERVICE_NAME = "minio"
 
@@ -53,6 +56,14 @@ def _get_server_pool_size(minio_config: Dict[str, Any]):
         MINIO_SERVER_POOL_SIZE_CONFIG_KEY, MINIO_SERVER_POOL_SIZE_DEFAULT)
 
 
+def _get_server_cluster_size(minio_config: Dict[str, Any]):
+    server_cluster_size = minio_config.get(
+        MINIO_SERVER_CLUSTER_SIZE_CONFIG_KEY)
+    if not server_cluster_size:
+        raise RuntimeError("MinIO server cluster size is invalid.")
+    return server_cluster_size
+
+
 def _get_home_dir():
     return os.path.join(
         os.getenv("HOME"), "runtime", BUILT_IN_RUNTIME_MINIO)
@@ -68,13 +79,21 @@ def _get_runtime_logs():
     return {"minio": logs_dir}
 
 
+def _bootstrap_runtime_config(cluster_config: Dict[str, Any]) -> Dict[str, Any]:
+    runtime_config = get_runtime_config_for_update(cluster_config)
+    minio_config = get_config_for_update(runtime_config, BUILT_IN_RUNTIME_MINIO)
+    min_workers = _sum_min_workers(cluster_config)
+    minio_config[MINIO_SERVER_CLUSTER_SIZE_CONFIG_KEY] = min_workers + 1
+    return cluster_config
+
+
 def _validate_config(config: Dict[str, Any], final=False):
     # Check Consul configured
     runtime_config = get_runtime_config(config)
     if not get_service_discovery_runtime(runtime_config):
         raise RuntimeError("MinIO needs Consul service discovery to be configured.")
 
-    if is_discoverable_cluster_node_name(runtime_config):
+    if not is_discoverable_cluster_node_name(runtime_config):
         raise RuntimeError("MinIO needs sequential cluster node name from service discovery DNS.")
 
 
@@ -115,32 +134,23 @@ def _get_runtime_services(
 
 def _configure(runtime_config, head: bool):
     minio_config = _get_config(runtime_config)
-    os.environ["MINIO_VOLUMES"] = _get_minio_volumes(minio_config)
 
-
-def _get_minio_volumes(minio_config):
     server_pool_size = _get_server_pool_size(minio_config)
-    nodes_info = subscribe_nodes_info()
-    # This method calls from node when configuring
-    if nodes_info is None:
-        if server_pool_size > 1:
-            raise RuntimeError("Missing nodes for configuring MINIO deployment.")
-        nodes_info = {}
-
-    sorted_nodes_info = sort_nodes_by_seq_id(nodes_info)
-    total_nodes = 1
-    if sorted_nodes_info:
-        # Use the max seq id as the number of works
-        node_info = sorted_nodes_info[-1]
-        max_seq_id = node_info[RUNTIME_NODE_SEQ_ID]
-        total_nodes += max_seq_id
-
-    server_pools = total_nodes // server_pool_size
+    server_cluster_size = _get_server_cluster_size(minio_config)
+    server_pools = server_cluster_size // server_pool_size
     if not server_pools:
         raise RuntimeError(
-            "The number of nodes ({}) is less than server pool size: ".format(
-                total_nodes, server_pool_size))
+            "The number of nodes ({}) is less than server pool size: {}".format(
+                server_cluster_size, server_pool_size))
 
+    valid_cluster_size = server_pools * server_pool_size
+    os.environ["MINIO_CLUSTER_SIZE"] = str(valid_cluster_size)
+    os.environ["MINIO_VOLUMES"] = _get_minio_volumes(
+        minio_config, server_pools, server_pool_size)
+
+
+def _get_minio_volumes(
+        minio_config, server_pools, server_pool_size):
     workspace_name = get_runtime_value(CLOUDTIK_RUNTIME_ENV_WORKSPACE)
     cluster_name = get_runtime_value(CLOUDTIK_RUNTIME_ENV_CLUSTER)
     data_dir_spec = _get_data_dir_spec()

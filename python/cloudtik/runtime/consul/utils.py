@@ -310,7 +310,7 @@ def configure_consul(head):
     runtime_config = get_runtime_config_from_node(head)
 
     # configure join
-    configure_agent(head, runtime_config)
+    configure_agent(runtime_config, head)
 
     # Configure the Consul services
     configure_services(runtime_config)

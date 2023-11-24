@@ -3419,6 +3419,10 @@ def get_runtime_config(config):
     return config.get(RUNTIME_CONFIG_KEY, {})
 
 
+def get_runtime_config_for_update(config):
+    return get_config_for_update(config, RUNTIME_CONFIG_KEY)
+
+
 def prepare_runtime_config_on_head(config):
     runtime_config = config.get(RUNTIME_CONFIG_KEY)
     if runtime_config is None:
