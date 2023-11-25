@@ -18,6 +18,7 @@ from types import ModuleType
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 import click
+import ipaddr
 import prettytable as pt
 import psutil
 import yaml
@@ -2229,10 +2230,9 @@ def _get_sorted_nodes_info(provider, nodes):
     # sort nodes info based on node type and then node ip for workers
     def node_info_sort(node_info):
         node_ip = node_info[NODE_INFO_NODE_IP]
-        if node_ip is None:
-            node_ip = ""
-
-        return node_info[CLOUDTIK_TAG_NODE_KIND] + node_ip
+        node_ip_addr = int(
+            ipaddr.IPAddress(node_ip)) if node_ip else 0
+        return [node_info[CLOUDTIK_TAG_NODE_KIND], node_ip_addr]
 
     nodes_info.sort(key=node_info_sort)
     return nodes_info
@@ -4377,7 +4377,9 @@ def show_cluster_metrics(
 
     def node_resource_sort(node_resource):
         node_ip = node_resource[NODE_STATE_NODE_IP]
-        return node_resource[NODE_STATE_NODE_KIND] + node_ip
+        node_ip_addr = int(
+            ipaddr.IPAddress(node_ip)) if node_ip else 0
+        return [node_resource[NODE_STATE_NODE_KIND], node_ip_addr]
 
     nodes_resource_metrics.sort(key=node_resource_sort)
 
