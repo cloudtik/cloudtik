@@ -29,8 +29,6 @@ function prepare_base_conf() {
     cp $output_dir/hadoop/core-site.xml $output_dir/hadoop/core-site-remote.xml
     sed -i "s!{%fs.default.name%}!{%remote.fs.default.name%}!g" \
       $output_dir/hadoop/core-site-remote.xml
-
-    cd $output_dir
 }
 
 function check_hadoop_installed() {
@@ -40,51 +38,111 @@ function check_hadoop_installed() {
     fi
 }
 
-function check_hdfs_storage() {
+function set_hdfs_storage() {
     if [ ! -z  "${HDFS_NAMENODE_URI}" ];then
-        HDFS_STORAGE="true"
+        REMOTE_HDFS_STORAGE="true"
     else
-        HDFS_STORAGE="false"
+        REMOTE_HDFS_STORAGE="false"
+    fi
+
+    if [ "$HDFS_ENABLED" == "true" ]; then
+        LOCAL_HDFS_STORAGE="true"
+    else
+        LOCAL_HDFS_STORAGE="false"
     fi
 }
 
-function update_cloud_storage_credential_config() {
-    # update hadoop credential config
-    update_credential_config_for_provider
+function set_minio_storage() {
+    if [ ! -z  "${MINIO_ENDPOINT_URI}" ];then
+        REMOTE_MINIO_STORAGE="true"
+    else
+        REMOTE_MINIO_STORAGE="false"
+    fi
+
+    if [ "$MINIO_ENABLED" == "true" ]; then
+        LOCAL_MINIO_STORAGE="true"
+    else
+        LOCAL_MINIO_STORAGE="false"
+    fi
+}
+
+function set_cluster_storage() {
+    set_hdfs_storage
+    set_minio_storage
 }
 
 function update_config_for_local_hdfs() {
+    if [ "${cloud_storage_provider}" != "none" ];then
+        HADOOP_CORE_SITE=$output_dir/hadoop/${cloud_storage_provider}/core-site.xml
+    else
+        HADOOP_CORE_SITE=$output_dir/hadoop/core-site.xml
+    fi
     HADOOP_FS_DEFAULT="hdfs://${HEAD_ADDRESS}:9000"
-    sed -i "s!{%fs.default.name%}!${HADOOP_FS_DEFAULT}!g" `grep "{%fs.default.name%}" -rl ./`
+    sed -i "s!{%fs.default.name%}!${HADOOP_FS_DEFAULT}!g" $HADOOP_CORE_SITE
 
-    # Still update credential config for cloud provider storage in the case of explict usage
-    update_cloud_storage_credential_config
+    if [ "${cloud_storage_provider}" != "none" ]; then
+        # Still update credential config for cloud provider storage in the case of explict usage
+        update_cloud_storage_credential_config
+    fi
 }
 
 function update_config_for_hdfs() {
+    if [ "${cloud_storage_provider}" != "none" ]; then
+        HADOOP_CORE_SITE=$output_dir/hadoop/${cloud_storage_provider}/core-site.xml
+    else
+        HADOOP_CORE_SITE=$output_dir/hadoop/core-site.xml
+    fi
     # configure namenode uri for core-site.xml
     HADOOP_FS_DEFAULT="${HDFS_NAMENODE_URI}"
-    sed -i "s!{%fs.default.name%}!${HADOOP_FS_DEFAULT}!g" `grep "{%fs.default.name%}" -rl ./`
+    sed -i "s!{%fs.default.name%}!${HADOOP_FS_DEFAULT}!g" $HADOOP_CORE_SITE
 
-    # Still update credential config for cloud provider storage in the case of explict usage
-    update_cloud_storage_credential_config
+    if [ "${cloud_storage_provider}" != "none" ]; then
+        # Still update credential config for cloud provider storage in the case of explict usage
+        update_cloud_storage_credential_config
+    fi
+}
+
+function update_config_for_local_minio() {
+    HADOOP_CORE_SITE=$output_dir/hadoop/core-site-minio.xml
+    HADOOP_FS_DEFAULT="s3a://${MINIO_BUCKET}"
+    sed -i "s!{%fs.default.name%}!${HADOOP_FS_DEFAULT}!g" $HADOOP_CORE_SITE
+
+    # TODO: the port number based on configuration
+    FS_S3A_ENDPOINT="http://${HEAD_ADDRESS}:9000"
+    sed -i "s!{%fs.s3a.endpoint%}!${FS_S3A_ENDPOINT}!g" $HADOOP_CORE_SITE
+
+    update_minio_storage_credential_config
+}
+
+function update_config_for_minio() {
+    HADOOP_CORE_SITE=$output_dir/hadoop/core-site-minio.xml
+    HADOOP_FS_DEFAULT="s3a://${MINIO_BUCKET}"
+    sed -i "s!{%fs.default.name%}!${HADOOP_FS_DEFAULT}!g" $HADOOP_CORE_SITE
+
+    FS_S3A_ENDPOINT="${MINIO_ENDPOINT_URI}"
+    sed -i "s!{%fs.s3a.endpoint%}!${FS_S3A_ENDPOINT}!g" $HADOOP_CORE_SITE
+
+    update_minio_storage_credential_config
 }
 
 function update_config_for_aws() {
+    HADOOP_CORE_SITE=$output_dir/hadoop/${cloud_storage_provider}/core-site.xml
     HADOOP_FS_DEFAULT="s3a://${AWS_S3_BUCKET}"
-    sed -i "s!{%fs.default.name%}!${HADOOP_FS_DEFAULT}!g" `grep "{%fs.default.name%}" -rl ./`
+    sed -i "s!{%fs.default.name%}!${HADOOP_FS_DEFAULT}!g" $HADOOP_CORE_SITE
 
     update_cloud_storage_credential_config
 }
 
 function update_config_for_gcp() {
+    HADOOP_CORE_SITE=$output_dir/hadoop/${cloud_storage_provider}/core-site.xml
     HADOOP_FS_DEFAULT="gs://${GCP_GCS_BUCKET}"
-    sed -i "s!{%fs.default.name%}!${HADOOP_FS_DEFAULT}!g" `grep "{%fs.default.name%}" -rl ./`
+    sed -i "s!{%fs.default.name%}!${HADOOP_FS_DEFAULT}!g" $HADOOP_CORE_SITE
 
     update_cloud_storage_credential_config
 }
 
 function update_config_for_azure() {
+    HADOOP_CORE_SITE=$output_dir/hadoop/${cloud_storage_provider}/core-site.xml
     if [ "$AZURE_STORAGE_TYPE" == "blob" ];then
         AZURE_SCHEMA="wasbs"
         AZURE_ENDPOINT="blob"
@@ -96,34 +154,42 @@ function update_config_for_azure() {
     fi
 
     HADOOP_FS_DEFAULT="${AZURE_SCHEMA}://${AZURE_CONTAINER}@${AZURE_STORAGE_ACCOUNT}.${AZURE_ENDPOINT}.core.windows.net"
-    sed -i "s!{%fs.default.name%}!${HADOOP_FS_DEFAULT}!g" `grep "{%fs.default.name%}" -rl ./`
+    sed -i "s!{%fs.default.name%}!${HADOOP_FS_DEFAULT}!g" $HADOOP_CORE_SITE
 
     update_cloud_storage_credential_config
 }
 
 function update_config_for_aliyun() {
+    HADOOP_CORE_SITE=$output_dir/hadoop/${cloud_storage_provider}/core-site.xml
     HADOOP_FS_DEFAULT="oss://${ALIYUN_OSS_BUCKET}"
-    sed -i "s!{%fs.default.name%}!${HADOOP_FS_DEFAULT}!g" `grep "{%fs.default.name%}" -rl ./`
-    sed -i "s!{%fs.oss.endpoint%}!${ALIYUN_OSS_INTERNAL_ENDPOINT}!g" `grep "{%fs.oss.endpoint%}" -rl ./`
+    sed -i "s!{%fs.default.name%}!${HADOOP_FS_DEFAULT}!g" $HADOOP_CORE_SITE
+    sed -i "s!{%fs.oss.endpoint%}!${ALIYUN_OSS_INTERNAL_ENDPOINT}!g" $HADOOP_CORE_SITE
 
     update_cloud_storage_credential_config
 }
 
 function update_config_for_huaweicloud() {
+    HADOOP_CORE_SITE=$output_dir/hadoop/${cloud_storage_provider}/core-site.xml
     HADOOP_FS_DEFAULT="obs://${HUAWEICLOUD_OBS_BUCKET}"
-    sed -i "s!{%fs.default.name%}!${HADOOP_FS_DEFAULT}!g" `grep "{%fs.default.name%}" -rl ./`
-    sed -i "s!{%fs.obs.endpoint.property%}!${HUAWEICLOUD_OBS_ENDPOINT}!g" `grep "{%fs.obs.endpoint.property%}" -rl ./`
+    sed -i "s!{%fs.default.name%}!${HADOOP_FS_DEFAULT}!g" $HADOOP_CORE_SITE
+    sed -i "s!{%fs.obs.endpoint.property%}!${HUAWEICLOUD_OBS_ENDPOINT}!g" $HADOOP_CORE_SITE
 
     update_cloud_storage_credential_config
 }
 
 function update_config_for_hadoop_default() {
     if [ "${HADOOP_DEFAULT_CLUSTER}" == "true" ]; then
-        if [ "$HDFS_STORAGE" == "true" ]; then
+        if [ "$REMOTE_HDFS_STORAGE" == "true" ]; then
             update_config_for_hdfs
             return 0
-        elif [ "$HDFS_ENABLED" == "true" ]; then
+        elif [ "$REMOTE_MINIO_STORAGE" == "true" ]; then
+            update_config_for_minio
+            return 0
+        elif [ "$LOCAL_HDFS_STORAGE" == "true" ]; then
             update_config_for_local_hdfs
+            return 0
+        elif [ "$LOCAL_MINIO_STORAGE" == "true" ]; then
+            update_config_for_local_minio
             return 0
         fi
     fi
@@ -138,10 +204,14 @@ function update_config_for_hadoop_default() {
         update_config_for_aliyun
     elif [ "${cloud_storage_provider}" == "huaweicloud" ]; then
         update_config_for_huaweicloud
-    elif [ "$HDFS_STORAGE" == "true" ]; then
+    elif [ "$REMOTE_HDFS_STORAGE" == "true" ]; then
         update_config_for_hdfs
-    elif [ "$HDFS_ENABLED" == "true" ]; then
+    elif [ "$REMOTE_MINIO_STORAGE" == "true" ]; then
+        update_config_for_minio
+    elif [ "$LOCAL_HDFS_STORAGE" == "true" ]; then
         update_config_for_local_hdfs
+    elif [ "$LOCAL_MINIO_STORAGE" == "true" ]; then
+        update_config_for_local_minio
     fi
 }
 
@@ -187,29 +257,26 @@ function update_local_storage_config_local_hdfs() {
 function update_local_storage_config() {
     update_nfs_dump_dir
 
-    if [ "${HDFS_STORAGE}" == "true" ]; then
+    if [ "${REMOTE_HDFS_STORAGE}" == "true" ]; then
         update_local_storage_config_remote_hdfs
     fi
-    if [ "${HDFS_ENABLED}" == "true" ]; then
+    if [ "${LOCAL_HDFS_STORAGE}" == "true" ]; then
         update_local_storage_config_local_hdfs
     fi
 }
 
 function update_config_for_hadoop() {
-    check_hdfs_storage
+    HADOOP_CORE_SITE=""
+    HADOOP_FS_DEFAULT=""
+
+    set_cluster_storage
     set_cloud_storage_provider
     update_config_for_hadoop_default
     update_local_storage_config
 
     sed -i "s!{%hadoop.fs.default%}!${HADOOP_FS_DEFAULT}!g" ${output_dir}/hadoop-fs-default
     cp ${output_dir}/hadoop-fs-default ${HADOOP_HOME}/etc/hadoop/hadoop-fs-default
-
-    if [ "${cloud_storage_provider}" != "none" ];then
-        cp -r ${output_dir}/hadoop/${cloud_storage_provider}/core-site.xml ${HADOOP_HOME}/etc/hadoop/
-    else
-        # hdfs without cloud storage
-        cp -r ${output_dir}/hadoop/core-site.xml ${HADOOP_HOME}/etc/hadoop/
-    fi
+    cp $HADOOP_CORE_SITE ${HADOOP_HOME}/etc/hadoop/core-site.xml
 }
 
 function configure_hadoop() {

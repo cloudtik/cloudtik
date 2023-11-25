@@ -4,6 +4,7 @@ from typing import Any, Dict
 from cloudtik.core._private.constants import CLOUDTIK_RUNTIME_ENV_WORKSPACE, CLOUDTIK_RUNTIME_ENV_CLUSTER, \
     CLOUDTIK_DATA_DISK_MOUNT_POINT, CLOUDTIK_DATA_DISK_MOUNT_NAME_PREFIX
 from cloudtik.core._private.core_utils import get_config_for_update
+from cloudtik.core._private.provider_factory import _get_node_provider
 from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_MINIO
 from cloudtik.core._private.runtime_utils import get_runtime_value, get_data_disk_dirs
 from cloudtik.core._private.service_discovery.runtime_services import get_service_discovery_runtime, \
@@ -14,6 +15,7 @@ from cloudtik.core._private.service_discovery.utils import \
     get_cluster_node_name
 from cloudtik.core._private.utils import get_runtime_config, get_runtime_config_for_update, _sum_min_workers
 from cloudtik.runtime.common.service_discovery.consul import get_dns_hostname_of_node
+from cloudtik.runtime.common.service_discovery.workspace import register_service_to_workspace
 
 RUNTIME_PROCESSES = [
         # The first element is the substring to filter.
@@ -98,7 +100,7 @@ def _validate_config(config: Dict[str, Any], final=False):
 
 def _with_runtime_environment_variables(
         runtime_config, config):
-    runtime_envs = {}
+    runtime_envs = {"MINIO_ENABLED": True}
 
     minio_config = _get_config(runtime_config)
 
@@ -115,6 +117,46 @@ def _with_runtime_environment_variables(
     runtime_envs["MINIO_CLUSTER_SIZE"] = valid_cluster_size
 
     return runtime_envs
+
+
+def register_service(
+        runtime_config: Dict[str, Any],
+        cluster_config: Dict[str, Any],
+        head_node_id: str) -> None:
+    provider = _get_node_provider(
+        cluster_config["provider"], cluster_config["cluster_name"])
+    head_ip = provider.internal_ip(head_node_id)
+
+    minio_config = _get_config(runtime_config)
+    service_port = _get_service_port(minio_config)
+    register_service_to_workspace(
+        cluster_config, BUILT_IN_RUNTIME_MINIO,
+        service_addresses=[(head_ip, service_port)])
+
+
+def _get_runtime_endpoints(
+        runtime_config: Dict[str, Any], cluster_head_ip):
+    minio_config = _get_config(runtime_config)
+    endpoints = {
+        "minio": {
+            "name": "MinIO Service",
+            "url": "http://{}:{}".format(
+                cluster_head_ip, _get_service_port(minio_config))
+        },
+    }
+    return endpoints
+
+
+def _get_head_service_ports(
+        runtime_config: Dict[str, Any]) -> Dict[str, Any]:
+    minio_config = _get_config(runtime_config)
+    service_ports = {
+        "minio": {
+            "protocol": "TCP",
+            "port": _get_service_port(minio_config),
+        },
+    }
+    return service_ports
 
 
 def _get_runtime_services(

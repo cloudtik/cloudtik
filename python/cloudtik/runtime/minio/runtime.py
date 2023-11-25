@@ -5,7 +5,8 @@ from cloudtik.core.node_provider import NodeProvider
 from cloudtik.runtime.common.runtime_base import RuntimeBase
 from cloudtik.runtime.minio.utils import _get_runtime_processes, \
     _get_runtime_services, _with_runtime_environment_variables, \
-    _get_runtime_logs, _configure, _validate_config, _bootstrap_runtime_config
+    _get_runtime_logs, _configure, _validate_config, _bootstrap_runtime_config, _get_head_service_ports, \
+    _get_runtime_endpoints, register_service
 
 logger = logging.getLogger(__name__)
 
@@ -48,8 +49,21 @@ class MinIORuntime(RuntimeBase):
         """
         _configure(self.runtime_config, head)
 
+    def cluster_booting_completed(
+            self, cluster_config: Dict[str, Any], head_node_id: str) -> None:
+        register_service(
+            self.runtime_config, cluster_config, head_node_id)
+
+    def get_runtime_endpoints(self, cluster_head_ip: str):
+        return _get_runtime_endpoints(
+            self.runtime_config, cluster_head_ip)
+
+    def get_head_service_ports(self) -> Dict[str, Any]:
+        return _get_head_service_ports(self.runtime_config)
+
     def get_runtime_services(self, cluster_name: str):
-        return _get_runtime_services(self.runtime_config, cluster_name)
+        return _get_runtime_services(
+            self.runtime_config, cluster_name)
 
     def get_node_constraints(
             self, cluster_config: Dict[str, Any]) -> Tuple[bool, bool, bool]:

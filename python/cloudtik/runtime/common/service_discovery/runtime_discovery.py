@@ -5,7 +5,7 @@ from cloudtik.core._private.constants import CLOUDTIK_RUNTIME_ENV_HEAD_IP
 from cloudtik.core._private.core_utils import get_config_for_update, get_env_string_value
 from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_HDFS, BUILT_IN_RUNTIME_METASTORE, \
     BUILT_IN_RUNTIME_CONSUL, BUILT_IN_RUNTIME_ZOOKEEPER, BUILT_IN_RUNTIME_MYSQL, BUILT_IN_RUNTIME_POSTGRES, \
-    BUILT_IN_RUNTIME_ETCD
+    BUILT_IN_RUNTIME_ETCD, BUILT_IN_RUNTIME_MINIO
 from cloudtik.core._private.runtime_utils import get_runtime_value
 from cloudtik.core._private.service_discovery.utils import get_service_selector_for_update, \
     include_runtime_for_selector, include_feature_for_selector
@@ -28,6 +28,10 @@ POSTGRES_ADMIN_PASSWORD_CONFIG_KEY = "admin_password"
 HDFS_URI_KEY = "hdfs_namenode_uri"
 HDFS_SERVICE_DISCOVERY_KEY = "hdfs_service_discovery"
 HDFS_SERVICE_SELECTOR_KEY = "hdfs_service_selector"
+
+MINIO_URI_KEY = "minio_endpoint_uri"
+MINIO_SERVICE_DISCOVERY_KEY = "minio_service_discovery"
+MINIO_SERVICE_SELECTOR_KEY = "minio_service_selector"
 
 METASTORE_URI_KEY = "hive_metastore_uri"
 METASTORE_SERVICE_DISCOVERY_KEY = "metastore_service_discovery"
@@ -157,6 +161,25 @@ def discover_hdfs(
     return hdfs_uri
 
 
+def discover_minio(
+        config: Dict[str, Any],
+        service_selector_key: str,
+        cluster_config: Dict[str, Any],
+        discovery_type: DiscoveryType,):
+    service_addresses = discover_runtime_service_addresses(
+        config, service_selector_key,
+        runtime_type=BUILT_IN_RUNTIME_MINIO,
+        cluster_config=cluster_config,
+        discovery_type=discovery_type,
+    )
+    if not service_addresses:
+        return None
+    service_address = service_addresses[0]
+    minio_uri = "http://{}:{}".format(
+        service_address[0], service_address[1])
+    return minio_uri
+
+
 def discover_metastore(
         config: Dict[str, Any],
         service_selector_key: str,
@@ -226,7 +249,7 @@ The conventions to follow for each function are explained per function.
 
 """
 HDFS service discovery conventions:
-    1. The hdfs service discovery flag is stored at METASTORE_SERVICE_DISCOVERY_KEY defined above
+    1. The hdfs service discovery flag is stored at HDFS_SERVICE_DISCOVERY_KEY defined above
     2. The hdfs service selector is stored at HDFS_SERVICE_SELECTOR_KEY defined above
     3. The hdfs uri is stored at HDFS_URI_KEY defined above
 """
@@ -276,6 +299,61 @@ def discover_hdfs_on_head(
         runtime_type_config = get_config_for_update(
             runtime_config, runtime_type)
         runtime_type_config[HDFS_URI_KEY] = hdfs_uri
+    return cluster_config
+
+
+"""
+MINIO service discovery conventions:
+    1. The minio service discovery flag is stored at MINIO_SERVICE_DISCOVERY_KEY defined above
+    2. The minio service selector is stored at MINIO_SERVICE_SELECTOR_KEY defined above
+    3. The minio uri is stored at MINIO_URI_KEY defined above
+"""
+
+
+def is_minio_service_discovery(runtime_type_config):
+    return runtime_type_config.get(MINIO_SERVICE_DISCOVERY_KEY, True)
+
+
+def discover_minio_from_workspace(
+        cluster_config: Dict[str, Any], runtime_type):
+    runtime_config = get_runtime_config(cluster_config)
+    runtime_type_config = runtime_config.get(runtime_type, {})
+    if (runtime_type_config.get(MINIO_URI_KEY) or
+            not is_minio_service_discovery(runtime_type_config)):
+        return cluster_config
+
+    minio_uri = discover_minio(
+        runtime_type_config, MINIO_SERVICE_SELECTOR_KEY,
+        cluster_config=cluster_config,
+        discovery_type=DiscoveryType.WORKSPACE)
+    if minio_uri:
+        runtime_type_config = get_config_for_update(
+            runtime_config, runtime_type)
+        runtime_type_config[MINIO_URI_KEY] = minio_uri
+    return cluster_config
+
+
+def discover_minio_on_head(
+        cluster_config: Dict[str, Any], runtime_type):
+    runtime_config = get_runtime_config(cluster_config)
+    runtime_type_config = runtime_config.get(runtime_type, {})
+    if not is_minio_service_discovery(runtime_type_config):
+        return cluster_config
+
+    minio_uri = runtime_type_config.get(MINIO_URI_KEY)
+    if minio_uri:
+        # MinIO already configured
+        return cluster_config
+
+    # There is service discovery to come here
+    minio_uri = discover_minio(
+        runtime_type_config, MINIO_SERVICE_SELECTOR_KEY,
+        cluster_config=cluster_config,
+        discovery_type=DiscoveryType.CLUSTER)
+    if minio_uri:
+        runtime_type_config = get_config_for_update(
+            runtime_config, runtime_type)
+        runtime_type_config[MINIO_URI_KEY] = minio_uri
     return cluster_config
 
 
