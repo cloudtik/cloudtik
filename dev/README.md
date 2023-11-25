@@ -1,4 +1,13 @@
 # Developer Guide
+## Setup the development environment
+If you have a fresh Ubuntu machine, you can execute the following
+command to setup the development environment including installing the
+dev tools, conda, docker; and building CloudTik wheel and install it
+to a conda env:
+
+```
+bash ./dev/setup-all.sh
+```
 
 ## Release procedure
 If the version has been bumped up and all source code in main are ready to release,
@@ -29,11 +38,11 @@ bash ./dev/release-docker.sh --release-all --image-tag <version>
 ```
 For build images and push to registry for global and China:
 ```
-bash ./dev/release-docker.sh --release-all --image-tag <version> --region PRC
+bash ./dev/release-docker.sh --release-all --region PRC --image-tag <version>
 ```
 For build GPU images and push to registry for global and China:
 ```
-bash ./dev/release-docker.sh --release-all --image-tag <version> --region PRC --gpu 
+bash ./dev/release-docker.sh --release-all --region PRC --gpu --image-tag <version> 
 ```
 
 ### Step 4: Release wheels to PyPI
