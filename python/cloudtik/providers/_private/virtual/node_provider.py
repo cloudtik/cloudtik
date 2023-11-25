@@ -4,7 +4,7 @@ from types import ModuleType
 from typing import Any, Dict, Optional, List
 
 from cloudtik.core._private.call_context import CallContext
-from cloudtik.core._private.utils import FILE_MOUNTS_CONFIG_KEY, AUTH_CONFIG_KEY
+from cloudtik.core._private.utils import FILE_MOUNTS_CONFIG_KEY, AUTH_CONFIG_KEY, get_head_node_config
 from cloudtik.core.command_executor import CommandExecutor
 from cloudtik.core.node_provider import NodeProvider
 from cloudtik.core.tags import CLOUDTIK_TAG_CLUSTER_NAME, CLOUDTIK_TAG_WORKSPACE_NAME
@@ -121,6 +121,25 @@ class VirtualNodeProvider(NodeProvider):
                 cluster_config[FILE_MOUNTS_CONFIG_KEY])
 
         return remote_config
+
+    def prepare_node_config_for_launch_hash(
+            self, node_config: Dict[str, Any]) -> Dict[str, Any]:
+        if "port_mappings" in node_config:
+            node_config = copy.deepcopy(node_config)
+            node_config.pop("port_mappings", None)
+            return node_config
+        return node_config
+
+    def prepare_config_for_runtime_hash(
+            self, cluster_config: Dict[str, Any]) -> Dict[str, Any]:
+        node_config = get_head_node_config(cluster_config)
+        if "port_mappings" in node_config:
+            cluster_config = copy.deepcopy(cluster_config)
+            node_config = get_head_node_config(cluster_config)
+            node_config.pop("port_mappings", None)
+            return cluster_config
+
+        return cluster_config
 
     @staticmethod
     def bootstrap_config(cluster_config):

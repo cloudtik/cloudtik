@@ -104,7 +104,8 @@ class BaseNodeLauncher:
                 config["available_node_types"][node_type]["node_config"])
         resources = copy.deepcopy(
             config["available_node_types"][node_type]["resources"])
-        launch_hash = hash_launch_conf(launch_config, config["auth"])
+        launch_hash = hash_launch_conf(
+            self.provider, launch_config, config["auth"])
         node_config = {}
         node_tags = {
             CLOUDTIK_TAG_NODE_NAME: "cloudtik-{}-worker".format(config["cluster_name"]),

@@ -39,7 +39,7 @@ from cloudtik.core._private.state.scaling_state import ScalingStateClient
 from cloudtik.core._private.utils import prepare_config, validate_config, fill_with_defaults, \
     set_node_type_min_max_workers, DOCKER_CONFIG_KEY, RUNTIME_CONFIG_KEY, get_cluster_uri, hash_launch_conf, \
     hash_runtime_conf, is_docker_enabled, get_commands_to_run, cluster_booting_completed, merge_cluster_config, \
-    with_head_node_ip_environment_variables
+    with_head_node_ip_environment_variables, prepare_config_for_runtime_hash
 from cloudtik.core._private.cluster import cluster_operator
 from cloudtik.core._private.cluster.cluster_metrics import ClusterMetrics
 from cloudtik.core._private.provider_factory import _NODE_PROVIDERS, _get_node_provider, _PROVIDER_HOMES, \
@@ -732,7 +732,8 @@ class CloudTikTest(unittest.TestCase):
             # Keep in sync with cluster_scaler.py _node_resources
             head_node_resources = head_config.get("resources")
 
-        launch_hash = hash_launch_conf(head_node_config, config["auth"])
+        launch_hash = hash_launch_conf(
+            self.provider, head_node_config, config["auth"])
         creating_new_head = _should_create_new_head(head_node, launch_hash,
                                                     head_node_type, provider)
         if creating_new_head:
@@ -784,10 +785,11 @@ class CloudTikTest(unittest.TestCase):
             # We could prompt the user for what they want to do here.
             # No need to pass in cluster_sync_files because we use this
             # hash to set up the head node
+            config_for_runtime_hash = prepare_config_for_runtime_hash(provider, config)
             (runtime_hash,
              file_mounts_contents_hash,
              runtime_hash_for_node_types) = hash_runtime_conf(
-                config["file_mounts"], None, config)
+                config_for_runtime_hash["file_mounts"], None, config_for_runtime_hash)
             # Even we don't need controller on head, we still need config and cluster keys on head
             # because head depends a lot on the cluster config file and cluster keys to do cluster
             # operations and connect to the worker.

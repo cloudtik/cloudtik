@@ -9,11 +9,10 @@ import psutil
 
 from cloudtik.core._private.core_utils import get_memory_in_bytes, get_cloudtik_temp_dir, exec_with_output
 from cloudtik.core._private.utils import AUTH_CONFIG_KEY, DOCKER_CONFIG_KEY, \
-    FILE_MOUNTS_CONFIG_KEY, get_head_service_ports
+    FILE_MOUNTS_CONFIG_KEY, get_head_service_ports, get_head_node_config, RUNTIME_CONFIG_KEY, \
+    get_runtime_shared_memory_ratio, get_server_process
 from cloudtik.core._private.resource_spec import ResourceSpec
 from cloudtik.core.tags import CLOUDTIK_TAG_CLUSTER_NAME
-
-import cloudtik.core._private.utils as utils
 
 logger = logging.getLogger(__name__)
 
@@ -206,11 +205,7 @@ def _configure_port_mappings(config):
         provider, service_ports)
     # The bridge_address in provider has been set
     host_ip = provider["bridge_address"].split(":")[0]
-    provider["port_mapping_base"] = port_mapping_base
-
-    node_types = config["available_node_types"]
-    head_node_type = config["head_node_type"]
-    node_config = node_types[head_node_type]["node_config"]
+    node_config = get_head_node_config(config)
 
     port_mappings = {}
     for port_name in service_ports:
@@ -247,11 +242,11 @@ def _configure_file_mounts(config):
 
 def _configure_shared_memory_ratio(config):
     # configure shared memory ratio to node config for each type
-    runtime_config = config.get(utils.RUNTIME_CONFIG_KEY)
+    runtime_config = config.get(RUNTIME_CONFIG_KEY)
     if not runtime_config:
         return config
     for node_type, node_type_config in config["available_node_types"].items():
-        shared_memory_ratio = utils.get_runtime_shared_memory_ratio(
+        shared_memory_ratio = get_runtime_shared_memory_ratio(
             runtime_config, config, node_type)
         if shared_memory_ratio != 0:
             node_config = node_type_config["node_config"]
@@ -426,7 +421,7 @@ def get_ssh_server_process_file(workspace_name: str):
 
 
 def _get_ssh_server_process(ssh_server_process_file: str):
-    ssh_server_process = utils.get_server_process(ssh_server_process_file)
+    ssh_server_process = get_server_process(ssh_server_process_file)
     if ssh_server_process is None:
         return None, None, None
     pid = ssh_server_process.get("pid")

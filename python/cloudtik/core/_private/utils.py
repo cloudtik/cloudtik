@@ -1384,7 +1384,9 @@ def with_runtime_encryption_key(
     return environment_variables
 
 
-def hash_launch_conf(node_conf, auth):
+def hash_launch_conf(provider: NodeProvider, node_config, auth):
+    node_config = provider.prepare_node_config_for_launch_hash(
+        node_config)
     hasher = hashlib.sha1()
     # For hashing, we replace the path to the key with the
     # key itself. This is to make sure the hashes are the
@@ -1396,8 +1398,14 @@ def hash_launch_conf(node_conf, auth):
             with open(os.path.expanduser(auth[key_type])) as key:
                 full_auth[key_type] = key.read()
     hasher.update(
-        json.dumps([node_conf, full_auth], sort_keys=True).encode("utf-8"))
+        json.dumps([node_config, full_auth], sort_keys=True).encode("utf-8"))
     return hasher.hexdigest()
+
+
+def prepare_config_for_runtime_hash(
+        provider: NodeProvider,
+        config: Dict[str, Any]) -> Dict[str, Any]:
+    return provider.prepare_config_for_runtime_hash(config)
 
 
 # Cache the file hashes to avoid rescanning it each time. Also, this avoids
@@ -3003,6 +3011,12 @@ def _get_head_service_ports(runtime_types, runtime_config):
             service_ports.update(runtime_service_ports)
 
     return service_ports
+
+
+def get_head_node_config(config: Dict[str, Any]) -> Dict[str, Any]:
+    node_types = config["available_node_types"]
+    head_node_type = config["head_node_type"]
+    return node_types[head_node_type]["node_config"]
 
 
 def is_config_key_with_privacy(key):

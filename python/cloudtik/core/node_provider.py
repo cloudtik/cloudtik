@@ -258,6 +258,20 @@ class NodeProvider:
         The cluster config may also be updated for setting up the head"""
         return remote_config
 
+    def prepare_node_config_for_launch_hash(
+            self, node_config: Dict[str, Any]) -> Dict[str, Any]:
+        """If a provider need to update or remove any node config key values from launch hash,
+        this is the place to return a modified copy.
+        """
+        return node_config
+
+    def prepare_config_for_runtime_hash(
+            self, cluster_config: Dict[str, Any]) -> Dict[str, Any]:
+        """If a provider need to update or remove any cluster config key values
+        from runtime hash, this is the place to return a modified copy.
+        """
+        return cluster_config
+
     def cleanup_cluster(
             self, cluster_config: Dict[str, Any], deep: bool = False):
         """Cleanup the cluster by deleting additional resources other than the nodes.
