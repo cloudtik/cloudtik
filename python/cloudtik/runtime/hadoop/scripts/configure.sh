@@ -263,8 +263,11 @@ function update_local_storage_config_remote_minio() {
     HADOOP_CREDENTIAL_HOME=${REMOTE_MINIO_CONF_DIR}
     HADOOP_CREDENTIAL_NAME=credential-remote.jceks
 
-    fs_default_dir="${MINIO_ENDPOINT_URI}"
+    fs_default_dir="s3a://${MINIO_BUCKET}"
     sed -i "s!{%fs.default.name%}!${fs_default_dir}!g" $HADOOP_CORE_SITE
+    FS_S3A_ENDPOINT="${MINIO_ENDPOINT_URI}"
+    sed -i "s!{%fs.s3a.endpoint%}!${FS_S3A_ENDPOINT}!g" $HADOOP_CORE_SITE
+
     update_minio_storage_credential_config
 
     cp $HADOOP_CORE_SITE ${REMOTE_MINIO_CONF_DIR}/core-site.xml
@@ -280,8 +283,11 @@ function update_local_storage_config_local_minio() {
     HADOOP_CREDENTIAL_HOME=${LOCAL_MINIO_CONF_DIR}
     HADOOP_CREDENTIAL_NAME=credential-local.jceks
 
-    fs_default_dir="http://${HEAD_ADDRESS}:9000"
+    fs_default_dir="s3a://${MINIO_BUCKET}"
     sed -i "s!{%fs.default.name%}!${fs_default_dir}!g" $HADOOP_CORE_SITE
+    # TODO: the port number based on configuration
+    FS_S3A_ENDPOINT="http://${HEAD_ADDRESS}:9000"
+    sed -i "s!{%fs.s3a.endpoint%}!${FS_S3A_ENDPOINT}!g" $HADOOP_CORE_SITE
 
     update_minio_storage_credential_config
 
