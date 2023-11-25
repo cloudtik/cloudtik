@@ -5,6 +5,7 @@
 # 2. Credential values are exported through the environment variables through provider.with_environment_variables.
 # 3. HADOOP_CORE_SITE is set to the core-site file to update.
 # 4. HADOOP_HOME is set to the hadoop installation home.
+# 5. HADOOP_CREDENTIAL_HOME and HADOOP_CREDENTIAL_NAME can be used to set a different credential path
 
 function update_hadoop_credential_property() {
     if [ "${HAS_HADOOP_CREDENTIAL}" == "true" ]; then
@@ -229,8 +230,14 @@ function update_credential_config_for_provider() {
 }
 
 function update_cloud_storage_credential_config() {
-    HADOOP_CREDENTIAL_FILE="${HADOOP_HOME}/etc/hadoop/credential.jceks"
-    HADOOP_CREDENTIAL_TMP_FILE="${output_dir}/credential.jceks"
+    if [ -z "${HADOOP_CREDENTIAL_HOME}" ]; then
+        HADOOP_CREDENTIAL_HOME=${HADOOP_HOME}/etc/hadoop
+    fi
+    if [ -z "${HADOOP_CREDENTIAL_NAME}" ]; then
+        HADOOP_CREDENTIAL_NAME=credential.jceks
+    fi
+    HADOOP_CREDENTIAL_FILE="${HADOOP_CREDENTIAL_HOME}/${HADOOP_CREDENTIAL_NAME}"
+    HADOOP_CREDENTIAL_TMP_FILE="${output_dir}/${HADOOP_CREDENTIAL_NAME}"
     HADOOP_CREDENTIAL_TMP_PROVIDER_PATH="jceks://file@${HADOOP_CREDENTIAL_TMP_FILE}"
 
     # update hadoop credential config
@@ -242,8 +249,14 @@ function update_cloud_storage_credential_config() {
 }
 
 function update_minio_storage_credential_config() {
-    HADOOP_CREDENTIAL_FILE="${HADOOP_HOME}/etc/hadoop/credential.jceks"
-    HADOOP_CREDENTIAL_TMP_FILE="${output_dir}/credential.jceks"
+    if [ -z "${HADOOP_CREDENTIAL_HOME}" ]; then
+        HADOOP_CREDENTIAL_HOME=${HADOOP_HOME}/etc/hadoop
+    fi
+    if [ -z "${HADOOP_CREDENTIAL_NAME}" ]; then
+        HADOOP_CREDENTIAL_NAME=credential.jceks
+    fi
+    HADOOP_CREDENTIAL_FILE="${HADOOP_CREDENTIAL_HOME}/${HADOOP_CREDENTIAL_NAME}"
+    HADOOP_CREDENTIAL_TMP_FILE="${output_dir}/${HADOOP_CREDENTIAL_NAME}"
     HADOOP_CREDENTIAL_TMP_PROVIDER_PATH="jceks://file@${HADOOP_CREDENTIAL_TMP_FILE}"
 
     # update hadoop credential config
