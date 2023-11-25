@@ -20,13 +20,16 @@ do
     --no-pull)
         NO_PULL=YES
         ;;
+    --build-redis)
+        BUILD_REDIS=YES
+        ;;
     --copy)
         # Copy the nightly to a directory
         shift
         COPY_DIR=$1
         ;;
     *)
-        echo "Usage: build.sh [ --branch main ] [ --copy copy_to_dir]"
+        echo "Usage: nightly-build.sh [ --branch main ] [--no-pull] [--build-redis] [ --copy copy_to_dir]"
         exit 1
     esac
     shift
@@ -46,7 +49,12 @@ CLOUDTIK_VERSION=$(sed -n 's/__version__ = \"\(..*\)\"/\1/p' ./python/cloudtik/_
 
 source $CONDA_HOME/bin/activate cloudtik_py${PYTHON_TAG} || conda create -n cloudtik_py${PYTHON_TAG} -y python=${PYTHON_VERSION}
 source $CONDA_HOME/bin/activate cloudtik_py${PYTHON_TAG}
-bash ./build.sh --no-build-redis
+
+if [ $BUILD_REDIS ]; then
+    bash ./build.sh
+else
+    bash ./build.sh --no-build-redis
+fi
 
 arch=$(uname -m)
 
