@@ -24,11 +24,11 @@ function prepare_base_conf() {
 
     # Make copy for local and remote HDFS
     cp $output_dir/hadoop/core-site.xml $output_dir/hadoop/core-site-local.xml
-    sed -i "s!{%fs.default.name%}!{%local.fs.default.name%}!g" \
-      $output_dir/hadoop/core-site-local.xml
     cp $output_dir/hadoop/core-site.xml $output_dir/hadoop/core-site-remote.xml
-    sed -i "s!{%fs.default.name%}!{%remote.fs.default.name%}!g" \
-      $output_dir/hadoop/core-site-remote.xml
+
+    # Make copy for local and remote MinIO
+    cp $output_dir/hadoop/core-site-minio.xml $output_dir/hadoop/core-site-minio-local.xml
+    cp $output_dir/hadoop/core-site-minio.xml $output_dir/hadoop/core-site-minio-remote.xml
 }
 
 function check_hadoop_installed() {
@@ -177,19 +177,22 @@ function update_config_for_huaweicloud() {
     update_cloud_storage_credential_config
 }
 
+function update_config_for_local_storage() {
+    if [ "$REMOTE_HDFS_STORAGE" == "true" ]; then
+        update_config_for_hdfs
+    elif [ "$REMOTE_MINIO_STORAGE" == "true" ]; then
+        update_config_for_minio
+    elif [ "$LOCAL_HDFS_STORAGE" == "true" ]; then
+        update_config_for_local_hdfs
+    elif [ "$LOCAL_MINIO_STORAGE" == "true" ]; then
+        update_config_for_local_minio
+    fi
+}
+
 function update_config_for_hadoop_default() {
     if [ "${HADOOP_DEFAULT_CLUSTER}" == "true" ]; then
-        if [ "$REMOTE_HDFS_STORAGE" == "true" ]; then
-            update_config_for_hdfs
-            return 0
-        elif [ "$REMOTE_MINIO_STORAGE" == "true" ]; then
-            update_config_for_minio
-            return 0
-        elif [ "$LOCAL_HDFS_STORAGE" == "true" ]; then
-            update_config_for_local_hdfs
-            return 0
-        elif [ "$LOCAL_MINIO_STORAGE" == "true" ]; then
-            update_config_for_local_minio
+        update_config_for_local_storage
+        if [ ! -z "${HADOOP_CORE_SITE}" ]; then
             return 0
         fi
     fi
@@ -204,14 +207,8 @@ function update_config_for_hadoop_default() {
         update_config_for_aliyun
     elif [ "${cloud_storage_provider}" == "huaweicloud" ]; then
         update_config_for_huaweicloud
-    elif [ "$REMOTE_HDFS_STORAGE" == "true" ]; then
-        update_config_for_hdfs
-    elif [ "$REMOTE_MINIO_STORAGE" == "true" ]; then
-        update_config_for_minio
-    elif [ "$LOCAL_HDFS_STORAGE" == "true" ]; then
-        update_config_for_local_hdfs
-    elif [ "$LOCAL_MINIO_STORAGE" == "true" ]; then
-        update_config_for_local_minio
+    else
+        update_config_for_local_storage
     fi
 }
 
@@ -223,7 +220,7 @@ function update_nfs_dump_dir() {
     else
         nfs_dump_dir="$data_disk_dir/tmp/.hdfs-nfs"
     fi
-    sed -i "s!{%dfs.nfs3.dump.dir%}!${nfs_dump_dir}!g" `grep "{%dfs.nfs3.dump.dir%}" -rl ./`
+    sed -i "s!{%dfs.nfs3.dump.dir%}!${nfs_dump_dir}!g" ${output_dir}/hadoop/hdfs-site.xml
 }
 
 function update_local_storage_config_remote_hdfs() {
@@ -232,11 +229,12 @@ function update_local_storage_config_remote_hdfs() {
     mkdir -p ${REMOTE_HDFS_CONF_DIR}
     cp -r ${HADOOP_HOME}/etc/hadoop/* ${REMOTE_HDFS_CONF_DIR}/
 
+    HADOOP_CORE_SITE=${output_dir}/hadoop/core-site-remote.xml
     fs_default_dir="${HDFS_NAMENODE_URI}"
-    sed -i "s!{%remote.fs.default.name%}!${fs_default_dir}!g" ${output_dir}/hadoop/core-site-remote.xml
+    sed -i "s!{%fs.default.name%}!${fs_default_dir}!g" $HADOOP_CORE_SITE
 
     # override with remote hdfs conf
-    cp ${output_dir}/hadoop/core-site-remote.xml ${REMOTE_HDFS_CONF_DIR}/core-site.xml
+    cp $HADOOP_CORE_SITE ${REMOTE_HDFS_CONF_DIR}/core-site.xml
     cp -r ${output_dir}/hadoop/hdfs-site.xml ${REMOTE_HDFS_CONF_DIR}/
 }
 
@@ -246,12 +244,48 @@ function update_local_storage_config_local_hdfs() {
     mkdir -p ${LOCAL_HDFS_CONF_DIR}
     cp -r ${HADOOP_HOME}/etc/hadoop/* ${LOCAL_HDFS_CONF_DIR}/
 
+    HADOOP_CORE_SITE=${output_dir}/hadoop/core-site-local.xml
     fs_default_dir="hdfs://${HEAD_ADDRESS}:9000"
-    sed -i "s!{%local.fs.default.name%}!${fs_default_dir}!g" ${output_dir}/hadoop/core-site-local.xml
+    sed -i "s!{%fs.default.name%}!${fs_default_dir}!g" $HADOOP_CORE_SITE
 
     # override with local hdfs conf
-    cp ${output_dir}/hadoop/core-site-local.xml ${LOCAL_HDFS_CONF_DIR}/core-site.xml
+    cp $HADOOP_CORE_SITE ${LOCAL_HDFS_CONF_DIR}/core-site.xml
     cp -r ${output_dir}/hadoop/hdfs-site.xml ${LOCAL_HDFS_CONF_DIR}/
+}
+
+function update_local_storage_config_remote_minio() {
+    REMOTE_MINIO_CONF_DIR=${HADOOP_HOME}/etc/remote
+    # copy the existing hadoop conf
+    mkdir -p ${REMOTE_MINIO_CONF_DIR}
+    cp -r ${HADOOP_HOME}/etc/hadoop/* ${REMOTE_MINIO_CONF_DIR}/
+
+    HADOOP_CORE_SITE=${output_dir}/hadoop/core-site-minio-remote.xml
+    HADOOP_CREDENTIAL_HOME=${REMOTE_MINIO_CONF_DIR}
+    HADOOP_CREDENTIAL_NAME=credential-remote.jceks
+
+    fs_default_dir="${MINIO_ENDPOINT_URI}"
+    sed -i "s!{%fs.default.name%}!${fs_default_dir}!g" $HADOOP_CORE_SITE
+    update_minio_storage_credential_config
+
+    cp $HADOOP_CORE_SITE ${REMOTE_MINIO_CONF_DIR}/core-site.xml
+}
+
+function update_local_storage_config_local_minio() {
+    LOCAL_MINIO_CONF_DIR=${HADOOP_HOME}/etc/local
+    # copy the existing hadoop conf
+    mkdir -p ${LOCAL_MINIO_CONF_DIR}
+    cp -r ${HADOOP_HOME}/etc/hadoop/* ${LOCAL_MINIO_CONF_DIR}/
+
+    HADOOP_CORE_SITE=${output_dir}/hadoop/core-site-minio-local.xml
+    HADOOP_CREDENTIAL_HOME=${LOCAL_MINIO_CONF_DIR}
+    HADOOP_CREDENTIAL_NAME=credential-local.jceks
+
+    fs_default_dir="http://${HEAD_ADDRESS}:9000"
+    sed -i "s!{%fs.default.name%}!${fs_default_dir}!g" $HADOOP_CORE_SITE
+
+    update_minio_storage_credential_config
+
+    cp $HADOOP_CORE_SITE ${LOCAL_MINIO_CONF_DIR}/core-site.xml
 }
 
 function update_local_storage_config() {
@@ -259,9 +293,14 @@ function update_local_storage_config() {
 
     if [ "${REMOTE_HDFS_STORAGE}" == "true" ]; then
         update_local_storage_config_remote_hdfs
+    elif [ "${REMOTE_MINIO_STORAGE}" == "true" ]; then
+        update_local_storage_config_remote_minio
     fi
+
     if [ "${LOCAL_HDFS_STORAGE}" == "true" ]; then
         update_local_storage_config_local_hdfs
+    elif [ "${LOCAL_MINIO_STORAGE}" == "true" ]; then
+        update_local_storage_config_local_minio
     fi
 }
 
@@ -272,11 +311,12 @@ function update_config_for_hadoop() {
     set_cluster_storage
     set_cloud_storage_provider
     update_config_for_hadoop_default
-    update_local_storage_config
 
     sed -i "s!{%hadoop.fs.default%}!${HADOOP_FS_DEFAULT}!g" ${output_dir}/hadoop-fs-default
     cp ${output_dir}/hadoop-fs-default ${HADOOP_HOME}/etc/hadoop/hadoop-fs-default
     cp $HADOOP_CORE_SITE ${HADOOP_HOME}/etc/hadoop/core-site.xml
+
+    update_local_storage_config
 }
 
 function configure_hadoop() {
