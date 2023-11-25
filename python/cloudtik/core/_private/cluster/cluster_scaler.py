@@ -54,7 +54,7 @@ from cloudtik.core._private.utils import validate_config, \
     _get_node_specific_docker_config, _get_node_specific_runtime_config, \
     _has_node_type_specific_runtime_config, get_runtime_config_key, RUNTIME_CONFIG_KEY, \
     process_config_with_privacy, decrypt_config, CLOUDTIK_CLUSTER_SCALING_STATUS, get_runtime_encryption_key, \
-    with_runtime_encryption_key, PROVIDER_STORAGE_CONFIG_KEY, PROVIDER_DATABASE_CONFIG_KEY
+    with_runtime_encryption_key, PROVIDER_STORAGE_CONFIG_KEY, PROVIDER_DATABASE_CONFIG_KEY, prepare_config_for_runtime_hash
 from cloudtik.core._private.constants import CLOUDTIK_MAX_NUM_FAILURES, \
     CLOUDTIK_MAX_LAUNCH_BATCH, CLOUDTIK_MAX_CONCURRENT_LAUNCHES, \
     CLOUDTIK_UPDATE_INTERVAL_S, CLOUDTIK_HEARTBEAT_TIMEOUT_S, \
@@ -949,13 +949,13 @@ class ClusterScaler:
 
         self.config = new_config
         self.secrets = get_runtime_encryption_key(self.config)
-        self._update_runtime_hashes(self.config)
 
         if not self.provider:
             self.provider = _get_node_provider(self.config["provider"],
                                                self.config["cluster_name"])
 
         self.available_node_types = self.config["available_node_types"]
+        self._update_runtime_hashes(self.config)
 
         upscaling_speed = self.config.get("upscaling_speed")
         target_utilization_fraction = self.config.get(
@@ -986,25 +986,26 @@ class ClusterScaler:
         # Update the new config to resource scaling policy
         self.resource_scaling_policy.reset(self.config)
 
-    def _update_runtime_hashes(self, new_config):
-        sync_continuously = new_config.get("file_mounts_sync_continuously", False)
+    def _update_runtime_hashes(self, config):
+        config = prepare_config_for_runtime_hash(self.provider, config)
+        sync_continuously = config.get("file_mounts_sync_continuously", False)
         global_runtime_conf = {
-            "worker_setup_commands": get_commands_to_run(new_config, "worker_setup_commands"),
-            "worker_start_commands": get_commands_to_run(new_config, "worker_start_commands"),
-            "runtime": new_config.get(RUNTIME_CONFIG_KEY, {}),
-            "storage": new_config["provider"].get(PROVIDER_STORAGE_CONFIG_KEY, {}),
-            "database": new_config["provider"].get(PROVIDER_DATABASE_CONFIG_KEY, {})
+            "worker_setup_commands": get_commands_to_run(config, "worker_setup_commands"),
+            "worker_start_commands": get_commands_to_run(config, "worker_start_commands"),
+            "runtime": config.get(RUNTIME_CONFIG_KEY, {}),
+            "storage": config["provider"].get(PROVIDER_STORAGE_CONFIG_KEY, {}),
+            "database": config["provider"].get(PROVIDER_DATABASE_CONFIG_KEY, {})
         }
         (new_runtime_hash,
          new_file_mounts_contents_hash,
          new_runtime_hash_for_node_types) = hash_runtime_conf(
-            file_mounts=new_config["file_mounts"],
-            cluster_synced_files=new_config["cluster_synced_files"],
+            file_mounts=config["file_mounts"],
+            cluster_synced_files=config["cluster_synced_files"],
             extra_objs=global_runtime_conf,
             generate_runtime_hash=True,
             generate_file_mounts_contents_hash=sync_continuously,
             generate_node_types_runtime_hash=True,
-            config=new_config
+            config=config
         )
 
         self.runtime_hash = new_runtime_hash
@@ -1016,6 +1017,7 @@ class ClusterScaler:
         if not sync_continuously:
             return
 
+        config = prepare_config_for_runtime_hash(self.provider, config)
         (_,
          new_file_mounts_contents_hash,
          _) = hash_runtime_conf(
@@ -1096,8 +1098,8 @@ class ClusterScaler:
         if node_type:
             launch_config.update(
                 self.config["available_node_types"][node_type]["node_config"])
-        calculated_launch_hash = hash_launch_conf(launch_config,
-                                                  self.config["auth"])
+        calculated_launch_hash = hash_launch_conf(
+            self.provider, launch_config, self.config["auth"])
 
         if calculated_launch_hash != tag_launch_conf:
             return False

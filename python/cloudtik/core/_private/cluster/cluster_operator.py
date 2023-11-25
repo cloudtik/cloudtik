@@ -70,7 +70,7 @@ from cloudtik.core._private.utils import hash_runtime_conf, \
     get_worker_node_type, save_server_process, get_resource_requests_for, _get_head_resource_requests, \
     get_resource_list_str, with_verbose_option, run_script, NODE_INFO_NODE_ID, is_alive_time_at, \
     get_runtime_encryption_key, with_runtime_encryption_key, is_use_managed_cloud_storage, \
-    print_dict_info, is_use_managed_cloud_database
+    print_dict_info, is_use_managed_cloud_database, prepare_config_for_runtime_hash
 
 from cloudtik.core._private.provider_factory import _get_node_provider, _NODE_PROVIDERS
 from cloudtik.core.tags import (
@@ -861,7 +861,8 @@ def get_or_create_head_node(config: Dict[str, Any],
         # Keep in sync with cluster_scaler.py _node_resources
         head_node_resources = head_config.get("resources")
 
-    launch_hash = hash_launch_conf(head_node_config, config["auth"])
+    launch_hash = hash_launch_conf(
+        provider, head_node_config, config["auth"])
     creating_new_head = _should_create_new_head(head_node, launch_hash,
                                                 head_node_type, provider)
     if creating_new_head:
@@ -913,12 +914,13 @@ def get_or_create_head_node(config: Dict[str, Any],
         # We could prompt the user for what they want to do here.
         # No need to pass in cluster_sync_files because we use this
         # hash to set up the head node
+        config_for_runtime_hash = prepare_config_for_runtime_hash(provider, config)
         (runtime_hash,
          file_mounts_contents_hash,
          runtime_hash_for_node_types) = hash_runtime_conf(
-            file_mounts=config["file_mounts"],
+            file_mounts=config_for_runtime_hash["file_mounts"],
             cluster_synced_files=None,
-            extra_objs=config)
+            extra_objs=config_for_runtime_hash)
         # Even we don't need controller on head, we still need config and cluster keys on head
         # because head depends a lot on the cluster config file and cluster keys to do cluster
         # operations and connect to the worker.
