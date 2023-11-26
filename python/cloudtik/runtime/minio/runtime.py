@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 class MinIORuntime(RuntimeBase):
     """Implementation for MinIO Runtime for S3 compatible object storage.
-    MinIO requires using expansion notation {x...y} to denote a sequential
+    Important: MinIO requires using expansion notation {x...y} to denote a sequential
     series of MinIO hosts when creating a server pool. So MinIO will need
     depend on Consul to provide DNS service for cluster node and depend on
     one of the DNS resolvers (dnsmasq, coredns, bind) to be set as the system

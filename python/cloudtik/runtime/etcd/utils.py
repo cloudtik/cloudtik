@@ -9,6 +9,7 @@ from cloudtik.core._private.runtime_utils import RUNTIME_NODE_SEQ_ID, RUNTIME_NO
     load_and_save_yaml, get_runtime_value
 from cloudtik.core._private.service_discovery.utils import get_canonical_service_name, define_runtime_service_on_worker, \
     get_service_discovery_config, ServiceRegisterException, SERVICE_DISCOVERY_FEATURE_KEY_VALUE
+from cloudtik.core._private.utils import is_node_seq_id_enabled, enable_node_seq_id
 from cloudtik.runtime.common.service_discovery.workspace import register_service_to_workspace
 
 logger = logging.getLogger(__name__)
@@ -42,6 +43,13 @@ def _get_runtime_logs():
 
 def _get_runtime_processes():
     return RUNTIME_PROCESSES
+
+
+def _bootstrap_runtime_config(cluster_config: Dict[str, Any]) -> Dict[str, Any]:
+    # We must enable the node seq id
+    if not is_node_seq_id_enabled(cluster_config):
+        enable_node_seq_id(cluster_config)
+    return cluster_config
 
 
 def _with_runtime_environment_variables(

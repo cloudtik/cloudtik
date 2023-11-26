@@ -2975,8 +2975,23 @@ def _is_permanent_data_volumes(provider_config: Dict[str, Any]) -> bool:
     return provider_config.get("permanent_data_volumes", False)
 
 
-def enable_stable_node_seq_id(config):
+def is_node_seq_id_enabled(config):
+    return not config.get("disable_node_seq_id", False)
+
+
+def enable_node_seq_id(config):
     config["disable_node_seq_id"] = False
+
+
+def is_stable_node_seq_id_enabled(config):
+    if not is_node_seq_id_enabled(config):
+        return False
+    return config.get("stable_node_seq_id", False)
+
+
+def enable_stable_node_seq_id(config):
+    if not is_node_seq_id_enabled(config):
+        enable_node_seq_id(config)
     config["stable_node_seq_id"] = True
 
 

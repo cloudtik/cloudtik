@@ -7,7 +7,7 @@ from cloudtik.core._private.service_discovery.runtime_services import get_servic
 from cloudtik.core._private.service_discovery.utils import get_canonical_service_name, define_runtime_service_on_worker, \
     get_service_discovery_config, SERVICE_DISCOVERY_FEATURE_MESSAGING
 from cloudtik.core._private.utils import \
-    load_properties_file, save_properties_file, get_runtime_config
+    load_properties_file, save_properties_file, get_runtime_config, is_node_seq_id_enabled, enable_node_seq_id
 from cloudtik.runtime.common.service_discovery.cluster import query_service_from_cluster, get_service_addresses_string, \
     has_runtime_in_cluster
 from cloudtik.runtime.common.service_discovery.runtime_discovery import \
@@ -32,6 +32,13 @@ def _get_config(runtime_config: Dict[str, Any]):
 def _prepare_config(cluster_config: Dict[str, Any]) -> Dict[str, Any]:
     cluster_config = discover_zookeeper_from_workspace(
         cluster_config, BUILT_IN_RUNTIME_KAFKA)
+    return cluster_config
+
+
+def _bootstrap_runtime_config(cluster_config: Dict[str, Any]) -> Dict[str, Any]:
+    # We must enable the node seq id
+    if not is_node_seq_id_enabled(cluster_config):
+        enable_node_seq_id(cluster_config)
     return cluster_config
 
 
