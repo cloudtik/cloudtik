@@ -1,4 +1,3 @@
-import os
 from typing import Any, Dict
 
 from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_MOUNT, BUILT_IN_RUNTIME_HADOOP

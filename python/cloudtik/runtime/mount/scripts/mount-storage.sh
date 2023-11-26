@@ -198,26 +198,34 @@ function configure_local_storage_fs() {
 
         # cluster local storage from remote cluster
         if [ ! -z "${HDFS_NAMENODE_URI}" ]; then
+            install_hdfs_fuse
             configure_hdfs_fs
         elif [ ! -z "${MINIO_ENDPOINT_URI}" ]; then
+            install_s3_fuse
             configure_minio_fs
         fi
 
         # cluster local storage from local cluster
         if [ "$HDFS_ENABLED" == "true" ]; then
+            install_hdfs_fuse
             configure_local_hdfs_fs
         elif [ "$MINIO_ENABLED" == "true" ]; then
+            install_s3_fuse
             configure_local_minio_fs
         fi
     else
         # default fs already be configured, only one of them will be configured for local
         if [ ! -z "${HDFS_NAMENODE_URI}" ]; then
+            install_hdfs_fuse
             configure_hdfs_fs
         elif [ ! -z "${MINIO_ENDPOINT_URI}" ]; then
+            install_s3_fuse
             configure_minio_fs
         elif [ "$HDFS_ENABLED" == "true" ]; then
+            install_hdfs_fuse
             configure_local_hdfs_fs
         elif [ "$MINIO_ENABLED" == "true" ]; then
+            install_s3_fuse
             configure_local_minio_fs
         fi
     fi
@@ -248,9 +256,17 @@ function install_hdfs_fuse() {
     which mount.nfs > /dev/null || (sudo  apt-get -qq update -y > /dev/null; \
       sudo DEBIAN_FRONTEND=noninteractive apt-get -qq install nfs-common -y > /dev/null)
 
-    # install HDFS NFS fix if not installed
-    wget -q ${CLOUDTIK_DOWNLOADS}/hadoop/hadoop-hdfs-nfs-${HADOOP_VERSION}.jar \
-      -O ${HADOOP_HOME}/share/hadoop/hdfs/hadoop-hdfs-nfs-${HADOOP_VERSION}.jar
+    local HDFS_NFS_JAR=hadoop-hdfs-nfs-${HADOOP_VERSION}.jar
+    local HDFS_NFS_JAR_FIX=${HADOOP_HOME}/fix/${HDFS_NFS_JAR}
+    if [ ! -f "${HDFS_NFS_JAR_FIX}" ] \
+      && [ -d "${HADOOP_HOME}/share/hadoop/hdfs" ]; then
+        # install HDFS NFS fix if not installed
+        mkdir -p ${HADOOP_HOME}/fix && \
+        wget -q ${CLOUDTIK_DOWNLOADS}/hadoop/${HDFS_NFS_JAR} \
+          -O ${HDFS_NFS_JAR_FIX} && \
+        cp ${HDFS_NFS_JAR_FIX} \
+          ${HADOOP_HOME}/share/hadoop/hdfs/${HDFS_NFS_JAR}
+    fi
 }
 
 function install_s3_fuse() {
@@ -295,96 +311,23 @@ function install_aliyun_oss_fuse() {
     fi
 }
 
-function install_hdfs_fs() {
-    install_hdfs_fuse
-    INSTALLED_FOR_DEFAULT_FS=true
-}
-
-function install_local_hdfs_fs() {
-    install_hdfs_fuse
-    INSTALLED_FOR_DEFAULT_FS=true
-}
-
-function install_minio_fs() {
-    install_s3_fuse
-    INSTALLED_FOR_DEFAULT_FS=true
-}
-
-function install_local_minio_fs() {
-    install_s3_fuse
-    INSTALLED_FOR_DEFAULT_FS=true
-}
-
-function install_s3_fs() {
-    install_s3_fuse
-    INSTALLED_FOR_DEFAULT_FS=true
-}
-
-function install_azure_fs() {
-    install_azure_blob_fuse
-    INSTALLED_FOR_DEFAULT_FS=true
-}
-
-function install_gcs_fs() {
-    install_gcs_fuse
-    INSTALLED_FOR_DEFAULT_FS=true
-}
-
-function install_aliyun_fs() {
-    install_aliyun_oss_fuse
-    INSTALLED_FOR_DEFAULT_FS=true
-}
-
 function install_cloud_storage_fs() {
     # cloud storage from provider
     if [ "$AWS_CLOUD_STORAGE" == "true" ]; then
-        install_s3_fs
+        install_s3_fuse
     elif [ "$AZURE_CLOUD_STORAGE" == "true" ]; then
-        install_azure_fs
+        install_azure_blob_fuse
     elif [ "$GCP_CLOUD_STORAGE" == "true" ]; then
-        install_gcs_fs
+        install_gcs_fuse
     elif [ "$ALIYUN_CLOUD_STORAGE" == "true" ]; then
-        install_aliyun_fs
-    fi
-}
-
-function install_local_storage_fs() {
-    # cluster local storage
-    if [ "${INSTALLED_FOR_DEFAULT_FS}" == "true" ]; then
-        # Two of them will be installed for default and local
-        # Only the needed URI or local runtime will be set
-
-        # cluster local storage from remote cluster
-        if [ ! -z "${HDFS_NAMENODE_URI}" ]; then
-            install_hdfs_fs
-        elif [ ! -z "${MINIO_ENDPOINT_URI}" ]; then
-            install_minio_fs
-        fi
-
-        # cluster local storage from local cluster
-        if [ "$HDFS_ENABLED" == "true" ]; then
-            install_local_hdfs_fs
-        elif [ "$MINIO_ENABLED" == "true" ]; then
-            install_local_minio_fs
-        fi
-    else
-        # default fs already be installed, only one of them will be installed for local
-        if [ ! -z "${HDFS_NAMENODE_URI}" ]; then
-            install_hdfs_fs
-        elif [ ! -z "${MINIO_ENDPOINT_URI}" ]; then
-            install_minio_fs
-        elif [ "$HDFS_ENABLED" == "true" ]; then
-            install_local_hdfs_fs
-        elif [ "$MINIO_ENABLED" == "true" ]; then
-            install_local_minio_fs
-        fi
+        install_aliyun_oss_fuse
     fi
 }
 
 function install_storage_fs() {
-    INSTALLED_FOR_DEFAULT_FS=false
     install_cloud_storage_fs
-    install_local_storage_fs
+    # Check and install of local storage fs moved to configure stage
+    # so that we can install only when it is needed
 }
 
 # Service functions
@@ -401,7 +344,7 @@ function mount_hdfs_fs() {
     mkdir -p ${FS_MOUNT_PATH}
 
     # only one NFS Gateway per node is supported
-    if [ "${HDFS_NFS_MOUNTED}" != "true" ] &&[ "${HDFS_MOUNT_METHOD}" == "nfs" ]; then
+    if [ "${HDFS_NFS_MOUNTED}" != "true" ] && [ "${HDFS_MOUNT_METHOD}" == "nfs" ]; then
         HDFS_NFS_MOUNTED=true
 
         # Use the remote HDFS dedicated core-site.xml and hdfs-site.xml

@@ -9,6 +9,8 @@ eval set -- "${args}"
 
 USER_HOME=/home/$(whoami)
 RUNTIME_PATH=$USER_HOME/runtime
+MOUNT_HOME=$USER_HOME/runtime/mount
+
 export DEFAULT_FS_MOUNT_PATH=/cloudtik/fs
 export LOCAL_FS_MOUNT_PATH=/cloudtik/localfs
 
@@ -24,6 +26,8 @@ set_head_address
 
 case "$SERVICE_COMMAND" in
 start)
+    # Will set necessary environments variables needed for service starting
+    . $MOUNT_HOME/conf/mount.conf
     # Mount cloud filesystem or hdfs
     mount_storage_fs
     ;;
