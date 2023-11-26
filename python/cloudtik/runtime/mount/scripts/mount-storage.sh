@@ -198,34 +198,26 @@ function configure_local_storage_fs() {
 
         # cluster local storage from remote cluster
         if [ ! -z "${HDFS_NAMENODE_URI}" ]; then
-            install_hdfs_fuse
             configure_hdfs_fs
         elif [ ! -z "${MINIO_ENDPOINT_URI}" ]; then
-            install_s3_fuse
             configure_minio_fs
         fi
 
         # cluster local storage from local cluster
         if [ "$HDFS_ENABLED" == "true" ]; then
-            install_hdfs_fuse
             configure_local_hdfs_fs
         elif [ "$MINIO_ENABLED" == "true" ]; then
-            install_s3_fuse
             configure_local_minio_fs
         fi
     else
         # default fs already be configured, only one of them will be configured for local
         if [ ! -z "${HDFS_NAMENODE_URI}" ]; then
-            install_hdfs_fuse
             configure_hdfs_fs
         elif [ ! -z "${MINIO_ENDPOINT_URI}" ]; then
-            install_s3_fuse
             configure_minio_fs
         elif [ "$HDFS_ENABLED" == "true" ]; then
-            install_hdfs_fuse
             configure_local_hdfs_fs
         elif [ "$MINIO_ENABLED" == "true" ]; then
-            install_s3_fuse
             configure_local_minio_fs
         fi
     fi
@@ -324,10 +316,15 @@ function install_cloud_storage_fs() {
     fi
 }
 
+function install_local_storage_fs() {
+    # always install local storage fs
+    install_hdfs_fuse
+    install_s3_fuse
+}
+
 function install_storage_fs() {
     install_cloud_storage_fs
-    # Check and install of local storage fs moved to configure stage
-    # so that we can install only when it is needed
+    install_local_storage_fs
 }
 
 # Service functions
