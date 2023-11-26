@@ -19,7 +19,7 @@ RUNTIME_PATH=$USER_HOME/runtime
 . "$BIN_DIR"/mount-storage.sh
 
 function install_mount() {
-    install_cloud_fuse
+    install_storage_fs
 }
 
 set_head_option "$@"

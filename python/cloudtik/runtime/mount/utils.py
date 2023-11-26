@@ -1,9 +1,8 @@
-import os
 from typing import Any, Dict
 
 from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_MOUNT, BUILT_IN_RUNTIME_HADOOP
+from cloudtik.runtime.common.hadoop import configure_remote_storage, configure_storage_properties
 from cloudtik.runtime.common.service_discovery.cluster import has_runtime_in_cluster
-from cloudtik.runtime.common.service_discovery.runtime_discovery import HDFS_URI_KEY
 
 RUNTIME_PROCESSES = [
     # The first element is the substring to filter.
@@ -34,9 +33,7 @@ def _with_hdfs_mount_method(mount_config, runtime_envs):
 
 
 def _with_runtime_environment_variables(runtime_config, config):
-    runtime_envs = {
-        "MOUNT_CLIENT": True,
-    }
+    runtime_envs = {"MOUNT_CLIENT": True}
     mount_config = _get_config(runtime_config)
     _with_hdfs_mount_method(mount_config, runtime_envs)
     return runtime_envs
@@ -46,6 +43,5 @@ def _configure(runtime_config, head: bool):
     # if Hadoop runtime (client) is installed, we export corresponding environment
     if has_runtime_in_cluster(runtime_config, BUILT_IN_RUNTIME_HADOOP):
         hadoop_config = runtime_config.get(BUILT_IN_RUNTIME_HADOOP, {})
-        hdfs_uri = hadoop_config.get(HDFS_URI_KEY)
-        if hdfs_uri:
-            os.environ["HDFS_NAMENODE_URI"] = hdfs_uri
+        configure_remote_storage(hadoop_config)
+        configure_storage_properties(runtime_config)

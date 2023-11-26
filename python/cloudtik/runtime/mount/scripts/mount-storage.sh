@@ -4,18 +4,18 @@
 # 1. HDFS_ENABLED, HDFS_NAMENODE_URI, $XXX_CLOUD_STORAGE variable is set correspondingly.
 # 2. Credential values are exported through the environment variables through provider.with_environment_variables.
 # 3. USER_HOME is set to the current user home.
-# 4. For service functions, CLOUD_FS_MOUNT_PATH is set to the target path for mounting.
+# 4. For service functions, DEFAULT_FS_MOUNT_PATH is set to the target path for mounting.
 #    For service functions for local hdfs, HEAD_ADDRESS is set.
 
 # Cloud storage fuse mounts:
 # 1. If cloud storage of provider configured:
-#   The cloud storage of provider mounts to CLOUD_FS_MOUNT_PATH
+#   The cloud storage of provider mounts to DEFAULT_FS_MOUNT_PATH
 #   Any cluster local storage mounts to LOCAL_FS_MOUNT_PATH
 # 2. If We are operating without cloud storage of provider:
-#   a. If there is remote cluster storage, it will mount to CLOUD_FS_MOUNT_PATH
+#   a. If there is remote cluster storage, it will mount to DEFAULT_FS_MOUNT_PATH
 #      Any cluster local storage mounts to LOCAL_FS_MOUNT_PATH
 #   b. If there is no remote cluster storage
-#      Any cluster local storage mounts to CLOUD_FS_MOUNT_PATH
+#      Any cluster local storage mounts to DEFAULT_FS_MOUNT_PATH
 
 # Configuring functions
 function configure_fuse_options() {
@@ -42,12 +42,34 @@ function get_fuse_cache_path() {
   echo $fuse_cache_dir
 }
 
-function configure_local_hdfs_fs() {
-    configure_fuse_options
-}
-
 function configure_hdfs_fs() {
     configure_fuse_options
+    CONFIGURED_FOR_DEFAULT_FS=true
+}
+
+function configure_local_hdfs_fs() {
+    configure_fuse_options
+    CONFIGURED_FOR_DEFAULT_FS=true
+}
+
+function configure_minio() {
+    # TODO: handle different credentials for local and remote service
+    if [ -z "${MINIO_BUCKET}" ]; then
+        echo "MINIO_BUCKET environment variable is not set."
+        return
+    fi
+
+    echo "${MINIO_ACCESS_KEY}:${MINIO_SECRET_KEY}" > ${USER_HOME}/.passwd-s3fs-minio
+    chmod 600 ${USER_HOME}/.passwd-s3fs-minio
+    CONFIGURED_FOR_DEFAULT_FS=true
+}
+
+function configure_minio_fs() {
+    configure_minio
+}
+
+function configure_local_minio_fs() {
+    configure_minio
 }
 
 function configure_s3_fs() {
@@ -60,6 +82,7 @@ function configure_s3_fs() {
         echo "${AWS_S3_ACCESS_KEY_ID}:${AWS_S3_SECRET_ACCESS_KEY}" > ${USER_HOME}/.passwd-s3fs
         chmod 600 ${USER_HOME}/.passwd-s3fs
     fi
+    CONFIGURED_FOR_DEFAULT_FS=true
 }
 
 function configure_azure_blob_fs() {
@@ -130,6 +153,7 @@ components:
 EOF
     chmod 600 ${fuse_connection_cfg}
     configure_fuse_options
+    CONFIGURED_FOR_DEFAULT_FS=true
 }
 
 function configure_gcs_fs() {
@@ -137,6 +161,7 @@ function configure_gcs_fs() {
         echo "GCP_GCS_BUCKET environment variable is not set."
         return
     fi
+    CONFIGURED_FOR_DEFAULT_FS=true
 }
 
 function configure_aliyun_oss_fs() {
@@ -149,11 +174,10 @@ function configure_aliyun_oss_fs() {
         echo "${ALIYUN_OSS_BUCKET}:${ALIYUN_OSS_ACCESS_KEY_ID}:${ALIYUN_OSS_ACCESS_KEY_SECRET}" > ${USER_HOME}/.passwd-ossfs
         chmod 600 ${USER_HOME}/.passwd-ossfs
     fi
+    CONFIGURED_FOR_DEFAULT_FS=true
 }
 
-function configure_cloud_fs() {
-    sudo mkdir -p /cloudtik
-    sudo chown $(whoami) /cloudtik
+function configure_cloud_storage_fs() {
     # cloud storage from provider
     if [ "$AWS_CLOUD_STORAGE" == "true" ]; then
         configure_s3_fs
@@ -164,13 +188,56 @@ function configure_cloud_fs() {
     elif [ "$ALIYUN_CLOUD_STORAGE" == "true" ]; then
         configure_aliyun_oss_fs
     fi
+}
 
+function configure_local_storage_fs() {
     # cluster local storage
-    if [ ! -z "${HDFS_NAMENODE_URI}" ]; then
-        configure_hdfs_fs
-    elif [ "$HDFS_ENABLED" == "true" ]; then
-        configure_local_hdfs_fs
+    if [ "${CONFIGURED_FOR_DEFAULT_FS}" == "true" ]; then
+        # Two of them will be configured for default and local
+        # Only the needed URI or local runtime will be set
+
+        # cluster local storage from remote cluster
+        if [ ! -z "${HDFS_NAMENODE_URI}" ]; then
+            install_hdfs_fuse
+            configure_hdfs_fs
+        elif [ ! -z "${MINIO_ENDPOINT_URI}" ]; then
+            install_s3_fuse
+            configure_minio_fs
+        fi
+
+        # cluster local storage from local cluster
+        if [ "$HDFS_ENABLED" == "true" ]; then
+            install_hdfs_fuse
+            configure_local_hdfs_fs
+        elif [ "$MINIO_ENABLED" == "true" ]; then
+            install_s3_fuse
+            configure_local_minio_fs
+        fi
+    else
+        # default fs already be configured, only one of them will be configured for local
+        if [ ! -z "${HDFS_NAMENODE_URI}" ]; then
+            install_hdfs_fuse
+            configure_hdfs_fs
+        elif [ ! -z "${MINIO_ENDPOINT_URI}" ]; then
+            install_s3_fuse
+            configure_minio_fs
+        elif [ "$HDFS_ENABLED" == "true" ]; then
+            install_hdfs_fuse
+            configure_local_hdfs_fs
+        elif [ "$MINIO_ENABLED" == "true" ]; then
+            install_s3_fuse
+            configure_local_minio_fs
+        fi
     fi
+}
+
+function configure_storage_fs() {
+    sudo mkdir -p /cloudtik
+    sudo chown $(whoami) /cloudtik
+
+    CONFIGURED_FOR_DEFAULT_FS=false
+    configure_cloud_storage_fs
+    configure_local_storage_fs
 }
 
 # Installing functions
@@ -189,9 +256,17 @@ function install_hdfs_fuse() {
     which mount.nfs > /dev/null || (sudo  apt-get -qq update -y > /dev/null; \
       sudo DEBIAN_FRONTEND=noninteractive apt-get -qq install nfs-common -y > /dev/null)
 
-    # install HDFS NFS fix if not installed
-    wget -q ${CLOUDTIK_DOWNLOADS}/hadoop/hadoop-hdfs-nfs-${HADOOP_VERSION}.jar \
-      -O ${HADOOP_HOME}/share/hadoop/hdfs/hadoop-hdfs-nfs-${HADOOP_VERSION}.jar
+    local HDFS_NFS_JAR=hadoop-hdfs-nfs-${HADOOP_VERSION}.jar
+    local HDFS_NFS_JAR_FIX=${HADOOP_HOME}/fix/${HDFS_NFS_JAR}
+    if [ ! -f "${HDFS_NFS_JAR_FIX}" ] \
+      && [ -d "${HADOOP_HOME}/share/hadoop/hdfs" ]; then
+        # install HDFS NFS fix if not installed
+        mkdir -p ${HADOOP_HOME}/fix && \
+        wget -q ${CLOUDTIK_DOWNLOADS}/hadoop/${HDFS_NFS_JAR} \
+          -O ${HDFS_NFS_JAR_FIX} && \
+        cp ${HDFS_NFS_JAR_FIX} \
+          ${HADOOP_HOME}/share/hadoop/hdfs/${HDFS_NFS_JAR}
+    fi
 }
 
 function install_s3_fuse() {
@@ -236,7 +311,7 @@ function install_aliyun_oss_fuse() {
     fi
 }
 
-function install_cloud_fuse() {
+function install_cloud_storage_fs() {
     # cloud storage from provider
     if [ "$AWS_CLOUD_STORAGE" == "true" ]; then
         install_s3_fuse
@@ -247,22 +322,55 @@ function install_cloud_fuse() {
     elif [ "$ALIYUN_CLOUD_STORAGE" == "true" ]; then
         install_aliyun_oss_fuse
     fi
+}
 
-    # cluster local storage
-    if [ "$HDFS_ENABLED" == "true" ]; then
-        install_hdfs_fuse
-    elif [ ! -z "${HDFS_NAMENODE_URI}" ]; then
-        install_hdfs_fuse
-    fi
+function install_storage_fs() {
+    install_cloud_storage_fs
+    # Check and install of local storage fs moved to configure stage
+    # so that we can install only when it is needed
 }
 
 # Service functions
 
+function mount_hdfs_fs() {
+    fs_default_dir="${HDFS_NAMENODE_URI:1}"
+    if [ -z "${MOUNTED_DEFAULT_FS}" ]; then
+        FS_MOUNT_PATH=${DEFAULT_FS_MOUNT_PATH}
+        MOUNTED_DEFAULT_FS=${FS_MOUNT_PATH}
+    else
+        FS_MOUNT_PATH=${LOCAL_FS_MOUNT_PATH}
+    fi
+    # Mount remote hdfs here
+    mkdir -p ${FS_MOUNT_PATH}
+
+    # only one NFS Gateway per node is supported
+    if [ "${HDFS_NFS_MOUNTED}" != "true" ] && [ "${HDFS_MOUNT_METHOD}" == "nfs" ]; then
+        HDFS_NFS_MOUNTED=true
+
+        # Use the remote HDFS dedicated core-site.xml and hdfs-site.xml
+        REMOTE_HDFS_CONF_DIR=${HADOOP_HOME}/etc/remote
+        if [ -d "${REMOTE_HDFS_CONF_DIR}" ]; then
+            export HADOOP_CONF_DIR=${REMOTE_HDFS_CONF_DIR}
+        fi
+
+        echo "Staring HDFS NFS Gateway..."
+        sudo -E $HADOOP_HOME/bin/hdfs --daemon start portmap
+        $HADOOP_HOME/bin/hdfs --daemon start nfs3
+        sleep 3
+
+        echo "Mounting HDFS ${fs_default_dir} with NFS Gateway ${CLOUDTIK_NODE_IP} to ${FS_MOUNT_PATH}..."
+        sudo mount -t nfs -o vers=3,proto=tcp,nolock,noacl,sync ${CLOUDTIK_NODE_IP}:/ ${FS_MOUNT_PATH}
+    else
+        echo "Mounting HDFS ${fs_default_dir} with fuse to ${FS_MOUNT_PATH}..."
+        fuse_dfs_wrapper.sh -oinitchecks ${fs_default_dir} ${FS_MOUNT_PATH} > /dev/null
+    fi
+}
+
 function mount_local_hdfs_fs() {
     fs_default_dir="dfs://${HEAD_ADDRESS}:9000"
-    if [ -z "${MOUNTED_CLOUD_FS}" ]; then
-        FS_MOUNT_PATH=${CLOUD_FS_MOUNT_PATH}
-        MOUNTED_CLOUD_FS=${FS_MOUNT_PATH}
+    if [ -z "${MOUNTED_DEFAULT_FS}" ]; then
+        FS_MOUNT_PATH=${DEFAULT_FS_MOUNT_PATH}
+        MOUNTED_DEFAULT_FS=${FS_MOUNT_PATH}
     else
         FS_MOUNT_PATH=${LOCAL_FS_MOUNT_PATH}
     fi
@@ -294,38 +402,35 @@ function mount_local_hdfs_fs() {
     fi
 }
 
-function mount_hdfs_fs() {
-    fs_default_dir="${HDFS_NAMENODE_URI:1}"
-    if [ -z "${MOUNTED_CLOUD_FS}" ]; then
-        FS_MOUNT_PATH=${CLOUD_FS_MOUNT_PATH}
-        MOUNTED_CLOUD_FS=${FS_MOUNT_PATH}
+function mount_minio() {
+    local endpoint_url=$1
+    if [ -z "${MINIO_BUCKET}" ]; then
+        echo "MINIO_BUCKET environment variable is not set."
+        return
+    fi
+
+    if [ -z "${MOUNTED_DEFAULT_FS}" ]; then
+        FS_MOUNT_PATH=${DEFAULT_FS_MOUNT_PATH}
+        MOUNTED_DEFAULT_FS=${FS_MOUNT_PATH}
     else
         FS_MOUNT_PATH=${LOCAL_FS_MOUNT_PATH}
     fi
-    # Mount remote hdfs here
+    # Mount remote MinIO here
     mkdir -p ${FS_MOUNT_PATH}
 
-    # only one NFS Gateway per node is supported
-    if [ "${HDFS_NFS_MOUNTED}" != "true" ] &&[ "${HDFS_MOUNT_METHOD}" == "nfs" ]; then
-        HDFS_NFS_MOUNTED=true
+    echo "Mounting MinIO bucket ${MINIO_BUCKET} to ${FS_MOUNT_PATH}..."
+    s3fs ${MINIO_BUCKET} ${FS_MOUNT_PATH} -o mp_umask=002 \
+        -o passwd_file=~/.passwd-s3fs-minio,use_path_request_style,url=${endpoint_url} > /dev/null
+}
 
-        # Use the remote HDFS dedicated core-site.xml and hdfs-site.xml
-        REMOTE_HDFS_CONF_DIR=${HADOOP_HOME}/etc/remote
-        if [ -d "${REMOTE_HDFS_CONF_DIR}" ]; then
-            export HADOOP_CONF_DIR=${REMOTE_HDFS_CONF_DIR}
-        fi
+function mount_minio_fs() {
+    mount_minio $MINIO_ENDPOINT_URI
+}
 
-        echo "Staring HDFS NFS Gateway..."
-        sudo -E $HADOOP_HOME/bin/hdfs --daemon start portmap
-        $HADOOP_HOME/bin/hdfs --daemon start nfs3
-        sleep 3
-
-        echo "Mounting HDFS ${fs_default_dir} with NFS Gateway ${CLOUDTIK_NODE_IP} to ${FS_MOUNT_PATH}..."
-        sudo mount -t nfs -o vers=3,proto=tcp,nolock,noacl,sync ${CLOUDTIK_NODE_IP}:/ ${FS_MOUNT_PATH}
-    else
-        echo "Mounting HDFS ${fs_default_dir} with fuse to ${FS_MOUNT_PATH}..."
-        fuse_dfs_wrapper.sh -oinitchecks ${fs_default_dir} ${FS_MOUNT_PATH} > /dev/null
-    fi
+function mount_minio_local_fs() {
+    # TODO: the port number based on configuration
+    local fs_endpoint="http://${HEAD_ADDRESS}:9000"
+    mount_minio $fs_endpoint
 }
 
 function mount_s3_fs() {
@@ -339,10 +444,10 @@ function mount_s3_fs() {
         IAM_FLAG="-o iam_role=auto"
     fi
 
-    mkdir -p ${CLOUD_FS_MOUNT_PATH}
-    echo "Mounting S3 bucket ${AWS_S3_BUCKET} to ${CLOUD_FS_MOUNT_PATH}..."
-    s3fs ${AWS_S3_BUCKET} -o use_cache=/tmp -o mp_umask=002 -o multireq_max=5 ${IAM_FLAG} ${CLOUD_FS_MOUNT_PATH} > /dev/null
-    MOUNTED_CLOUD_FS=${CLOUD_FS_MOUNT_PATH}
+    mkdir -p ${DEFAULT_FS_MOUNT_PATH}
+    echo "Mounting S3 bucket ${AWS_S3_BUCKET} to ${DEFAULT_FS_MOUNT_PATH}..."
+    s3fs ${AWS_S3_BUCKET} -o use_cache=/tmp -o mp_umask=002 -o multireq_max=5 ${IAM_FLAG} ${DEFAULT_FS_MOUNT_PATH} > /dev/null
+    MOUNTED_DEFAULT_FS=${DEFAULT_FS_MOUNT_PATH}
 }
 
 function mount_azure_blob_fs() {
@@ -361,10 +466,10 @@ function mount_azure_blob_fs() {
         return
     fi
 
-    mkdir -p ${CLOUD_FS_MOUNT_PATH}
-    echo "Mounting Azure blob container ${AZURE_CONTAINER}@${AZURE_STORAGE_ACCOUNT} to ${CLOUD_FS_MOUNT_PATH}..."
-    blobfuse2 mount ${CLOUD_FS_MOUNT_PATH} --config-file=${USER_HOME}/blobfuse2_config.yaml > /dev/null
-    MOUNTED_CLOUD_FS=${CLOUD_FS_MOUNT_PATH}
+    mkdir -p ${DEFAULT_FS_MOUNT_PATH}
+    echo "Mounting Azure blob container ${AZURE_CONTAINER}@${AZURE_STORAGE_ACCOUNT} to ${DEFAULT_FS_MOUNT_PATH}..."
+    blobfuse2 mount ${DEFAULT_FS_MOUNT_PATH} --config-file=${USER_HOME}/blobfuse2_config.yaml > /dev/null
+    MOUNTED_DEFAULT_FS=${DEFAULT_FS_MOUNT_PATH}
 }
 
 function mount_gcs_fs() {
@@ -373,10 +478,10 @@ function mount_gcs_fs() {
         return
     fi
 
-    mkdir -p ${CLOUD_FS_MOUNT_PATH}
-    echo "Mounting GCS bucket ${GCP_GCS_BUCKET} to ${CLOUD_FS_MOUNT_PATH}..."
-    gcsfuse ${GCP_GCS_BUCKET} ${CLOUD_FS_MOUNT_PATH} > /dev/null
-    MOUNTED_CLOUD_FS=${CLOUD_FS_MOUNT_PATH}
+    mkdir -p ${DEFAULT_FS_MOUNT_PATH}
+    echo "Mounting GCS bucket ${GCP_GCS_BUCKET} to ${DEFAULT_FS_MOUNT_PATH}..."
+    gcsfuse ${GCP_GCS_BUCKET} ${DEFAULT_FS_MOUNT_PATH} > /dev/null
+    MOUNTED_DEFAULT_FS=${DEFAULT_FS_MOUNT_PATH}
 }
 
 function mount_aliyun_oss_fs() {
@@ -398,15 +503,15 @@ function mount_aliyun_oss_fs() {
         RAM_ROLE_FLAG="-o ram_role=http://100.100.100.200/latest/meta-data/ram/security-credentials/${ALIYUN_ECS_RAM_ROLE_NAME}"
     fi
 
-    mkdir -p ${CLOUD_FS_MOUNT_PATH}
-    echo "Mounting Aliyun OSS bucket ${ALIYUN_OSS_BUCKET} to ${CLOUD_FS_MOUNT_PATH}..."
+    mkdir -p ${DEFAULT_FS_MOUNT_PATH}
+    echo "Mounting Aliyun OSS bucket ${ALIYUN_OSS_BUCKET} to ${DEFAULT_FS_MOUNT_PATH}..."
     # TODO: Endpoint setup for ECS for network going internally (for example, oss-cn-hangzhou-internal.aliyuncs.com)
-    ossfs ${ALIYUN_OSS_BUCKET} ${CLOUD_FS_MOUNT_PATH} -o use_cache=/tmp -o mp_umask=002 -o url=${ALIYUN_OSS_INTERNAL_ENDPOINT} ${PASSWD_FILE_FLAG} ${RAM_ROLE_FLAG} > /dev/null
-    MOUNTED_CLOUD_FS=${CLOUD_FS_MOUNT_PATH}
+    ossfs ${ALIYUN_OSS_BUCKET} ${DEFAULT_FS_MOUNT_PATH} -o use_cache=/tmp -o mp_umask=002 \
+      -o url=${ALIYUN_OSS_INTERNAL_ENDPOINT} ${PASSWD_FILE_FLAG} ${RAM_ROLE_FLAG} > /dev/null
+    MOUNTED_DEFAULT_FS=${DEFAULT_FS_MOUNT_PATH}
 }
 
-function mount_cloud_fs() {
-    MOUNTED_CLOUD_FS=""
+function mount_cloud_storage_fs() {
     # cloud storage from provider
     if [ "$AWS_CLOUD_STORAGE" == "true" ]; then
         mount_s3_fs
@@ -417,27 +522,47 @@ function mount_cloud_fs() {
     elif [ "$ALIYUN_CLOUD_STORAGE" == "true" ]; then
         mount_aliyun_oss_fs
     fi
+}
 
+function mount_local_storage_fs() {
     # cluster local storage
     HDFS_NFS_MOUNTED=false
-    if [ -z "${MOUNTED_CLOUD_FS}" ]; then
+    if [ -z "${MOUNTED_DEFAULT_FS}" ]; then
+        # Two of them will mounted to default and local
+        # Only the needed URI or local runtime will be set
+
         # cluster local storage from remote cluster
         if [ ! -z "${HDFS_NAMENODE_URI}" ]; then
             mount_hdfs_fs
+        elif [ ! -z "${MINIO_ENDPOINT_URI}" ]; then
+            mount_minio_fs
         fi
+
         # cluster local storage from local cluster
         if [ "$HDFS_ENABLED" == "true" ]; then
             mount_local_hdfs_fs
+        elif [ "$MINIO_ENABLED" == "true" ]; then
+            mount_local_minio_fs
         fi
     else
+        # default fs already mounted, only one of them will mounted to local
         if [ ! -z "${HDFS_NAMENODE_URI}" ]; then
             mount_hdfs_fs
+        elif [ ! -z "${MINIO_ENDPOINT_URI}" ]; then
+            mount_minio_fs
         elif [ "$HDFS_ENABLED" == "true" ]; then
             mount_local_hdfs_fs
+        elif [ "$MINIO_ENABLED" == "true" ]; then
+            mount_local_minio_fs
         fi
     fi
 }
 
+function mount_storage_fs() {
+    MOUNTED_DEFAULT_FS=""
+    mount_cloud_storage_fs
+    mount_local_storage_fs
+}
 
 function unmount_fs() {
     local fs_mount_path="$1"
@@ -457,14 +582,14 @@ function unmount_fs() {
     fi
 }
 
-function unmount_cloud_fs() {
+function unmount_storage_fs() {
     # use findmnt to check the existence and type of the mount
     # if findmnt doesn't exist, install it
     which findmnt > /dev/null || (sudo  apt-get -qq update -y > /dev/null; \
       sudo DEBIAN_FRONTEND=noninteractive apt-get -qq install util-linux -y > /dev/null)
 
-    if [ "${CLOUD_FS_MOUNT_PATH}" != "" ]; then
-        unmount_fs "${CLOUD_FS_MOUNT_PATH}"
+    if [ "${DEFAULT_FS_MOUNT_PATH}" != "" ]; then
+        unmount_fs "${DEFAULT_FS_MOUNT_PATH}"
     fi
 
     if [ "${LOCAL_FS_MOUNT_PATH}" != "" ]; then

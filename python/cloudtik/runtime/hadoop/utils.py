@@ -8,21 +8,12 @@ from cloudtik.core._private.service_discovery.runtime_services import get_servic
 from cloudtik.core._private.utils import \
     is_use_managed_cloud_storage, \
     get_runtime_config, PROVIDER_STORAGE_CONFIG_KEY
+from cloudtik.runtime.common.hadoop import configure_remote_storage, configure_storage_properties
 from cloudtik.runtime.common.service_discovery.cluster import has_runtime_in_cluster
 from cloudtik.runtime.common.service_discovery.runtime_discovery import \
     discover_hdfs_on_head, discover_hdfs_from_workspace, \
     is_hdfs_service_discovery, HDFS_URI_KEY, is_minio_service_discovery, MINIO_URI_KEY, discover_minio_from_workspace, \
     discover_minio_on_head
-
-
-MINIO_STORAGE_CONFIG_KEY = "minio_storage"
-MINIO_STORAGE_BUCKET = "minio.bucket"
-MINIO_STORAGE_ACCESS_KEY = "minio.access.key"
-MINIO_STORAGE_SECRET_KEY = "minio.secret.key"
-
-MINIO_STORAGE_BUCKET_DEFAULT = "default"
-MINIO_STORAGE_ACCESS_KEY_DEFAULT = "minioadmin"
-MINIO_STORAGE_SECRET_KEY_DEFAULT = "minioadmin"
 
 
 def _get_config(runtime_config: Dict[str, Any]):
@@ -45,31 +36,6 @@ def discover_hadoop_fs_on_head(
     cluster_config = discover_minio_on_head(
         cluster_config, BUILT_IN_RUNTIME_HADOOP)
     return cluster_config
-
-
-def _configure_remote_storage(hadoop_config):
-    hdfs_uri = hadoop_config.get(HDFS_URI_KEY)
-    if hdfs_uri:
-        os.environ["HDFS_NAMENODE_URI"] = hdfs_uri
-    minio_uri = hadoop_config.get(MINIO_URI_KEY)
-    if minio_uri:
-        os.environ["MINIO_ENDPOINT_URI"] = minio_uri
-
-
-def _configure_storage_client(runtime_config):
-    hadoop_config = _get_config(runtime_config)
-    if (hadoop_config.get(MINIO_URI_KEY) or
-            has_runtime_in_cluster(runtime_config, BUILT_IN_RUNTIME_MINIO)):
-        minio_storage = hadoop_config.get(MINIO_STORAGE_CONFIG_KEY, {})
-        bucket = minio_storage.get(
-            MINIO_STORAGE_BUCKET, MINIO_STORAGE_BUCKET_DEFAULT)
-        access_key = minio_storage.get(
-            MINIO_STORAGE_ACCESS_KEY, MINIO_STORAGE_ACCESS_KEY_DEFAULT)
-        secret_key = minio_storage.get(
-            MINIO_STORAGE_SECRET_KEY, MINIO_STORAGE_SECRET_KEY_DEFAULT)
-        os.environ["MINIO_BUCKET"] = bucket
-        os.environ["MINIO_ACCESS_KEY"] = access_key
-        os.environ["MINIO_SECRET_KEY"] = secret_key
 
 
 def has_local_storage_in_cluster(runtime_config):
@@ -123,10 +89,10 @@ def _configure(runtime_config, head: bool):
         os.environ["HADOOP_DEFAULT_CLUSTER"] = get_env_string_value(
             hadoop_default_cluster)
 
-    _configure_remote_storage(hadoop_config)
+    configure_remote_storage(hadoop_config)
 
     # export storage properties if needed
-    _configure_storage_client(runtime_config)
+    configure_storage_properties(runtime_config)
 
 
 def _is_valid_storage_config(config: Dict[str, Any], final=False):
