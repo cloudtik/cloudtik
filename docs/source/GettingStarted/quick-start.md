@@ -196,7 +196,7 @@ Running a Spark job is very straight forward. Spark PI job for example,
 cloudtik exec ./your-cluster-config.yaml "spark-submit --master yarn --deploy-mode cluster --name spark-pi --class org.apache.spark.examples.SparkPi --conf spark.yarn.submit.waitAppCompletion=false \$SPARK_HOME/examples/jars/spark-examples.jar 12345" --job-waiter=yarn
 ```
 
-Refer to [Run Spark PI Example](https://github.com/cloudtik/cloudtik/tree/main/examples/spark) for more details.
+Refer to [Run Spark PI Example](https://github.com/cloudtik/cloudtik/tree/main/examples/runtime/spark) for more details.
 
 #### Running analytics benchmarks
 
@@ -211,7 +211,7 @@ for a detailed step-by-step guide.
 CloudTik provides ready to run examples for demonstrating
 how distributed AI jobs can be implemented in CloudTik Spark and AI runtime cluster.
 
-Refer to [Distributed AI Examples](https://github.com/cloudtik/cloudtik/tree/main/examples/ai)
+Refer to [Distributed AI Examples](https://github.com/cloudtik/cloudtik/tree/main/examples/runtime/ai)
 for a detailed step-by-step guide.
 
 #### Workflow examples

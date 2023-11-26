@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 
-# The cluster config file: change to your file
+# The cluster config file: change to your cluster config file
 cluster_config="./your-cluster-config.yaml"
 
 # The python job: change to your job file
-job_file="./cloudtik/examples/ai/jobs/keras/mnist-keras-spark-horovod-run-hyperopt-mlflow.py"
+job_file="./examples/runtime/ai/jobs/keras/mnist-keras-spark-horovod-run-hyperopt-mlflow.py"
 
 # Start a cluster
 cloudtik start $cluster_config -y
