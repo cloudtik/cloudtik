@@ -2990,7 +2990,8 @@ def is_stable_node_seq_id_enabled(config):
 
 
 def enable_stable_node_seq_id(config):
-    enable_node_seq_id(config)
+    if not is_node_seq_id_enabled(config):
+        enable_node_seq_id(config)
     config["stable_node_seq_id"] = True
 
 
