@@ -12,7 +12,7 @@ from cloudtik.core._private.runtime_utils import subscribe_runtime_config, RUNTI
 from cloudtik.core._private.service_discovery.utils import get_canonical_service_name, define_runtime_service_on_worker, \
     get_service_discovery_config, ServiceRegisterException, SERVICE_DISCOVERY_FEATURE_KEY_VALUE
 from cloudtik.core._private.utils import \
-    load_properties_file, save_properties_file
+    load_properties_file, save_properties_file, is_node_seq_id_enabled, enable_node_seq_id
 from cloudtik.runtime.common.service_discovery.cluster import register_service_to_cluster
 from cloudtik.runtime.common.service_discovery.workspace import register_service_to_workspace
 
@@ -50,16 +50,23 @@ def _get_runtime_processes():
     return RUNTIME_PROCESSES
 
 
-def _with_runtime_environment_variables(runtime_config, config, provider, node_id: str):
-    runtime_envs = {"ZOOKEEPER_ENABLED": True}
-    return runtime_envs
-
-
 def _get_runtime_logs():
     home_dir = _get_home_dir()
     zookeeper_logs_dir = os.path.join(home_dir, "logs")
     all_logs = {"zookeeper": zookeeper_logs_dir}
     return all_logs
+
+
+def _bootstrap_runtime_config(cluster_config: Dict[str, Any]) -> Dict[str, Any]:
+    # We must enable the node seq id
+    if not is_node_seq_id_enabled(cluster_config):
+        enable_node_seq_id(cluster_config)
+    return cluster_config
+
+
+def _with_runtime_environment_variables(runtime_config, config, provider, node_id: str):
+    runtime_envs = {"ZOOKEEPER_ENABLED": True}
+    return runtime_envs
 
 
 def _get_runtime_endpoints(cluster_head_ip):

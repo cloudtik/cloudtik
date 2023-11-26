@@ -20,7 +20,7 @@ from cloudtik.core._private.service_discovery.utils import SERVICE_DISCOVERY_POR
     get_runtime_service_features, SERVICE_DISCOVERY_TAG_FEATURE_PREFIX, get_cluster_node_name
 from cloudtik.core._private.utils import \
     RUNTIME_TYPES_CONFIG_KEY, _get_node_type_specific_runtime_config, \
-    RUNTIME_CONFIG_KEY
+    RUNTIME_CONFIG_KEY, is_node_seq_id_enabled, enable_node_seq_id
 from cloudtik.core.tags import QUORUM_JOIN_STATUS_INIT
 from cloudtik.runtime.common.service_discovery.cluster import register_service_to_cluster
 from cloudtik.runtime.common.service_discovery.discovery import DiscoveryType
@@ -85,6 +85,13 @@ def _get_cluster_name_tag(cluster_name):
 
 def _get_feature_tag(cluster_name):
     return CONSUL_TAG_FEATURE_FORMAT.format(cluster_name)
+
+
+def _bootstrap_runtime_config(cluster_config: Dict[str, Any]) -> Dict[str, Any]:
+    # We must enable the node seq id
+    if not is_node_seq_id_enabled(cluster_config):
+        enable_node_seq_id(cluster_config)
+    return cluster_config
 
 
 def _bootstrap_join_list(cluster_config: Dict[str, Any]):

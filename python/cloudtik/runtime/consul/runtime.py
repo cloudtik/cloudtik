@@ -6,7 +6,8 @@ from cloudtik.core.node_provider import NodeProvider
 from cloudtik.runtime.common.runtime_base import RuntimeBase
 from cloudtik.runtime.consul.utils import _with_runtime_environment_variables, \
     _get_runtime_processes, _get_runtime_logs, _get_runtime_endpoints, _handle_node_constraints_reached, \
-    _is_agent_server_mode, _get_head_service_ports, _bootstrap_join_list, _bootstrap_runtime_services
+    _is_agent_server_mode, _get_head_service_ports, _bootstrap_join_list, _bootstrap_runtime_services, \
+    _bootstrap_runtime_config
 
 logger = logging.getLogger(__name__)
 
@@ -19,6 +20,8 @@ class ConsulRuntime(RuntimeBase):
         self.server_mode = _is_agent_server_mode(runtime_config)
 
     def bootstrap_config(self, cluster_config: Dict[str, Any]) -> Dict[str, Any]:
+        cluster_config = _bootstrap_runtime_config(cluster_config)
+
         if not self.server_mode:
             # for client mode, we bootstrap the consul server cluster
             cluster_config = _bootstrap_join_list(cluster_config)

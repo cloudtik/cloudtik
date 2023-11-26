@@ -13,7 +13,8 @@ from cloudtik.core._private.service_discovery.utils import \
     get_canonical_service_name, define_runtime_service, \
     get_service_discovery_config, SERVICE_DISCOVERY_PROTOCOL_HTTP, SERVICE_DISCOVERY_FEATURE_METRICS, \
     get_cluster_node_name
-from cloudtik.core._private.utils import get_runtime_config, get_runtime_config_for_update, _sum_min_workers
+from cloudtik.core._private.utils import get_runtime_config, get_runtime_config_for_update, _sum_min_workers, \
+    enable_node_seq_id, is_node_seq_id_enabled
 from cloudtik.runtime.common.service_discovery.consul import get_dns_hostname_of_node
 from cloudtik.runtime.common.service_discovery.workspace import register_service_to_workspace
 
@@ -81,6 +82,10 @@ def _get_runtime_logs():
 
 
 def _bootstrap_runtime_config(cluster_config: Dict[str, Any]) -> Dict[str, Any]:
+    # We must enable the node seq id
+    if not is_node_seq_id_enabled(cluster_config):
+        enable_node_seq_id(cluster_config)
+
     runtime_config = get_runtime_config_for_update(cluster_config)
     minio_config = get_config_for_update(runtime_config, BUILT_IN_RUNTIME_MINIO)
     min_workers = _sum_min_workers(cluster_config)

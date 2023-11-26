@@ -5,7 +5,7 @@ from cloudtik.core.node_provider import NodeProvider
 from cloudtik.runtime.common.runtime_base import RuntimeBase
 from cloudtik.runtime.etcd.utils import _get_runtime_processes, \
     _get_runtime_endpoints, _get_runtime_services, _with_runtime_environment_variables, \
-    _get_runtime_logs, _handle_node_constraints_reached
+    _get_runtime_logs, _handle_node_constraints_reached, _bootstrap_runtime_config
 
 logger = logging.getLogger(__name__)
 
@@ -15,6 +15,13 @@ class EtcdRuntime(RuntimeBase):
 
     def __init__(self, runtime_config: Dict[str, Any]) -> None:
         super().__init__(runtime_config)
+
+    def bootstrap_config(self, cluster_config: Dict[str, Any]) -> Dict[str, Any]:
+        """Final chance to update the config with runtime specific configurations
+        This happens after provider bootstrap_config is done.
+        """
+        cluster_config = _bootstrap_runtime_config(cluster_config)
+        return cluster_config
 
     def with_environment_variables(
             self, config: Dict[str, Any], provider: NodeProvider,
