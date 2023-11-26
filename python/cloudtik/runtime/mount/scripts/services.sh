@@ -9,7 +9,7 @@ eval set -- "${args}"
 
 USER_HOME=/home/$(whoami)
 RUNTIME_PATH=$USER_HOME/runtime
-export CLOUD_FS_MOUNT_PATH=/cloudtik/fs
+export DEFAULT_FS_MOUNT_PATH=/cloudtik/fs
 export LOCAL_FS_MOUNT_PATH=/cloudtik/localfs
 
 # import util functions
@@ -25,11 +25,11 @@ set_head_address
 case "$SERVICE_COMMAND" in
 start)
     # Mount cloud filesystem or hdfs
-    mount_cloud_fs
+    mount_storage_fs
     ;;
 stop)
     # Unmount cloud filesystem or hdfs
-    unmount_cloud_fs
+    unmount_storage_fs
     ;;
 -h|--help)
     echo "Usage: $0 start|stop --head" >&2

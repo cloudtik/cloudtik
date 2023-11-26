@@ -26,7 +26,7 @@ function prepare_base_conf() {
 
 function configure_mount() {
     prepare_base_conf
-    configure_cloud_fs
+    configure_storage_fs
 }
 
 set_head_option "$@"

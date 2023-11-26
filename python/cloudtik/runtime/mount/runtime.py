@@ -13,6 +13,8 @@ logger = logging.getLogger(__name__)
 class MountRuntime(RuntimeBase):
     """Implementation for File System Mount Runtime which provides service
     to mount a distributed file system to a local path.
+    For discovering the local storage services, it depends on Hadoop (client) runtime
+    and its configurations. If we want flexibility, we can decouple this in the future.
     """
 
     def __init__(self, runtime_config: Dict[str, Any]) -> None:
