@@ -1,10 +1,10 @@
 from cloudtik.core.api import Cluster
 
-# The cluster config file: change to your file
+# The cluster config file: change to cluster config file
 cluster_config = "./your-cluster-config.yaml"
 
 # The python job: change to your job file
-job_file = "./cloudtik/examples/ai/jobs/keras/mnist-keras-spark-horovod-run-hyperopt-mlflow.py"
+job_file = "./examples/runtime/ai/jobs/keras/mnist-keras-spark-horovod-run-hyperopt-mlflow.py"
 
 # Create a new cluster client object to operate
 cluster = Cluster(cluster_config)
