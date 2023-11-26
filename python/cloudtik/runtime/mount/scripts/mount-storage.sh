@@ -192,7 +192,7 @@ function configure_cloud_storage_fs() {
 
 function configure_local_storage_fs() {
     # cluster local storage
-    if [ "${CONFIGURED_FOR_DEFAULT_FS}" == "true" ]; then
+    if [ "${CONFIGURED_FOR_DEFAULT_FS}" != "true" ]; then
         # Two of them will be configured for default and local
         # Only the needed URI or local runtime will be set
 
