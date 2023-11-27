@@ -4,12 +4,13 @@ from types import ModuleType
 from typing import Any, Dict, Optional, List
 
 from cloudtik.core._private.call_context import CallContext
-from cloudtik.core._private.utils import FILE_MOUNTS_CONFIG_KEY, AUTH_CONFIG_KEY, get_head_node_config
+from cloudtik.core._private.utils import FILE_MOUNTS_CONFIG_KEY, AUTH_CONFIG_KEY, get_head_node_config, \
+    _is_permanent_data_volumes
 from cloudtik.core.command_executor import CommandExecutor
 from cloudtik.core.node_provider import NodeProvider
 from cloudtik.core.tags import CLOUDTIK_TAG_CLUSTER_NAME, CLOUDTIK_TAG_WORKSPACE_NAME
 from cloudtik.providers._private.virtual.config import prepare_virtual, post_prepare_virtual, bootstrap_virtual, \
-    bootstrap_virtual_for_api
+    bootstrap_virtual_for_api, delete_cluster_disks
 from cloudtik.providers._private.virtual.virtual_container_scheduler import VirtualContainerScheduler
 
 logger = logging.getLogger(__name__)
@@ -140,6 +141,15 @@ class VirtualNodeProvider(NodeProvider):
             return cluster_config
 
         return cluster_config
+
+    def cleanup_cluster(
+            self, cluster_config: Dict[str, Any], deep: bool = False):
+        """Cleanup the cluster by deleting additional resources other than the nodes.
+        If deep flag is true, do a deep clean up all the resources
+        """
+        if deep and _is_permanent_data_volumes(self.provider_config):
+            delete_cluster_disks(
+                self.provider_config, self.cluster_name, cluster_config)
 
     @staticmethod
     def bootstrap_config(cluster_config):
