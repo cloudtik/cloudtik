@@ -59,11 +59,8 @@ function set_minio_storage() {
         REMOTE_MINIO_STORAGE="false"
     fi
 
-    if [ "$MINIO_ENABLED" == "true" ]; then
-        LOCAL_MINIO_STORAGE="true"
-    else
-        LOCAL_MINIO_STORAGE="false"
-    fi
+    # In cluster local MinIO storage is not supported because
+    # it is not ready to use during head node starting process.
 }
 
 function set_cluster_storage() {
@@ -100,18 +97,6 @@ function update_config_for_hdfs() {
         # Still update credential config for cloud provider storage in the case of explict usage
         update_cloud_storage_credential_config
     fi
-}
-
-function update_config_for_local_minio() {
-    HADOOP_CORE_SITE=$output_dir/hadoop/core-site-minio.xml
-    HADOOP_FS_DEFAULT="s3a://${MINIO_BUCKET}"
-    sed -i "s!{%fs.default.name%}!${HADOOP_FS_DEFAULT}!g" $HADOOP_CORE_SITE
-
-    # TODO: the port number based on configuration
-    FS_S3A_ENDPOINT="http://${HEAD_ADDRESS}:9000"
-    sed -i "s!{%fs.s3a.endpoint%}!${FS_S3A_ENDPOINT}!g" $HADOOP_CORE_SITE
-
-    update_minio_storage_credential_config
 }
 
 function update_config_for_minio() {
@@ -184,8 +169,6 @@ function update_config_for_local_storage() {
         update_config_for_minio
     elif [ "$LOCAL_HDFS_STORAGE" == "true" ]; then
         update_config_for_local_hdfs
-    elif [ "$LOCAL_MINIO_STORAGE" == "true" ]; then
-        update_config_for_local_minio
     fi
 }
 
@@ -273,27 +256,6 @@ function update_local_storage_config_remote_minio() {
     cp $HADOOP_CORE_SITE ${REMOTE_MINIO_CONF_DIR}/core-site.xml
 }
 
-function update_local_storage_config_local_minio() {
-    LOCAL_MINIO_CONF_DIR=${HADOOP_HOME}/etc/local
-    # copy the existing hadoop conf
-    mkdir -p ${LOCAL_MINIO_CONF_DIR}
-    cp -r ${HADOOP_HOME}/etc/hadoop/* ${LOCAL_MINIO_CONF_DIR}/
-
-    HADOOP_CORE_SITE=${output_dir}/hadoop/core-site-minio-local.xml
-    HADOOP_CREDENTIAL_HOME=${LOCAL_MINIO_CONF_DIR}
-    HADOOP_CREDENTIAL_NAME=credential-local.jceks
-
-    fs_default_dir="s3a://${MINIO_BUCKET}"
-    sed -i "s!{%fs.default.name%}!${fs_default_dir}!g" $HADOOP_CORE_SITE
-    # TODO: the port number based on configuration
-    FS_S3A_ENDPOINT="http://${HEAD_ADDRESS}:9000"
-    sed -i "s!{%fs.s3a.endpoint%}!${FS_S3A_ENDPOINT}!g" $HADOOP_CORE_SITE
-
-    update_minio_storage_credential_config
-
-    cp $HADOOP_CORE_SITE ${LOCAL_MINIO_CONF_DIR}/core-site.xml
-}
-
 function update_local_storage_config() {
     update_nfs_dump_dir
 
@@ -305,8 +267,6 @@ function update_local_storage_config() {
 
     if [ "${LOCAL_HDFS_STORAGE}" == "true" ]; then
         update_local_storage_config_local_hdfs
-    elif [ "${LOCAL_MINIO_STORAGE}" == "true" ]; then
-        update_local_storage_config_local_minio
     fi
 }
 
