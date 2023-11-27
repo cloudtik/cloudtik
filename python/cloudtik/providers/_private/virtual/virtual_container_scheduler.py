@@ -496,7 +496,7 @@ class VirtualContainerScheduler:
             host_container_data_disk = os.path.join(
                 data_disk, node_name_for_disk)
             scheduler_executor.run(
-                "mkdir -p '{path}' && chmod -R a+w '{path}'".format(
+                "mkdir -p '{path}' && chmod a+w '{path}'".format(
                     path=host_container_data_disk),
                 run_env="host")
             # create a data disk for node
