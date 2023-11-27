@@ -68,10 +68,6 @@ function configure_minio_fs() {
     configure_minio
 }
 
-function configure_local_minio_fs() {
-    configure_minio
-}
-
 function configure_s3_fs() {
     if [ -z "${AWS_S3_BUCKET}" ]; then
         echo "AWS_S3A_BUCKET environment variable is not set."
@@ -191,6 +187,9 @@ function configure_cloud_storage_fs() {
 }
 
 function configure_local_storage_fs() {
+    # In cluster local MinIO storage is not supported because
+    # it is not ready to use during head node starting process.
+
     # cluster local storage
     if [ "${CONFIGURED_FOR_DEFAULT_FS}" != "true" ]; then
         # Two of them will be configured for default and local
@@ -206,8 +205,6 @@ function configure_local_storage_fs() {
         # cluster local storage from local cluster
         if [ "$HDFS_ENABLED" == "true" ]; then
             configure_local_hdfs_fs
-        elif [ "$MINIO_ENABLED" == "true" ]; then
-            configure_local_minio_fs
         fi
     else
         # default fs already be configured, only one of them will be configured for local
@@ -217,8 +214,6 @@ function configure_local_storage_fs() {
             configure_minio_fs
         elif [ "$HDFS_ENABLED" == "true" ]; then
             configure_local_hdfs_fs
-        elif [ "$MINIO_ENABLED" == "true" ]; then
-            configure_local_minio_fs
         fi
     fi
 }
@@ -424,12 +419,6 @@ function mount_minio_fs() {
     mount_minio $MINIO_ENDPOINT_URI
 }
 
-function mount_minio_local_fs() {
-    # TODO: the port number based on configuration
-    local fs_endpoint="http://${HEAD_ADDRESS}:9000"
-    mount_minio $fs_endpoint
-}
-
 function mount_s3_fs() {
     if [ -z "${AWS_S3_BUCKET}" ]; then
         echo "AWS_S3_BUCKET environment variable is not set."
@@ -538,8 +527,6 @@ function mount_local_storage_fs() {
         # cluster local storage from local cluster
         if [ "$HDFS_ENABLED" == "true" ]; then
             mount_local_hdfs_fs
-        elif [ "$MINIO_ENABLED" == "true" ]; then
-            mount_local_minio_fs
         fi
     else
         # default fs already mounted, only one of them will mounted to local
@@ -549,8 +536,6 @@ function mount_local_storage_fs() {
             mount_minio_fs
         elif [ "$HDFS_ENABLED" == "true" ]; then
             mount_local_hdfs_fs
-        elif [ "$MINIO_ENABLED" == "true" ]; then
-            mount_local_minio_fs
         fi
     fi
 }
