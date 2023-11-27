@@ -7,10 +7,13 @@ from typing import Dict
 import logging
 import psutil
 
-from cloudtik.core._private.core_utils import get_memory_in_bytes, get_cloudtik_temp_dir, exec_with_output
+from cloudtik.core._private.cli_logger import cli_logger
+from cloudtik.core._private.core_utils import get_memory_in_bytes, get_cloudtik_temp_dir, exec_with_output, \
+    exec_with_call
 from cloudtik.core._private.utils import AUTH_CONFIG_KEY, DOCKER_CONFIG_KEY, \
     FILE_MOUNTS_CONFIG_KEY, get_head_service_ports, get_head_node_config, RUNTIME_CONFIG_KEY, \
-    get_runtime_shared_memory_ratio, get_server_process
+    get_runtime_shared_memory_ratio, get_server_process, is_permanent_data_volumes, enable_stable_node_seq_id, \
+    _is_permanent_data_volumes
 from cloudtik.core._private.resource_spec import ResourceSpec
 from cloudtik.core.tags import CLOUDTIK_TAG_CLUSTER_NAME
 
@@ -47,7 +50,7 @@ def bootstrap_virtual(config):
     config = _configure_port_mappings(config)
     config = _configure_file_mounts(config)
     config = _configure_shared_memory_ratio(config)
-
+    config = _configure_disk_volumes(config)
     return config
 
 
@@ -255,6 +258,14 @@ def _configure_shared_memory_ratio(config):
     return config
 
 
+def _configure_disk_volumes(config):
+    provider_config = config["provider"]
+    if _is_permanent_data_volumes(provider_config):
+        provider_config["data_disks.delete_on_termination"] = False
+
+    return config
+
+
 def prepare_virtual(config: Dict[str, Any]) -> Dict[str, Any]:
     """
     Prepare cluster config for ingestion by cluster launcher and scaler.
@@ -344,6 +355,7 @@ def get_cluster_name_from_node(node_info) -> Optional[str]:
 
 def post_prepare_virtual(config: Dict[str, Any]) -> Dict[str, Any]:
     config = fill_available_node_types_resources(config)
+    config = _configure_permanent_data_volumes(config)
     return config
 
 
@@ -352,6 +364,12 @@ def fill_available_node_types_resources(
     """Fills out missing "resources" field for available_node_types."""
     set_node_types_resources(cluster_config)
     return cluster_config
+
+
+def _configure_permanent_data_volumes(config):
+    if is_permanent_data_volumes(config):
+        enable_stable_node_seq_id(config)
+    return config
 
 
 def is_rootless_docker():
@@ -443,3 +461,70 @@ def _find_ssh_server_process_for_workspace(workspace_name):
         except psutil.Error:
             pass
     return None
+
+
+def delete_cluster_disks(
+        provider_config, cluster_name, cluster_config):
+    cli_logger.print("Getting disks for cluster: {}", cluster_name)
+
+    # Search all disk folders for the cluster disks
+    workspace_name = provider_config["workspace_name"]
+    disks = search_cluster_disks(
+        workspace_name, cluster_name, cluster_config)
+    num_disks = len(disks)
+    cli_logger.print(
+        "Got {} disks to delete.", num_disks)
+
+    if num_disks:
+        # delete the disks
+        cli_logger.print(
+            "Deleting {} disks...", num_disks)
+
+        num_deleted_disks = 0
+        for i, disk in enumerate(disks):
+            disk_name = disk["name"]
+            with cli_logger.group(
+                    "Deleting disk: {}",
+                    disk_name,
+                    _numbered=("()", i + 1, num_disks)):
+                try:
+                    disk_path = disk["path"]
+                    exec_with_call("sudo rm -rf '{path}'".format(path=disk_path))
+                    num_deleted_disks += 1
+                    cli_logger.print("Successfully deleted.")
+                except Exception as e:
+                    cli_logger.error("Failed to delete disk: {}", str(e))
+
+        cli_logger.print(
+            "Successfully deleted {} disks.", num_deleted_disks)
+
+
+def search_cluster_disks(workspace_name, cluster_name, config):
+    disk_prefix = "{}-{}-node-".format(workspace_name, cluster_name)
+    # Get a set of all disk paths
+    data_disk_paths = set()
+    for node_type in config["available_node_types"].values():
+        node_config = node_type["node_config"]
+        data_disks = node_config.get("data_disks", [])
+        for data_disk in data_disks:
+            data_disk_paths.add(data_disk)
+
+    disks = []
+    sorted_data_disk_paths = sorted(data_disk_paths)
+    for data_disk_path in sorted_data_disk_paths:
+        disks += search_cluster_disks_in_path(
+            data_disk_path, disk_prefix)
+    return disks
+
+
+def search_cluster_disks_in_path(data_disk_path, disk_prefix):
+    disks = []
+    for x in os.listdir(data_disk_path):
+        full_path = os.path.join(data_disk_path, x)
+        if os.path.isdir(full_path) and x.startswith(disk_prefix):
+            disk = {
+                "name": x,
+                "path": full_path,
+            }
+            disks.append(disk)
+    return disks

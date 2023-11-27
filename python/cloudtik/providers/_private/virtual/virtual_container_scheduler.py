@@ -15,9 +15,9 @@ from cloudtik.core._private.command_executor.docker_command_executor import Dock
 from cloudtik.core._private.core_utils import get_memory_in_bytes
 from cloudtik.core._private.state.file_state_store import FileStateStore
 from cloudtik.core._private.utils import DOCKER_CONFIG_KEY, AUTH_CONFIG_KEY, FILE_MOUNTS_CONFIG_KEY, \
-    _merge_node_type_specific_config, is_head_node_by_tags, _is_use_internal_ip
+    _merge_node_type_specific_config, is_head_node_by_tags, _is_use_internal_ip, _is_permanent_data_volumes
 from cloudtik.core.tags import CLOUDTIK_TAG_NODE_KIND, CLOUDTIK_TAG_CLUSTER_NAME, \
-    CLOUDTIK_TAG_USER_NODE_TYPE, CLOUDTIK_TAG_WORKSPACE_NAME
+    CLOUDTIK_TAG_USER_NODE_TYPE, CLOUDTIK_TAG_WORKSPACE_NAME, CLOUDTIK_TAG_NODE_SEQ_ID
 from cloudtik.providers._private.virtual.config import \
     _get_provider_bridge_address, _get_request_instance_type, get_virtual_scheduler_lock_path, \
     get_virtual_scheduler_state_path, \
@@ -448,7 +448,7 @@ class VirtualContainerScheduler:
         return self.provider_config["state_path"]
 
     def _setup_docker_file_mounts(
-            self, node_config, scheduler_executor):
+            self, node_config, scheduler_executor, tags):
         # Handling mounts
         # We add mounts by default the following 3 paths:
         # 1. the cluster states: to STATE_MOUNT_PATH
@@ -456,7 +456,6 @@ class VirtualContainerScheduler:
         # 3. the user defined shared data dir: from data_dir to DATA_MOUNT_PATH/data_dir_name
 
         file_mounts = {}
-        container_name = scheduler_executor.container_name
 
         # The bootstrap process has updated the permission
         state_path = self._get_provider_cluster_state_path()
@@ -465,32 +464,55 @@ class VirtualContainerScheduler:
                 path=state_path),
             run_env="host")
         file_mounts[STATE_MOUNT_PATH] = state_path
+
         data_disks = node_config.get("data_disks")
         if data_disks:
-            disk_index = 1
-            for data_disk in data_disks:
-                host_container_data_disk = os.path.join(
-                    data_disk, container_name)
-                scheduler_executor.run(
-                    "mkdir -p '{path}' && chmod -R a+w '{path}'".format(
-                        path=host_container_data_disk),
-                    run_env="host")
-                # create a data disk for node
-                target_data_disk = os.path.join(
-                    DATA_DISK_MOUNT_PATH, "data_disk_{}".format(disk_index))
-                file_mounts[target_data_disk] = host_container_data_disk
-                disk_index += 1
+            self._setup_docker_file_mounts_for_data_disks(
+                scheduler_executor, tags,
+                data_disks, file_mounts)
 
         data_dirs = node_config.get("data_dirs")
         if data_dirs:
-            for data_dir in data_dirs:
-                # the bootstrap process has updated the permission
-                data_dir_name = os.path.basename(data_dir)
-                target_data_dir = os.path.join(
-                    DATA_MOUNT_PATH, data_dir_name)
-                file_mounts[target_data_dir] = data_dir
+            self._setup_docker_file_mounts_for_data_dirs(
+                data_dirs, file_mounts)
 
         return file_mounts
+
+    def _setup_docker_file_mounts_for_data_disks(
+            self, scheduler_executor, tags,
+            data_disks, file_mounts):
+        node_name_for_disk = scheduler_executor.container_name
+        if _is_permanent_data_volumes(self.provider_config):
+            # node name for disk is in the format of cloudtik-{cluster_name}-{seq_id}
+            seq_id = tags.get(CLOUDTIK_TAG_NODE_SEQ_ID) if tags else None
+            if not seq_id:
+                raise RuntimeError("No node sequence id assigned for using permanent data volumes.")
+            workspace_name = self.provider_config["workspace_name"]
+            node_name_for_disk = "{}-{}-node-{}".format(
+                workspace_name, self.cluster_name, seq_id)
+
+        disk_index = 1
+        for data_disk in data_disks:
+            host_container_data_disk = os.path.join(
+                data_disk, node_name_for_disk)
+            scheduler_executor.run(
+                "mkdir -p '{path}' && chmod -R a+w '{path}'".format(
+                    path=host_container_data_disk),
+                run_env="host")
+            # create a data disk for node
+            target_data_disk = os.path.join(
+                DATA_DISK_MOUNT_PATH, "data_disk_{}".format(disk_index))
+            file_mounts[target_data_disk] = host_container_data_disk
+            disk_index += 1
+
+    def _setup_docker_file_mounts_for_data_dirs(
+            self, data_dirs, file_mounts):
+        for data_dir in data_dirs:
+            # the bootstrap process has updated the permission
+            data_dir_name = os.path.basename(data_dir)
+            target_data_dir = os.path.join(
+                DATA_MOUNT_PATH, data_dir_name)
+            file_mounts[target_data_dir] = data_dir
 
     def _start_container(
             self, call_context: CallContext, node_config, tags):
@@ -529,7 +551,7 @@ class VirtualContainerScheduler:
             call_context, container_name, docker_config=docker_config)
 
         file_mounts = self._setup_docker_file_mounts(
-            node_config, scheduler_executor)
+            node_config, scheduler_executor, tags)
 
         scheduler_executor.start_container(
             as_head=is_head_node,
