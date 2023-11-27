@@ -1,0 +1,29 @@
+# This is a Spark cluster use MinIO storage as file system and
+# use a local HDFS cluster for temporary data storage.
+cluster_name: example-spark
+
+# The workspace name
+workspace_name: example-workspace
+
+# Cloud-provider specific configuration.
+provider:
+    type: virtual
+
+auth:
+    ssh_user: ubuntu
+
+available_node_types:
+    head.default:
+        node_config:
+            data_disks:
+                - /tmp/cloudtik
+    worker.default:
+        node_config:
+            data_disks:
+                - /tmp/cloudtik
+        min_workers: 3
+
+runtime:
+    types: [consul, dnsmasq, hdfs, mount, spark]
+    dnsmasq:
+        default_resolver: True
