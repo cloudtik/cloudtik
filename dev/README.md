@@ -9,6 +9,51 @@ to a conda env:
 bash ./dev/setup-all.sh
 ```
 
+## Develop and test clusters locally with virtual provider
+The virtual provider is a great option to use in development. You can test
+many runtime features without going to a real public cloud provider and
+creating real virtual machines there.
+
+Within your development machine, the virtual provider use docker and containers
+which makes it easy to simulate and test many clusters with many nodes on a single node.
+
+Here is a typical cluster configuration using virtual provider for testing:
+
+```
+# A unique identifier for the cluster.
+cluster_name: example
+
+# The workspace name
+workspace_name: example-workspace
+
+cloudtik_wheel_url: file:///cloudtik/data/share/cloudtik-1.4.0-cp38-cp38-manylinux2014_x86_64.nightly.whl
+
+# Cloud-provider specific configuration.
+provider:
+    type: virtual
+
+auth:
+    ssh_user: ubuntu
+
+available_node_types:
+    head.default:
+        node_config:
+            data_disks:
+                - /tmp/cloudtik
+            data_dirs:
+                - /home/ubuntu/share
+    worker.default:
+        node_config:
+            data_disks:
+                - /tmp/cloudtik
+            data_dirs:
+                - /home/ubuntu/share
+        min_workers: 3
+```
+
+Every time after recompiled the dev version of the wheel,
+copy the new wheel to the data sharing folder "/home/ubuntu/share".
+
 ## Release procedure
 If the version has been bumped up and all source code in main are ready to release,
 execute the following procedure to finish a release.
