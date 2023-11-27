@@ -1045,6 +1045,11 @@
                     "type": "integer",
                     "default": 4,
                     "description": "The number of nodes for a single server pool. The cluster size (including head) must be multiple times of the server pool size."
+                },
+                "service_on_head": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Whether to run MinIO service on head node. "
                 }
             }
         }

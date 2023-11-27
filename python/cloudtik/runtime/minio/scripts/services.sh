@@ -20,18 +20,26 @@ MINIO_HOME=$RUNTIME_PATH/minio
 
 case "$SERVICE_COMMAND" in
 start)
-    # only start services for the seq id that in valid range
-    if [ "$CLOUDTIK_NODE_SEQ_ID" -le "$MINIO_CLUSTER_SIZE" ]; then
-        # Will set MINIO_OPTS and MINIO_VOLUMES
-        . $MINIO_HOME/conf/minio
-        nohup ${MINIO_HOME}/bin/minio \
-              server $MINIO_OPTS $MINIO_VOLUMES >${MINIO_HOME}/logs/minio.log 2>&1 &
+    if [ "${IS_HEAD_NODE}" != "true" ] \
+        || [ "${MINIO_SERVICE_ON_HEAD}" != "false" ]; then
+        # only start services for the seq id that in valid range
+        if [ "$CLOUDTIK_NODE_SEQ_ID" -le "$MINIO_MAX_SEQ_ID" ]; then
+            # Will set MINIO_OPTS and MINIO_VOLUMES
+            . $MINIO_HOME/conf/minio
+            nohup ${MINIO_HOME}/bin/minio \
+                  server $MINIO_OPTS $MINIO_VOLUMES >${MINIO_HOME}/logs/minio.log 2>&1 &
+        else
+            echo "Warning: MinIO service on this node started because it is not in the valid pool size range."
+        fi
     fi
     ;;
 stop)
-    # only start services for the seq id that in valid range
-    if [ "$CLOUDTIK_NODE_SEQ_ID" -le "$MINIO_CLUSTER_SIZE" ]; then
-        stop_process_by_name "minio"
+    if [ "${IS_HEAD_NODE}" != "true" ] \
+        || [ "${MINIO_SERVICE_ON_HEAD}" != "false" ]; then
+        # only start services for the seq id that in valid range
+        if [ "$CLOUDTIK_NODE_SEQ_ID" -le "$MINIO_MAX_SEQ_ID" ]; then
+            stop_process_by_name "minio"
+        fi
     fi
     ;;
 -h|--help)

@@ -12,7 +12,7 @@ from cloudtik.core._private.service_discovery.runtime_services import get_servic
 from cloudtik.core._private.service_discovery.utils import \
     get_canonical_service_name, define_runtime_service, \
     get_service_discovery_config, SERVICE_DISCOVERY_PROTOCOL_HTTP, SERVICE_DISCOVERY_FEATURE_METRICS, \
-    get_cluster_node_name
+    get_cluster_node_name, SERVICE_DISCOVERY_NODE_KIND_NODE, SERVICE_DISCOVERY_NODE_KIND_WORKER
 from cloudtik.core._private.utils import get_runtime_config, get_runtime_config_for_update, _sum_min_workers, \
     enable_node_seq_id, is_node_seq_id_enabled
 from cloudtik.runtime.common.service_discovery.consul import get_dns_hostname_of_node
@@ -29,6 +29,8 @@ RUNTIME_PROCESSES = [
 MINIO_SERVICE_PORT_CONFIG_KEY = "port"
 MINIO_CONSOLE_PORT_CONFIG_KEY = "console_port"
 MINIO_SERVER_POOL_SIZE_CONFIG_KEY = "server_pool_size"
+MINIO_SERVICE_ON_HEAD_CONFIG_KEY = "service_on_head"
+
 # automatically set by runtime bootstrap to the cluster total nodes
 MINIO_SERVER_CLUSTER_SIZE_CONFIG_KEY = "server_cluster_size"
 
@@ -56,6 +58,11 @@ def _get_console_port(minio_config: Dict[str, Any]):
 def _get_server_pool_size(minio_config: Dict[str, Any]):
     return minio_config.get(
         MINIO_SERVER_POOL_SIZE_CONFIG_KEY, MINIO_SERVER_POOL_SIZE_DEFAULT)
+
+
+def _is_service_on_head(minio_config: Dict[str, Any]):
+    return minio_config.get(
+        MINIO_SERVICE_ON_HEAD_CONFIG_KEY, True)
 
 
 def _get_server_cluster_size(minio_config: Dict[str, Any]):
@@ -88,8 +95,10 @@ def _bootstrap_runtime_config(cluster_config: Dict[str, Any]) -> Dict[str, Any]:
 
     runtime_config = get_runtime_config_for_update(cluster_config)
     minio_config = get_config_for_update(runtime_config, BUILT_IN_RUNTIME_MINIO)
-    min_workers = _sum_min_workers(cluster_config)
-    minio_config[MINIO_SERVER_CLUSTER_SIZE_CONFIG_KEY] = min_workers + 1
+    minio_workers = _sum_min_workers(cluster_config)
+    if _is_service_on_head(minio_config):
+        minio_workers += 1
+    minio_config[MINIO_SERVER_CLUSTER_SIZE_CONFIG_KEY] = minio_workers
     return cluster_config
 
 
@@ -121,6 +130,12 @@ def _with_runtime_environment_variables(
     valid_cluster_size = server_pools * server_pool_size
     runtime_envs["MINIO_CLUSTER_SIZE"] = valid_cluster_size
 
+    max_node_seq_id = valid_cluster_size
+    if not _is_service_on_head(minio_config):
+        max_node_seq_id += 1
+    runtime_envs["MINIO_MAX_SEQ_ID"] = max_node_seq_id
+
+    runtime_envs["MINIO_SERVICE_ON_HEAD"] = _is_service_on_head(minio_config)
     return runtime_envs
 
 
@@ -142,11 +157,18 @@ def register_service(
 def _get_runtime_endpoints(
         runtime_config: Dict[str, Any], cluster_head_ip):
     minio_config = _get_config(runtime_config)
+    if not _is_service_on_head(minio_config):
+        return {}
     endpoints = {
         "minio": {
             "name": "MinIO Service",
             "url": "http://{}:{}".format(
                 cluster_head_ip, _get_service_port(minio_config))
+        },
+        "minio-console": {
+            "name": "MinIO Console",
+            "url": "http://{}:{}".format(
+                cluster_head_ip, _get_console_port(minio_config))
         },
     }
     return endpoints
@@ -155,10 +177,16 @@ def _get_runtime_endpoints(
 def _get_head_service_ports(
         runtime_config: Dict[str, Any]) -> Dict[str, Any]:
     minio_config = _get_config(runtime_config)
+    if not _is_service_on_head(minio_config):
+        return {}
     service_ports = {
         "minio": {
             "protocol": "TCP",
             "port": _get_service_port(minio_config),
+        },
+        "minio-console": {
+            "protocol": "TCP",
+            "port": _get_console_port(minio_config),
         },
     }
     return service_ports
@@ -171,9 +199,14 @@ def _get_runtime_services(
     service_name = get_canonical_service_name(
         service_discovery_config, cluster_name, MINIO_SERVICE_NAME)
     service_port = _get_service_port(minio_config)
+    if _is_service_on_head(minio_config):
+        service_node_kind = SERVICE_DISCOVERY_NODE_KIND_NODE
+    else:
+        service_node_kind = SERVICE_DISCOVERY_NODE_KIND_WORKER
     services = {
         service_name: define_runtime_service(
             service_discovery_config, service_port,
+            node_kind=service_node_kind,
             protocol=SERVICE_DISCOVERY_PROTOCOL_HTTP,
             features=[SERVICE_DISCOVERY_FEATURE_METRICS]),
     }
@@ -238,12 +271,17 @@ def _get_server_pool_spec(
         server_pool_id, server_pool_size,
         workspace_name, cluster_name, data_dir_spec):
     id_start = server_pool_id * server_pool_size
+    if not _is_service_on_head(minio_config):
+        # skip head node seq id
+        id_start += 1
+
     if server_pool_size == 1:
         expansion = str(id_start + 1)
     else:
         # http://cluster-name-{1...n}.workspace-name.cloudtik:9000/mnt/cloudtik/data-disk{1...n}/minio
         id_end = id_start + server_pool_size
         expansion = "{" + str(id_start + 1) + "..." + str(id_end) + "}"
+
     node_name = get_cluster_node_name(cluster_name, expansion)
     hostname = get_dns_hostname_of_node(node_name, workspace_name)
     service_port = _get_service_port(minio_config)

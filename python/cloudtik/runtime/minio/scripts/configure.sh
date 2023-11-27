@@ -62,14 +62,18 @@ function configure_minio() {
 
     mkdir -p ${MINIO_HOME}/conf
     mkdir -p ${MINIO_HOME}/logs
-    prepare_data_disks
 
-    sed -i "s#{%bind.ip%}#${NODE_IP_ADDRESS}#g" ${config_template_file}
-    sed -i "s#{%service.port%}#${MINIO_SERVICE_PORT}#g" ${config_template_file}
-    sed -i "s#{%console.port%}#${MINIO_CONSOLE_PORT}#g" ${config_template_file}
-    sed -i "s#{%minio.volumes%}#${MINIO_VOLUMES}#g" ${config_template_file}
+    if [ "${IS_HEAD_NODE}" != "true" ] \
+        || [ "${MINIO_SERVICE_ON_HEAD}" != "false" ]; then
+        prepare_data_disks
 
-    cp -r ${config_template_file} ${MINIO_HOME}/conf/minio
+        sed -i "s#{%bind.ip%}#${NODE_IP_ADDRESS}#g" ${config_template_file}
+        sed -i "s#{%service.port%}#${MINIO_SERVICE_PORT}#g" ${config_template_file}
+        sed -i "s#{%console.port%}#${MINIO_CONSOLE_PORT}#g" ${config_template_file}
+        sed -i "s#{%minio.volumes%}#${MINIO_VOLUMES}#g" ${config_template_file}
+
+        cp -r ${config_template_file} ${MINIO_HOME}/conf/minio
+    fi
 }
 
 set_head_option "$@"
