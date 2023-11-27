@@ -1,0 +1,30 @@
+# This is a storage cluster backed by MinIO to provide S3 compatible storage.
+cluster_name: example-minio
+
+# The workspace name
+workspace_name: example-workspace
+
+# Cloud-provider specific configuration.
+provider:
+    type: virtual
+
+auth:
+    ssh_user: ubuntu
+
+available_node_types:
+    head.default:
+        node_config:
+            data_disks:
+                - /tmp/cloudtik
+    worker.default:
+        node_config:
+            data_disks:
+                - /tmp/cloudtik
+        min_workers: 4
+
+runtime:
+    types: [consul, dnsmasq, minio]
+    dnsmasq:
+        default_resolver: True
+    minio:
+        service_on_head: False

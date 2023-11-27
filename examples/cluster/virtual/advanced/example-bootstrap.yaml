@@ -1,0 +1,24 @@
+# This is the boostrap cluster which provide service discovery
+# and naming service for cluster nodes in the same workspace.
+cluster_name: example-bootstrap
+
+# The workspace name
+workspace_name: example-workspace
+
+# Cloud-provider specific configuration.
+provider:
+    type: virtual
+
+auth:
+    ssh_user: ubuntu
+
+available_node_types:
+    worker.default:
+        min_workers: 3
+
+runtime:
+    types: [consul, dnsmasq]
+    consul:
+        server: True
+    dnsmasq:
+        default_resolver: True
