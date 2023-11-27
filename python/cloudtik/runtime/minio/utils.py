@@ -143,11 +143,14 @@ def register_service(
         runtime_config: Dict[str, Any],
         cluster_config: Dict[str, Any],
         head_node_id: str) -> None:
+    minio_config = _get_config(runtime_config)
+    if not _is_service_on_head(minio_config):
+        return
+
     provider = _get_node_provider(
         cluster_config["provider"], cluster_config["cluster_name"])
     head_ip = provider.internal_ip(head_node_id)
 
-    minio_config = _get_config(runtime_config)
     service_port = _get_service_port(minio_config)
     register_service_to_workspace(
         cluster_config, BUILT_IN_RUNTIME_MINIO,
