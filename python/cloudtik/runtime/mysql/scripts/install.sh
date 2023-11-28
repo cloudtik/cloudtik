@@ -8,7 +8,7 @@ args=$(getopt -a -o h:: -l head:: -- "$@")
 eval set -- "${args}"
 
 export MYSQL_MAJOR=8.0
-export MYSQL_VERSION=8.0.34-1debian11
+export MYSQL_VERSION=8.0.*debian11
 
 export USER_HOME=/home/$(whoami)
 export RUNTIME_PATH=$USER_HOME/runtime

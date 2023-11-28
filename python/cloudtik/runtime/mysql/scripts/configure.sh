@@ -107,11 +107,13 @@ function configure_mysql() {
     cp -r ${config_template_file} ${MYSQL_CONFIG_FILE}
 
     # This is needed for mysql-init.sh to decide whether need to do user db setup
-    MYSQL_MASTER_NODE=false
+
     if [ "${IS_HEAD_NODE}" == "true" ]; then
-        MYSQL_MASTER_NODE=true
+        # export for mysql_init.sh
+        export MYSQL_MASTER_NODE=true
     else
-        MYSQL_REPLICATION_SOURCE_HOST=${HEAD_ADDRESS}
+        export MYSQL_MASTER_NODE=false
+        export MYSQL_REPLICATION_SOURCE_HOST=${HEAD_ADDRESS}
     fi
 
     # check and initialize the database if needed
