@@ -94,6 +94,10 @@ function configure_mysql() {
     elif [ "${MYSQL_CLUSTER_MODE}" == "group_replication" ]; then
         update_server_id
         sed -i "s#{%group.replication.group.name%}#${MYSQL_GROUP_REPLICATION_NAME}#g" ${config_template_file}
+        # TODO: set head address as seed address is good for first start
+        # But if head is dead while other workers are running, we need head start using workers as seeds
+        # This need to be improved
+        # While for workers, we can always trust there is a healthy head to contact with.
         sed -i "s#{%group.replication.seed.address%}#${HEAD_ADDRESS}#g" ${config_template_file}
     fi
 
