@@ -1,4 +1,5 @@
 import os
+import uuid
 from typing import Any, Dict
 
 from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_MYSQL
@@ -18,7 +19,15 @@ RUNTIME_PROCESSES = [
 
 MYSQL_SERVICE_PORT_CONFIG_KEY = "port"
 
-MYSQL_HIGH_AVAILABILITY_CONFIG_KEY = "high_availability"
+MYSQL_CLUSTER_MODE_CONFIG_KEY = "cluster_mode"
+MYSQL_CLUSTER_MODE_NONE = "none"
+# replication with GTID
+MYSQL_CLUSTER_MODE_REPLICATION = "replication"
+# group replication
+MYSQL_CLUSTER_MODE_GROUP_REPLICATION = "group_replication"
+
+MYSQL_GROUP_REPLICATION_NAME_CONFIG_KEY = "group_replication_name"
+
 MYSQL_ROOT_PASSWORD_CONFIG_KEY = "root_password"
 
 MYSQL_DATABASE_CONFIG_KEY = "database"
@@ -39,6 +48,22 @@ def _get_config(runtime_config: Dict[str, Any]):
 def _get_service_port(mysql_config: Dict[str, Any]):
     return mysql_config.get(
         MYSQL_SERVICE_PORT_CONFIG_KEY, MYSQL_SERVICE_PORT_DEFAULT)
+
+
+def _get_cluster_mode(mysql_config: Dict[str, Any]):
+    return mysql_config.get(
+        MYSQL_CLUSTER_MODE_CONFIG_KEY, MYSQL_CLUSTER_MODE_GROUP_REPLICATION)
+
+
+def _get_group_replication_name(mysql_config: Dict[str, Any]):
+    return mysql_config.get(
+        MYSQL_GROUP_REPLICATION_NAME_CONFIG_KEY)
+
+
+def _generate_group_replication_name(config: Dict[str, Any]):
+    workspace_name = config["workspace_name"]
+    cluster_name = config["cluster_name"]
+    return str(uuid.uuid3(uuid.NAMESPACE_OID, workspace_name + cluster_name))
 
 
 def _get_home_dir():
@@ -75,6 +100,16 @@ def _with_runtime_environment_variables(
 
     service_port = _get_service_port(mysql_config)
     runtime_envs["MYSQL_SERVICE_PORT"] = service_port
+
+    cluster_mode = _get_cluster_mode(mysql_config)
+    runtime_envs["MYSQL_CLUSTER_MODE"] = cluster_mode
+
+    if cluster_mode == MYSQL_CLUSTER_MODE_GROUP_REPLICATION:
+        # configure the group replication GUID
+        group_replication_name = _get_group_replication_name(mysql_config)
+        if not group_replication_name:
+            group_replication_name = _generate_group_replication_name(config)
+        runtime_envs["MYSQL_GROUP_REPLICATION_NAME"] = group_replication_name
 
     root_password = mysql_config.get(
         MYSQL_ROOT_PASSWORD_CONFIG_KEY, MYSQL_ROOT_PASSWORD_DEFAULT)

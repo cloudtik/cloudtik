@@ -257,7 +257,7 @@ mysql_process_sql() {
 	mysql --defaults-extra-file=<( _mysql_passfile "${passfileArgs[@]}") --protocol=socket -uroot -hlocalhost --socket="${SOCKET}" --comments "$@"
 }
 
-# Initializes database with timezone info and root password, plus optional extra db/user
+# Initializes database with timezone info and root password
 mysql_setup_db() {
 	# Load timezone info into database
 	if [ -z "$MYSQL_INITDB_SKIP_TZINFO" ]; then
@@ -302,7 +302,9 @@ mysql_setup_db() {
 		${rootCreate}
 		DROP DATABASE IF EXISTS test ;
 	EOSQL
+}
 
+mysql_setup_user_db() {
 	# Creates a custom database and user if specified
 	if [ -n "$MYSQL_DATABASE" ]; then
 		mysql_note "Creating database ${MYSQL_DATABASE}"
@@ -318,6 +320,67 @@ mysql_setup_db() {
 			mysql_process_sql --database=mysql <<<"GRANT ALL ON \`${MYSQL_DATABASE//_/\\_}\`.* TO '$MYSQL_USER'@'%' ;"
 		fi
 	fi
+}
+
+mysql_setup_replication_user() {
+  mysql_process_sql --database=mysql <<-EOSQL
+		-- What's done in this file shouldn't be replicated
+		--  or products like mysql-fabric won't work
+		SET @@SESSION.SQL_LOG_BIN=0;
+
+		CREATE USER 'repl_user'@'%' IDENTIFIED BY 'cloudtik';
+		GRANT REPLICATION SLAVE ON *.* TO 'repl_user'@'%';
+		FLUSH PRIVILEGES ;
+	EOSQL
+}
+
+mysql_setup_group_replication_user() {
+  mysql_process_sql --database=mysql <<-EOSQL
+		-- What's done in this file shouldn't be replicated
+		--  or products like mysql-fabric won't work
+		SET @@SESSION.SQL_LOG_BIN=0;
+
+		CREATE USER 'repl_user'@'%' IDENTIFIED BY 'cloudtik';
+		GRANT REPLICATION SLAVE ON *.* TO 'repl_user'@'%';
+		GRANT CONNECTION_ADMIN ON *.* TO 'repl_user'@'%';
+		GRANT BACKUP_ADMIN ON *.* TO 'repl_user'@'%';
+		GRANT GROUP_REPLICATION_STREAM ON *.* TO 'repl_user'@'%';
+		FLUSH PRIVILEGES ;
+	EOSQL
+}
+
+mysql_setup_replication() {
+  mysql_process_sql --database=mysql <<-EOSQL
+		CHANGE REPLICATION SOURCE TO
+		    SOURCE_HOST = '${MYSQL_REPLICATION_SOURCE_HOST}',
+		    SOURCE_USER = 'repl_user',
+		    SOURCE_PASSWORD = 'cloudtik',
+		    SOURCE_AUTO_POSITION = 1,
+		    GET_SOURCE_PUBLIC_KEY = 1;
+	EOSQL
+}
+
+mysql_setup_group_replication() {
+  mysql_process_sql --database=mysql <<-EOSQL
+		CHANGE REPLICATION SOURCE TO
+		    SOURCE_USER = 'repl_user',
+		    SOURCE_PASSWORD = 'cloudtik',
+		    FOR CHANNEL 'group_replication_recovery';
+	EOSQL
+}
+
+mysql_bootstrap_group_replication() {
+  mysql_process_sql --database=mysql <<-EOSQL
+		 SET GLOBAL group_replication_bootstrap_group=ON;
+		 START GROUP_REPLICATION;
+		 SET GLOBAL group_replication_bootstrap_group=OFF;
+	EOSQL
+}
+
+mysql_start_group_replication() {
+  mysql_process_sql --database=mysql <<-EOSQL
+		 START GROUP_REPLICATION;
+	EOSQL
 }
 
 _mysql_passfile() {
@@ -395,8 +458,24 @@ _main() {
 			mysql_socket_fix
 			mysql_setup_db
 
-			if [ ! -z "${MYSQL_INITDB_SCRIPTS}" ]; then
-			  mysql_process_init_files ${MYSQL_INITDB_SCRIPTS}/*
+			if [ "${MYSQL_CLUSTER_MODE}" == "replication" ]; then
+				mysql_setup_replication_user
+				if [ "${MYSQL_MASTER_NODE}" != "true" ]; then
+					mysql_setup_replication
+				fi
+			elif [ "${MYSQL_CLUSTER_MODE}" == "group_replication" ]; then
+				mysql_setup_group_replication_user
+				mysql_setup_group_replication
+				if [ "${MYSQL_MASTER_NODE}" == "true" ]; then
+					mysql_bootstrap_group_replication
+				fi
+			fi
+
+			if [ "${MYSQL_MASTER_NODE}" == "true" ]; then
+				mysql_setup_user_db
+				if [ ! -z "${MYSQL_INITDB_SCRIPTS}" ]; then
+					mysql_process_init_files ${MYSQL_INITDB_SCRIPTS}/*
+				fi
 			fi
 
 			mysql_expire_root_user

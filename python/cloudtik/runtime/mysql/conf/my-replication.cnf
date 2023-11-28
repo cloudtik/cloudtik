@@ -1,0 +1,55 @@
+# Copyright (c) 2017, Oracle and/or its affiliates. All rights reserved.
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; version 2 of the License.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
+
+#
+# The MySQL  Server configuration file.
+#
+# For explanations see
+# http://dev.mysql.com/doc/mysql/en/server-system-variables.html
+
+[mysqld]
+pid-file        = /var/run/mysqld/mysqld.pid
+socket          = /var/run/mysqld/mysqld.sock
+datadir         = {%data.dir%}
+secure-file-priv= NULL
+
+skip-name-resolve
+
+bind-address = {%bind.address%},127.0.0.1
+port = {%bind.port%}
+
+# Unique Server Identifier is needed for replication
+server_id = {%server.id%}
+
+# Binary Log Active
+# Set --log-bin[=log_file_name]
+# From MySQL 8.0, binary logging is enabled by default.
+# A replica is not required to have binary logging enabled for replication to take place.
+# However, binary logging on a replica means that the replica's binary log can be used for
+# data backups and crash recovery. Replicas that have binary logging enabled can also be
+# used as part of a more complex replication topology. In addition to binary logging, this
+# replication topology requires the system variable log_replica_updates (from MySQL 8.0.26)
+# or log_slave_updates (before MySQL 8.0.26) to be enabled. With replica updates enabled.
+# The log_replica_updates or log_slave_updates system variable is enabled by default.
+
+# Global Transaction Identifiers On
+# Set gtid_mode=ON and enforce_gtid_consistency=ON. These settings are not the
+# defaults.
+gtid_mode=ON
+enforce_gtid_consistency=ON
+
+# skip_replica_start system variable, to ensure that replication does not start until you
+# have configured the replica settings.
+skip_replica_start=ON

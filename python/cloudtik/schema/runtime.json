@@ -791,10 +791,10 @@
                     "default": 3306,
                     "description": "The MySQL server port."
                 },
-                "high_availability": {
-                    "type": "boolean",
-                    "default": false,
-                    "description": "Whether to run a server on each node for high availability."
+                "cluster_mode": {
+                    "type": "string",
+                    "default": "group_replication",
+                    "description": "The replication method to use: none, replication, group_replication."
                 },
                 "root_password": {
                     "type": "string",
@@ -818,6 +818,10 @@
                             "description": "The password for the user set at the initializing process."
                         }
                     }
+                },
+                "group_replication_name": {
+                    "type": "string",
+                    "description": "Specify your own group replication name (GUID). Generate from workspace and cluster name hash by default."
                 }
             }
         },
