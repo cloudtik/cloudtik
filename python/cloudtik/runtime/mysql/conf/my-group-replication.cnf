@@ -1,0 +1,147 @@
+# Copyright (c) 2017, Oracle and/or its affiliates. All rights reserved.
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; version 2 of the License.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
+
+#
+# The MySQL  Server configuration file.
+#
+# For explanations see
+# http://dev.mysql.com/doc/mysql/en/server-system-variables.html
+
+[mysqld]
+pid-file        = /var/run/mysqld/mysqld.pid
+socket          = /var/run/mysqld/mysqld.sock
+datadir         = {%data.dir%}
+secure-file-priv= NULL
+
+skip-name-resolve
+
+bind-address = {%bind.address%},127.0.0.1
+port = {%bind.port%}
+
+# Unique Server Identifier is needed for replication
+server_id = {%server.id%}
+
+# Binary Log Active
+# Set --log-bin[=log_file_name]
+# From MySQL 8.0, binary logging is enabled by default
+
+# Global Transaction Identifiers On
+# Set gtid_mode=ON and enforce_gtid_consistency=ON. These settings are not the
+# defaults.
+# GTID-based replication is required for Group Replication which uses global
+# transaction identifiers to track the transactions that have been committed
+# on every server instance in the group.
+gtid_mode=ON
+enforce_gtid_consistency=ON
+
+# Group replication needs InnoDB Storage Engine
+disabled_storage_engines="MyISAM,BLACKHOLE,FEDERATED,ARCHIVE,MEMORY"
+
+# Replica Updates Logged
+# Set log_replica_updates=ON (from MySQL 8.0.26)
+# From MySQL 8.0, this setting is the default
+
+# Binary Log Row Format
+# Set binlog_format=row
+# This setting is the default
+
+# Binary Log Checksums
+# From MySQL 8.0.21, Group Replication supports checksums, so group members may
+# use the default setting binlog_checksum=CRC32, and you do not need to specify it.
+
+# Replication Information Repositories.
+# Set master_info_repository=TABLE and relay_log_info_repository=TABLE. In MySQL 8.0,
+# these settings are the default
+
+# Transaction Write Set Extraction.
+# Set transaction_write_set_extraction=XXHASH64 so that while collecting rows to log
+# them to the binary log, the server collects the write set as well. In MySQL 8.0,
+# this setting is the default
+
+# Default Table Encryption.
+# Set default_table_encryption to the same value on all group members.
+
+# Lower Case Table Names.
+# Set lower_case_table_names to the same value on all group members.
+
+# Binary Log Dependency Tracking.
+# Setting binlog_transaction_dependency_tracking to WRITESET can improve performance
+# for a group member, depending on the group's workload.
+
+# Multithreaded Appliers.
+# Group Replication members can be configured as multithreaded replicas, enabling
+# transactions to be applied in parallel. From MySQL 8.0.27, all replicas are configured
+# as multithreaded by default.
+
+# To connect to a caching_sha2_password account for Group Replication:
+group_replication_recovery_get_public_key = ON
+
+# Group Replication Settings
+
+# Adds the Group Replication plugin to the list of plugins which the server loads at startup.
+# This is preferable in a production deployment to installing the plugin manually.
+# Commands to achieve the same manually:
+# INSTALL PLUGIN group_replication SONAME 'group_replication.so';
+plugin_load_add=group_replication.so
+
+# Adds the Clone plugin for remote cloning operations. The clone plugin has a number of system
+# variables to manage the network load and performance impact of the remote cloning operation.
+# Group Replication does not configure these settings, so you can review them and set them if
+# you want to, or allow them to default.
+plugin-load-add=mysql_clone.so
+
+# The value must be a valid UUID
+group_replication_group_name="{%group.replication.group.name%}"
+
+# Configuring the group_replication_start_on_boot variable to off instructs the plugin to not
+# start operations automatically when the server starts. This is important when setting up
+# Group Replication as it ensures you can configure the server before manually starting the
+# plugin. Once the member is configured you can set group_replication_start_on_boot to on so
+# that Group Replication starts automatically upon server boot.
+group_replication_start_on_boot=OFF
+
+# Configuring the network address and port which the member uses for internal communication
+# with other members in the group
+# TODO: use fqdn of the node
+group_replication_local_address="{%bind.address%}:{%bind.port%}"
+
+# Configuring group_replication_group_seeds sets the hostname and port of the group members
+# which are used by the new member to establish its connection to the group. A subset of the
+# group members can be chosen as seeds. The server that starts the group does not make use of
+# this option, since it is the initial server and as such, it is in charge of bootstrapping
+# the group.
+group_replication_group_seeds="{%group.replication.seed.address%}:{%bind.port%}"
+
+# Configuring group_replication_bootstrap_group instructs the plugin whether to bootstrap the
+# group or not. In this case, even though head is the first member of the group we set this
+# variable to off in the option file. Instead we configure group_replication_bootstrap_group
+# when the instance is running, to ensure that only one member actually bootstraps the group.
+group_replication_bootstrap_group=OFF
+
+# group_replication_clone_threshold specifies the transaction gap, as a number of transactions,
+# between the existing member (donor) and the joining member (recipient) that triggers the use
+# of a remote cloning operation for state transfer to the joining member during the distributed
+# recovery process. If the transaction gap between the joining member and a suitable donor exceeds
+# the threshold, Group Replication begins distributed recovery with a remote cloning operation.
+# If the transaction gap is below the threshold, or if the remote cloning operation is not
+# technically possible, Group Replication proceeds directly to state transfer from a donor's binary
+# log.
+# The default setting (which is the maximum permitted sequence number for a transaction in a GTID)
+# means that state transfer from a donor's binary log is virtually always attempted rather than
+# cloning. However, note that Group Replication always attempts to execute a cloning operation,
+# regardless of your threshold, if state transfer from a donor's binary log is impossible,
+# for example because the transactions needed by the joining member are not available in the binary
+# logs on any existing group member.
+# group_replication_clone_threshold=9223372036854775807

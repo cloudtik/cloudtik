@@ -20,14 +20,20 @@ MYSQL_HOME=$RUNTIME_PATH/mysql
 
 case "$SERVICE_COMMAND" in
 start)
-    MYSQL_CONFIG_FILE=${MYSQL_HOME}/conf/my.cnf
-    nohup mysqld \
-        --defaults-file=${MYSQL_CONFIG_FILE} \
-        >${MYSQL_HOME}/logs/mysqld.log 2>&1 &
+    if [ "${IS_HEAD_NODE}" == "true" ] \
+        || [ "${MYSQL_CLUSTER_MODE}" != "none" ]; then
+        MYSQL_CONFIG_FILE=${MYSQL_HOME}/conf/my.cnf
+        nohup mysqld \
+            --defaults-file=${MYSQL_CONFIG_FILE} \
+            >${MYSQL_HOME}/logs/mysqld.log 2>&1 &
+    fi
     ;;
 stop)
-    MYSQL_PID_FILE=/var/run/mysqld/mysqld.pid
-    stop_process_by_pid_file "${MYSQL_PID_FILE}"
+    if [ "${IS_HEAD_NODE}" == "true" ] \
+        || [ "${MYSQL_CLUSTER_MODE}" != "none" ]; then
+        MYSQL_PID_FILE=/var/run/mysqld/mysqld.pid
+        stop_process_by_pid_file "${MYSQL_PID_FILE}"
+    fi
     ;;
 -h|--help)
     echo "Usage: $0 start|stop --head" >&2
