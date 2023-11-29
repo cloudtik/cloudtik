@@ -20,7 +20,11 @@ ROOT_DIR="$(dirname "$(dirname "$BIN_DIR")")"
 # group replication and turn on group_replication_bootstrap_group ON and OFF in commands.
 function start_group_replication_with_bootstrap() {
     mysql_check_connection "$@"
-    mysql_bootstrap_group_replication "$@"
+    if [ $? != 0 ]; then
+        echo "Error: timeout waiting for service ready."
+    else
+        mysql_bootstrap_group_replication "$@"
+    fi
 }
 
 start_group_replication_with_bootstrap "$@"
