@@ -213,8 +213,13 @@ mysql_create_db_directories() {
 
 # initializes the database directory
 mysql_init_database_dir() {
-	mysql_note "Initializing database files"
-	"$@" --initialize-insecure --default-time-zone=SYSTEM
+	if [ "$MYSQL_INIT_WITH_CMD_OPTIONS" = true ]; then
+		mysql_note "Initializing database files with cmd options"
+		mysqld --initialize-insecure --default-time-zone=SYSTEM --datadir=$DATADIR
+	else
+	  mysql_note "Initializing database files"
+		"$@" --initialize-insecure --default-time-zone=SYSTEM
+	fi
 	mysql_note "Database files initialized"
 }
 
@@ -255,6 +260,20 @@ mysql_process_sql() {
 	fi
 
 	mysql --defaults-extra-file=<( _mysql_passfile "${passfileArgs[@]}") --protocol=socket -uroot -hlocalhost --socket="${SOCKET}" --comments "$@"
+}
+
+# Execute sql script passed via stdin
+# usage: mysql_run_sql [mysql-cli-args]
+#    ie: mysql_run_sql --database=mydb <<<'INSERT ...'
+#    ie: mysql_run_sql --database=mydb <my-file.sql
+mysql_run_sql() {
+	passfileArgs=()
+	# args sent in can override this db, since they will be later in the command
+	if [ -n "$MYSQL_DATABASE" ]; then
+		set -- --database="$MYSQL_DATABASE" "$@"
+	fi
+
+	mysql --defaults-extra-file=<( _mysql_passfile "${passfileArgs[@]}") -uroot --comments "$@"
 }
 
 # Initializes database with timezone info and root password
@@ -323,6 +342,7 @@ mysql_setup_user_db() {
 }
 
 mysql_setup_replication_user() {
+  mysql_note "Setting up replication user: repl_user"
   mysql_process_sql --database=mysql <<-EOSQL
 		-- What's done in this file shouldn't be replicated
 		--  or products like mysql-fabric won't work
@@ -335,6 +355,7 @@ mysql_setup_replication_user() {
 }
 
 mysql_setup_group_replication_user() {
+  mysql_note "Setting up group replication user: repl_user"
   mysql_process_sql --database=mysql <<-EOSQL
 		-- What's done in this file shouldn't be replicated
 		--  or products like mysql-fabric won't work
@@ -350,6 +371,7 @@ mysql_setup_group_replication_user() {
 }
 
 mysql_setup_replication() {
+  mysql_note "Setting up replication source to ${MYSQL_REPLICATION_SOURCE_HOST}"
   mysql_process_sql --database=mysql <<-EOSQL
 		CHANGE REPLICATION SOURCE TO
 		    SOURCE_HOST = '${MYSQL_REPLICATION_SOURCE_HOST}',
@@ -361,6 +383,7 @@ mysql_setup_replication() {
 }
 
 mysql_setup_group_replication() {
+  mysql_note "Setting up group replication"
   mysql_process_sql --database=mysql <<-EOSQL
 		CHANGE REPLICATION SOURCE TO
 		    SOURCE_USER = 'repl_user',
@@ -370,7 +393,8 @@ mysql_setup_group_replication() {
 }
 
 mysql_bootstrap_group_replication() {
-  mysql_process_sql --database=mysql <<-EOSQL
+  mysql_note "Starting group replication with bootstrap"
+  mysql_run_sql --database=mysql "$@" <<-EOSQL
 		 SET GLOBAL group_replication_bootstrap_group=ON;
 		 START GROUP_REPLICATION;
 		 SET GLOBAL group_replication_bootstrap_group=OFF;
@@ -378,9 +402,18 @@ mysql_bootstrap_group_replication() {
 }
 
 mysql_start_group_replication() {
-  mysql_process_sql --database=mysql <<-EOSQL
+  mysql_note "Starting group replication"
+  mysql_run_sql --database=mysql "$@" <<-EOSQL
 		 START GROUP_REPLICATION;
 	EOSQL
+}
+
+mysql_check_connection() {
+	for i in $(seq 1 10); do
+		[ $i -gt 1 ] && echo "Waiting for service ready..." && sleep 1;
+		mysql_run_sql --database=mysql "$@" <<<'\q' && s=0 && break || s=$?;
+	done;
+	return $s
 }
 
 _mysql_passfile() {
@@ -466,9 +499,10 @@ _main() {
 			elif [ "${MYSQL_CLUSTER_MODE}" == "group_replication" ]; then
 				mysql_setup_group_replication_user
 				mysql_setup_group_replication
-				if [ "${MYSQL_MASTER_NODE}" == "true" ]; then
-					mysql_bootstrap_group_replication
-				fi
+				# Bootstrap cannot be done here for head.  When it is start group replication
+				# with bootstrap group ON, it needs to be running for other member to join.
+				# Bootstrap needs to be done after the service starting (or with bootstrap group flag
+				# and start replication on boot flag ON)
 			fi
 
 			if [ "${MYSQL_MASTER_NODE}" == "true" ]; then

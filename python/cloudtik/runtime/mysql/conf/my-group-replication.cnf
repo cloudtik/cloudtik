@@ -105,13 +105,6 @@ plugin-load-add=mysql_clone.so
 # The value must be a valid UUID
 group_replication_group_name="{%group.replication.group.name%}"
 
-# Configuring the group_replication_start_on_boot variable to off instructs the plugin to not
-# start operations automatically when the server starts. This is important when setting up
-# Group Replication as it ensures you can configure the server before manually starting the
-# plugin. Once the member is configured you can set group_replication_start_on_boot to on so
-# that Group Replication starts automatically upon server boot.
-group_replication_start_on_boot=OFF
-
 # Configuring the network address and port which the member uses for internal communication
 # with other members in the group
 # TODO: use fqdn of the node
@@ -123,6 +116,13 @@ group_replication_local_address="{%bind.address%}:{%bind.port%}"
 # this option, since it is the initial server and as such, it is in charge of bootstrapping
 # the group.
 group_replication_group_seeds="{%group.replication.seed.address%}:{%bind.port%}"
+
+# Configuring the group_replication_start_on_boot variable to off instructs the plugin to not
+# start operations automatically when the server starts. This is important when setting up
+# Group Replication as it ensures you can configure the server before manually starting the
+# plugin. Once the member is configured you can set group_replication_start_on_boot to on so
+# that Group Replication starts automatically upon server boot.
+group_replication_start_on_boot=OFF
 
 # Configuring group_replication_bootstrap_group instructs the plugin whether to bootstrap the
 # group or not. In this case, even though head is the first member of the group we set this

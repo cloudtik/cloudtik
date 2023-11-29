@@ -51,13 +51,16 @@ function update_server_id() {
     sed -i "s#{%server.id%}#${CLOUDTIK_NODE_SEQ_ID}#g" ${config_template_file}
 }
 
-function update_start_replication_on_boot() {
-    if [ "${MYSQL_CLUSTER_MODE}" == "replication" ]; then
-      if [ "${IS_HEAD_NODE}" != "true" ]; then
-          sed -i "s#^skip_replica_start=ON#skip_replica_start=OFF#g" ${MYSQL_CONFIG_FILE}
-      fi
-    elif [ "${MYSQL_CLUSTER_MODE}" == "group_replication" ]; then
-        sed -i "s#^group_replication_start_on_boot=OFF#group_replication_start_on_boot=ON#g" ${MYSQL_CONFIG_FILE}
+function turn_on_start_replication_on_boot() {
+    if [ "${IS_HEAD_NODE}" != "true" ]; then
+        # only do this for workers for now, head needs handle differently for group replication
+        if [ "${MYSQL_CLUSTER_MODE}" == "replication" ]; then
+            sed -i "s#^skip_replica_start=ON#skip_replica_start=OFF#g" \
+              ${MYSQL_CONFIG_FILE}
+        elif [ "${MYSQL_CLUSTER_MODE}" == "group_replication" ]; then
+            sed -i "s#^group_replication_start_on_boot=OFF#group_replication_start_on_boot=ON#g" \
+              ${MYSQL_CONFIG_FILE}
+        fi
     fi
 }
 
@@ -96,7 +99,8 @@ function configure_mysql() {
         sed -i "s#{%group.replication.group.name%}#${MYSQL_GROUP_REPLICATION_NAME}#g" ${config_template_file}
         # TODO: set head address as seed address is good for first start
         # But if head is dead while other workers are running, we need head start using workers as seeds
-        # This need to be improved
+        # This need to be improved with fixed naming services if we know a fixed number of nodes. We can
+        # assume that the first N nodes used as seeds.
         # While for workers, we can always trust there is a healthy head to contact with.
         sed -i "s#{%group.replication.seed.address%}#${HEAD_ADDRESS}#g" ${config_template_file}
     fi
@@ -113,15 +117,22 @@ function configure_mysql() {
         export MYSQL_MASTER_NODE=true
     else
         export MYSQL_MASTER_NODE=false
+    fi
+
+    if [ "${MYSQL_CLUSTER_MODE}" == "replication" ]; then
         export MYSQL_REPLICATION_SOURCE_HOST=${HEAD_ADDRESS}
+    elif [ "${MYSQL_CLUSTER_MODE}" == "group_replication" ]; then
+        # This is needed because mysqld --initialize(-insecure) cannot recognize
+        # many group replications options in the conf file (plugin is not loaded
+        # for initialize process)
+        export MYSQL_INIT_WITH_CMD_OPTIONS=true
     fi
 
     # check and initialize the database if needed
     bash $BIN_DIR/mysql-init.sh mysqld \
         --defaults-file=${MYSQL_CONFIG_FILE} >${MYSQL_HOME}/logs/mysql-init.log 2>&1
 
-    # set the start replication on boot
-    update_start_replication_on_boot
+    turn_on_start_replication_on_boot
 }
 
 set_head_option "$@"
