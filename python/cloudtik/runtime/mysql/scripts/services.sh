@@ -26,6 +26,14 @@ start)
         nohup mysqld \
             --defaults-file=${MYSQL_CONFIG_FILE} \
             >${MYSQL_HOME}/logs/mysqld.log 2>&1 &
+
+        if [ "${IS_HEAD_NODE}" == "true" ] \
+            && [ "${MYSQL_CLUSTER_MODE}" == "group_replication" ]; then
+            # Case 1 and Case 2. start group replication with bootstrap
+            # TODO: distinguish for Case 3
+            echo "Starting group replication"
+            bash $BIN_DIR/start-group-replication.sh -h ${HEAD_ADDRESS} >${MYSQL_HOME}/logs/mysql-init.log 2>&1
+        fi
     fi
     ;;
 stop)
