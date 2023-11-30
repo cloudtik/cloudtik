@@ -133,7 +133,7 @@ function configure_mysql() {
         # many group replications options in the conf file (plugin is not loaded
         # for initialize process) and also we need to skip all bin log during this
         # process.
-        cp ${output_dir}/my-init.cnf ${MYSQL_CONFIG_FILE}/my-init.cnf
+        cp ${output_dir}/my-init.cnf ${MYSQL_CONFIG_DIR}/my-init.cnf
         export MYSQL_INIT_DATADIR_CONF=${MYSQL_CONFIG_DIR}/my-init.cnf
     fi
 
