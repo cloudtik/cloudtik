@@ -43,7 +43,7 @@ function update_data_dir() {
 
     sed -i "s#{%data.dir%}#${data_dir}#g" ${config_template_file}
     if [ "${MYSQL_CLUSTER_MODE}" == "group_replication" ]; then
-        sed -i "s#{%data.dir%}#${data_dir}#g" ${output_dir}/my-init-replication.cnf
+        sed -i "s#{%data.dir%}#${data_dir}#g" ${output_dir}/my-init.cnf
     fi
 }
 
@@ -133,8 +133,8 @@ function configure_mysql() {
         # many group replications options in the conf file (plugin is not loaded
         # for initialize process) and also we need to skip all bin log during this
         # process.
-        cp ${output_dir}/my-init-replication.cnf ${MYSQL_CONFIG_FILE}/my-init-replication.cnf
-        export MYSQL_INIT_DATADIR_CONF=${MYSQL_CONFIG_DIR}/my-init-replication.cnf
+        cp ${output_dir}/my-init.cnf ${MYSQL_CONFIG_FILE}/my-init.cnf
+        export MYSQL_INIT_DATADIR_CONF=${MYSQL_CONFIG_DIR}/my-init.cnf
     fi
 
     # check and initialize the database if needed
