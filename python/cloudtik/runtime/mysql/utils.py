@@ -18,6 +18,7 @@ RUNTIME_PROCESSES = [
     ]
 
 MYSQL_SERVICE_PORT_CONFIG_KEY = "port"
+MYSQL_GROUP_REPLICATION_PORT_CONFIG_KEY = "group_replication_port"
 
 MYSQL_CLUSTER_MODE_CONFIG_KEY = "cluster_mode"
 MYSQL_CLUSTER_MODE_NONE = "none"
@@ -37,6 +38,7 @@ MYSQL_DATABASE_PASSWORD_CONFIG_KEY = "password"
 
 MYSQL_SERVICE_NAME = BUILT_IN_RUNTIME_MYSQL
 MYSQL_SERVICE_PORT_DEFAULT = DATABASE_PORT_MYSQL_DEFAULT
+MYSQL_GROUP_REPLICATION_PORT_DEFAULT = 33061
 
 MYSQL_ROOT_PASSWORD_DEFAULT = DATABASE_PASSWORD_MYSQL_DEFAULT
 
@@ -48,6 +50,11 @@ def _get_config(runtime_config: Dict[str, Any]):
 def _get_service_port(mysql_config: Dict[str, Any]):
     return mysql_config.get(
         MYSQL_SERVICE_PORT_CONFIG_KEY, MYSQL_SERVICE_PORT_DEFAULT)
+
+
+def _get_group_replication_port(mysql_config: Dict[str, Any]):
+    return mysql_config.get(
+        MYSQL_GROUP_REPLICATION_PORT_CONFIG_KEY, MYSQL_GROUP_REPLICATION_PORT_DEFAULT)
 
 
 def _get_cluster_mode(mysql_config: Dict[str, Any]):
@@ -110,6 +117,9 @@ def _with_runtime_environment_variables(
         if not group_replication_name:
             group_replication_name = _generate_group_replication_name(config)
         runtime_envs["MYSQL_GROUP_REPLICATION_NAME"] = group_replication_name
+
+        group_replication_port = _get_group_replication_port(mysql_config)
+        runtime_envs["MYSQL_GROUP_REPLICATION_PORT"] = group_replication_port
 
     root_password = mysql_config.get(
         MYSQL_ROOT_PASSWORD_CONFIG_KEY, MYSQL_ROOT_PASSWORD_DEFAULT)

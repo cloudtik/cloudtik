@@ -25,8 +25,6 @@ socket          = /var/run/mysqld/mysqld.sock
 datadir         = {%data.dir%}
 secure-file-priv= NULL
 
-skip-name-resolve
-
 bind-address = {%bind.address%},127.0.0.1
 port = {%bind.port%}
 
@@ -108,14 +106,14 @@ group_replication_group_name="{%group.replication.group.name%}"
 # Configuring the network address and port which the member uses for internal communication
 # with other members in the group
 # TODO: use fqdn of the node
-group_replication_local_address="{%bind.address%}:{%bind.port%}"
+group_replication_local_address="{%bind.address%}:{%group.replication.port%}"
 
 # Configuring group_replication_group_seeds sets the hostname and port of the group members
 # which are used by the new member to establish its connection to the group. A subset of the
 # group members can be chosen as seeds. The server that starts the group does not make use of
 # this option, since it is the initial server and as such, it is in charge of bootstrapping
 # the group.
-group_replication_group_seeds="{%group.replication.seed.address%}:{%bind.port%}"
+group_replication_group_seeds="{%group.replication.seed.address%}:{%group.replication.port%}"
 
 # Configuring the group_replication_start_on_boot variable to off instructs the plugin to not
 # start operations automatically when the server starts. This is important when setting up
