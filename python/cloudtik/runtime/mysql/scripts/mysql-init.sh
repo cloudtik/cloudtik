@@ -216,6 +216,9 @@ mysql_init_database_dir() {
 	if [ "$MYSQL_INIT_WITH_CMD_OPTIONS" = true ]; then
 		mysql_note "Initializing database files with cmd options"
 		mysqld --initialize-insecure --default-time-zone=SYSTEM --datadir=$DATADIR
+	elif [ ! -z "${MYSQL_INIT_DATADIR_CONF}" ]; then
+		mysql_note "Initializing database files with conf ${MYSQL_INIT_DATADIR_CONF}"
+		mysqld --defaults-file=${MYSQL_INIT_DATADIR_CONF} --initialize-insecure --default-time-zone=SYSTEM
 	else
 	  mysql_note "Initializing database files"
 		"$@" --initialize-insecure --default-time-zone=SYSTEM
@@ -387,7 +390,7 @@ mysql_setup_group_replication() {
   mysql_process_sql --database=mysql <<-EOSQL
 		CHANGE REPLICATION SOURCE TO
 		    SOURCE_USER = 'repl_user',
-		    SOURCE_PASSWORD = 'cloudtik',
+		    SOURCE_PASSWORD = 'cloudtik'
 		    FOR CHANNEL 'group_replication_recovery';
 	EOSQL
 }

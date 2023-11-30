@@ -20,10 +20,8 @@
 # http://dev.mysql.com/doc/mysql/en/server-system-variables.html
 
 [mysqld]
-pid-file        = /var/run/mysqld/mysqld.pid
-socket          = /var/run/mysqld/mysqld.sock
-datadir         = {%data.dir%}
-secure-file-priv= NULL
+datadir = {%data.dir%}
 
-bind-address = {%bind.address%},127.0.0.1
-port = {%bind.port%}
+# Make sure that we don't generate GTIDs for replication because we do this
+# on every node.
+skip-log-bin

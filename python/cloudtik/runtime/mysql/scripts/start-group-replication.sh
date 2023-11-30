@@ -5,7 +5,7 @@ BIN_DIR=`dirname "$0"`
 ROOT_DIR="$(dirname "$(dirname "$BIN_DIR")")"
 
 # schema initialization functions
-. "$BIN_DIR"/schema-init.sh
+. "$BIN_DIR"/mysql-init.sh
 
 # TODO: For group replication, a few cases needs to be considered:
 # 1. For the first time creating, the head node needs to execute start group replication

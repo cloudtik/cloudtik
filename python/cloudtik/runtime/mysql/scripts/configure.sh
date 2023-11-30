@@ -40,6 +40,11 @@ function update_data_dir() {
 
     mkdir -p ${data_dir}
     sed -i "s#{%data.dir%}#${data_dir}#g" ${config_template_file}
+
+    sed -i "s#{%data.dir%}#${data_dir}#g" ${config_template_file}
+    if [ "${MYSQL_CLUSTER_MODE}" == "group_replication" ]; then
+        sed -i "s#{%data.dir%}#${data_dir}#g" ${output_dir}/my-init.cnf
+    fi
 }
 
 function update_server_id() {
@@ -97,6 +102,8 @@ function configure_mysql() {
     elif [ "${MYSQL_CLUSTER_MODE}" == "group_replication" ]; then
         update_server_id
         sed -i "s#{%group.replication.group.name%}#${MYSQL_GROUP_REPLICATION_NAME}#g" ${config_template_file}
+        sed -i "s#{%group.replication.port%}#${MYSQL_GROUP_REPLICATION_PORT}#g" ${config_template_file}
+
         # TODO: set head address as seed address is good for first start
         # But if head is dead while other workers are running, we need head start using workers as seeds
         # This need to be improved with fixed naming services if we know a fixed number of nodes. We can
@@ -124,8 +131,10 @@ function configure_mysql() {
     elif [ "${MYSQL_CLUSTER_MODE}" == "group_replication" ]; then
         # This is needed because mysqld --initialize(-insecure) cannot recognize
         # many group replications options in the conf file (plugin is not loaded
-        # for initialize process)
-        export MYSQL_INIT_WITH_CMD_OPTIONS=true
+        # for initialize process) and also we need to skip all bin log during this
+        # process.
+        cp ${output_dir}/my-init.cnf ${MYSQL_CONFIG_FILE}/my-init.cnf
+        export MYSQL_INIT_DATADIR_CONF=${MYSQL_CONFIG_DIR}/my-init.cnf
     fi
 
     # check and initialize the database if needed

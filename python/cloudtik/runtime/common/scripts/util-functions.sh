@@ -120,7 +120,7 @@ function stop_process_by_name() {
 
 function stop_process_by_pid_file() {
     local PROCESS_PID_FILE=$1
-    if [ sudo test -f "$PROCESS_PID_FILE" ]; then
+    if sudo test -f "$PROCESS_PID_FILE"; then
         local PROCESS_NAME=$(basename "$PROCESS_PID_FILE")
         local MY_PID=$(sudo pgrep --pidfile ${PROCESS_PID_FILE})
         if [ -n "${MY_PID}" ]; then
