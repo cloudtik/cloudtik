@@ -279,16 +279,8 @@ mysql_run_sql() {
 	mysql --defaults-extra-file=<( _mysql_passfile "${passfileArgs[@]}") -uroot --comments "$@"
 }
 
-# Initializes database with timezone info and root password
+# Initializes database with root password
 mysql_setup_db() {
-	# Load timezone info into database
-	if [ -z "$MYSQL_INITDB_SKIP_TZINFO" ]; then
-		# sed is for https://bugs.mysql.com/bug.php?id=20545
-		mysql_tzinfo_to_sql /usr/share/zoneinfo \
-			| sed 's/Local time zone must be set--see zic manual page/FCTY/' \
-			| mysql_process_sql --dont-use-mysql-root-password --database=mysql
-			# tell mysql_process_sql to not use MYSQL_ROOT_PASSWORD since it is not set yet
-	fi
 	# Generate random root password
 	if [ -n "$MYSQL_RANDOM_ROOT_PASSWORD" ]; then
 		MYSQL_ROOT_PASSWORD="$(openssl rand -base64 24)"; export MYSQL_ROOT_PASSWORD
@@ -327,6 +319,13 @@ mysql_setup_db() {
 }
 
 mysql_setup_user_db() {
+	# Load timezone info into database
+	if [ -z "$MYSQL_INITDB_SKIP_TZINFO" ]; then
+		# sed is for https://bugs.mysql.com/bug.php?id=20545
+		mysql_tzinfo_to_sql /usr/share/zoneinfo \
+			| sed 's/Local time zone must be set--see zic manual page/FCTY/' \
+			| mysql_process_sql --database=mysql
+	fi
 	# Creates a custom database and user if specified
 	if [ -n "$MYSQL_DATABASE" ]; then
 		mysql_note "Creating database ${MYSQL_DATABASE}"
