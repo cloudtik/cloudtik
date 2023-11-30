@@ -822,6 +822,11 @@
                 "group_replication_name": {
                     "type": "string",
                     "description": "Specify your own group replication name (GUID). Generate from workspace and cluster name hash by default."
+                },
+                "group_replication_port": {
+                    "type": "integer",
+                    "default": 33061,
+                    "description": "Specify the group replication port to be used."
                 }
             }
         },

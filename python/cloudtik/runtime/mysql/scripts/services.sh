@@ -13,6 +13,7 @@ eval set -- "${args}"
 set_head_option "$@"
 set_service_command "$@"
 set_node_ip_address
+set_head_address
 
 USER_HOME=/home/$(whoami)
 RUNTIME_PATH=$USER_HOME/runtime
@@ -32,7 +33,8 @@ start)
             # Case 1 and Case 2. start group replication with bootstrap
             # TODO: distinguish for Case 3
             echo "Starting group replication"
-            bash $BIN_DIR/start-group-replication.sh -h ${HEAD_ADDRESS} >${MYSQL_HOME}/logs/mysql-init.log 2>&1
+            bash $BIN_DIR/start-group-replication.sh \
+              -h ${HEAD_ADDRESS} >${MYSQL_HOME}/logs/mysql-group-replication.log 2>&1
         fi
     fi
     ;;
