@@ -328,22 +328,24 @@ _main() {
 			  ls ${POSTGRES_INITDB_SCRIPTS}/ > /dev/null
 			fi
 
-			postgres_init_database_dir
-			pg_setup_hba_conf "$@"
+			if [ "${POSTGRES_MASTER_NODE}" == "true" ]; then
+				postgres_init_database_dir
+				pg_setup_hba_conf "$@"
 
-			# PGPASSWORD is required for psql when authentication is required for 'local' connections via pg_hba.conf and is otherwise harmless
-			# e.g. when '--auth=md5' or '--auth-local=md5' is used in POSTGRES_INITDB_ARGS
-			export PGPASSWORD="${PGPASSWORD:-$POSTGRES_PASSWORD}"
-			postgres_temp_server_start "$@"
+				# PGPASSWORD is required for psql when authentication is required for 'local' connections via pg_hba.conf and is otherwise harmless
+				# e.g. when '--auth=md5' or '--auth-local=md5' is used in POSTGRES_INITDB_ARGS
+				export PGPASSWORD="${PGPASSWORD:-$POSTGRES_PASSWORD}"
+				postgres_temp_server_start "$@"
 
-			postgres_setup_db
-			postgres_init_db_and_user
-			if [ ! -z "${POSTGRES_INITDB_SCRIPTS}" ]; then
-			  postgres_process_init_files ${POSTGRES_INITDB_SCRIPTS}/*
+				postgres_setup_db
+				postgres_init_db_and_user
+				if [ ! -z "${POSTGRES_INITDB_SCRIPTS}" ]; then
+				  postgres_process_init_files ${POSTGRES_INITDB_SCRIPTS}/*
+				fi
+
+				postgres_temp_server_stop
+				unset PGPASSWORD
 			fi
-
-			postgres_temp_server_stop
-			unset PGPASSWORD
 
 			cat <<-'EOM'
 

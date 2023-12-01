@@ -19,7 +19,7 @@ RUNTIME_PROCESSES = [
 
 POSTGRES_SERVICE_PORT_CONFIG_KEY = "port"
 
-POSTGRES_HIGH_AVAILABILITY_CONFIG_KEY = "high_availability"
+POSTGRES_CLUSTER_MODE_CONFIG_KEY = "cluster_mode"
 POSTGRES_ADMIN_USER_CONFIG_KEY = "admin_user"
 POSTGRES_ADMIN_PASSWORD_CONFIG_KEY = "admin_password"
 
@@ -34,6 +34,10 @@ POSTGRES_SERVICE_PORT_DEFAULT = DATABASE_PORT_POSTGRES_DEFAULT
 POSTGRES_ADMIN_USER_DEFAULT = DATABASE_USERNAME_POSTGRES_DEFAULT
 POSTGRES_ADMIN_PASSWORD_DEFAULT = DATABASE_PASSWORD_POSTGRES_DEFAULT
 
+POSTGRES_CLUSTER_MODE_NONE = "none"
+# replication with physical replication
+POSTGRES_CLUSTER_MODE_REPLICATION = "replication"
+
 
 def _get_config(runtime_config: Dict[str, Any]):
     return runtime_config.get(BUILT_IN_RUNTIME_POSTGRES, {})
@@ -42,6 +46,11 @@ def _get_config(runtime_config: Dict[str, Any]):
 def _get_service_port(postgres_config: Dict[str, Any]):
     return postgres_config.get(
         POSTGRES_SERVICE_PORT_CONFIG_KEY, POSTGRES_SERVICE_PORT_DEFAULT)
+
+
+def _get_cluster_mode(mysql_config: Dict[str, Any]):
+    return mysql_config.get(
+        POSTGRES_CLUSTER_MODE_CONFIG_KEY, POSTGRES_CLUSTER_MODE_REPLICATION)
 
 
 def _get_home_dir():
@@ -78,6 +87,9 @@ def _with_runtime_environment_variables(
 
     service_port = _get_service_port(postgres_config)
     runtime_envs["POSTGRES_SERVICE_PORT"] = service_port
+
+    cluster_mode = _get_cluster_mode(postgres_config)
+    runtime_envs["MYSQL_CLUSTER_MODE"] = cluster_mode
 
     admin_user = postgres_config.get(
         POSTGRES_ADMIN_USER_CONFIG_KEY, POSTGRES_ADMIN_USER_DEFAULT)

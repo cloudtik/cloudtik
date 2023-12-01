@@ -46,8 +46,18 @@ function update_data_dir() {
 }
 
 function configure_postgres() {
+    if [ "${IS_HEAD_NODE}" != "true" ] \
+        && [ "${POSTGRES_CLUSTER_MODE}" == "none" ]; then
+          return
+    fi
+
     prepare_base_conf
-    config_template_file=${output_dir}/postgresql.conf
+
+    if [ "${POSTGRES_CLUSTER_MODE}" == "replication" ]; then
+        config_template_file=${output_dir}/postgresql-replication.cnf
+    else
+        config_template_file=${output_dir}/postgresql.conf
+    fi
 
     mkdir -p ${POSTGRES_HOME}/logs
 
@@ -66,6 +76,19 @@ function configure_postgres() {
     POSTGRES_CONFIG_FILE=${POSTGRES_CONFIG_DIR}/postgresql.conf
     cp -r ${config_template_file} ${POSTGRES_CONFIG_FILE}
 
+    # This is needed for mysql-init.sh to decide whether need to do user db setup
+
+    if [ "${IS_HEAD_NODE}" == "true" ]; then
+        # export for mysql_init.sh
+        export POSTGRES_MASTER_NODE=true
+    else
+        export POSTGRES_MASTER_NODE=false
+    fi
+
+    if [ "${POSTGRES_CLUSTER_MODE}" == "replication" ]; then
+        export POSTGRES_PRIMARY_HOST=${HEAD_ADDRESS}
+    fi
+
     # check and initialize the database if needed
     bash $BIN_DIR/postgres-init.sh postgres \
         -c config_file=${POSTGRES_CONFIG_FILE} >${POSTGRES_HOME}/logs/postgres-init.log 2>&1
@@ -74,6 +97,7 @@ function configure_postgres() {
 set_head_option "$@"
 check_postgres_installed
 set_node_ip_address
+set_head_address
 configure_postgres
 
 exit 0
