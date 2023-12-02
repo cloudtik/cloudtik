@@ -2,7 +2,7 @@ import os
 from typing import Any, Dict
 
 from cloudtik.core._private.core_utils import get_config_for_update
-from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_POSTGRES
+from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_POSTGRES, BUILT_IN_RUNTIME_MOUNT
 from cloudtik.core._private.service_discovery.utils import \
     get_canonical_service_name, define_runtime_service, \
     get_service_discovery_config, SERVICE_DISCOVERY_FEATURE_DATABASE
@@ -10,6 +10,7 @@ from cloudtik.core._private.util.database_utils import DATABASE_PORT_POSTGRES_DE
     DATABASE_USERNAME_POSTGRES_DEFAULT, DATABASE_PASSWORD_POSTGRES_DEFAULT
 from cloudtik.core._private.utils import RUNTIME_CONFIG_KEY, is_node_seq_id_enabled, enable_node_seq_id, \
     _sum_min_workers, get_runtime_config_for_update
+from cloudtik.runtime.common.service_discovery.cluster import has_runtime_in_cluster
 
 RUNTIME_PROCESSES = [
         # The first element is the substring to filter.
@@ -26,7 +27,7 @@ POSTGRES_ADMIN_USER_CONFIG_KEY = "admin_user"
 POSTGRES_ADMIN_PASSWORD_CONFIG_KEY = "admin_password"
 POSTGRES_REPLICATION_PASSWORD_CONFIG_KEY = "replication_password"
 
-POSTGRES_REPLICATION_ARCHIVE_CONFIG_KEY = "replication_archive"
+POSTGRES_ARCHIVE_MODE_CONFIG_KEY = "archive_mode"
 POSTGRES_REPLICATION_SLOT_CONFIG_KEY = "replication_slot"
 POSTGRES_REPLICATION_SYNCHRONOUS_CONFIG_KEY = "replication_synchronous"
 
@@ -71,6 +72,11 @@ def _get_cluster_mode(postgres_config: Dict[str, Any]):
         POSTGRES_CLUSTER_MODE_CONFIG_KEY, POSTGRES_CLUSTER_MODE_REPLICATION)
 
 
+def _is_archive_mode_enabled(postgres_config: Dict[str, Any]):
+    return postgres_config.get(
+        POSTGRES_ARCHIVE_MODE_CONFIG_KEY, False)
+
+
 def _is_replication_slot_enabled(postgres_config: Dict[str, Any]):
     return postgres_config.get(
         POSTGRES_REPLICATION_SLOT_CONFIG_KEY, False)
@@ -93,7 +99,7 @@ def _get_replication_synchronous_num(postgres_config: Dict[str, Any]):
     replication_synchronous_config = _get_replication_synchronous_config(
         postgres_config)
     return replication_synchronous_config.get(
-        POSTGRES_REPLICATION_SYNCHRONOUS_MODE_CONFIG_KEY, 1)
+        POSTGRES_REPLICATION_SYNCHRONOUS_NUM_CONFIG_KEY, 1)
 
 
 def _get_home_dir():
@@ -144,6 +150,11 @@ def _validate_config(config: Dict[str, Any]):
     if (user and not password) or (not user and password):
         raise ValueError("Database user and password must be both specified or not specified.")
 
+    if (_is_archive_mode_enabled(postgres_config) and not has_runtime_in_cluster(
+            runtime_config, BUILT_IN_RUNTIME_MOUNT)):
+        raise ValueError("Archive mode needs {} runtime to be configured for data sharing.".format(
+            BUILT_IN_RUNTIME_MOUNT))
+
 
 def _with_runtime_environment_variables(
         runtime_config, config):
@@ -176,6 +187,9 @@ def _with_runtime_environment_variables(
     cluster_mode = _get_cluster_mode(postgres_config)
     runtime_envs["POSTGRES_CLUSTER_MODE"] = cluster_mode
 
+    runtime_envs["POSTGRES_ARCHIVE_MODE"] = _is_archive_mode_enabled(
+        postgres_config)
+
     replication_password = postgres_config.get(
         POSTGRES_ADMIN_PASSWORD_CONFIG_KEY, POSTGRES_ADMIN_PASSWORD_DEFAULT)
     runtime_envs["POSTGRES_REPLICATION_PASSWORD"] = replication_password
@@ -191,10 +205,14 @@ def _with_runtime_environment_variables(
             postgres_config)
         runtime_envs["POSTGRES_SYNCHRONOUS_MODE"] = replication_synchronous_mode
         if replication_synchronous_mode != POSTGRES_REPLICATION_SYNCHRONOUS_MODE_NONE:
-            runtime_envs["POSTGRES_SYNCHRONOUS_NUM"] = _get_replication_synchronous_num(
-                postgres_config)
-            runtime_envs["POSTGRES_SYNCHRONOUS_SIZE"] = postgres_config.get(
+            synchronous_size = postgres_config.get(
                 POSTGRES_SYNCHRONOUS_SIZE_CONFIG_KEY, 1)
+            synchronous_num = _get_replication_synchronous_num(
+                postgres_config)
+            if synchronous_num > synchronous_size:
+                synchronous_num = synchronous_size
+            runtime_envs["POSTGRES_SYNCHRONOUS_NUM"] = synchronous_num
+            runtime_envs["POSTGRES_SYNCHRONOUS_SIZE"] = synchronous_size
 
     return runtime_envs
 
