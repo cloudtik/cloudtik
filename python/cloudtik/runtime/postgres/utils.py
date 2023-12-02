@@ -7,7 +7,7 @@ from cloudtik.core._private.service_discovery.utils import \
     get_service_discovery_config, SERVICE_DISCOVERY_FEATURE_DATABASE
 from cloudtik.core._private.util.database_utils import DATABASE_PORT_POSTGRES_DEFAULT, \
     DATABASE_USERNAME_POSTGRES_DEFAULT, DATABASE_PASSWORD_POSTGRES_DEFAULT
-from cloudtik.core._private.utils import RUNTIME_CONFIG_KEY
+from cloudtik.core._private.utils import RUNTIME_CONFIG_KEY, is_node_seq_id_enabled, enable_node_seq_id
 
 RUNTIME_PROCESSES = [
         # The first element is the substring to filter.
@@ -22,6 +22,14 @@ POSTGRES_SERVICE_PORT_CONFIG_KEY = "port"
 POSTGRES_CLUSTER_MODE_CONFIG_KEY = "cluster_mode"
 POSTGRES_ADMIN_USER_CONFIG_KEY = "admin_user"
 POSTGRES_ADMIN_PASSWORD_CONFIG_KEY = "admin_password"
+POSTGRES_REPLICATION_PASSWORD_CONFIG_KEY = "replication_password"
+
+POSTGRES_REPLICATION_ARCHIVE_CONFIG_KEY = "replication_archive"
+POSTGRES_REPLICATION_SLOT_CONFIG_KEY = "replication_slot"
+POSTGRES_REPLICATION_SYNCHRONOUS_CONFIG_KEY = "replication_synchronous"
+
+POSTGRES_REPLICATION_SYNCHRONOUS_MODE_CONFIG_KEY = "mode"
+POSTGRES_REPLICATION_SYNCHRONOUS_NUM_CONFIG_KEY = "num"
 
 POSTGRES_DATABASE_CONFIG_KEY = "database"
 POSTGRES_DATABASE_NAME_CONFIG_KEY = "name"
@@ -38,6 +46,12 @@ POSTGRES_CLUSTER_MODE_NONE = "none"
 # replication with physical replication
 POSTGRES_CLUSTER_MODE_REPLICATION = "replication"
 
+POSTGRES_REPLICATION_SYNCHRONOUS_MODE_NONE = "none"
+# FIRST 1
+POSTGRES_REPLICATION_SYNCHRONOUS_MODE_DEFAULT = "default"
+POSTGRES_REPLICATION_SYNCHRONOUS_MODE_FIRST = "first"
+POSTGRES_REPLICATION_SYNCHRONOUS_MODE_ANY = "any"
+
 
 def _get_config(runtime_config: Dict[str, Any]):
     return runtime_config.get(BUILT_IN_RUNTIME_POSTGRES, {})
@@ -53,6 +67,11 @@ def _get_cluster_mode(postgres_config: Dict[str, Any]):
         POSTGRES_CLUSTER_MODE_CONFIG_KEY, POSTGRES_CLUSTER_MODE_REPLICATION)
 
 
+def _enable_replication_slot(postgres_config: Dict[str, Any]):
+    return postgres_config.get(
+        POSTGRES_REPLICATION_SLOT_CONFIG_KEY, False)
+
+
 def _get_home_dir():
     return os.path.join(
         os.getenv("HOME"), "runtime", BUILT_IN_RUNTIME_POSTGRES)
@@ -66,6 +85,20 @@ def _get_runtime_logs():
     home_dir = _get_home_dir()
     logs_dir = os.path.join(home_dir, "logs")
     return {"postgres": logs_dir}
+
+
+def _bootstrap_runtime_config(
+        runtime_config: Dict[str, Any],
+        cluster_config: Dict[str, Any]) -> Dict[str, Any]:
+    postgres_config = _get_config(runtime_config)
+    cluster_mode = _get_cluster_mode(postgres_config)
+    if cluster_mode != POSTGRES_CLUSTER_MODE_NONE:
+        # We must enable the node seq id (stable seq id is preferred)
+        # But we don't enforce it.
+        if not is_node_seq_id_enabled(cluster_config):
+            enable_node_seq_id(cluster_config)
+
+    return cluster_config
 
 
 def _validate_config(config: Dict[str, Any]):
@@ -88,9 +121,6 @@ def _with_runtime_environment_variables(
     service_port = _get_service_port(postgres_config)
     runtime_envs["POSTGRES_SERVICE_PORT"] = service_port
 
-    cluster_mode = _get_cluster_mode(postgres_config)
-    runtime_envs["POSTGRES_CLUSTER_MODE"] = cluster_mode
-
     admin_user = postgres_config.get(
         POSTGRES_ADMIN_USER_CONFIG_KEY, POSTGRES_ADMIN_USER_DEFAULT)
     runtime_envs["POSTGRES_USER"] = admin_user
@@ -98,6 +128,19 @@ def _with_runtime_environment_variables(
     admin_password = postgres_config.get(
         POSTGRES_ADMIN_PASSWORD_CONFIG_KEY, POSTGRES_ADMIN_PASSWORD_DEFAULT)
     runtime_envs["POSTGRES_PASSWORD"] = admin_password
+
+    cluster_mode = _get_cluster_mode(postgres_config)
+    runtime_envs["POSTGRES_CLUSTER_MODE"] = cluster_mode
+
+    replication_password = postgres_config.get(
+        POSTGRES_ADMIN_PASSWORD_CONFIG_KEY, POSTGRES_ADMIN_PASSWORD_DEFAULT)
+    runtime_envs["POSTGRES_REPLICATION_PASSWORD"] = replication_password
+
+    # For enable replication slot, we need seq id (stable seq id is preferred)
+    # Also user need to monitor the disk usage for primary if there is any
+    # standby dead and cannot consume WAL which make the disk usage keep increasing.
+    runtime_envs["POSTGRES_REPLICATION_SLOT"] = _enable_replication_slot(
+        postgres_config)
 
     database = postgres_config.get(POSTGRES_DATABASE_CONFIG_KEY, {})
     database_name = database.get(POSTGRES_DATABASE_NAME_CONFIG_KEY)

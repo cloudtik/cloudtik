@@ -7,7 +7,7 @@ from cloudtik.core._private.service_discovery.utils import \
     get_canonical_service_name, define_runtime_service, \
     get_service_discovery_config, SERVICE_DISCOVERY_FEATURE_DATABASE
 from cloudtik.core._private.util.database_utils import DATABASE_PORT_MYSQL_DEFAULT, DATABASE_PASSWORD_MYSQL_DEFAULT
-from cloudtik.core._private.utils import RUNTIME_CONFIG_KEY
+from cloudtik.core._private.utils import RUNTIME_CONFIG_KEY, is_node_seq_id_enabled, enable_node_seq_id
 
 RUNTIME_PROCESSES = [
         # The first element is the substring to filter.
@@ -86,6 +86,20 @@ def _get_runtime_logs():
     home_dir = _get_home_dir()
     logs_dir = os.path.join(home_dir, "logs")
     return {"mysql": logs_dir}
+
+
+def _bootstrap_runtime_config(
+        runtime_config: Dict[str, Any],
+        cluster_config: Dict[str, Any]) -> Dict[str, Any]:
+    mysql_config = _get_config(runtime_config)
+    cluster_mode = _get_cluster_mode(mysql_config)
+    if cluster_mode != MYSQL_CLUSTER_MODE_NONE:
+        # We must enable the node seq id (stable seq id is preferred)
+        # But we don't enforce it.
+        if not is_node_seq_id_enabled(cluster_config):
+            enable_node_seq_id(cluster_config)
+
+    return cluster_config
 
 
 def _validate_config(config: Dict[str, Any]):
