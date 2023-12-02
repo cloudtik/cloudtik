@@ -45,6 +45,16 @@ function update_data_dir() {
     export PGDATA=${data_dir}
 }
 
+function update_server_id() {
+    if [ ! -n "${CLOUDTIK_NODE_SEQ_ID}" ]; then
+        echo "Replication needs unique server id. No node sequence id allocated for current node!"
+        exit 1
+    fi
+
+    local server_id="postgres-${CLOUDTIK_NODE_SEQ_ID}"
+    sed -i "s#{%server.id%}#${server_id}#g" ${config_template_file}
+}
+
 function configure_postgres() {
     if [ "${IS_HEAD_NODE}" != "true" ] \
         && [ "${POSTGRES_CLUSTER_MODE}" == "none" ]; then
@@ -54,7 +64,7 @@ function configure_postgres() {
     prepare_base_conf
 
     if [ "${POSTGRES_CLUSTER_MODE}" == "replication" ]; then
-        config_template_file=${output_dir}/postgresql-replication.cnf
+        config_template_file=${output_dir}/postgresql-replication.conf
     else
         config_template_file=${output_dir}/postgresql.conf
     fi
@@ -70,6 +80,10 @@ function configure_postgres() {
     sed -i "s#{%postgres.home%}#${POSTGRES_HOME}#g" ${config_template_file}
 
     update_data_dir
+
+    if [ "${POSTGRES_CLUSTER_MODE}" == "replication" ]; then
+        update_server_id
+    fi
 
     POSTGRES_CONFIG_DIR=${POSTGRES_HOME}/conf
     mkdir -p ${POSTGRES_CONFIG_DIR}
@@ -87,6 +101,9 @@ function configure_postgres() {
 
     if [ "${POSTGRES_CLUSTER_MODE}" == "replication" ]; then
         export POSTGRES_PRIMARY_HOST=${HEAD_ADDRESS}
+        if [ "${POSTGRES_REPLICATION_SLOT}" == "true" ]; then
+            export POSTGRES_REPLICATION_SLOT_NAME="postgres-${CLOUDTIK_NODE_SEQ_ID}"
+        fi
     fi
 
     # check and initialize the database if needed

@@ -855,6 +855,36 @@
                     "default": "cloudtik",
                     "description": "Specify the admin password when initializing the MySQL instance."
                 },
+                "replication_password": {
+                    "type": "string",
+                    "default": "cloudtik",
+                    "description": "Specify the replication password for replication cluster."
+                },
+                "replication_archive": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Whether to enable archive based recovery when WAL purged."
+                },
+                "replication_slot": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Whether to enable replication slot for WAL bookkeeping."
+                },
+                "replication_synchronous": {
+                    "type": "object",
+                    "description": "Database configurations",
+                    "properties": {
+                        "mode": {
+                            "type": "string",
+                            "default": "none",
+                            "description": "Whether enable synchronous standby: none, default, first and any."
+                        },
+                        "num": {
+                            "type": "integer",
+                            "description": "The number of synchronous for first or any mode."
+                        }
+                    }
+                },
                 "database": {
                     "type": "object",
                     "description": "Database configurations",
