@@ -48,8 +48,8 @@ def _get_service_port(postgres_config: Dict[str, Any]):
         POSTGRES_SERVICE_PORT_CONFIG_KEY, POSTGRES_SERVICE_PORT_DEFAULT)
 
 
-def _get_cluster_mode(mysql_config: Dict[str, Any]):
-    return mysql_config.get(
+def _get_cluster_mode(postgres_config: Dict[str, Any]):
+    return postgres_config.get(
         POSTGRES_CLUSTER_MODE_CONFIG_KEY, POSTGRES_CLUSTER_MODE_REPLICATION)
 
 
@@ -70,9 +70,9 @@ def _get_runtime_logs():
 
 def _validate_config(config: Dict[str, Any]):
     runtime_config = config.get(RUNTIME_CONFIG_KEY)
-    mysql_config = _get_config(runtime_config)
+    postgres_config = _get_config(runtime_config)
 
-    database = mysql_config.get(POSTGRES_DATABASE_CONFIG_KEY, {})
+    database = postgres_config.get(POSTGRES_DATABASE_CONFIG_KEY, {})
     user = database.get(POSTGRES_DATABASE_USER_CONFIG_KEY)
     password = database.get(POSTGRES_DATABASE_PASSWORD_CONFIG_KEY)
     if (user and not password) or (not user and password):
@@ -89,7 +89,7 @@ def _with_runtime_environment_variables(
     runtime_envs["POSTGRES_SERVICE_PORT"] = service_port
 
     cluster_mode = _get_cluster_mode(postgres_config)
-    runtime_envs["MYSQL_CLUSTER_MODE"] = cluster_mode
+    runtime_envs["POSTGRES_CLUSTER_MODE"] = cluster_mode
 
     admin_user = postgres_config.get(
         POSTGRES_ADMIN_USER_CONFIG_KEY, POSTGRES_ADMIN_USER_DEFAULT)

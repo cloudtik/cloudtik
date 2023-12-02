@@ -80,7 +80,6 @@ function configure_postgres() {
     # or do a base backup through the primary server.
 
     if [ "${IS_HEAD_NODE}" == "true" ]; then
-        # export for mysql_init.sh
         export POSTGRES_MASTER_NODE=true
     else
         export POSTGRES_MASTER_NODE=false
