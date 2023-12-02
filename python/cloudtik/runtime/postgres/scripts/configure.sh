@@ -76,7 +76,8 @@ function configure_postgres() {
     POSTGRES_CONFIG_FILE=${POSTGRES_CONFIG_DIR}/postgresql.conf
     cp -r ${config_template_file} ${POSTGRES_CONFIG_FILE}
 
-    # This is needed for mysql-init.sh to decide whether need to do user db setup
+    # This is needed for postgres-init.sh to decide whether need to do user db setup
+    # or do a base backup through the primary server.
 
     if [ "${IS_HEAD_NODE}" == "true" ]; then
         # export for mysql_init.sh

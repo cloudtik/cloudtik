@@ -361,7 +361,7 @@ _main() {
 				# This process will setup primary_conninfo in the postgres.auto.conf
 				# and the standby.signal in the data directory
 				export PGPASSWORD="${POSTGRES_REPLICATION_PASSWORD:-cloudtik}"
-				pg_basebackup -h POSTGRES_MASTER_ADDRESS \
+				pg_basebackup -h ${POSTGRES_PRIMARY_HOST} \
 					-U repl_user --no-password \
 					-X stream -R -D $PGDATA
 				unset PGPASSWORD
