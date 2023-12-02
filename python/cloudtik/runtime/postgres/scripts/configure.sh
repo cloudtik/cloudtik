@@ -71,6 +71,12 @@ function configure_postgres() {
 
     update_data_dir
 
+    if [ "${IS_HEAD_NODE}" != "true" ]; then
+        # setup primary connection info
+        local primary_conninfo="host=${HEAD_ADDRESS} port=${POSTGRES_SERVICE_PORT} user=repl_user password=cloudtik"
+        sed -i "s#{%primary.conninfo%}#${primary_conninfo}#g" ${config_template_file}
+    fi
+
     POSTGRES_CONFIG_DIR=${POSTGRES_HOME}/conf
     mkdir -p ${POSTGRES_CONFIG_DIR}
     POSTGRES_CONFIG_FILE=${POSTGRES_CONFIG_DIR}/postgresql.conf
@@ -92,6 +98,11 @@ function configure_postgres() {
     # check and initialize the database if needed
     bash $BIN_DIR/postgres-init.sh postgres \
         -c config_file=${POSTGRES_CONFIG_FILE} >${POSTGRES_HOME}/logs/postgres-init.log 2>&1
+
+    if [ "${IS_HEAD_NODE}" != "true" ]; then
+        # for replication node, create a standby.signal
+        touch $PGDATA/standby.signal
+    fi
 }
 
 set_head_option "$@"

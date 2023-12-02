@@ -147,6 +147,7 @@ postgres_verify_minimum_env() {
 		EOWARN
 	fi
 }
+
 postgres_init_db_and_user() {
 	if [ -n "$POSTGRES_DATABASE_NAME" ]; then
 		postgres_process_sql <<<"CREATE DATABASE ${POSTGRES_DATABASE_NAME};"
@@ -157,6 +158,10 @@ postgres_init_db_and_user() {
 			postgres_process_sql <<<"GRANT ALL PRIVILEGES ON DATABASE ${POSTGRES_DATABASE_NAME} TO $POSTGRES_DATABASE_NAME;"
 		fi
 	fi
+}
+
+postgres_setup_replication_user() {
+	postgres_process_sql <<<"CREATE ROLE repl_user WITH REPLICATION LOGIN PASSWORD 'cloudtik';"
 }
 
 # usage: postgres_process_init_files [file [file [...]]]
@@ -328,16 +333,18 @@ _main() {
 			  ls ${POSTGRES_INITDB_SCRIPTS}/ > /dev/null
 			fi
 
-			if [ "${POSTGRES_MASTER_NODE}" == "true" ]; then
-				postgres_init_database_dir
-				pg_setup_hba_conf "$@"
+			postgres_init_database_dir
+			pg_setup_hba_conf "$@"
 
+			if [ "${POSTGRES_MASTER_NODE}" == "true" ]; then
 				# PGPASSWORD is required for psql when authentication is required for 'local' connections via pg_hba.conf and is otherwise harmless
 				# e.g. when '--auth=md5' or '--auth-local=md5' is used in POSTGRES_INITDB_ARGS
 				export PGPASSWORD="${PGPASSWORD:-$POSTGRES_PASSWORD}"
 				postgres_temp_server_start "$@"
 
 				postgres_setup_db
+				postgres_setup_replication_user
+
 				postgres_init_db_and_user
 				if [ ! -z "${POSTGRES_INITDB_SCRIPTS}" ]; then
 				  postgres_process_init_files ${POSTGRES_INITDB_SCRIPTS}/*
