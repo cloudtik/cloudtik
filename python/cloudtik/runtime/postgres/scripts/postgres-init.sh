@@ -161,7 +161,8 @@ postgres_init_db_and_user() {
 }
 
 postgres_setup_replication_user() {
-	postgres_process_sql <<<"CREATE ROLE repl_user WITH REPLICATION LOGIN PASSWORD 'cloudtik';"
+	POSTGRES_REPLICATION_PASSWORD="${POSTGRES_REPLICATION_PASSWORD:-cloudtik}"
+	postgres_process_sql <<<"CREATE ROLE repl_user WITH REPLICATION LOGIN PASSWORD '$POSTGRES_REPLICATION_PASSWORD';"
 }
 
 # usage: postgres_process_init_files [file [file [...]]]
@@ -266,6 +267,7 @@ pg_setup_hba_conf() {
 			printf '# see https://www.postgresql.org/docs/12/auth-trust.html\n'
 		fi
 		printf 'host all all all %s\n' "$POSTGRES_HOST_AUTH_METHOD"
+		printf 'host replication repl_user all %s\n' "$POSTGRES_HOST_AUTH_METHOD"
 	} >> "$PGDATA/pg_hba.conf"
 }
 
@@ -333,10 +335,10 @@ _main() {
 			  ls ${POSTGRES_INITDB_SCRIPTS}/ > /dev/null
 			fi
 
-			postgres_init_database_dir
-			pg_setup_hba_conf "$@"
-
 			if [ "${POSTGRES_MASTER_NODE}" == "true" ]; then
+				postgres_init_database_dir
+				pg_setup_hba_conf "$@"
+
 				# PGPASSWORD is required for psql when authentication is required for 'local' connections via pg_hba.conf and is otherwise harmless
 				# e.g. when '--auth=md5' or '--auth-local=md5' is used in POSTGRES_INITDB_ARGS
 				export PGPASSWORD="${PGPASSWORD:-$POSTGRES_PASSWORD}"
@@ -351,6 +353,17 @@ _main() {
 				fi
 
 				postgres_temp_server_stop
+				unset PGPASSWORD
+			else
+				# for replica, we needs to do a pg_basebackup from master
+				# Cannot use an emtpy data directory or a data directory initialized
+				# by initdb (this method will make the data files with different identifier.
+				# This process will setup primary_conninfo in the postgres.auto.conf
+				# and the standby.signal in the data directory
+				export PGPASSWORD="${POSTGRES_REPLICATION_PASSWORD:-cloudtik}"
+				pg_basebackup -h POSTGRES_MASTER_ADDRESS \
+					-U repl_user --no-password \
+					-X stream -R -D $PGDATA
 				unset PGPASSWORD
 			fi
 
