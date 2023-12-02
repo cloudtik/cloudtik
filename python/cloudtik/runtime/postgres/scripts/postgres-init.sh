@@ -362,7 +362,7 @@ _main() {
 				# and the standby.signal in the data directory
 				export PGPASSWORD="${POSTGRES_REPLICATION_PASSWORD:-cloudtik}"
 				local replication_slot_options=""
-				if [ ! -z "$POSTGRES_REPLICATION_SLOT_NAME" ];
+				if [ ! -z "$POSTGRES_REPLICATION_SLOT_NAME" ]; then
 					replication_slot_options="-C -S $POSTGRES_REPLICATION_SLOT_NAME"
 				fi
 				pg_basebackup -h ${POSTGRES_PRIMARY_HOST} \

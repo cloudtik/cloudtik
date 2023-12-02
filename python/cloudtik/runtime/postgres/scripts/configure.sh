@@ -55,6 +55,29 @@ function update_server_id() {
     sed -i "s#{%server.id%}#${server_id}#g" ${config_template_file}
 }
 
+function update_synchronous_standby_names() {
+    local synchronous_standby_names=""
+    local standby_names=""
+    # Warning: this depends on that the head node seq id = 1
+    END_SERVER_ID=$((POSTGRES_SYNCHRONOUS_SIZE+1))
+    for i in $(seq 2 $END_SERVER_ID); do
+        if [ -z "$standby_names" ]; then
+            standby_names="postgres-$i"
+        else
+            standby_names="$standby_names,postgres-$i"
+        fi
+    done
+
+    if [ "${POSTGRES_SYNCHRONOUS_MODE}" == "first" ]; then
+        synchronous_standby_names="FIRST ${POSTGRES_SYNCHRONOUS_NUM} (${standby_names})"
+    elif [ "${POSTGRES_SYNCHRONOUS_MODE}" == "any" ]; then
+        synchronous_standby_names="ANY ${POSTGRES_SYNCHRONOUS_NUM} (${standby_names})"
+    else
+        synchronous_standby_names="${standby_names}"
+    fi
+    sed -i "s#synchronous_standby_names = ''#synchronous_standby_names = '${synchronous_standby_names}'#g" ${config_template_file}
+}
+
 function configure_postgres() {
     if [ "${IS_HEAD_NODE}" != "true" ] \
         && [ "${POSTGRES_CLUSTER_MODE}" == "none" ]; then
@@ -102,13 +125,21 @@ function configure_postgres() {
     if [ "${POSTGRES_CLUSTER_MODE}" == "replication" ]; then
         export POSTGRES_PRIMARY_HOST=${HEAD_ADDRESS}
         if [ "${POSTGRES_REPLICATION_SLOT}" == "true" ]; then
-            export POSTGRES_REPLICATION_SLOT_NAME="postgres-${CLOUDTIK_NODE_SEQ_ID}"
+            export POSTGRES_REPLICATION_SLOT_NAME="postgres_${CLOUDTIK_NODE_SEQ_ID}"
         fi
     fi
 
     # check and initialize the database if needed
     bash $BIN_DIR/postgres-init.sh postgres \
         -c config_file=${POSTGRES_CONFIG_FILE} >${POSTGRES_HOME}/logs/postgres-init.log 2>&1
+
+    if [ "${IS_HEAD_NODE}" == "true" ] && \
+        [ "${POSTGRES_CLUSTER_MODE}" == "replication" ] && \
+        [ "${POSTGRES_SYNCHRONOUS_MODE}" != "none" ]; then
+        update_synchronous_standby_names
+        # copy again the updated version
+        cp -r ${config_template_file} ${POSTGRES_CONFIG_FILE}
+    fi
 }
 
 set_head_option "$@"
