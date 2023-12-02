@@ -51,7 +51,7 @@ function update_server_id() {
         exit 1
     fi
 
-    local server_id="postgres-${CLOUDTIK_NODE_SEQ_ID}"
+    local server_id="postgres_${CLOUDTIK_NODE_SEQ_ID}"
     sed -i "s#{%server.id%}#${server_id}#g" ${config_template_file}
 }
 
@@ -62,9 +62,9 @@ function update_synchronous_standby_names() {
     END_SERVER_ID=$((POSTGRES_SYNCHRONOUS_SIZE+1))
     for i in $(seq 2 $END_SERVER_ID); do
         if [ -z "$standby_names" ]; then
-            standby_names="postgres-$i"
+            standby_names="postgres_$i"
         else
-            standby_names="$standby_names,postgres-$i"
+            standby_names="$standby_names,postgres_$i"
         fi
     done
 
@@ -76,6 +76,21 @@ function update_synchronous_standby_names() {
         synchronous_standby_names="${standby_names}"
     fi
     sed -i "s#synchronous_standby_names = ''#synchronous_standby_names = '${synchronous_standby_names}'#g" ${config_template_file}
+}
+
+function configure_archive() {
+    # turn on archive mode
+    sed -i "s#archive_mode = off#archive_mode = on#g" ${config_template_file}
+
+    # update the archive command
+    local archive_command="test ! -f ${ARCHIVE_DIR}/%f && cp %p ${ARCHIVE_DIR}/%f"
+    sed -i "s#archive_command = ''#archive_command = '${archive_command}'#g" ${config_template_file}
+}
+
+function configure_restore_command() {
+    # update the archive command
+    local restore_command="cp ${ARCHIVE_DIR}/%f %p"
+    sed -i "s#archive_command = ''#archive_command = '${archive_command}'#g" ${config_template_file}
 }
 
 function configure_postgres() {
@@ -106,6 +121,15 @@ function configure_postgres() {
 
     if [ "${POSTGRES_CLUSTER_MODE}" == "replication" ]; then
         update_server_id
+    fi
+
+    if [ "${POSTGRES_ARCHIVE_MODE}" == "true" ]; then
+        # NOTE: create the folder before the starting of the service
+        ARCHIVE_DIR="/cloudtik/fs/postgres/archives/${CLOUDTIK_CLUSTER}"
+        configure_archive
+        if [ "${IS_HEAD_NODE}" != "true" ]; then
+            configure_restore_command
+        fi
     fi
 
     POSTGRES_CONFIG_DIR=${POSTGRES_HOME}/conf
