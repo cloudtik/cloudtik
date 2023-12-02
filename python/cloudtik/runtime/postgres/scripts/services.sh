@@ -20,14 +20,20 @@ POSTGRES_HOME=$RUNTIME_PATH/postgres
 
 case "$SERVICE_COMMAND" in
 start)
-    POSTGRES_CONFIG_FILE=${POSTGRES_HOME}/conf/postgresql.conf
-    nohup postgres \
-        -c config_file=${POSTGRES_CONFIG_FILE} \
-        >${POSTGRES_HOME}/logs/postgres.log 2>&1 &
+    if [ "${IS_HEAD_NODE}" == "true" ] \
+        || [ "${POSTGRES_CLUSTER_MODE}" != "none" ]; then
+        POSTGRES_CONFIG_FILE=${POSTGRES_HOME}/conf/postgresql.conf
+        nohup postgres \
+            -c config_file=${POSTGRES_CONFIG_FILE} \
+            >${POSTGRES_HOME}/logs/postgres.log 2>&1 &
+    fi
     ;;
 stop)
-    POSTGRES_PID_FILE=${POSTGRES_HOME}/postgres.pid
-    stop_process_by_pid_file "${POSTGRES_PID_FILE}"
+    if [ "${IS_HEAD_NODE}" == "true" ] \
+        || [ "${POSTGRES_CLUSTER_MODE}" != "none" ]; then
+        POSTGRES_PID_FILE=${POSTGRES_HOME}/postgres.pid
+        stop_process_by_pid_file "${POSTGRES_PID_FILE}"
+    fi
     ;;
 -h|--help)
     echo "Usage: $0 start|stop --head" >&2

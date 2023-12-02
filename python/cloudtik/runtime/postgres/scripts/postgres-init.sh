@@ -147,6 +147,7 @@ postgres_verify_minimum_env() {
 		EOWARN
 	fi
 }
+
 postgres_init_db_and_user() {
 	if [ -n "$POSTGRES_DATABASE_NAME" ]; then
 		postgres_process_sql <<<"CREATE DATABASE ${POSTGRES_DATABASE_NAME};"
@@ -157,6 +158,11 @@ postgres_init_db_and_user() {
 			postgres_process_sql <<<"GRANT ALL PRIVILEGES ON DATABASE ${POSTGRES_DATABASE_NAME} TO $POSTGRES_DATABASE_NAME;"
 		fi
 	fi
+}
+
+postgres_setup_replication_user() {
+	POSTGRES_REPLICATION_PASSWORD="${POSTGRES_REPLICATION_PASSWORD:-cloudtik}"
+	postgres_process_sql <<<"CREATE ROLE repl_user WITH REPLICATION LOGIN PASSWORD '$POSTGRES_REPLICATION_PASSWORD';"
 }
 
 # usage: postgres_process_init_files [file [file [...]]]
@@ -261,6 +267,7 @@ pg_setup_hba_conf() {
 			printf '# see https://www.postgresql.org/docs/12/auth-trust.html\n'
 		fi
 		printf 'host all all all %s\n' "$POSTGRES_HOST_AUTH_METHOD"
+		printf 'host replication repl_user all %s\n' "$POSTGRES_HOST_AUTH_METHOD"
 	} >> "$PGDATA/pg_hba.conf"
 }
 
@@ -328,22 +335,37 @@ _main() {
 			  ls ${POSTGRES_INITDB_SCRIPTS}/ > /dev/null
 			fi
 
-			postgres_init_database_dir
-			pg_setup_hba_conf "$@"
+			if [ "${POSTGRES_MASTER_NODE}" == "true" ]; then
+				postgres_init_database_dir
+				pg_setup_hba_conf "$@"
 
-			# PGPASSWORD is required for psql when authentication is required for 'local' connections via pg_hba.conf and is otherwise harmless
-			# e.g. when '--auth=md5' or '--auth-local=md5' is used in POSTGRES_INITDB_ARGS
-			export PGPASSWORD="${PGPASSWORD:-$POSTGRES_PASSWORD}"
-			postgres_temp_server_start "$@"
+				# PGPASSWORD is required for psql when authentication is required for 'local' connections via pg_hba.conf and is otherwise harmless
+				# e.g. when '--auth=md5' or '--auth-local=md5' is used in POSTGRES_INITDB_ARGS
+				export PGPASSWORD="${PGPASSWORD:-$POSTGRES_PASSWORD}"
+				postgres_temp_server_start "$@"
 
-			postgres_setup_db
-			postgres_init_db_and_user
-			if [ ! -z "${POSTGRES_INITDB_SCRIPTS}" ]; then
-			  postgres_process_init_files ${POSTGRES_INITDB_SCRIPTS}/*
+				postgres_setup_db
+				postgres_setup_replication_user
+
+				postgres_init_db_and_user
+				if [ ! -z "${POSTGRES_INITDB_SCRIPTS}" ]; then
+				  postgres_process_init_files ${POSTGRES_INITDB_SCRIPTS}/*
+				fi
+
+				postgres_temp_server_stop
+				unset PGPASSWORD
+			else
+				# for replica, we needs to do a pg_basebackup from master
+				# Cannot use an emtpy data directory or a data directory initialized
+				# by initdb (this method will make the data files with different identifier.
+				# This process will setup primary_conninfo in the postgres.auto.conf
+				# and the standby.signal in the data directory
+				export PGPASSWORD="${POSTGRES_REPLICATION_PASSWORD:-cloudtik}"
+				pg_basebackup -h ${POSTGRES_PRIMARY_HOST} \
+					-U repl_user --no-password \
+					-X stream -R -D $PGDATA
+				unset PGPASSWORD
 			fi
-
-			postgres_temp_server_stop
-			unset PGPASSWORD
 
 			cat <<-'EOM'
 

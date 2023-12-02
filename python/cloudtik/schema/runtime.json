@@ -840,10 +840,10 @@
                     "default": 5432,
                     "description": "Postgres server port."
                 },
-                "high_availability": {
-                    "type": "boolean",
-                    "default": false,
-                    "description": "Whether to run a server on each node for high availability."
+                "cluster_mode": {
+                    "type": "string",
+                    "default": "replication",
+                    "description": "The replication method to use: none, replication."
                 },
                 "admin_user": {
                     "type": "string",
