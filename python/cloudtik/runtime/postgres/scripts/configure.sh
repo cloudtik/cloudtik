@@ -82,15 +82,15 @@ function configure_archive() {
     # turn on archive mode
     sed -i "s#archive_mode = off#archive_mode = on#g" ${config_template_file}
 
-    # update the archive command
-    local archive_command="test ! -f ${ARCHIVE_DIR}/%f && cp %p ${ARCHIVE_DIR}/%f"
+    # update the archive_command (need escape && for sed)
+    local archive_command="test ! -f ${ARCHIVE_DIR}/%f \&\& cp %p ${ARCHIVE_DIR}/%f"
     sed -i "s#archive_command = ''#archive_command = '${archive_command}'#g" ${config_template_file}
 }
 
 function configure_restore_command() {
-    # update the archive command
+    # update the restore_command
     local restore_command="cp ${ARCHIVE_DIR}/%f %p"
-    sed -i "s#archive_command = ''#archive_command = '${archive_command}'#g" ${config_template_file}
+    sed -i "s#restore_command = ''#restore_command = '${restore_command}'#g" ${config_template_file}
 }
 
 function configure_postgres() {
