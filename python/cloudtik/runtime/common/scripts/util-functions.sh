@@ -145,3 +145,137 @@ function restore_resolv_conf() {
         sudo cp ${BACKUP_RESOLV_CONF} /etc/resolv.conf
     fi
 }
+
+########################
+# Read the provided pid file and returns a PID
+# Arguments:
+#   $1 - Pid file
+# Returns:
+#   PID
+#########################
+get_pid_from_file() {
+    local pid_file="${1:?pid file is missing}"
+
+    if [[ -f "$pid_file" ]]; then
+        if [[ -n "$(< "$pid_file")" ]] && [[ "$(< "$pid_file")" -gt 0 ]]; then
+            echo "$(< "$pid_file")"
+        fi
+    fi
+}
+
+########################
+# Check if a provided PID corresponds to a running service
+# Arguments:
+#   $1 - PID
+# Returns:
+#   Boolean
+#########################
+is_service_running() {
+    local pid="${1:?pid is missing}"
+
+    kill -0 "$pid" 2>/dev/null
+}
+
+########################
+# Stop a service by sending a termination signal to its pid
+# Arguments:
+#   $1 - Pid file
+#   $2 - Signal number (optional)
+# Returns:
+#   None
+#########################
+stop_service_using_pid() {
+    local pid_file="${1:?pid file is missing}"
+    local signal="${2:-}"
+    local pid
+
+    pid="$(get_pid_from_file "$pid_file")"
+    [[ -z "$pid" ]] || ! is_service_running "$pid" && return
+
+    if [[ -n "$signal" ]]; then
+        kill "-${signal}" "$pid"
+    else
+        kill "$pid"
+    fi
+
+    local counter=10
+    while [[ "$counter" -ne 0 ]] && is_service_running "$pid"; do
+        sleep 1
+        counter=$((counter - 1))
+    done
+}
+
+########################
+# Replace a regex-matching string in a file
+# Arguments:
+#   $1 - filename
+#   $2 - match regex
+#   $3 - substitute regex
+#   $4 - use POSIX regex. Default: true
+# Returns:
+#   None
+#########################
+replace_in_file() {
+    local filename="${1:?filename is required}"
+    local match_regex="${2:?match regex is required}"
+    local substitute_regex="${3:?substitute regex is required}"
+    local posix_regex=${4:-true}
+
+    local result
+
+    # We should avoid using 'sed in-place' substitutions
+    # 1) They are not compatible with files mounted from ConfigMap(s)
+    # 2) We found incompatibility issues with Debian10 and "in-place" substitutions
+    local -r del=$'\001' # Use a non-printable character as a 'sed' delimiter to avoid issues
+    if [[ $posix_regex = true ]]; then
+        result="$(sed -E "s${del}${match_regex}${del}${substitute_regex}${del}g" "$filename")"
+    else
+        result="$(sed "s${del}${match_regex}${del}${substitute_regex}${del}g" "$filename")"
+    fi
+    echo "$result" > "$filename"
+}
+
+########################
+# Remove a line in a file based on a regex
+# Arguments:
+#   $1 - filename
+#   $2 - match regex
+#   $3 - use POSIX regex. Default: true
+# Returns:
+#   None
+#########################
+remove_in_file() {
+    local filename="${1:?filename is required}"
+    local match_regex="${2:?match regex is required}"
+    local posix_regex=${3:-true}
+    local result
+
+    # We should avoid using 'sed in-place' substitutions
+    # 1) They are not compatible with files mounted from ConfigMap(s)
+    # 2) We found incompatibility issues with Debian10 and "in-place" substitutions
+    if [[ $posix_regex = true ]]; then
+        result="$(sed -E "/$match_regex/d" "$filename")"
+    else
+        result="$(sed "/$match_regex/d" "$filename")"
+    fi
+    echo "$result" > "$filename"
+}
+
+########################
+# Appends text after the last line matching a pattern
+# Arguments:
+#   $1 - file
+#   $2 - match regex
+#   $3 - contents to add
+# Returns:
+#   None
+#########################
+append_file_after_last_match() {
+    local file="${1:?missing file}"
+    local match_regex="${2:?missing pattern}"
+    local value="${3:?missing value}"
+
+    # We read the file in reverse, replace the first match (0,/pattern/s) and then reverse the results again
+    result="$(tac "$file" | sed -E "0,/($match_regex)/s||${value}\n\1|" | tac)"
+    echo "$result" > "$file"
+}
