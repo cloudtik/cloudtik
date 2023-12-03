@@ -71,6 +71,8 @@ function configure_redis() {
     sed -i "s#{%bind.ip%}#${NODE_IP_ADDRESS}#g" ${config_template_file}
     sed -i "s#{%bind.port%}#${REDIS_SERVICE_PORT}#g" ${config_template_file}
     update_data_dir
+
+    # TODO: WARNING: will the log file get increasingly large
     REDIS_LOG_FILE=${REDIS_HOME}/logs/redis-server.log
     sed -i "s#{%log.file%}#${REDIS_LOG_FILE}#g" ${config_template_file}
 
