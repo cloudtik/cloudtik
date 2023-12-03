@@ -71,6 +71,8 @@ function configure_redis() {
     sed -i "s#{%bind.ip%}#${NODE_IP_ADDRESS}#g" ${config_template_file}
     sed -i "s#{%bind.port%}#${REDIS_SERVICE_PORT}#g" ${config_template_file}
     update_data_dir
+    REDIS_LOG_FILE=${REDIS_HOME}/logs/redis-server.log
+    sed -i "s#{%log.file%}#${REDIS_LOG_FILE}#g" ${config_template_file}
 
     if [ "${REDIS_CLUSTER_MODE}" == "cluster" ]; then
         sed -i "s#{%cluster.port%}#${REDIS_CLUSTER_PORT}#g" ${config_template_file}

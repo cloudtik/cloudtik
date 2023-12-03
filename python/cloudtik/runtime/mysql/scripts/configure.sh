@@ -41,7 +41,6 @@ function update_data_dir() {
     mkdir -p ${data_dir}
     sed -i "s#{%data.dir%}#${data_dir}#g" ${config_template_file}
 
-    sed -i "s#{%data.dir%}#${data_dir}#g" ${config_template_file}
     if [ "${MYSQL_CLUSTER_MODE}" == "group_replication" ]; then
         sed -i "s#{%data.dir%}#${data_dir}#g" ${output_dir}/my-init.cnf
     fi
@@ -144,8 +143,8 @@ function configure_mysql() {
     turn_on_start_replication_on_boot
 }
 
-set_head_option "$@"
 check_mysql_installed
+set_head_option "$@"
 set_node_ip_address
 set_head_address
 configure_mysql
