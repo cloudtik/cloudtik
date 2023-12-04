@@ -16,7 +16,7 @@ class RedisRuntime(RuntimeBase):
     It supports the following topology:
     1. A standalone server: on head
     2. A simple cluster of standalone servers: on head and workers
-    3. A replicated cluster: primary on head and replicas on workers
+    3. A replication cluster: primary on head and replicas on workers
     4. A sharding cluster
 
     Notice of limitations:

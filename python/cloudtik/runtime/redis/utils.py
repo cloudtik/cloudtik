@@ -23,11 +23,11 @@ REDIS_CLUSTER_PORT_CONFIG_KEY = "cluster_port"
 REDIS_CLUSTER_MODE_CONFIG_KEY = "cluster_mode"
 REDIS_CLUSTER_MODE_NONE = "none"
 # simple cluster
-REDIS_CLUSTER_MODE_SIMPLE_CLUSTER = "simple_cluster"
+REDIS_CLUSTER_MODE_SIMPLE = "simple"
 # replication
 REDIS_CLUSTER_MODE_REPLICATION = "replication"
 # sharding cluster
-REDIS_CLUSTER_MODE_SHARDING_CLUSTER = "sharding_cluster"
+REDIS_CLUSTER_MODE_SHARDING = "sharding"
 
 REDIS_CLUSTER_NAME_CONFIG_KEY = "cluster_name"
 
@@ -118,7 +118,7 @@ def _with_runtime_environment_variables(
     cluster_mode = _get_cluster_mode(redis_config)
     runtime_envs["REDIS_CLUSTER_MODE"] = cluster_mode
 
-    if cluster_mode == REDIS_CLUSTER_MODE_SHARDING_CLUSTER:
+    if cluster_mode == REDIS_CLUSTER_MODE_SHARDING:
         # configure the cluster GUID
         cluster_name = _get_cluster_name(redis_config)
         if not cluster_name:
@@ -183,14 +183,14 @@ def _get_runtime_services(
             replica_service_name: define_redis_service(
                 define_runtime_service_on_worker, REDIS_REPLICA_SERVICE_TYPE),
         }
-    elif cluster_mode == REDIS_CLUSTER_MODE_SHARDING_CLUSTER:
+    elif cluster_mode == REDIS_CLUSTER_MODE_SHARDING:
         # Service register for each node but don't give key-value feature to avoid
         # these service been discovered.
         # TODO: Ideally a middle layer needs to expose a client discoverable service.
         services = {
             service_name: define_redis_service(define_runtime_service),
         }
-    elif cluster_mode == REDIS_CLUSTER_MODE_SIMPLE_CLUSTER:
+    elif cluster_mode == REDIS_CLUSTER_MODE_SIMPLE:
         services = {
             service_name: define_redis_service(define_runtime_service),
         }
