@@ -11,13 +11,13 @@ logger = logging.getLogger(__name__)
 
 
 class RedisRuntime(RuntimeBase):
-    """Implementation for Redis Runtime for a standalone instance or replicated
-    Redis Cluster or a sharded Redis Cluster.
+    """Implementation for Redis Runtime for a standalone instance, a simple cluster
+    or replicated Redis Cluster or a sharding Redis Cluster.
     It supports the following topology:
-    1. Standalone server: on head
-    2. A high available cluster of standalone servers: on head and workers
-    3. Replicated cluster: primary on head and replicas on workers
-    4. A sharded cluster
+    1. A standalone server: on head
+    2. A simple cluster of standalone servers: on head and workers
+    3. A replicated cluster: primary on head and replicas on workers
+    4. A sharding cluster
 
     Notice of limitations:
     1. For replication cluster, we currently don't allow to run primary on workers.

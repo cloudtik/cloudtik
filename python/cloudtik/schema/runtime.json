@@ -1112,7 +1112,7 @@
                 "cluster_mode": {
                     "type": "string",
                     "default": "replication",
-                    "description": "The replication method to use: none, replication, cluster."
+                    "description": "The replication method to use: none, simple_cluster, replication, sharding_cluster."
                 },
                 "password": {
                     "type": "string",
