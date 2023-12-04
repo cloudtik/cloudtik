@@ -60,7 +60,7 @@ function configure_redis() {
 
     if [ "${REDIS_CLUSTER_MODE}" == "replication" ]; then
         config_template_file=${output_dir}/redis-replication.conf
-    elif [ "${REDIS_CLUSTER_MODE}" == "sharding_cluster" ]; then
+    elif [ "${REDIS_CLUSTER_MODE}" == "sharding" ]; then
         config_template_file=${output_dir}/redis-cluster.conf
     else
         config_template_file=${output_dir}/redis.conf
@@ -76,7 +76,7 @@ function configure_redis() {
     REDIS_LOG_FILE=${REDIS_HOME}/logs/redis-server.log
     sed -i "s#{%log.file%}#${REDIS_LOG_FILE}#g" ${config_template_file}
 
-    if [ "${REDIS_CLUSTER_MODE}" == "sharding_cluster" ]; then
+    if [ "${REDIS_CLUSTER_MODE}" == "sharding" ]; then
         sed -i "s#{%cluster.port%}#${REDIS_CLUSTER_PORT}#g" ${config_template_file}
     fi
 
