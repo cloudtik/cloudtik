@@ -20,7 +20,10 @@ class RedisRuntime(RuntimeBase):
     4. A sharding cluster
 
     Notice of limitations:
-    1. For replication cluster, we currently don't allow to run primary on workers.
+    1. For simple cluster, each instance is standalone and user will need to do manual
+    sharding by keys if needed.
+    2. For replication cluster, we currently don't allow to run primary on workers. All
+    the workers are configured to replicate from the head and in read-only mode.
     """
 
     def __init__(self, runtime_config: Dict[str, Any]) -> None:
