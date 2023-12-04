@@ -71,7 +71,6 @@ def _get_runtime_services(
     service_name = get_canonical_service_name(
         service_discovery_config, cluster_name, COREDNS_SERVICE_NAME)
     service_port = _get_service_port(coredns_config)
-    # TODO: what about member_of if there are two services for a single runtime
     metrics_service_name = get_canonical_service_name(
         service_discovery_config, cluster_name, COREDNS_METRICS_SERVICE_NAME)
     services = {

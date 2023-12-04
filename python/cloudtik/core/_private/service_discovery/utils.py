@@ -48,7 +48,7 @@ SERVICE_DISCOVERY_FEATURE_API_GATEWAY = "api-gateway"
 
 # Standard runtime configurations for service discovery
 SERVICE_DISCOVERY_CONFIG_SERVICE_DISCOVERY = "service"
-SERVICE_DISCOVERY_CONFIG_MEMBER_OF = "member_of"
+SERVICE_DISCOVERY_CONFIG_PREFIX = "prefix"
 SERVICE_DISCOVERY_CONFIG_TAGS = "tags"
 SERVICE_DISCOVERY_CONFIG_LABELS = "labels"
 SERVICE_DISCOVERY_CONFIG_PREFER_WORKSPACE = "prefer_workspace"
@@ -100,11 +100,11 @@ def get_canonical_service_name(
         cluster_name,
         runtime_service_name,
         service_scope: ServiceScope = ServiceScope.WORKSPACE):
-    member_of = service_discovery_config.get(
-        SERVICE_DISCOVERY_CONFIG_MEMBER_OF)
-    if member_of:
-        # override the service name
-        return member_of
+    prefix = service_discovery_config.get(
+        SERVICE_DISCOVERY_CONFIG_PREFIX)
+    if prefix:
+        # service name with a customized prefix
+        return "{}-{}".format(prefix, runtime_service_name)
     else:
         if service_scope == ServiceScope.WORKSPACE:
             return runtime_service_name
