@@ -6,6 +6,7 @@ from cloudtik.core._private.core_utils import deserialize_config, serialize_conf
     get_list_for_update
 
 # The standard keys and values used for service discovery
+SERVICE_DISCOVERY_SERVICE_TYPE = "service_type"
 
 SERVICE_DISCOVERY_PROTOCOL = "protocol"
 SERVICE_DISCOVERY_PROTOCOL_TCP = "tcp"
@@ -98,22 +99,23 @@ def is_prefer_workspace_discovery(
 def get_canonical_service_name(
         service_discovery_config: Optional[Dict[str, Any]],
         cluster_name,
-        runtime_service_name,
+        service_type,
         service_scope: ServiceScope = ServiceScope.WORKSPACE):
     prefix = service_discovery_config.get(
         SERVICE_DISCOVERY_CONFIG_PREFIX)
     if prefix:
         # service name with a customized prefix
-        return "{}-{}".format(prefix, runtime_service_name)
+        return "{}-{}".format(prefix, service_type)
     else:
         if service_scope == ServiceScope.WORKSPACE:
-            return runtime_service_name
+            return service_type
         else:
             # cluster name as prefix of service name
-            return "{}-{}".format(cluster_name, runtime_service_name)
+            return "{}-{}".format(cluster_name, service_type)
 
 
 def define_runtime_service(
+        service_type: str,
         service_discovery_config: Optional[Dict[str, Any]],
         service_port,
         node_kind=SERVICE_DISCOVERY_NODE_KIND_NODE,
@@ -122,6 +124,7 @@ def define_runtime_service(
     if not protocol:
         protocol = SERVICE_DISCOVERY_PROTOCOL_TCP
     service_def = {
+        SERVICE_DISCOVERY_SERVICE_TYPE: service_type,
         SERVICE_DISCOVERY_PROTOCOL: protocol,
         SERVICE_DISCOVERY_PORT: service_port,
     }
@@ -142,11 +145,13 @@ def define_runtime_service(
 
 
 def define_runtime_service_on_worker(
+        service_type: str,
         service_discovery_config: Optional[Dict[str, Any]],
         service_port,
         protocol: str = None,
         features: List[str] = None):
     return define_runtime_service(
+        service_type,
         service_discovery_config,
         service_port,
         node_kind=SERVICE_DISCOVERY_NODE_KIND_WORKER,
@@ -155,11 +160,13 @@ def define_runtime_service_on_worker(
 
 
 def define_runtime_service_on_head(
+        service_type: str,
         service_discovery_config,
         service_port,
         protocol: str = None,
         features: List[str] = None):
     return define_runtime_service(
+        service_type,
         service_discovery_config,
         service_port,
         node_kind=SERVICE_DISCOVERY_NODE_KIND_HEAD,
@@ -168,6 +175,7 @@ def define_runtime_service_on_head(
 
 
 def define_runtime_service_on_head_or_all(
+        service_type: str,
         service_discovery_config,
         service_port, head_or_all,
         protocol: str = None,
@@ -175,6 +183,7 @@ def define_runtime_service_on_head_or_all(
     node_kind = SERVICE_DISCOVERY_NODE_KIND_NODE \
         if head_or_all else SERVICE_DISCOVERY_NODE_KIND_HEAD
     return define_runtime_service(
+        service_type,
         service_discovery_config,
         service_port,
         node_kind=node_kind,

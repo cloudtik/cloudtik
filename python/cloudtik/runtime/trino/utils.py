@@ -22,7 +22,7 @@ JVM_MAX_MEMORY_RATIO = 0.8
 QUERY_MAX_MEMORY_PER_NODE_RATIO = 0.5
 MEMORY_HEAP_HEADROOM_PER_NODE_RATIO = 0.25
 
-TRINO_SERVICE_NAME = BUILT_IN_RUNTIME_TRINO
+TRINO_SERVICE_TYPE = BUILT_IN_RUNTIME_TRINO
 TRINO_SERVICE_PORT = 8081
 
 
@@ -179,9 +179,10 @@ def _get_runtime_services(
     trino_config = _get_config(runtime_config)
     service_discovery_config = get_service_discovery_config(trino_config)
     service_name = get_canonical_service_name(
-        service_discovery_config, cluster_name, TRINO_SERVICE_NAME)
+        service_discovery_config, cluster_name, TRINO_SERVICE_TYPE)
     services = {
         service_name: define_runtime_service_on_head(
+            TRINO_SERVICE_TYPE,
             service_discovery_config, TRINO_SERVICE_PORT,
             features=[SERVICE_DISCOVERY_FEATURE_ANALYTICS]),
     }

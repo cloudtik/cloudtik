@@ -36,7 +36,7 @@ FLINK_TASKMANAGER_OVERHEAD_RATIO = 0.1
 FLINK_HISTORY_SERVER_API_PORT = 8082
 FLINK_JUPYTER_WEB_PORT = 8888
 
-FLINK_HISTORY_SERVER_SERVICE_NAME = "flink-history"
+FLINK_HISTORY_SERVER_SERVICE_TYPE = "flink-history"
 
 
 def _get_config(runtime_config: Dict[str, Any]):
@@ -231,9 +231,10 @@ def _get_runtime_services(
     flink_config = _get_config(runtime_config)
     service_discovery_config = get_service_discovery_config(flink_config)
     flink_history_service_name = get_canonical_service_name(
-        service_discovery_config, cluster_name, FLINK_HISTORY_SERVER_SERVICE_NAME)
+        service_discovery_config, cluster_name, FLINK_HISTORY_SERVER_SERVICE_TYPE)
     services = {
         flink_history_service_name: define_runtime_service_on_head(
+            FLINK_HISTORY_SERVER_SERVICE_TYPE,
             service_discovery_config, FLINK_HISTORY_SERVER_API_PORT,
             protocol=SERVICE_DISCOVERY_PROTOCOL_HTTP),
     }

@@ -7,8 +7,8 @@ from cloudtik.core._private.service_discovery.utils import match_service_node, g
 from cloudtik.core._private.utils import _get_node_type_specific_runtime_config, RUNTIME_TYPES_CONFIG_KEY, \
     RUNTIME_CONFIG_KEY, is_runtime_enabled
 
-CLOUDTIK_REDIS_SERVICE_NAME = "cloudtik-redis"
-CLOUDTIK_CLUSTER_CONTROLLER_METRICS_SERVICE_NAME = "cloudtik-controller-metrics"
+CLOUDTIK_REDIS_SERVICE_TYPE = "cloudtik-redis"
+CLOUDTIK_CLUSTER_CONTROLLER_METRICS_SERVICE_TYPE = "cloudtik-controller-metrics"
 
 CLOUDTIK_CLUSTER_CONTROLLER_METRICS_PORT = CLOUDTIK_METRIC_PORT
 CLOUDTIK_REDIS_SERVICE_PORT = CLOUDTIK_DEFAULT_PORT
@@ -75,15 +75,17 @@ def _get_built_in_services(config: Dict[str, Any], cluster_name):
     service_discovery_config = get_service_discovery_config(runtime_config)
     service_name = get_canonical_service_name(
         service_discovery_config, cluster_name,
-        CLOUDTIK_CLUSTER_CONTROLLER_METRICS_SERVICE_NAME)
+        CLOUDTIK_CLUSTER_CONTROLLER_METRICS_SERVICE_TYPE)
     redis_service_name = get_canonical_service_name(
         service_discovery_config, cluster_name,
-        CLOUDTIK_REDIS_SERVICE_NAME)
+        CLOUDTIK_REDIS_SERVICE_TYPE)
     services = {
         service_name: define_runtime_service_on_head(
+            CLOUDTIK_CLUSTER_CONTROLLER_METRICS_SERVICE_TYPE,
             service_discovery_config, CLOUDTIK_CLUSTER_CONTROLLER_METRICS_PORT,
             features=[SERVICE_DISCOVERY_FEATURE_METRICS]),
         redis_service_name: define_runtime_service_on_head(
+            CLOUDTIK_REDIS_SERVICE_TYPE,
             service_discovery_config, CLOUDTIK_REDIS_SERVICE_PORT),
     }
     return services

@@ -52,7 +52,7 @@ APISIX_CONFIG_MODE_DYNAMIC = "dynamic"
 
 APISIX_DISCOVER_BACKEND_SERVERS_INTERVAL = 15
 
-APISIX_SERVICE_NAME = BUILT_IN_RUNTIME_APISIX
+APISIX_SERVICE_TYPE = BUILT_IN_RUNTIME_APISIX
 APISIX_SERVICE_PORT_DEFAULT = 9080
 APISIX_ADMIN_PORT_DEFAULT = 9180
 
@@ -198,10 +198,11 @@ def _get_runtime_services(
     apisix_config = _get_config(runtime_config)
     service_discovery_config = get_service_discovery_config(apisix_config)
     service_name = get_canonical_service_name(
-        service_discovery_config, cluster_name, APISIX_SERVICE_NAME)
+        service_discovery_config, cluster_name, APISIX_SERVICE_TYPE)
     service_port = _get_service_port(apisix_config)
     services = {
         service_name: define_runtime_service_on_head_or_all(
+            APISIX_SERVICE_TYPE,
             service_discovery_config, service_port,
             _is_high_availability(apisix_config),
             protocol=SERVICE_DISCOVERY_PROTOCOL_HTTP,
@@ -264,7 +265,7 @@ def _update_configurations(update_callback):
 #######################################
 
 def _get_pull_identifier():
-    return "{}-discovery".format(APISIX_SERVICE_NAME)
+    return "{}-discovery".format(BUILT_IN_RUNTIME_APISIX)
 
 
 def _get_admin_api_endpoint(node_ip, admin_port):

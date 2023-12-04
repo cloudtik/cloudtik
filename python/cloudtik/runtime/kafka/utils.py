@@ -21,7 +21,7 @@ RUNTIME_PROCESSES = [
     ["kafka.Kafka", False, "KafkaBroker", "node"],
 ]
 
-KAFKA_SERVICE_NAME = BUILT_IN_RUNTIME_KAFKA
+KAFKA_SERVICE_TYPE = BUILT_IN_RUNTIME_KAFKA
 KAFKA_SERVICE_PORT = 9092
 
 
@@ -134,9 +134,10 @@ def _get_runtime_services(
     kafka_config = _get_config(runtime_config)
     service_discovery_config = get_service_discovery_config(kafka_config)
     service_name = get_canonical_service_name(
-        service_discovery_config, cluster_name, KAFKA_SERVICE_NAME)
+        service_discovery_config, cluster_name, KAFKA_SERVICE_TYPE)
     services = {
         service_name: define_runtime_service_on_worker(
+            KAFKA_SERVICE_TYPE,
             service_discovery_config, KAFKA_SERVICE_PORT,
             features=[SERVICE_DISCOVERY_FEATURE_MESSAGING]),
     }

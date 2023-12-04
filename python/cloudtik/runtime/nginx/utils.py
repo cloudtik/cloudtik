@@ -37,7 +37,7 @@ NGINX_BACKEND_SERVICE_PORT_CONFIG_KEY = "service_port"
 NGINX_BACKEND_SERVERS_CONFIG_KEY = "servers"
 NGINX_BACKEND_SELECTOR_CONFIG_KEY = "selector"
 
-NGINX_SERVICE_NAME = BUILT_IN_RUNTIME_NGINX
+NGINX_SERVICE_TYPE = BUILT_IN_RUNTIME_NGINX
 NGINX_SERVICE_PORT_DEFAULT = 80
 
 NGINX_APP_MODE_WEB = "web"
@@ -120,10 +120,11 @@ def _get_runtime_services(
     nginx_config = _get_config(runtime_config)
     service_discovery_config = get_service_discovery_config(nginx_config)
     service_name = get_canonical_service_name(
-        service_discovery_config, cluster_name, NGINX_SERVICE_NAME)
+        service_discovery_config, cluster_name, NGINX_SERVICE_TYPE)
     service_port = _get_service_port(runtime_config)
     services = {
         service_name: define_runtime_service_on_head_or_all(
+            NGINX_SERVICE_TYPE,
             service_discovery_config, service_port,
             _is_high_availability(nginx_config),
             protocol=SERVICE_DISCOVERY_PROTOCOL_HTTP,
@@ -369,7 +370,7 @@ def _save_upstream_config(
 
 
 def _get_pull_identifier():
-    return "{}-discovery".format(NGINX_SERVICE_NAME)
+    return "{}-discovery".format(BUILT_IN_RUNTIME_NGINX)
 
 
 def start_pull_server(head):

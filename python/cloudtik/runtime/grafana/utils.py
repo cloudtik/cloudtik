@@ -30,7 +30,7 @@ GRAFANA_DATA_SOURCES_SCOPE_CONFIG_KEY = "data_sources_scope"
 GRAFANA_DATA_SOURCES_CONFIG_KEY = "data_sources"
 GRAFANA_DATA_SOURCES_SERVICES_CONFIG_KEY = "data_sources_services"
 
-GRAFANA_SERVICE_NAME = "grafana"
+GRAFANA_SERVICE_TYPE = BUILT_IN_RUNTIME_GRAFANA
 GRAFANA_SERVICE_PORT_DEFAULT = 3000
 
 GRAFANA_DATA_SOURCES_SCOPE_NONE = "none"
@@ -64,7 +64,7 @@ def _is_high_availability(grafana_config: Dict[str, Any]):
 
 
 def _get_home_dir():
-    return os.path.join(os.getenv("HOME"), "runtime", GRAFANA_SERVICE_NAME)
+    return os.path.join(os.getenv("HOME"), "runtime", BUILT_IN_RUNTIME_GRAFANA)
 
 
 def _get_runtime_processes():
@@ -154,10 +154,11 @@ def _get_runtime_services(
     grafana_config = _get_config(runtime_config)
     service_discovery_config = get_service_discovery_config(grafana_config)
     service_name = get_canonical_service_name(
-        service_discovery_config, cluster_name, GRAFANA_SERVICE_NAME)
+        service_discovery_config, cluster_name, GRAFANA_SERVICE_TYPE)
     service_port = _get_service_port(grafana_config)
     services = {
         service_name: define_runtime_service_on_head_or_all(
+            GRAFANA_SERVICE_TYPE,
             service_discovery_config, service_port,
             _is_high_availability(grafana_config),
             protocol=SERVICE_DISCOVERY_PROTOCOL_HTTP,
@@ -227,7 +228,7 @@ def _save_data_sources_config(data_sources):
 
 
 def _get_pull_identifier():
-    return "{}-discovery".format(GRAFANA_SERVICE_NAME)
+    return "{}-discovery".format(BUILT_IN_RUNTIME_GRAFANA)
 
 
 def _get_admin_api_endpoint(node_ip, grafana_port):

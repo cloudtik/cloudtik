@@ -43,7 +43,7 @@ KONG_CONFIG_MODE_DNS = "dns"
 KONG_CONFIG_MODE_RING_DNS = "ring-dns"
 KONG_CONFIG_MODE_DYNAMIC = "dynamic"
 
-KONG_SERVICE_NAME = BUILT_IN_RUNTIME_KONG
+KONG_SERVICE_TYPE = BUILT_IN_RUNTIME_KONG
 
 KONG_SERVICE_PORT_DEFAULT = 8000
 KONG_SERVICE_SSL_PORT_DEFAULT = 8443
@@ -242,10 +242,11 @@ def _get_runtime_services(
     kong_config = _get_config(runtime_config)
     service_discovery_config = get_service_discovery_config(kong_config)
     service_name = get_canonical_service_name(
-        service_discovery_config, cluster_name, KONG_SERVICE_NAME)
+        service_discovery_config, cluster_name, KONG_SERVICE_TYPE)
     service_port = _get_service_port(kong_config)
     services = {
         service_name: define_runtime_service_on_head_or_all(
+            KONG_SERVICE_TYPE,
             service_discovery_config, service_port,
             _is_high_availability(kong_config),
             protocol=SERVICE_DISCOVERY_PROTOCOL_HTTP,
@@ -260,7 +261,7 @@ def _get_runtime_services(
 
 
 def _get_pull_identifier():
-    return "{}-discovery".format(KONG_SERVICE_NAME)
+    return "{}-discovery".format(BUILT_IN_RUNTIME_KONG)
 
 
 def _get_admin_api_endpoint(node_ip, admin_port):

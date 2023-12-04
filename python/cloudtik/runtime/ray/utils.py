@@ -20,7 +20,7 @@ RUNTIME_PROCESSES = [
 # The default proportion of available memory allocated to system and runtime overhead
 RAY_DEFAULT_SHARED_MEMORY_PROPORTION = 0.3
 
-RAY_SERVICE_NAME = BUILT_IN_RUNTIME_RAY
+RAY_SERVICE_TYPE = BUILT_IN_RUNTIME_RAY
 RAY_SERVICE_PORT = 6379
 RAY_DASHBOARD_PORT = 8265
 
@@ -108,9 +108,10 @@ def _get_runtime_services(
     ray_config = _get_config(runtime_config)
     service_discovery_config = get_service_discovery_config(ray_config)
     service_name = get_canonical_service_name(
-        service_discovery_config, cluster_name, RAY_SERVICE_NAME)
+        service_discovery_config, cluster_name, RAY_SERVICE_TYPE)
     services = {
         service_name: define_runtime_service_on_head(
+            RAY_SERVICE_TYPE,
             service_discovery_config, RAY_SERVICE_PORT,
             features=[SERVICE_DISCOVERY_FEATURE_SCHEDULER]),
     }

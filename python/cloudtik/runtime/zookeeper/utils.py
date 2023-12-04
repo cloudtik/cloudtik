@@ -27,7 +27,7 @@ RUNTIME_PROCESSES = [
     ["org.apache.zookeeper.server.quorum.QuorumPeerMain", False, "ZooKeeper", "worker"],
 ]
 
-ZOOKEEPER_SERVICE_NAME = BUILT_IN_RUNTIME_ZOOKEEPER
+ZOOKEEPER_SERVICE_TYPE = BUILT_IN_RUNTIME_ZOOKEEPER
 ZOOKEEPER_SERVICE_PORT = 2181
 
 ZOOKEEPER_QUORUM_RETRY = 30
@@ -106,9 +106,10 @@ def _get_runtime_services(
     zookeeper_config = _get_config(runtime_config)
     service_discovery_config = get_service_discovery_config(zookeeper_config)
     service_name = get_canonical_service_name(
-        service_discovery_config, cluster_name, ZOOKEEPER_SERVICE_NAME)
+        service_discovery_config, cluster_name, ZOOKEEPER_SERVICE_TYPE)
     services = {
         service_name: define_runtime_service_on_worker(
+            ZOOKEEPER_SERVICE_TYPE,
             service_discovery_config, ZOOKEEPER_SERVICE_PORT,
             features=[SERVICE_DISCOVERY_FEATURE_KEY_VALUE]),
     }

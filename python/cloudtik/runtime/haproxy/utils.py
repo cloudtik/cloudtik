@@ -39,7 +39,7 @@ HAPROXY_BACKEND_SERVERS_CONFIG_KEY = "servers"
 HAPROXY_BACKEND_SELECTOR_CONFIG_KEY = "selector"
 HAPROXY_BACKEND_SESSION_PERSISTENCE_CONFIG_KEY = "session_persistence"
 
-HAPROXY_SERVICE_NAME = BUILT_IN_RUNTIME_HAPROXY
+HAPROXY_SERVICE_TYPE = BUILT_IN_RUNTIME_HAPROXY
 HAPROXY_SERVICE_PORT_DEFAULT = 80
 HAPROXY_SERVICE_PROTOCOL_TCP = "tcp"
 HAPROXY_SERVICE_PROTOCOL_HTTP = "http"
@@ -321,10 +321,11 @@ def _get_runtime_services(
     haproxy_config = _get_config(runtime_config)
     service_discovery_config = get_service_discovery_config(haproxy_config)
     service_name = get_canonical_service_name(
-        service_discovery_config, cluster_name, HAPROXY_SERVICE_NAME)
+        service_discovery_config, cluster_name, HAPROXY_SERVICE_TYPE)
     service_port = _get_service_port(haproxy_config)
     services = {
         service_name: define_runtime_service_on_head_or_all(
+            HAPROXY_SERVICE_TYPE,
             service_discovery_config, service_port,
             _is_high_availability(haproxy_config),
             features=[SERVICE_DISCOVERY_FEATURE_LOAD_BALANCER])
@@ -364,7 +365,7 @@ def _configure_static_backend(haproxy_config):
 
 
 def _get_pull_identifier():
-    return "{}-discovery".format(HAPROXY_SERVICE_NAME)
+    return "{}-discovery".format(BUILT_IN_RUNTIME_HAPROXY)
 
 
 def start_pull_server(head):

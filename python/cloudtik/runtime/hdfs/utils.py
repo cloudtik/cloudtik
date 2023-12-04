@@ -20,7 +20,7 @@ HDFS_FORCE_CLEAN_KEY = "force_clean"
 
 HDFS_WEB_PORT = 9870
 
-HDFS_SERVICE_NAME = "hdfs"
+HDFS_SERVICE_TYPE = BUILT_IN_RUNTIME_HDFS
 HDFS_SERVICE_PORT = 9000
 
 
@@ -97,9 +97,10 @@ def _get_runtime_services(
     hdfs_config = _get_config(runtime_config)
     service_discovery_config = get_service_discovery_config(hdfs_config)
     service_name = get_canonical_service_name(
-        service_discovery_config, cluster_name, HDFS_SERVICE_NAME)
+        service_discovery_config, cluster_name, HDFS_SERVICE_TYPE)
     services = {
         service_name: define_runtime_service_on_head(
+            HDFS_SERVICE_TYPE,
             service_discovery_config, HDFS_SERVICE_PORT,
             features=[SERVICE_DISCOVERY_FEATURE_STORAGE]),
     }

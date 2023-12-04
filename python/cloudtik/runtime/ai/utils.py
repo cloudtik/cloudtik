@@ -24,7 +24,7 @@ RUNTIME_PROCESSES = [
 
 MLFLOW_HIGH_AVAILABILITY_CONFIG_KEY = "high_availability"
 
-MLFLOW_SERVICE_NAME = "mlflow"
+MLFLOW_SERVICE_TYPE = "mlflow"
 MLFLOW_SERVICE_PORT = 5001
 
 
@@ -120,7 +120,7 @@ def register_service(cluster_config: Dict[str, Any], head_node_id: str) -> None:
     register_service_to_workspace(
         cluster_config, BUILT_IN_RUNTIME_AI,
         service_addresses=[(head_ip, MLFLOW_SERVICE_PORT)],
-        service_name=MLFLOW_SERVICE_NAME)
+        service_name=MLFLOW_SERVICE_TYPE)
 
 
 def _get_runtime_logs():
@@ -159,9 +159,10 @@ def _get_runtime_services(
     ai_config = _get_config(runtime_config)
     service_discovery_config = get_service_discovery_config(ai_config)
     service_name = get_canonical_service_name(
-        service_discovery_config, cluster_name, MLFLOW_SERVICE_NAME)
+        service_discovery_config, cluster_name, MLFLOW_SERVICE_TYPE)
     services = {
         service_name: define_runtime_service_on_head_or_all(
+            MLFLOW_SERVICE_TYPE,
             service_discovery_config, MLFLOW_SERVICE_PORT,
             _is_high_availability(ai_config),
             protocol=SERVICE_DISCOVERY_PROTOCOL_HTTP),

@@ -23,7 +23,7 @@ QUERY_MAX_MEMORY_PER_NODE_RATIO = 0.5
 QUERY_MAX_TOTAL_MEMORY_PER_NODE_RATIO = 0.7
 MEMORY_HEAP_HEADROOM_PER_NODE_RATIO = 0.25
 
-PRESTO_SERVICE_NAME = BUILT_IN_RUNTIME_PRESTO
+PRESTO_SERVICE_TYPE = BUILT_IN_RUNTIME_PRESTO
 PRESTO_SERVICE_PORT = 8081
 
 
@@ -185,9 +185,10 @@ def _get_runtime_services(
     presto_config = _get_config(runtime_config)
     service_discovery_config = get_service_discovery_config(presto_config)
     service_name = get_canonical_service_name(
-        service_discovery_config, cluster_name, PRESTO_SERVICE_NAME)
+        service_discovery_config, cluster_name, PRESTO_SERVICE_TYPE)
     services = {
         service_name: define_runtime_service_on_head(
+            PRESTO_SERVICE_TYPE,
             service_discovery_config, PRESTO_SERVICE_PORT,
             features=[SERVICE_DISCOVERY_FEATURE_ANALYTICS]),
     }
