@@ -17,7 +17,8 @@ from cloudtik.core._private.service_discovery.utils import SERVICE_DISCOVERY_POR
     SERVICE_DISCOVERY_TAGS, SERVICE_DISCOVERY_LABELS, SERVICE_DISCOVERY_LABEL_RUNTIME, \
     SERVICE_DISCOVERY_CHECK_INTERVAL, SERVICE_DISCOVERY_CHECK_TIMEOUT, SERVICE_DISCOVERY_LABEL_CLUSTER, \
     SERVICE_DISCOVERY_TAG_CLUSTER_PREFIX, ServiceRegisterException, \
-    get_runtime_service_features, SERVICE_DISCOVERY_TAG_FEATURE_PREFIX, get_cluster_node_name
+    get_runtime_service_features, SERVICE_DISCOVERY_TAG_FEATURE_PREFIX, get_cluster_node_name, \
+    SERVICE_DISCOVERY_SERVICE_TYPE, SERVICE_DISCOVERY_LABEL_SERVICE
 from cloudtik.core._private.utils import \
     RUNTIME_TYPES_CONFIG_KEY, _get_node_type_specific_runtime_config, \
     RUNTIME_CONFIG_KEY, is_node_seq_id_enabled, enable_node_seq_id
@@ -164,6 +165,9 @@ def _generate_service_config(cluster_name, runtime_type, runtime_service):
 
     labels[SERVICE_DISCOVERY_LABEL_CLUSTER] = cluster_name
     labels[SERVICE_DISCOVERY_LABEL_RUNTIME] = runtime_type
+    service_type = runtime_service.get(SERVICE_DISCOVERY_SERVICE_TYPE)
+    if service_type:
+        labels[SERVICE_DISCOVERY_LABEL_SERVICE] = service_type
     return service_config
 
 

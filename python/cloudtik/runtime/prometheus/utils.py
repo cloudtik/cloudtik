@@ -15,7 +15,8 @@ from cloudtik.core._private.service_discovery.utils import \
     SERVICE_SELECTOR_SERVICES, SERVICE_SELECTOR_TAGS, SERVICE_SELECTOR_LABELS, SERVICE_SELECTOR_EXCLUDE_LABELS, \
     SERVICE_SELECTOR_RUNTIMES, SERVICE_SELECTOR_CLUSTERS, SERVICE_DISCOVERY_LABEL_RUNTIME, \
     SERVICE_DISCOVERY_LABEL_CLUSTER, SERVICE_SELECTOR_EXCLUDE_JOINED_LABELS, SERVICE_DISCOVERY_PROTOCOL_HTTP, \
-    has_runtime_service_feature, SERVICE_DISCOVERY_FEATURE_METRICS
+    has_runtime_service_feature, SERVICE_DISCOVERY_FEATURE_METRICS, SERVICE_SELECTOR_SERVICE_TYPES, \
+    SERVICE_DISCOVERY_LABEL_SERVICE
 from cloudtik.core._private.utils import RUNTIME_CONFIG_KEY
 
 RUNTIME_PROCESSES = [
@@ -260,6 +261,7 @@ def configure_scrape(head):
         service_selector = prometheus_config.get(
             PROMETHEUS_SCRAPE_SERVICES_CONFIG_KEY, {})
         services = service_selector.get(SERVICE_SELECTOR_SERVICES)
+        service_types = service_selector.get(SERVICE_SELECTOR_SERVICE_TYPES)
         tags = service_selector.get(SERVICE_SELECTOR_TAGS)
         labels = service_selector.get(SERVICE_SELECTOR_LABELS)
         runtimes = service_selector.get(SERVICE_SELECTOR_RUNTIMES)
@@ -267,12 +269,15 @@ def configure_scrape(head):
         exclude_labels = service_selector.get(SERVICE_SELECTOR_EXCLUDE_LABELS)
         exclude_joined_labels = service_selector.get(SERVICE_SELECTOR_EXCLUDE_JOINED_LABELS)
 
-        if (services or tags or labels or
+        if (services or service_types or
+                tags or labels or
                 runtimes or clusters or
                 exclude_labels or exclude_joined_labels):
             config_file = _get_config_file(scrape_scope)
             _update_scrape_config(
-                config_file, services, tags, labels,
+                config_file,
+                services, service_types,
+                tags, labels,
                 runtimes, clusters,
                 exclude_labels, exclude_joined_labels)
     elif sd == PROMETHEUS_SERVICE_DISCOVERY_FILE:
@@ -297,7 +302,9 @@ def _add_label_match_list(scrape_config, label_name, values):
 
 
 def _update_scrape_config(
-        config_file, services, tags, labels,
+        config_file,
+        services, service_types,
+        tags, labels,
         runtimes, clusters,
         exclude_labels, exclude_joined_labels):
     def update_contents(config_object):
@@ -328,6 +335,9 @@ def _update_scrape_config(
                     }
                     relabel_configs.append(relabel_config)
 
+            if service_types:
+                _add_label_match_list(
+                    scrape_config, SERVICE_DISCOVERY_LABEL_SERVICE, service_types)
             if runtimes:
                 _add_label_match_list(
                     scrape_config, SERVICE_DISCOVERY_LABEL_RUNTIME, runtimes)

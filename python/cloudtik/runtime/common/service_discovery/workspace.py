@@ -7,7 +7,7 @@ from cloudtik.core._private.service_discovery.utils import ServiceRegisterExcept
     SERVICE_SELECTOR_RUNTIMES, SERVICE_SELECTOR_SERVICES, SERVICE_SELECTOR_TAGS, SERVICE_SELECTOR_LABELS, \
     SERVICE_SELECTOR_EXCLUDE_LABELS, SERVICE_DISCOVERY_TAG_CLUSTER_PREFIX, \
     SERVICE_DISCOVERY_LABEL_CLUSTER, SERVICE_DISCOVERY_LABEL_RUNTIME, get_service_discovery_config, \
-    is_prefer_workspace_discovery
+    is_prefer_workspace_discovery, SERVICE_SELECTOR_SERVICE_TYPES
 from cloudtik.core._private.utils import RUNTIME_CONFIG_KEY
 from cloudtik.core._private.workspace.workspace_operator import _get_workspace_provider
 from cloudtik.runtime.common.service_discovery.utils import get_service_addresses_string, \
@@ -133,6 +133,9 @@ def _query_service_registry(
     clusters = service_selector.get(SERVICE_SELECTOR_CLUSTERS)
     runtimes = service_selector.get(SERVICE_SELECTOR_RUNTIMES)
     services = service_selector.get(SERVICE_SELECTOR_SERVICES)
+    # For workspace service registration, the service_name and the service type
+    # are identical
+    service_types = service_selector.get(SERVICE_SELECTOR_SERVICE_TYPES)
     tags = service_selector.get(SERVICE_SELECTOR_TAGS)
     labels = service_selector.get(SERVICE_SELECTOR_LABELS)
     exclude_labels = service_selector.get(SERVICE_SELECTOR_EXCLUDE_LABELS)
@@ -141,7 +144,8 @@ def _query_service_registry(
     matched_services = {}
     for registry_name, registry_addresses in service_registries.items():
         if _match_service_registry(
-                registry_name, clusters, runtimes, services,
+                registry_name, clusters, runtimes,
+                services=services, service_types=service_types,
                 tags=tags, labels=labels, exclude_labels=exclude_labels):
             cluster_name, runtime_type, service_name = parse_service_registry_name(
                 registry_name)
@@ -156,7 +160,8 @@ def _query_service_registry(
 
 
 def _match_service_registry(
-        registry_name, clusters=None, runtimes=None, services=None,
+        registry_name, clusters=None, runtimes=None,
+        services=None, service_types=None,
         tags=None, labels=None, exclude_labels=None):
     cluster_name, runtime_type, service_name = parse_service_registry_name(
         registry_name)
@@ -165,6 +170,8 @@ def _match_service_registry(
     if runtimes and runtime_type not in runtimes:
         return False
     if services and service_name not in services:
+        return False
+    if service_types and service_name not in service_types:
         return False
     if tags and not _match_cluster_tag(tags, cluster_name):
         return False
