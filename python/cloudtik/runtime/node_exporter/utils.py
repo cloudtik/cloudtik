@@ -16,7 +16,7 @@ RUNTIME_PROCESSES = [
 
 NODE_EXPORTER_SERVICE_PORT_CONFIG_KEY = "port"
 
-NODE_EXPORTER_SERVICE_NAME = "node-exporter"
+NODE_EXPORTER_SERVICE_TYPE = "node-exporter"
 NODE_EXPORTER_SERVICE_PORT_DEFAULT = 9100
 
 
@@ -61,10 +61,11 @@ def _get_runtime_services(
     node_exporter_config = _get_config(runtime_config)
     service_discovery_config = get_service_discovery_config(node_exporter_config)
     service_name = get_canonical_service_name(
-        service_discovery_config, cluster_name, NODE_EXPORTER_SERVICE_NAME)
+        service_discovery_config, cluster_name, NODE_EXPORTER_SERVICE_TYPE)
     service_port = _get_service_port(node_exporter_config)
     services = {
         service_name: define_runtime_service(
+            NODE_EXPORTER_SERVICE_TYPE,
             service_discovery_config, service_port,
             protocol=SERVICE_DISCOVERY_PROTOCOL_HTTP,
             features=[SERVICE_DISCOVERY_FEATURE_METRICS]),

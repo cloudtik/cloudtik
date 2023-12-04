@@ -19,7 +19,7 @@ RUNTIME_PROCESSES = [
 DNSMASQ_SERVICE_PORT_CONFIG_KEY = "port"
 DNSMASQ_DEFAULT_RESOLVER_CONFIG_KEY = "default_resolver"
 
-DNSMASQ_SERVICE_NAME = BUILT_IN_RUNTIME_DNSMASQ
+DNSMASQ_SERVICE_TYPE = BUILT_IN_RUNTIME_DNSMASQ
 DNSMASQ_SERVICE_PORT_DEFAULT = 53
 
 
@@ -67,10 +67,11 @@ def _get_runtime_services(
     dnsmasq_config = _get_config(runtime_config)
     service_discovery_config = get_service_discovery_config(dnsmasq_config)
     service_name = get_canonical_service_name(
-        service_discovery_config, cluster_name, DNSMASQ_SERVICE_NAME)
+        service_discovery_config, cluster_name, DNSMASQ_SERVICE_TYPE)
     service_port = _get_service_port(dnsmasq_config)
     services = {
         service_name: define_runtime_service(
+            DNSMASQ_SERVICE_TYPE,
             service_discovery_config, service_port,
             features=[SERVICE_DISCOVERY_FEATURE_DNS]),
     }

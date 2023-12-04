@@ -34,7 +34,7 @@ MINIO_SERVICE_ON_HEAD_CONFIG_KEY = "service_on_head"
 # automatically set by runtime bootstrap to the cluster total nodes
 MINIO_SERVER_CLUSTER_SIZE_CONFIG_KEY = "server_cluster_size"
 
-MINIO_SERVICE_NAME = "minio"
+MINIO_SERVICE_TYPE = BUILT_IN_RUNTIME_MINIO
 
 MINIO_SERVICE_PORT_DEFAULT = 9000
 MINIO_CONSOLE_PORT_DEFAULT = 9001
@@ -200,7 +200,7 @@ def _get_runtime_services(
     minio_config = _get_config(runtime_config)
     service_discovery_config = get_service_discovery_config(minio_config)
     service_name = get_canonical_service_name(
-        service_discovery_config, cluster_name, MINIO_SERVICE_NAME)
+        service_discovery_config, cluster_name, MINIO_SERVICE_TYPE)
     service_port = _get_service_port(minio_config)
     if _is_service_on_head(minio_config):
         service_node_kind = SERVICE_DISCOVERY_NODE_KIND_NODE
@@ -208,6 +208,7 @@ def _get_runtime_services(
         service_node_kind = SERVICE_DISCOVERY_NODE_KIND_WORKER
     services = {
         service_name: define_runtime_service(
+            MINIO_SERVICE_TYPE,
             service_discovery_config, service_port,
             node_kind=service_node_kind,
             protocol=SERVICE_DISCOVERY_PROTOCOL_HTTP,

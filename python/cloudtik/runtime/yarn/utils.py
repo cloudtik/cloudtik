@@ -30,7 +30,7 @@ YARN_WEB_API_PORT = 8088
 YARN_REQUEST_REST_RETRY_DELAY_S = 5
 YARN_REQUEST_REST_RETRY_COUNT = 36
 
-YARN_SERVICE_NAME = BUILT_IN_RUNTIME_YARN
+YARN_SERVICE_TYPE = BUILT_IN_RUNTIME_YARN
 
 
 def _get_config(runtime_config: Dict[str, Any]):
@@ -130,9 +130,10 @@ def _get_runtime_services(
     yarn_config = _get_config(runtime_config)
     service_discovery_config = get_service_discovery_config(yarn_config)
     yarn_service_name = get_canonical_service_name(
-        service_discovery_config, cluster_name, YARN_SERVICE_NAME)
+        service_discovery_config, cluster_name, YARN_SERVICE_TYPE)
     services = {
         yarn_service_name: define_runtime_service_on_head(
+            YARN_SERVICE_TYPE,
             service_discovery_config, YARN_RESOURCE_MANAGER_PORT,
             features=[SERVICE_DISCOVERY_FEATURE_SCHEDULER]),
     }

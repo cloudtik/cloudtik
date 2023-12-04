@@ -21,7 +21,7 @@ BIND_SERVICE_PORT_CONFIG_KEY = "port"
 BIND_DNSSEC_VALIDATION_CONFIG_KEY = "dnssec_validation"
 BIND_DEFAULT_RESOLVER_CONFIG_KEY = "default_resolver"
 
-BIND_SERVICE_NAME = BUILT_IN_RUNTIME_BIND
+BIND_SERVICE_TYPE = BUILT_IN_RUNTIME_BIND
 BIND_SERVICE_PORT_DEFAULT = 53
 
 
@@ -73,10 +73,11 @@ def _get_runtime_services(
     bind_config = _get_config(runtime_config)
     service_discovery_config = get_service_discovery_config(bind_config)
     service_name = get_canonical_service_name(
-        service_discovery_config, cluster_name, BIND_SERVICE_NAME)
+        service_discovery_config, cluster_name, BIND_SERVICE_TYPE)
     service_port = _get_service_port(bind_config)
     services = {
         service_name: define_runtime_service(
+            BIND_SERVICE_TYPE,
             service_discovery_config, service_port,
             features=[SERVICE_DISCOVERY_FEATURE_DNS]),
     }

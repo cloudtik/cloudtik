@@ -42,8 +42,8 @@ POSTGRES_DATABASE_NAME_CONFIG_KEY = "name"
 POSTGRES_DATABASE_USER_CONFIG_KEY = "user"
 POSTGRES_DATABASE_PASSWORD_CONFIG_KEY = "password"
 
-POSTGRES_SERVICE_NAME = BUILT_IN_RUNTIME_POSTGRES
-POSTGRES_REPLICA_SERVICE_NAME = POSTGRES_SERVICE_NAME + "-replica"
+POSTGRES_SERVICE_TYPE = BUILT_IN_RUNTIME_POSTGRES
+POSTGRES_REPLICA_SERVICE_TYPE = POSTGRES_SERVICE_TYPE + "-replica"
 POSTGRES_SERVICE_PORT_DEFAULT = DATABASE_PORT_POSTGRES_DEFAULT
 
 POSTGRES_ADMIN_USER_DEFAULT = DATABASE_USERNAME_POSTGRES_DEFAULT
@@ -246,18 +246,20 @@ def _get_runtime_services(
     postgres_config = _get_config(runtime_config)
     service_discovery_config = get_service_discovery_config(postgres_config)
     service_name = get_canonical_service_name(
-        service_discovery_config, cluster_name, POSTGRES_SERVICE_NAME)
+        service_discovery_config, cluster_name, POSTGRES_SERVICE_TYPE)
     service_port = _get_service_port(postgres_config)
     cluster_mode = _get_cluster_mode(postgres_config)
     if cluster_mode == POSTGRES_CLUSTER_MODE_REPLICATION:
         # primary service on head and replica service on workers
         replica_service_name = get_canonical_service_name(
-            service_discovery_config, cluster_name, POSTGRES_REPLICA_SERVICE_NAME)
+            service_discovery_config, cluster_name, POSTGRES_REPLICA_SERVICE_TYPE)
         services = {
             service_name: define_runtime_service_on_head(
+                POSTGRES_SERVICE_TYPE,
                 service_discovery_config, service_port,
                 features=[SERVICE_DISCOVERY_FEATURE_DATABASE]),
             replica_service_name: define_runtime_service_on_worker(
+                POSTGRES_REPLICA_SERVICE_TYPE,
                 service_discovery_config, service_port,
                 features=[SERVICE_DISCOVERY_FEATURE_DATABASE]),
         }
@@ -265,6 +267,7 @@ def _get_runtime_services(
         # single standalone on head
         services = {
             service_name: define_runtime_service_on_head(
+                POSTGRES_SERVICE_TYPE,
                 service_discovery_config, service_port,
                 features=[SERVICE_DISCOVERY_FEATURE_DATABASE]),
         }

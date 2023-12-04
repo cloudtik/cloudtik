@@ -39,7 +39,7 @@ SPARK_EXECUTOR_OVERHEAD_RATIO = 0.1
 SPARK_HISTORY_SERVER_API_PORT = 18080
 SPARK_JUPYTER_WEB_PORT = 8888
 
-SPARK_HISTORY_SERVER_SERVICE_NAME = "spark-history"
+SPARK_HISTORY_SERVER_SERVICE_TYPE = "spark-history"
 
 
 def _get_config(runtime_config: Dict[str, Any]):
@@ -260,9 +260,10 @@ def _get_runtime_services(
     spark_config = _get_config(runtime_config)
     service_discovery_config = get_service_discovery_config(spark_config)
     spark_history_service_name = get_canonical_service_name(
-        service_discovery_config, cluster_name, SPARK_HISTORY_SERVER_SERVICE_NAME)
+        service_discovery_config, cluster_name, SPARK_HISTORY_SERVER_SERVICE_TYPE)
     services = {
         spark_history_service_name: define_runtime_service_on_head(
+            SPARK_HISTORY_SERVER_SERVICE_TYPE,
             service_discovery_config, SPARK_HISTORY_SERVER_API_PORT,
             protocol=SERVICE_DISCOVERY_PROTOCOL_HTTP),
     }

@@ -22,7 +22,7 @@ RUNTIME_PROCESSES = [
     ["etcd", True, "etcd", "worker"],
 ]
 
-ETCD_SERVICE_NAME = BUILT_IN_RUNTIME_ETCD
+ETCD_SERVICE_TYPE = BUILT_IN_RUNTIME_ETCD
 ETCD_SERVICE_PORT = 2379
 ETCD_PEER_PORT = 2380
 
@@ -32,7 +32,7 @@ def _get_config(runtime_config: Dict[str, Any]):
 
 
 def _get_home_dir():
-    return os.path.join(os.getenv("HOME"), "runtime", ETCD_SERVICE_NAME)
+    return os.path.join(os.getenv("HOME"), "runtime", BUILT_IN_RUNTIME_ETCD)
 
 
 def _get_runtime_logs():
@@ -88,9 +88,10 @@ def _get_runtime_services(
     etcd_config = _get_config(runtime_config)
     service_discovery_config = get_service_discovery_config(etcd_config)
     service_name = get_canonical_service_name(
-        service_discovery_config, cluster_name, ETCD_SERVICE_NAME)
+        service_discovery_config, cluster_name, ETCD_SERVICE_TYPE)
     services = {
         service_name: define_runtime_service_on_worker(
+            ETCD_SERVICE_TYPE,
             service_discovery_config, ETCD_SERVICE_PORT,
             features=[SERVICE_DISCOVERY_FEATURE_KEY_VALUE]),
     }

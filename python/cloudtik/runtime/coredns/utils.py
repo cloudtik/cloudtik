@@ -19,8 +19,8 @@ RUNTIME_PROCESSES = [
 COREDNS_SERVICE_PORT_CONFIG_KEY = "port"
 COREDNS_DEFAULT_RESOLVER_CONFIG_KEY = "default_resolver"
 
-COREDNS_SERVICE_NAME = BUILT_IN_RUNTIME_COREDNS
-COREDNS_METRICS_SERVICE_NAME = BUILT_IN_RUNTIME_COREDNS + "-metrics"
+COREDNS_SERVICE_TYPE = BUILT_IN_RUNTIME_COREDNS
+COREDNS_METRICS_SERVICE_TYPE = BUILT_IN_RUNTIME_COREDNS + "-metrics"
 COREDNS_SERVICE_PORT_DEFAULT = 53
 COREDNS_METRICS_SERVICE_PORT_DEFAULT = 9253
 
@@ -69,15 +69,17 @@ def _get_runtime_services(
     coredns_config = _get_config(runtime_config)
     service_discovery_config = get_service_discovery_config(coredns_config)
     service_name = get_canonical_service_name(
-        service_discovery_config, cluster_name, COREDNS_SERVICE_NAME)
+        service_discovery_config, cluster_name, COREDNS_SERVICE_TYPE)
     service_port = _get_service_port(coredns_config)
     metrics_service_name = get_canonical_service_name(
-        service_discovery_config, cluster_name, COREDNS_METRICS_SERVICE_NAME)
+        service_discovery_config, cluster_name, COREDNS_METRICS_SERVICE_TYPE)
     services = {
         service_name: define_runtime_service(
+            COREDNS_SERVICE_TYPE,
             service_discovery_config, service_port,
             features=[SERVICE_DISCOVERY_FEATURE_DNS]),
         metrics_service_name: define_runtime_service(
+            COREDNS_METRICS_SERVICE_TYPE,
             service_discovery_config, COREDNS_METRICS_SERVICE_PORT_DEFAULT,
             features=[SERVICE_DISCOVERY_FEATURE_METRICS]),
     }

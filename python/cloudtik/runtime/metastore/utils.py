@@ -24,7 +24,7 @@ RUNTIME_PROCESSES = [
 
 METASTORE_HIGH_AVAILABILITY_CONFIG_KEY = "high_availability"
 
-METASTORE_SERVICE_NAME = BUILT_IN_RUNTIME_METASTORE
+METASTORE_SERVICE_TYPE = BUILT_IN_RUNTIME_METASTORE
 METASTORE_SERVICE_PORT = 9083
 
 
@@ -136,9 +136,10 @@ def _get_runtime_services(
     metastore_config = _get_config(runtime_config)
     service_discovery_config = get_service_discovery_config(metastore_config)
     service_name = get_canonical_service_name(
-        service_discovery_config, cluster_name, METASTORE_SERVICE_NAME)
+        service_discovery_config, cluster_name, METASTORE_SERVICE_TYPE)
     services = {
         service_name: define_runtime_service_on_head_or_all(
+            METASTORE_SERVICE_TYPE,
             service_discovery_config, METASTORE_SERVICE_PORT,
             _is_high_availability(metastore_config),
         )

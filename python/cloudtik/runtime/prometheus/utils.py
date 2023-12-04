@@ -39,8 +39,7 @@ PROMETHEUS_FEDERATION_TARGETS_CONFIG_KEY = "federation_targets"
 PROMETHEUS_PULL_SERVICES_CONFIG_KEY = "pull_services"
 PROMETHEUS_PULL_NODE_TYPES_CONFIG_KEY = "node_types"
 
-
-PROMETHEUS_SERVICE_NAME = BUILT_IN_RUNTIME_PROMETHEUS
+PROMETHEUS_SERVICE_TYPE = BUILT_IN_RUNTIME_PROMETHEUS
 PROMETHEUS_SERVICE_PORT_DEFAULT = 9090
 
 PROMETHEUS_SERVICE_DISCOVERY_FILE = "file"
@@ -73,7 +72,7 @@ def _is_high_availability(prometheus_config: Dict[str, Any]):
 
 
 def _get_home_dir():
-    return os.path.join(os.getenv("HOME"), "runtime", PROMETHEUS_SERVICE_NAME)
+    return os.path.join(os.getenv("HOME"), "runtime", BUILT_IN_RUNTIME_PROMETHEUS)
 
 
 def _get_runtime_processes():
@@ -221,10 +220,11 @@ def _get_runtime_services(
     prometheus_config = _get_config(runtime_config)
     service_discovery_config = get_service_discovery_config(prometheus_config)
     service_name = get_canonical_service_name(
-        service_discovery_config, cluster_name, PROMETHEUS_SERVICE_NAME)
+        service_discovery_config, cluster_name, PROMETHEUS_SERVICE_TYPE)
     service_port = _get_service_port(prometheus_config)
     services = {
         service_name: define_runtime_service_on_head_or_all(
+            PROMETHEUS_SERVICE_TYPE,
             service_discovery_config, service_port,
             _is_high_availability(prometheus_config),
             protocol=SERVICE_DISCOVERY_PROTOCOL_HTTP,
@@ -379,7 +379,7 @@ def _save_federation_targets(federation_targets):
 
 
 def _get_pull_identifier():
-    return "{}-discovery".format(PROMETHEUS_SERVICE_NAME)
+    return "{}-discovery".format(BUILT_IN_RUNTIME_PROMETHEUS)
 
 
 def _get_pull_services_str(pull_services: Dict[str, Any]) -> str:

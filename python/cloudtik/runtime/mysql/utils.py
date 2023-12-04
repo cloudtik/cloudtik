@@ -37,8 +37,8 @@ MYSQL_DATABASE_NAME_CONFIG_KEY = "name"
 MYSQL_DATABASE_USER_CONFIG_KEY = "user"
 MYSQL_DATABASE_PASSWORD_CONFIG_KEY = "password"
 
-MYSQL_SERVICE_NAME = BUILT_IN_RUNTIME_MYSQL
-MYSQL_REPLICA_SERVICE_NAME = MYSQL_SERVICE_NAME + "-replica"
+MYSQL_SERVICE_TYPE = BUILT_IN_RUNTIME_MYSQL
+MYSQL_REPLICA_SERVICE_TYPE = MYSQL_SERVICE_TYPE + "-replica"
 MYSQL_SERVICE_PORT_DEFAULT = DATABASE_PORT_MYSQL_DEFAULT
 MYSQL_GROUP_REPLICATION_PORT_DEFAULT = 33061
 
@@ -182,19 +182,21 @@ def _get_runtime_services(
     mysql_config = _get_config(runtime_config)
     service_discovery_config = get_service_discovery_config(mysql_config)
     service_name = get_canonical_service_name(
-        service_discovery_config, cluster_name, MYSQL_SERVICE_NAME)
+        service_discovery_config, cluster_name, MYSQL_SERVICE_TYPE)
     service_port = _get_service_port(mysql_config)
 
     cluster_mode = _get_cluster_mode(mysql_config)
     if cluster_mode == MYSQL_CLUSTER_MODE_REPLICATION:
         # primary service on head and replica service on workers
         replica_service_name = get_canonical_service_name(
-            service_discovery_config, cluster_name, MYSQL_REPLICA_SERVICE_NAME)
+            service_discovery_config, cluster_name, MYSQL_REPLICA_SERVICE_TYPE)
         services = {
             service_name: define_runtime_service_on_head(
+                MYSQL_SERVICE_TYPE,
                 service_discovery_config, service_port,
                 features=[SERVICE_DISCOVERY_FEATURE_DATABASE]),
             replica_service_name: define_runtime_service_on_worker(
+                MYSQL_REPLICA_SERVICE_TYPE,
                 service_discovery_config, service_port,
                 features=[SERVICE_DISCOVERY_FEATURE_DATABASE]),
         }
@@ -202,6 +204,7 @@ def _get_runtime_services(
         # TODO: Ideally a middle layer needs to expose a client discoverable service.
         services = {
             service_name: define_runtime_service(
+                MYSQL_SERVICE_TYPE,
                 service_discovery_config, service_port,
                 features=[SERVICE_DISCOVERY_FEATURE_DATABASE]),
         }
@@ -209,6 +212,7 @@ def _get_runtime_services(
         # single standalone on head
         services = {
             service_name: define_runtime_service_on_head(
+                MYSQL_SERVICE_TYPE,
                 service_discovery_config, service_port,
                 features=[SERVICE_DISCOVERY_FEATURE_DATABASE]),
         }
