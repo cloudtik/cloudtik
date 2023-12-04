@@ -28,6 +28,8 @@ SERVICE_DISCOVERY_TAG_SYSTEM_PREFIX = "cloudtik-"
 
 SERVICE_DISCOVERY_LABEL_CLUSTER = "cloudtik-cluster"
 SERVICE_DISCOVERY_LABEL_RUNTIME = "cloudtik-runtime"
+# The service type label
+SERVICE_DISCOVERY_LABEL_SERVICE = "cloudtik-service"
 
 SERVICE_DISCOVERY_CHECK_INTERVAL = "check_interval"
 SERVICE_DISCOVERY_CHECK_TIMEOUT = "check_timeout"
@@ -56,6 +58,7 @@ SERVICE_DISCOVERY_CONFIG_PREFER_WORKSPACE = "prefer_workspace"
 
 # The config keys for a standard service selector
 SERVICE_SELECTOR_SERVICES = "services"
+SERVICE_SELECTOR_SERVICE_TYPES = "service_types"
 SERVICE_SELECTOR_TAGS = "tags"
 SERVICE_SELECTOR_LABELS = "labels"
 SERVICE_SELECTOR_EXCLUDE_LABELS = "exclude_labels"
@@ -268,6 +271,24 @@ def include_runtime_for_selector(
         # list of runtime types
         for runtime_type in runtime:
             runtimes.append(runtime_type)
+    return service_selector
+
+
+def include_service_type_for_selector(
+        service_selector, service_type: Union[str, List[str]], override=False):
+    service_types = get_list_for_update(
+        service_selector, SERVICE_SELECTOR_SERVICE_TYPES)
+    if service_types:
+        if not override:
+            return service_selector
+        service_types.clear()
+
+    if isinstance(service_type, str):
+        service_types.append(service_type)
+    else:
+        # list of runtime types
+        for item in service_type:
+            service_types.append(item)
     return service_selector
 
 

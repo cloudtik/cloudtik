@@ -1,5 +1,5 @@
 import os
-from typing import Dict, Any, Union, List
+from typing import Dict, Any, Union, List, Optional
 
 from cloudtik.core._private.constants import CLOUDTIK_RUNTIME_ENV_HEAD_IP
 from cloudtik.core._private.core_utils import get_config_for_update, get_env_string_value
@@ -8,7 +8,7 @@ from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_HDFS, BUILT_
     BUILT_IN_RUNTIME_ETCD, BUILT_IN_RUNTIME_MINIO
 from cloudtik.core._private.runtime_utils import get_runtime_value
 from cloudtik.core._private.service_discovery.utils import get_service_selector_for_update, \
-    include_runtime_for_selector, include_feature_for_selector
+    include_runtime_for_selector, include_feature_for_selector, include_service_type_for_selector
 from cloudtik.core._private.util.database_utils import is_database_configured, set_database_config, \
     DATABASE_ENV_ENABLED, DATABASE_ENV_ENGINE, DATABASE_ENV_HOST, DATABASE_ENV_PORT, DATABASE_ENV_USERNAME, \
     DATABASE_ENV_PASSWORD, get_database_default_port, get_database_default_username, get_database_default_password, \
@@ -67,13 +67,17 @@ def discover_runtime_service(
         service_selector_key: str,
         runtime_type: Union[str, List[str]],
         cluster_config: Dict[str, Any],
-        discovery_type: DiscoveryType,):
+        discovery_type: DiscoveryType,
+        service_type: Optional[Union[str, List[str]]] = None):
     service_selector = get_service_selector_for_update(
         config, service_selector_key)
     # if user provide runtimes in the selector, we don't override it
     # because any runtimes in the list will be selected
     service_selector = include_runtime_for_selector(
         service_selector, runtime_type)
+    if service_type:
+        service_selector = include_service_type_for_selector(
+            service_selector, service_type)
     service_instance = query_one_service(
         cluster_config, service_selector,
         discovery_type=discovery_type)
@@ -85,10 +89,12 @@ def discover_runtime_service_addresses(
         service_selector_key: str,
         runtime_type: Union[str, List[str]],
         cluster_config: Dict[str, Any],
-        discovery_type: DiscoveryType,):
+        discovery_type: DiscoveryType,
+        service_type: Optional[Union[str, List[str]]] = None):
     service_instance = discover_runtime_service(
         config, service_selector_key,
-        runtime_type, cluster_config, discovery_type)
+        runtime_type, cluster_config, discovery_type,
+        service_type=service_type)
     if not service_instance:
         return None
     return service_instance.service_addresses
@@ -205,17 +211,24 @@ def discover_database(
         service_selector_key: str,
         cluster_config: Dict[str, Any],
         discovery_type: DiscoveryType,
-        database_runtime_type=None):
+        database_runtime_type=None,
+        database_service_type: Optional[Union[str, List[str]]] = None):
     # TODO: because feature tag is not supported for workspace based discovery
     #   Use a list of database runtimes here.
     if not database_runtime_type:
         # if no specific database type, default to all known types
         database_runtime_type = BUILT_IN_DATABASE_RUNTIMES
+    if not database_service_type:
+        # if no specific service type, default to all known service types that can read-write
+        # The default service types that can read write are the same as runtimes by convention
+        database_service_type = BUILT_IN_DATABASE_RUNTIMES
+
     service_instance = discover_runtime_service(
         config, service_selector_key,
         runtime_type=database_runtime_type,
         cluster_config=cluster_config,
         discovery_type=discovery_type,
+        service_type=database_service_type,
     )
     if not service_instance:
         return None

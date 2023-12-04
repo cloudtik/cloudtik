@@ -10,7 +10,7 @@
             "properties": {
                 "services": {
                     "type": "array",
-                    "description": "The services to discover. If not specified, match to all the services.",
+                    "description": "The service names to discover. If not specified, match to all the service names.",
                     "items": {
                         "type": "string"
                     }
@@ -31,16 +31,23 @@
                         }
                     }
                 },
+                "service_types": {
+                    "type": "array",
+                    "description": "Include services of any of the service types.",
+                    "items": {
+                        "type": "string"
+                    }
+                },
                 "runtimes": {
                     "type": "array",
-                    "description": "Services of any of the runtimes.",
+                    "description": "Include services of any of the runtimes.",
                     "items": {
                         "type": "string"
                     }
                 },
                 "clusters": {
                     "type": "array",
-                    "description": "Services of any of the clusters.",
+                    "description": "Include services of any of the clusters.",
                     "items": {
                         "type": "string"
                     }
