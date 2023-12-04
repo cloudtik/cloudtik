@@ -4,8 +4,9 @@ from typing import Any, Dict
 from cloudtik.core._private.core_utils import get_config_for_update
 from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_POSTGRES, BUILT_IN_RUNTIME_MOUNT
 from cloudtik.core._private.service_discovery.utils import \
-    get_canonical_service_name, define_runtime_service, \
-    get_service_discovery_config, SERVICE_DISCOVERY_FEATURE_DATABASE
+    get_canonical_service_name, get_service_discovery_config, \
+    SERVICE_DISCOVERY_FEATURE_DATABASE, define_runtime_service_on_head, \
+    define_runtime_service_on_worker
 from cloudtik.core._private.util.database_utils import DATABASE_PORT_POSTGRES_DEFAULT, \
     DATABASE_USERNAME_POSTGRES_DEFAULT, DATABASE_PASSWORD_POSTGRES_DEFAULT
 from cloudtik.core._private.utils import RUNTIME_CONFIG_KEY, is_node_seq_id_enabled, enable_node_seq_id, \
@@ -42,6 +43,7 @@ POSTGRES_DATABASE_USER_CONFIG_KEY = "user"
 POSTGRES_DATABASE_PASSWORD_CONFIG_KEY = "password"
 
 POSTGRES_SERVICE_NAME = BUILT_IN_RUNTIME_POSTGRES
+POSTGRES_REPLICA_SERVICE_NAME = POSTGRES_SERVICE_NAME + "-replica"
 POSTGRES_SERVICE_PORT_DEFAULT = DATABASE_PORT_POSTGRES_DEFAULT
 
 POSTGRES_ADMIN_USER_DEFAULT = DATABASE_USERNAME_POSTGRES_DEFAULT
@@ -246,9 +248,24 @@ def _get_runtime_services(
     service_name = get_canonical_service_name(
         service_discovery_config, cluster_name, POSTGRES_SERVICE_NAME)
     service_port = _get_service_port(postgres_config)
-    services = {
-        service_name: define_runtime_service(
-            service_discovery_config, service_port,
-            features=[SERVICE_DISCOVERY_FEATURE_DATABASE]),
-    }
+    cluster_mode = _get_cluster_mode(postgres_config)
+    if cluster_mode == POSTGRES_CLUSTER_MODE_REPLICATION:
+        # primary service on head and replica service on workers
+        replica_service_name = get_canonical_service_name(
+            service_discovery_config, cluster_name, POSTGRES_REPLICA_SERVICE_NAME)
+        services = {
+            service_name: define_runtime_service_on_head(
+                service_discovery_config, service_port,
+                features=[SERVICE_DISCOVERY_FEATURE_DATABASE]),
+            replica_service_name: define_runtime_service_on_worker(
+                service_discovery_config, service_port,
+                features=[SERVICE_DISCOVERY_FEATURE_DATABASE]),
+        }
+    else:
+        # single standalone on head
+        services = {
+            service_name: define_runtime_service_on_head(
+                service_discovery_config, service_port,
+                features=[SERVICE_DISCOVERY_FEATURE_DATABASE]),
+        }
     return services

@@ -5,7 +5,8 @@ from typing import Any, Dict
 from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_MYSQL
 from cloudtik.core._private.service_discovery.utils import \
     get_canonical_service_name, define_runtime_service, \
-    get_service_discovery_config, SERVICE_DISCOVERY_FEATURE_DATABASE
+    get_service_discovery_config, SERVICE_DISCOVERY_FEATURE_DATABASE, define_runtime_service_on_head, \
+    define_runtime_service_on_worker
 from cloudtik.core._private.util.database_utils import DATABASE_PORT_MYSQL_DEFAULT, DATABASE_PASSWORD_MYSQL_DEFAULT
 from cloudtik.core._private.utils import RUNTIME_CONFIG_KEY, is_node_seq_id_enabled, enable_node_seq_id
 
@@ -37,6 +38,7 @@ MYSQL_DATABASE_USER_CONFIG_KEY = "user"
 MYSQL_DATABASE_PASSWORD_CONFIG_KEY = "password"
 
 MYSQL_SERVICE_NAME = BUILT_IN_RUNTIME_MYSQL
+MYSQL_REPLICA_SERVICE_NAME = MYSQL_SERVICE_NAME + "-replica"
 MYSQL_SERVICE_PORT_DEFAULT = DATABASE_PORT_MYSQL_DEFAULT
 MYSQL_GROUP_REPLICATION_PORT_DEFAULT = 33061
 
@@ -182,9 +184,32 @@ def _get_runtime_services(
     service_name = get_canonical_service_name(
         service_discovery_config, cluster_name, MYSQL_SERVICE_NAME)
     service_port = _get_service_port(mysql_config)
-    services = {
-        service_name: define_runtime_service(
-            service_discovery_config, service_port,
-            features=[SERVICE_DISCOVERY_FEATURE_DATABASE]),
-    }
+
+    cluster_mode = _get_cluster_mode(mysql_config)
+    if cluster_mode == MYSQL_CLUSTER_MODE_REPLICATION:
+        # primary service on head and replica service on workers
+        replica_service_name = get_canonical_service_name(
+            service_discovery_config, cluster_name, MYSQL_REPLICA_SERVICE_NAME)
+        services = {
+            service_name: define_runtime_service_on_head(
+                service_discovery_config, service_port,
+                features=[SERVICE_DISCOVERY_FEATURE_DATABASE]),
+            replica_service_name: define_runtime_service_on_worker(
+                service_discovery_config, service_port,
+                features=[SERVICE_DISCOVERY_FEATURE_DATABASE]),
+        }
+    elif cluster_mode == MYSQL_CLUSTER_MODE_GROUP_REPLICATION:
+        # TODO: Ideally a middle layer needs to expose a client discoverable service.
+        services = {
+            service_name: define_runtime_service(
+                service_discovery_config, service_port,
+                features=[SERVICE_DISCOVERY_FEATURE_DATABASE]),
+        }
+    else:
+        # single standalone on head
+        services = {
+            service_name: define_runtime_service_on_head(
+                service_discovery_config, service_port,
+                features=[SERVICE_DISCOVERY_FEATURE_DATABASE]),
+        }
     return services

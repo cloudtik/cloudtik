@@ -13,7 +13,14 @@ logger = logging.getLogger(__name__)
 
 class PostgresRuntime(RuntimeBase):
     """Implementation for Postgres Runtime for a high available replicated
-    Postgres database cluster."""
+    Postgres database cluster.
+    It supports the following topology:
+    1. Standalone server: on head
+    2. Replicated cluster: primary on head and replicas on workers
+
+    Notice of limitations:
+    1. For replication cluster, we currently don't allow to run primary on workers.
+    """
 
     def __init__(self, runtime_config: Dict[str, Any]) -> None:
         super().__init__(runtime_config)
