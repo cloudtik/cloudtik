@@ -274,6 +274,24 @@ def include_runtime_for_selector(
     return service_selector
 
 
+def include_service_type_for_selector(
+        service_selector, service_type: Union[str, List[str]], override=False):
+    service_types = get_list_for_update(
+        service_selector, SERVICE_SELECTOR_SERVICE_TYPES)
+    if service_types:
+        if not override:
+            return service_selector
+        service_types.clear()
+
+    if isinstance(service_type, str):
+        service_types.append(service_type)
+    else:
+        # list of runtime types
+        for item in service_type:
+            service_types.append(item)
+    return service_selector
+
+
 def include_feature_for_selector(service_selector, feature):
     tags = get_list_for_update(
         service_selector, SERVICE_SELECTOR_TAGS)
