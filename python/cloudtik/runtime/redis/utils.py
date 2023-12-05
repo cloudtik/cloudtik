@@ -36,7 +36,6 @@ REDIS_PASSWORD_CONFIG_KEY = "password"
 REDIS_SERVICE_TYPE = BUILT_IN_RUNTIME_REDIS
 REDIS_REPLICA_SERVICE_TYPE = REDIS_SERVICE_TYPE + "-replica"
 REDIS_SERVICE_PORT_DEFAULT = 6379
-REDIS_CLUSTER_PORT_DEFAULT = 33061
 
 REDIS_PASSWORD_DEFAULT = "cloudtik"
 
@@ -51,8 +50,9 @@ def _get_service_port(redis_config: Dict[str, Any]):
 
 
 def _get_cluster_port(redis_config: Dict[str, Any]):
+    service_port = _get_service_port(redis_config)
     return redis_config.get(
-        REDIS_CLUSTER_PORT_CONFIG_KEY, REDIS_CLUSTER_PORT_DEFAULT)
+        REDIS_CLUSTER_PORT_CONFIG_KEY, service_port + 10000)
 
 
 def _get_cluster_mode(redis_config: Dict[str, Any]):
