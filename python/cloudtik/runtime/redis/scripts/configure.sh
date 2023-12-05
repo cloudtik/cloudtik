@@ -38,7 +38,7 @@ function update_data_dir() {
     fi
 
     mkdir -p ${data_dir}
-    sed -i "s#{%data.dir%}#${data_dir}#g" ${config_template_file}
+    update_in_file "${config_template_file}" "{%data.dir%}" "${data_dir}"
 }
 
 function update_server_id() {
@@ -47,7 +47,7 @@ function update_server_id() {
         exit 1
     fi
 
-    sed -i "s#{%server.id%}#${CLOUDTIK_NODE_SEQ_ID}#g" ${config_template_file}
+    update_in_file "${config_template_file}" "{%server.id%}" "${CLOUDTIK_NODE_SEQ_ID}"
 }
 
 function configure_redis() {
@@ -61,23 +61,23 @@ function configure_redis() {
     if [ "${REDIS_CLUSTER_MODE}" == "replication" ]; then
         config_template_file=${output_dir}/redis-replication.conf
     elif [ "${REDIS_CLUSTER_MODE}" == "sharding" ]; then
-        config_template_file=${output_dir}/redis-cluster.conf
+        config_template_file=${output_dir}/redis-sharding.conf
     else
         config_template_file=${output_dir}/redis.conf
     fi
 
     mkdir -p ${REDIS_HOME}/logs
 
-    sed -i "s#{%bind.ip%}#${NODE_IP_ADDRESS}#g" ${config_template_file}
-    sed -i "s#{%bind.port%}#${REDIS_SERVICE_PORT}#g" ${config_template_file}
+    update_in_file "${config_template_file}" "{%bind.ip%}" "${NODE_IP_ADDRESS}"
+    update_in_file "${config_template_file}" "{%bind.port%}" "${REDIS_SERVICE_PORT}"
     update_data_dir
 
     # TODO: WARNING: will the log file get increasingly large
     REDIS_LOG_FILE=${REDIS_HOME}/logs/redis-server.log
-    sed -i "s#{%log.file%}#${REDIS_LOG_FILE}#g" ${config_template_file}
+    update_in_file "${config_template_file}" "{%log.file%}" "${REDIS_LOG_FILE}"
 
     if [ "${REDIS_CLUSTER_MODE}" == "sharding" ]; then
-        sed -i "s#{%cluster.port%}#${REDIS_CLUSTER_PORT}#g" ${config_template_file}
+        update_in_file "${config_template_file}" "{%cluster.port%}" "${REDIS_CLUSTER_PORT}"
     fi
 
     REDIS_CONFIG_DIR=${REDIS_HOME}/etc

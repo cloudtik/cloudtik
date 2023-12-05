@@ -39,7 +39,7 @@ function update_data_dir() {
     fi
 
     mkdir -p ${data_dir}
-    sed -i "s#{%data.dir%}#${data_dir}#g" ${config_template_file}
+    update_in_file "${config_template_file}" "{%data.dir%}" "${data_dir}"
 
     # the init script used PGDATA environment
     export PGDATA=${data_dir}
@@ -52,7 +52,7 @@ function update_server_id() {
     fi
 
     local server_id="postgres_${CLOUDTIK_NODE_SEQ_ID}"
-    sed -i "s#{%server.id%}#${server_id}#g" ${config_template_file}
+    update_in_file "${config_template_file}" "{%server.id%}" "${server_id}"
 }
 
 function update_synchronous_standby_names() {
@@ -75,22 +75,22 @@ function update_synchronous_standby_names() {
     else
         synchronous_standby_names="${standby_names}"
     fi
-    sed -i "s#synchronous_standby_names = ''#synchronous_standby_names = '${synchronous_standby_names}'#g" ${config_template_file}
+    update_in_file "${config_template_file}" "synchronous_standby_names = ''" "synchronous_standby_names = '${synchronous_standby_names}'"
 }
 
 function configure_archive() {
     # turn on archive mode
-    sed -i "s#archive_mode = off#archive_mode = on#g" ${config_template_file}
+    update_in_file "${config_template_file}" "archive_mode = off" "archive_mode = on"
 
     # update the archive_command (need escape && for sed)
     local archive_command="test ! -f ${ARCHIVE_DIR}/%f \&\& cp %p ${ARCHIVE_DIR}/%f"
-    sed -i "s#archive_command = ''#archive_command = '${archive_command}'#g" ${config_template_file}
+    update_in_file "${config_template_file}" "archive_command = ''" "archive_command = '${archive_command}'"
 }
 
 function configure_restore_command() {
     # update the restore_command
     local restore_command="cp ${ARCHIVE_DIR}/%f %p"
-    sed -i "s#restore_command = ''#restore_command = '${restore_command}'#g" ${config_template_file}
+    update_in_file "${config_template_file}" "restore_command = ''" "restore_command = '${restore_command}'"
 }
 
 function configure_postgres() {
@@ -113,9 +113,9 @@ function configure_postgres() {
     && sudo chown -R $(whoami):$(id -gn) /var/run/postgresql \
     && sudo chmod 2777 /var/run/postgresql
 
-    sed -i "s#{%listen.address%}#${NODE_IP_ADDRESS}#g" ${config_template_file}
-    sed -i "s#{%listen.port%}#${POSTGRES_SERVICE_PORT}#g" ${config_template_file}
-    sed -i "s#{%postgres.home%}#${POSTGRES_HOME}#g" ${config_template_file}
+    update_in_file "${config_template_file}" "{%listen.address%}" "${NODE_IP_ADDRESS}"
+    update_in_file "${config_template_file}" "{%listen.port%}" "${POSTGRES_SERVICE_PORT}"
+    update_in_file "${config_template_file}" "{%postgres.home%}" "${POSTGRES_HOME}"
 
     update_data_dir
 

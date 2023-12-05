@@ -1,13 +1,14 @@
 import os
-import uuid
 from typing import Any, Dict
 
+from cloudtik.core._private.core_utils import get_config_for_update
 from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_REDIS
 from cloudtik.core._private.service_discovery.utils import \
     get_canonical_service_name, define_runtime_service, \
     get_service_discovery_config, SERVICE_DISCOVERY_FEATURE_KEY_VALUE, define_runtime_service_on_head, \
     define_runtime_service_on_worker
-from cloudtik.core._private.utils import RUNTIME_CONFIG_KEY, is_node_seq_id_enabled, enable_node_seq_id
+from cloudtik.core._private.utils import RUNTIME_CONFIG_KEY, is_node_seq_id_enabled, enable_node_seq_id, \
+    _sum_min_workers, get_runtime_config_for_update
 
 RUNTIME_PROCESSES = [
         # The first element is the substring to filter.
@@ -19,6 +20,7 @@ RUNTIME_PROCESSES = [
 
 REDIS_SERVICE_PORT_CONFIG_KEY = "port"
 REDIS_CLUSTER_PORT_CONFIG_KEY = "cluster_port"
+REDIS_MASTER_SIZE_CONFIG_KEY = "master_size"
 
 REDIS_CLUSTER_MODE_CONFIG_KEY = "cluster_mode"
 REDIS_CLUSTER_MODE_NONE = "none"
@@ -28,8 +30,6 @@ REDIS_CLUSTER_MODE_SIMPLE = "simple"
 REDIS_CLUSTER_MODE_REPLICATION = "replication"
 # sharding cluster
 REDIS_CLUSTER_MODE_SHARDING = "sharding"
-
-REDIS_CLUSTER_NAME_CONFIG_KEY = "cluster_name"
 
 REDIS_PASSWORD_CONFIG_KEY = "password"
 
@@ -60,15 +60,9 @@ def _get_cluster_mode(redis_config: Dict[str, Any]):
         REDIS_CLUSTER_MODE_CONFIG_KEY, REDIS_CLUSTER_MODE_REPLICATION)
 
 
-def _get_cluster_name(redis_config: Dict[str, Any]):
+def _get_master_size(redis_config: Dict[str, Any]):
     return redis_config.get(
-        REDIS_CLUSTER_NAME_CONFIG_KEY)
-
-
-def _generate_cluster_name(config: Dict[str, Any]):
-    workspace_name = config["workspace_name"]
-    cluster_name = config["cluster_name"]
-    return str(uuid.uuid3(uuid.NAMESPACE_OID, workspace_name + cluster_name))
+        REDIS_MASTER_SIZE_CONFIG_KEY)
 
 
 def _get_home_dir():
@@ -86,6 +80,13 @@ def _get_runtime_logs():
     return {"redis": logs_dir}
 
 
+def update_config_master_size(cluster_config, master_size):
+    runtime_config_to_update = get_runtime_config_for_update(cluster_config)
+    redis_config_to_update = get_config_for_update(
+        runtime_config_to_update, BUILT_IN_RUNTIME_REDIS)
+    redis_config_to_update[REDIS_MASTER_SIZE_CONFIG_KEY] = master_size
+
+
 def _bootstrap_runtime_config(
         runtime_config: Dict[str, Any],
         cluster_config: Dict[str, Any]) -> Dict[str, Any]:
@@ -97,13 +98,29 @@ def _bootstrap_runtime_config(
         if not is_node_seq_id_enabled(cluster_config):
             enable_node_seq_id(cluster_config)
 
+        if cluster_mode != REDIS_CLUSTER_MODE_SHARDING:
+            num_static_nodes = _sum_min_workers(cluster_config) + 1
+
+            # WARNING: the static nodes when starting the cluster will
+            # limit the number of masters.
+            master_size = _get_master_size(redis_config)
+            if not master_size:
+                # for sharding, decide the number of masters if not specified
+                if num_static_nodes <= 5:
+                    master_size = num_static_nodes
+                else:
+                    master_size = num_static_nodes // 2
+                update_config_master_size(cluster_config, master_size)
+            else:
+                if master_size > num_static_nodes:
+                    master_size = num_static_nodes
+                    update_config_master_size(cluster_config, master_size)
+
     return cluster_config
 
 
 def _validate_config(config: Dict[str, Any]):
-    runtime_config = config.get(RUNTIME_CONFIG_KEY)
-    redis_config = _get_config(runtime_config)
-    # TODO
+    pass
 
 
 def _with_runtime_environment_variables(
@@ -119,14 +136,14 @@ def _with_runtime_environment_variables(
     runtime_envs["REDIS_CLUSTER_MODE"] = cluster_mode
 
     if cluster_mode == REDIS_CLUSTER_MODE_SHARDING:
-        # configure the cluster GUID
-        cluster_name = _get_cluster_name(redis_config)
-        if not cluster_name:
-            cluster_name = _generate_cluster_name(config)
-        runtime_envs["REDIS_CLUSTER_NAME"] = cluster_name
-
         cluster_port = _get_cluster_port(redis_config)
         runtime_envs["REDIS_CLUSTER_PORT"] = cluster_port
+
+        master_size = _get_master_size(redis_config)
+        if not master_size:
+            # This just for safety, master size will be checked at bootstrap
+            master_size = 1
+        runtime_envs["REDIS_MASTER_SIZE"] = master_size
 
     password = redis_config.get(
         REDIS_PASSWORD_CONFIG_KEY, REDIS_PASSWORD_DEFAULT)
