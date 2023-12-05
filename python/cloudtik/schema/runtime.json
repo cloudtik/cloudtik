@@ -826,14 +826,25 @@
                         }
                     }
                 },
-                "group_replication_name": {
-                    "type": "string",
-                    "description": "Specify your own group replication name (GUID). Generate from workspace and cluster name hash by default."
-                },
-                "group_replication_port": {
-                    "type": "integer",
-                    "default": 33061,
-                    "description": "Specify the group replication port to be used."
+                "group_replication": {
+                    "type": "object",
+                    "description": "Group replication configurations",
+                    "properties": {
+                        "group_replication_name": {
+                            "type": "string",
+                            "description": "Specify your own group replication name (GUID). Generate from workspace and cluster name hash by default."
+                        },
+                        "group_replication_port": {
+                            "type": "integer",
+                            "default": 33061,
+                            "description": "Specify the group replication port to be used."
+                        },
+                        "multi_primary": {
+                            "type": "boolean",
+                            "default": false,
+                            "description": "Whether the group replication is a multi-primary group. Default is single-primary."
+                        }
+                    }
                 }
             }
         },
