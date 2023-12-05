@@ -1137,7 +1137,7 @@
                 },
                 "master_size": {
                     "type": "integer",
-                    "description": "The number of masters. The remaining workers will be replicas"
+                    "description": "The number of masters. The remaining workers will be replicas. Default to half of the static nodes at starting cluster."
                 }
             }
         }
