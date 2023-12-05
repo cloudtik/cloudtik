@@ -1134,6 +1134,10 @@
                     "type": "integer",
                     "default": 16379,
                     "description": "Specify the internal cluster communication port to be used for a shared cluster."
+                },
+                "master_size": {
+                    "type": "integer",
+                    "description": "The number of masters. The remaining workers will be replicas. Default to half of the static nodes at starting cluster."
                 }
             }
         }
