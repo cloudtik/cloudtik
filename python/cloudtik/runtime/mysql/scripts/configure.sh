@@ -39,10 +39,10 @@ function update_data_dir() {
     fi
 
     mkdir -p ${data_dir}
-    replace_in_file "${config_template_file}" "{%data.dir%}" "${data_dir}"
+    update_in_file "${config_template_file}" "{%data.dir%}" "${data_dir}"
 
     if [ "${MYSQL_CLUSTER_MODE}" == "group_replication" ]; then
-        replace_in_file "${output_dir}/my-init.cnf" "{%data.dir%}" "${data_dir}"
+        update_in_file "${output_dir}/my-init.cnf" "{%data.dir%}" "${data_dir}"
     fi
 }
 
@@ -52,16 +52,16 @@ function update_server_id() {
         exit 1
     fi
 
-    replace_in_file "${config_template_file}" "{%server.id%}" "${CLOUDTIK_NODE_SEQ_ID}"
+    update_in_file "${config_template_file}" "{%server.id%}" "${CLOUDTIK_NODE_SEQ_ID}"
 }
 
 function turn_on_start_replication_on_boot() {
     if [ "${IS_HEAD_NODE}" != "true" ]; then
         # only do this for workers for now, head needs handle differently for group replication
         if [ "${MYSQL_CLUSTER_MODE}" == "replication" ]; then
-            replace_in_file "${MYSQL_CONFIG_FILE}" "^skip_replica_start=ON" "skip_replica_start=OFF"
+            update_in_file "${MYSQL_CONFIG_FILE}" "^skip_replica_start=ON" "skip_replica_start=OFF"
         elif [ "${MYSQL_CLUSTER_MODE}" == "group_replication" ]; then
-            replace_in_file "${MYSQL_CONFIG_FILE}" "^group_replication_start_on_boot=OFF" "group_replication_start_on_boot=ON"
+            update_in_file "${MYSQL_CONFIG_FILE}" "^group_replication_start_on_boot=OFF" "group_replication_start_on_boot=ON"
         fi
     fi
 }
@@ -90,31 +90,31 @@ function configure_mysql() {
     && sudo chown -R $(whoami):$(id -gn) /var/run/mysqld \
     && sudo chmod 1777 /var/run/mysqld
 
-    replace_in_file "${config_template_file}" "{%bind.address%}" "${NODE_IP_ADDRESS}"
-    replace_in_file "${config_template_file}" "{%bind.port%}" "${MYSQL_SERVICE_PORT}"
+    update_in_file "${config_template_file}" "{%bind.address%}" "${NODE_IP_ADDRESS}"
+    update_in_file "${config_template_file}" "{%bind.port%}" "${MYSQL_SERVICE_PORT}"
     update_data_dir
 
     if [ "${MYSQL_CLUSTER_MODE}" == "replication" ]; then
         update_server_id
     elif [ "${MYSQL_CLUSTER_MODE}" == "group_replication" ]; then
         update_server_id
-        replace_in_file "${config_template_file}" "{%group.replication.group.name%}" "${MYSQL_GROUP_REPLICATION_NAME}"
-        replace_in_file "${config_template_file}" "{%group.replication.port%}" "${MYSQL_GROUP_REPLICATION_PORT}"
+        update_in_file "${config_template_file}" "{%group.replication.group.name%}" "${MYSQL_GROUP_REPLICATION_NAME}"
+        update_in_file "${config_template_file}" "{%group.replication.port%}" "${MYSQL_GROUP_REPLICATION_PORT}"
 
         # TODO: set head address as seed address is good for first start
         # But if head is dead while other workers are running, we need head start using workers as seeds
         # This need to be improved with fixed naming services if we know a fixed number of nodes. We can
         # assume that the first N nodes used as seeds.
         # While for workers, we can always trust there is a healthy head to contact with.
-        replace_in_file "${config_template_file}" "{%group.replication.seed.address%}" "${HEAD_ADDRESS}"
+        update_in_file "${config_template_file}" "{%group.replication.seed.address%}" "${HEAD_ADDRESS}"
 
         if [ "${MYSQL_GROUP_REPLICATION_MULTI_PRIMARY}" == "true" ]; then
             # turn on a few flags for multi-primary mode
             local config_name="group_replication_single_primary_mode"
-            replace_in_file "${config_template_file}" "^${config_name}=ON" "${config_name}=OFF"
+            update_in_file "${config_template_file}" "^${config_name}=ON" "${config_name}=OFF"
 
             config_name="group_replication_enforce_update_everywhere_checks"
-            replace_in_file "${config_template_file}" "^${config_name}=OFF" "${config_name}=ON"
+            update_in_file "${config_template_file}" "^${config_name}=OFF" "${config_name}=ON"
         fi
     fi
 
