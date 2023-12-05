@@ -19,7 +19,11 @@ RUNTIME_PROCESSES = [
     ]
 
 MYSQL_SERVICE_PORT_CONFIG_KEY = "port"
+
+MYSQL_GROUP_REPLICATION_CONFIG_KEY = "group_replication_port"
 MYSQL_GROUP_REPLICATION_PORT_CONFIG_KEY = "group_replication_port"
+MYSQL_GROUP_REPLICATION_NAME_CONFIG_KEY = "group_replication_name"
+MYSQL_GROUP_REPLICATION_MULTI_PRIMARY_CONFIG_KEY = "multi_primary"
 
 MYSQL_CLUSTER_MODE_CONFIG_KEY = "cluster_mode"
 MYSQL_CLUSTER_MODE_NONE = "none"
@@ -27,8 +31,6 @@ MYSQL_CLUSTER_MODE_NONE = "none"
 MYSQL_CLUSTER_MODE_REPLICATION = "replication"
 # group replication
 MYSQL_CLUSTER_MODE_GROUP_REPLICATION = "group_replication"
-
-MYSQL_GROUP_REPLICATION_NAME_CONFIG_KEY = "group_replication_name"
 
 MYSQL_ROOT_PASSWORD_CONFIG_KEY = "root_password"
 
@@ -54,19 +56,29 @@ def _get_service_port(mysql_config: Dict[str, Any]):
         MYSQL_SERVICE_PORT_CONFIG_KEY, MYSQL_SERVICE_PORT_DEFAULT)
 
 
-def _get_group_replication_port(mysql_config: Dict[str, Any]):
-    return mysql_config.get(
-        MYSQL_GROUP_REPLICATION_PORT_CONFIG_KEY, MYSQL_GROUP_REPLICATION_PORT_DEFAULT)
-
-
 def _get_cluster_mode(mysql_config: Dict[str, Any]):
     return mysql_config.get(
         MYSQL_CLUSTER_MODE_CONFIG_KEY, MYSQL_CLUSTER_MODE_GROUP_REPLICATION)
 
 
-def _get_group_replication_name(mysql_config: Dict[str, Any]):
+def _get_group_replication_config(mysql_config: Dict[str, Any]):
     return mysql_config.get(
+        MYSQL_GROUP_REPLICATION_CONFIG_KEY, {})
+
+
+def _get_group_replication_port(group_replication_config: Dict[str, Any]):
+    return group_replication_config.get(
+        MYSQL_GROUP_REPLICATION_PORT_CONFIG_KEY, MYSQL_GROUP_REPLICATION_PORT_DEFAULT)
+
+
+def _get_group_replication_name(group_replication_config: Dict[str, Any]):
+    return group_replication_config.get(
         MYSQL_GROUP_REPLICATION_NAME_CONFIG_KEY)
+
+
+def _is_group_replication_multi_primary(group_replication_config: Dict[str, Any]):
+    return group_replication_config.get(
+        MYSQL_GROUP_REPLICATION_MULTI_PRIMARY_CONFIG_KEY, False)
 
 
 def _generate_group_replication_name(config: Dict[str, Any]):
@@ -128,14 +140,22 @@ def _with_runtime_environment_variables(
     runtime_envs["MYSQL_CLUSTER_MODE"] = cluster_mode
 
     if cluster_mode == MYSQL_CLUSTER_MODE_GROUP_REPLICATION:
+        group_replication_config = _get_group_replication_config(mysql_config)
+
         # configure the group replication GUID
-        group_replication_name = _get_group_replication_name(mysql_config)
+        group_replication_name = _get_group_replication_name(
+            group_replication_config)
         if not group_replication_name:
             group_replication_name = _generate_group_replication_name(config)
         runtime_envs["MYSQL_GROUP_REPLICATION_NAME"] = group_replication_name
 
-        group_replication_port = _get_group_replication_port(mysql_config)
+        group_replication_port = _get_group_replication_port(
+            group_replication_config)
         runtime_envs["MYSQL_GROUP_REPLICATION_PORT"] = group_replication_port
+
+        multi_primary = _is_group_replication_multi_primary(
+            group_replication_config)
+        runtime_envs["MYSQL_GROUP_REPLICATION_MULTI_PRIMARY"] = multi_primary
 
     root_password = mysql_config.get(
         MYSQL_ROOT_PASSWORD_CONFIG_KEY, MYSQL_ROOT_PASSWORD_DEFAULT)

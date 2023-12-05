@@ -143,3 +143,14 @@ group_replication_bootstrap_group=OFF
 # for example because the transactions needed by the joining member are not available in the binary
 # logs on any existing group member.
 # group_replication_clone_threshold=9223372036854775807
+
+# These system variables must have the same value on all group members, and require a full reboot
+# of the group.
+# Single or Multi-primary mode
+group_replication_single_primary_mode=ON
+
+# Enables or disables strict consistency checks for multi-primary update everywhere. The default
+# is that checks are disabled. In single-primary mode, this option must be disabled on all group
+# members. In multi-primary mode, when this option is enabled, statements are checked to ensure
+# they are compatible with multi-primary mode.
+group_replication_enforce_update_everywhere_checks=OFF

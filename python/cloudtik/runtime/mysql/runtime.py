@@ -16,7 +16,8 @@ class MySQLRuntime(RuntimeBase):
     It supports the following topology:
     1. A standalone server: on head
     2. A replication cluster: primary on head and replicas on workers
-    3. A group replication cluster: All possible primary but must bootstrap from head.
+    3. A group replication cluster: A single primary or all possible primary
+    but must bootstrap from head.
 
     Notice of limitations:
     1. For replication cluster, we currently don't allow to run primary on workers.
