@@ -18,7 +18,7 @@ USER_HOME=/home/$(whoami)
 RUNTIME_PATH=$USER_HOME/runtime
 NODEX_HOME=$RUNTIME_PATH/nodex
 
-function get_service_port() {
+function get_nodex_port() {
     local service_port=9100
     if [ ! -z "${NODEX_SERVICE_PORT}" ]; then
         service_port=${NODEX_SERVICE_PORT}
@@ -28,7 +28,7 @@ function get_service_port() {
 
 case "$SERVICE_COMMAND" in
 start)
-    NODEX_SERVICE_PORT=$(get_service_port)
+    NODEX_SERVICE_PORT=$(get_nodex_port)
     NODEX_ADDRESS="${NODE_IP_ADDRESS}:${NODEX_PORT}"
     nohup ${NODEX_HOME}/nodex \
           --web.listen-address=${NODEX_ADDRESS} >${NODEX_HOME}/logs/nodex.log 2>&1 &
