@@ -16,25 +16,25 @@ set_node_ip_address
 
 USER_HOME=/home/$(whoami)
 RUNTIME_PATH=$USER_HOME/runtime
-NODE_EXPORTER_HOME=$RUNTIME_PATH/node_exporter
+NODEX_HOME=$RUNTIME_PATH/nodex
 
-function get_node_exporter_port() {
+function get_service_port() {
     local service_port=9100
-    if [ ! -z "${NODE_EXPORTER_SERVICE_PORT}" ]; then
-        service_port=${NODE_EXPORTER_SERVICE_PORT}
+    if [ ! -z "${NODEX_SERVICE_PORT}" ]; then
+        service_port=${NODEX_SERVICE_PORT}
     fi
     echo "${service_port}"
 }
 
 case "$SERVICE_COMMAND" in
 start)
-    NODE_EXPORTER_PORT=$(get_node_exporter_port)
-    NODE_EXPORTER_ADDRESS="${NODE_IP_ADDRESS}:${NODE_EXPORTER_PORT}"
-    nohup ${NODE_EXPORTER_HOME}/node_exporter \
-          --web.listen-address=${NODE_EXPORTER_ADDRESS} >${NODE_EXPORTER_HOME}/logs/node_exporter.log 2>&1 &
+    NODEX_SERVICE_PORT=$(get_service_port)
+    NODEX_ADDRESS="${NODE_IP_ADDRESS}:${NODEX_PORT}"
+    nohup ${NODEX_HOME}/nodex \
+          --web.listen-address=${NODEX_ADDRESS} >${NODEX_HOME}/logs/nodex.log 2>&1 &
     ;;
 stop)
-    stop_process_by_name "node_exporter"
+    stop_process_by_name "nodex"
     ;;
 -h|--help)
     echo "Usage: $0 start|stop --head" >&2

@@ -41,7 +41,7 @@ BUILT_IN_RUNTIME_NGINX = "nginx"
 BUILT_IN_RUNTIME_HAPROXY = "haproxy"
 BUILT_IN_RUNTIME_ETCD = "etcd"
 BUILT_IN_RUNTIME_PROMETHEUS = "prometheus"
-BUILT_IN_RUNTIME_NODE_EXPORTER = "node_exporter"
+BUILT_IN_RUNTIME_NODEX = "nodex"
 BUILT_IN_RUNTIME_GRAFANA = "grafana"
 BUILT_IN_RUNTIME_MYSQL = "mysql"
 BUILT_IN_RUNTIME_POSTGRES = "postgres"
@@ -52,7 +52,7 @@ BUILT_IN_RUNTIME_KONG = "kong"
 BUILT_IN_RUNTIME_APISIX = "apisix"
 BUILT_IN_RUNTIME_REDIS = "redis"
 
-DEFAULT_RUNTIMES = [BUILT_IN_RUNTIME_PROMETHEUS, BUILT_IN_RUNTIME_NODE_EXPORTER, BUILT_IN_RUNTIME_SPARK]
+DEFAULT_RUNTIMES = [BUILT_IN_RUNTIME_PROMETHEUS, BUILT_IN_RUNTIME_NODEX, BUILT_IN_RUNTIME_SPARK]
 
 
 def _import_ai():
@@ -155,9 +155,9 @@ def _import_prometheus():
     return PrometheusRuntime
 
 
-def _import_node_exporter():
-    from cloudtik.runtime.node_exporter.runtime import NodeExporterRuntime
-    return NodeExporterRuntime
+def _import_nodex():
+    from cloudtik.runtime.nodex.runtime import NodexRuntime
+    return NodexRuntime
 
 
 def _import_grafana():
@@ -226,7 +226,7 @@ _RUNTIMES = {
     BUILT_IN_RUNTIME_HAPROXY: _import_haproxy,
     BUILT_IN_RUNTIME_ETCD: _import_etcd,
     BUILT_IN_RUNTIME_PROMETHEUS: _import_prometheus,
-    BUILT_IN_RUNTIME_NODE_EXPORTER: _import_node_exporter,
+    BUILT_IN_RUNTIME_NODEX: _import_nodex,
     BUILT_IN_RUNTIME_GRAFANA: _import_grafana,
     BUILT_IN_RUNTIME_MYSQL: _import_mysql,
     BUILT_IN_RUNTIME_POSTGRES: _import_postgres,

@@ -85,7 +85,7 @@ Currently, we implemented the following runtimes:
 - HAProxy: to provide L4 (TCP) load balancer.
 - NGINX: to provide L7 (HTTP) load balancer or web server.
 - Kong or APISix: to provide API Gateway capabilities.
-- Node Exporter Runtime: to export node metrics for Prometheus.
+- Nodex Runtime: to export node metrics for Prometheus.
 - SSH Server Runtime: to provide password-less SSH capability within cluster.
 
 Belows diagram shows the current design runtimes:

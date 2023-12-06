@@ -7,7 +7,7 @@ from cloudtik.core._private.service_discovery.utils import \
     get_canonical_service_name, define_runtime_service, \
     get_service_discovery_config, SERVICE_DISCOVERY_FEATURE_KEY_VALUE, define_runtime_service_on_head, \
     define_runtime_service_on_worker
-from cloudtik.core._private.utils import RUNTIME_CONFIG_KEY, is_node_seq_id_enabled, enable_node_seq_id, \
+from cloudtik.core._private.utils import is_node_seq_id_enabled, enable_node_seq_id, \
     _sum_min_workers, get_runtime_config_for_update
 
 RUNTIME_PROCESSES = [
@@ -87,6 +87,30 @@ def update_config_master_size(cluster_config, master_size):
     redis_config_to_update[REDIS_MASTER_SIZE_CONFIG_KEY] = master_size
 
 
+def _configure_master_size(redis_config, cluster_config):
+    num_static_nodes = _sum_min_workers(cluster_config) + 1
+    if num_static_nodes < 3:
+        raise RuntimeError("Redis Cluster for sharding requires at least 3 master nodes.")
+
+    # WARNING: the static nodes when starting the cluster will
+    # limit the number of masters.
+    user_master_size = _get_master_size(redis_config)
+    master_size = user_master_size
+    if not master_size:
+        # for sharding, decide the number of masters if not specified
+        if num_static_nodes <= 5:
+            master_size = num_static_nodes
+        else:
+            master_size = num_static_nodes // 2
+    else:
+        if master_size < 3:
+            master_size = 3
+        elif master_size > num_static_nodes:
+            master_size = num_static_nodes
+    if master_size != user_master_size:
+        update_config_master_size(cluster_config, master_size)
+
+
 def _bootstrap_runtime_config(
         runtime_config: Dict[str, Any],
         cluster_config: Dict[str, Any]) -> Dict[str, Any]:
@@ -98,23 +122,8 @@ def _bootstrap_runtime_config(
         if not is_node_seq_id_enabled(cluster_config):
             enable_node_seq_id(cluster_config)
 
-        if cluster_mode != REDIS_CLUSTER_MODE_SHARDING:
-            num_static_nodes = _sum_min_workers(cluster_config) + 1
-
-            # WARNING: the static nodes when starting the cluster will
-            # limit the number of masters.
-            master_size = _get_master_size(redis_config)
-            if not master_size:
-                # for sharding, decide the number of masters if not specified
-                if num_static_nodes <= 5:
-                    master_size = num_static_nodes
-                else:
-                    master_size = num_static_nodes // 2
-                update_config_master_size(cluster_config, master_size)
-            else:
-                if master_size > num_static_nodes:
-                    master_size = num_static_nodes
-                    update_config_master_size(cluster_config, master_size)
+        if cluster_mode == REDIS_CLUSTER_MODE_SHARDING:
+            _configure_master_size(redis_config, cluster_config)
 
     return cluster_config
 

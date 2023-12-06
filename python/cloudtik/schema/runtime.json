@@ -598,15 +598,15 @@
                 }
             }
         },
-        "node_exporter": {
+        "nodex": {
             "type": "object",
-            "description": "Prometheus node exporter runtime configurations",
+            "description": "Prometheus nodex (nodex) runtime configurations",
             "additionalProperties": true,
             "properties": {
                 "port": {
                     "type": "integer",
                     "default": 9100,
-                    "description": "Prometheus node exporter port."
+                    "description": "Prometheus nodex port."
                 }
             }
         },
