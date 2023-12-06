@@ -3,7 +3,7 @@ import time
 from datetime import datetime
 from typing import Optional, Tuple
 
-from cloudtik.core._private.util.rest_api import rest_api_put_json, rest_api_put
+from cloudtik.core._private.util.rest_api import rest_api_put_json
 from cloudtik.runtime.common.service_discovery.consul import CONSUL_HTTP_PORT, REST_ENDPOINT_URL_FORMAT, \
     CONSUL_CLIENT_ADDRESS, CONSUL_REQUEST_TIMEOUT
 
