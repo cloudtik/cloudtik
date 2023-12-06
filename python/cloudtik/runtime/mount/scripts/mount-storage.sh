@@ -5,7 +5,7 @@
 # 2. Credential values are exported through the environment variables through provider.with_environment_variables.
 # 3. USER_HOME is set to the current user home.
 # 4. For service functions, DEFAULT_FS_MOUNT_PATH is set to the target path for mounting.
-#    For service functions for local hdfs, HEAD_ADDRESS is set.
+#    For service functions for local hdfs, HEAD_IP_ADDRESS is set.
 
 # Cloud storage fuse mounts:
 # 1. If cloud storage of provider configured:
@@ -359,7 +359,7 @@ function mount_hdfs_fs() {
 }
 
 function mount_local_hdfs_fs() {
-    fs_default_dir="dfs://${HEAD_ADDRESS}:9000"
+    fs_default_dir="dfs://${HEAD_IP_ADDRESS}:9000"
     if [ -z "${MOUNTED_DEFAULT_FS}" ]; then
         FS_MOUNT_PATH=${DEFAULT_FS_MOUNT_PATH}
         MOUNTED_DEFAULT_FS=${FS_MOUNT_PATH}

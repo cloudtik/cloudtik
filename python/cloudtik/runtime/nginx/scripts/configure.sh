@@ -129,7 +129,7 @@ function configure_nginx() {
 set_head_option "$@"
 check_nginx_installed
 set_head_address
-set_node_ip_address
+set_node_address
 configure_nginx
 
 exit 0

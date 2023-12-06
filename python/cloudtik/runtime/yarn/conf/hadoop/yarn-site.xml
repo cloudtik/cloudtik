@@ -17,27 +17,27 @@
 <!-- Site specific YARN configuration properties -->
     <property>
         <name>yarn.resourcemanager.hostname</name>
-        <value>HEAD_ADDRESS</value>
+        <value>{%resourcemanager.host%}</value>
     </property>
     <property>
         <name>yarn.resourcemanager.address</name>
-        <value>HEAD_ADDRESS:8032</value>
+        <value>{%resourcemanager.host%}:8032</value>
     </property>
     <property>
         <name>yarn.resourcemanager.scheduler.address</name>
-        <value>HEAD_ADDRESS:8030</value>
+        <value>{%resourcemanager.host%}:8030</value>
     </property>
     <property>
         <name>yarn.resourcemanager.resource-tracker.address</name>
-        <value>HEAD_ADDRESS:8031</value>
+        <value>{%resourcemanager.host%}:8031</value>
     </property>
     <property>
         <name>yarn.resourcemanager.admin.address</name>
-        <value>HEAD_ADDRESS:8033</value>
+        <value>{%resourcemanager.host%}:8033</value>
     </property>
     <property>
         <name>yarn.resourcemanager.webapp.address</name>
-        <value>HEAD_ADDRESS:8088</value>
+        <value>{%resourcemanager.host%}:8088</value>
     </property>
     <property>
         <name>yarn.resourcemanager.scheduler.class</name>

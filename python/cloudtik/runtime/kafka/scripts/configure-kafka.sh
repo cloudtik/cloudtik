@@ -113,7 +113,7 @@ if [ $IS_HEAD_NODE == "false" ];then
     # Zookeeper doesn't run on head node
     check_kafka_installed
     set_head_address
-    set_node_ip_address
+    set_node_address
     configure_kafka
 fi
 

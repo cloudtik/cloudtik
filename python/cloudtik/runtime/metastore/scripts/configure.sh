@@ -57,7 +57,11 @@ function configure_hive_metastore() {
         DATABASE_CONNECTION="jdbc:postgresql://${DATABASE_ADDRESS}/${DATABASE_NAME}"
     fi
 
-    sed -i "s/{%HEAD_ADDRESS%}/${HEAD_ADDRESS}/g" ${config_template_file}
+    # TODO: bind to host or ip?
+    sed -i "s/{%metastore.bind.host%}/${HEAD_IP_ADDRESS}/g" ${config_template_file}
+    # TODO: This is client configuration to access metastore
+    sed -i "s/{%metastore.host%}/${HEAD_IP_ADDRESS}/g" ${config_template_file}
+
     sed -i "s#{%DATABASE_CONNECTION%}#${DATABASE_CONNECTION}#g" ${config_template_file}
     sed -i "s#{%DATABASE_DRIVER%}#${DATABASE_DRIVER}#g" ${config_template_file}
     sed -i "s/{%DATABASE_USER%}/${DATABASE_USER}/g" ${config_template_file}

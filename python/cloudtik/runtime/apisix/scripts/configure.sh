@@ -48,7 +48,7 @@ function configure_apisix() {
 
 set_head_option "$@"
 check_apisix_installed
-set_node_ip_address
+set_node_address
 configure_apisix
 
 exit 0

@@ -106,7 +106,7 @@ function configure_mysql() {
         # This need to be improved with fixed naming services if we know a fixed number of nodes. We can
         # assume that the first N nodes used as seeds.
         # While for workers, we can always trust there is a healthy head to contact with.
-        update_in_file "${config_template_file}" "{%group.replication.seed.address%}" "${HEAD_ADDRESS}"
+        update_in_file "${config_template_file}" "{%group.replication.seed.address%}" "${HEAD_IP_ADDRESS}"
 
         if [ "${MYSQL_GROUP_REPLICATION_MULTI_PRIMARY}" == "true" ]; then
             # turn on a few flags for multi-primary mode
@@ -133,7 +133,7 @@ function configure_mysql() {
     fi
 
     if [ "${MYSQL_CLUSTER_MODE}" == "replication" ]; then
-        export MYSQL_REPLICATION_SOURCE_HOST=${HEAD_ADDRESS}
+        export MYSQL_REPLICATION_SOURCE_HOST=${HEAD_IP_ADDRESS}
     elif [ "${MYSQL_CLUSTER_MODE}" == "group_replication" ]; then
         # This is needed because mysqld --initialize(-insecure) cannot recognize
         # many group replications options in the conf file (plugin is not loaded
@@ -152,7 +152,7 @@ function configure_mysql() {
 
 check_mysql_installed
 set_head_option "$@"
-set_node_ip_address
+set_node_address
 set_head_address
 configure_mysql
 

@@ -19,7 +19,7 @@
 <configuration>
     <property>
         <name>hive.metastore.thrift.bind.host</name>
-        <value>{%HEAD_ADDRESS%}</value>
+        <value>{%metastore.bind.host%}</value>
     </property>
     <property>
         <name>javax.jdo.option.ConnectionURL</name>
@@ -47,7 +47,7 @@
     </property>
     <property>
         <name>metastore.thrift.uris</name>
-        <value>thrift://{%HEAD_ADDRESS%}:9083</value>
+        <value>thrift://{%metastore.host%}:9083</value>
     </property>
     <property>
         <name>metastore.task.threads.always</name>

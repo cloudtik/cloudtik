@@ -82,7 +82,7 @@ function configure_grafana() {
 set_head_option "$@"
 check_grafana_installed
 set_head_address
-set_node_ip_address
+set_node_address
 configure_grafana
 
 exit 0

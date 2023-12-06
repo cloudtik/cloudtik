@@ -87,7 +87,7 @@ function configure_bind() {
 
 set_head_option "$@"
 check_bind_installed
-set_node_ip_address
+set_node_address
 configure_bind
 
 exit 0

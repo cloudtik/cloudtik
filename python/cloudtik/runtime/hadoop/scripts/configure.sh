@@ -74,7 +74,7 @@ function update_config_for_local_hdfs() {
     else
         HADOOP_CORE_SITE=$output_dir/hadoop/core-site.xml
     fi
-    HADOOP_FS_DEFAULT="hdfs://${HEAD_ADDRESS}:9000"
+    HADOOP_FS_DEFAULT="hdfs://${HEAD_IP_ADDRESS}:9000"
     sed -i "s!{%fs.default.name%}!${HADOOP_FS_DEFAULT}!g" $HADOOP_CORE_SITE
 
     if [ "${cloud_storage_provider}" != "none" ]; then
@@ -228,7 +228,7 @@ function update_local_storage_config_local_hdfs() {
     cp -r ${HADOOP_HOME}/etc/hadoop/* ${LOCAL_HDFS_CONF_DIR}/
 
     HADOOP_CORE_SITE=${output_dir}/hadoop/core-site-local.xml
-    fs_default_dir="hdfs://${HEAD_ADDRESS}:9000"
+    fs_default_dir="hdfs://${HEAD_IP_ADDRESS}:9000"
     sed -i "s!{%fs.default.name%}!${fs_default_dir}!g" $HADOOP_CORE_SITE
 
     # override with local hdfs conf

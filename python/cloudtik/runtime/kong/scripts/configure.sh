@@ -79,7 +79,7 @@ function configure_kong() {
 
 set_head_option "$@"
 check_kong_installed
-set_node_ip_address
+set_node_address
 configure_kong
 
 exit 0
