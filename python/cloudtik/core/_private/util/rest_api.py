@@ -76,7 +76,8 @@ def rest_api_get(
 def rest_api_method(
         endpoint_url, data, data_format=None,
         method=None, auth=None, timeout=None):
-    data_in_bytes = data.encode('utf-8')  # needs to be bytes
+    data_in_bytes = data.encode(
+        'utf-8') if data is not None else None  # needs to be bytes
     req = urllib.request.Request(
         endpoint_url, data=data_in_bytes, method=method)
     _add_content_type_header(req, data_format)

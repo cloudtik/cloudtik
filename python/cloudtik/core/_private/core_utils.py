@@ -74,7 +74,8 @@ def load_class(path):
     class_data = path.split(".")
     if len(class_data) < 2:
         raise ValueError(
-            "You need to pass a valid path like mymodule.class")
+            "Invalid class: {}. You need to pass a valid path like mymodule.class".format(
+                path))
     module_path = ".".join(class_data[:-1])
     class_str = class_data[-1]
     module = importlib.import_module(module_path)
