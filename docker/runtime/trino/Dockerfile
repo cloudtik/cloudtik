@@ -1,7 +1,7 @@
 ARG BASE_TAG="nightly"
 FROM cloudtik/cloudtik-deps:$BASE_TAG
 
-ARG NODE_EXPORTER_VERSION=1.6.1
+ARG NODEX_VERSION=1.6.1
 ARG PROMETHEUS_VERSION=2.45.0
 ARG TRINO_VERSION=389
 ARG HADOOP_VERSION=3.3.1
@@ -10,14 +10,15 @@ ENV RUNTIME_PATH /home/cloudtik/runtime
 RUN mkdir -p $RUNTIME_PATH
 WORKDIR /home/cloudtik/runtime
 
-# Install prometheus and node exporter
-ENV NODE_EXPORTER_HOME $RUNTIME_PATH/node_exporter
+# Install prometheus and nodex
+ENV NODEX_HOME $RUNTIME_PATH/nodex
 ENV PROMETHEUS_HOME $RUNTIME_PATH/prometheus
 
-RUN wget https://github.com/prometheus/node_exporter/releases/download/v${NODE_EXPORTER_VERSION}/node_exporter-${NODE_EXPORTER_VERSION}.linux-amd64.tar.gz -O node_exporter.tar.gz && \
-    mkdir -p "$NODE_EXPORTER_HOME" && \
-    tar --extract --file node_exporter.tar.gz --directory "$NODE_EXPORTER_HOME" --strip-components 1 --no-same-owner && \
-    rm node_exporter.tar.gz && \
+RUN wget https://github.com/prometheus/node_exporter/releases/download/v${NODEX_VERSION}/node_exporter-${NODEX_VERSION}.linux-amd64.tar.gz -O nodex.tar.gz && \
+    mkdir -p "$NODEX_HOME" && \
+    tar --extract --file nodex.tar.gz --directory "$NODEX_HOME" --strip-components 1 --no-same-owner && \
+    mv $NODEX_HOME/node_exporter $NODEX_HOME/nodex && \
+    rm nodex.tar.gz && \
     wget https://github.com/prometheus/prometheus/releases/download/v${PROMETHEUS_VERSION}/prometheus-${PROMETHEUS_VERSION}.linux-amd64.tar.gz -O prometheus.tar.gz && \
     mkdir -p "$PROMETHEUS_HOME" && \
     tar --extract --file prometheus.tar.gz --directory "$PROMETHEUS_HOME" --strip-components 1 --no-same-owner && \
