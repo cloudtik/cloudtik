@@ -34,7 +34,7 @@ function configure_system_folders() {
 }
 
 function set_artifact_config_for_local_hdfs() {
-    DEFAULT_ARTIFACT_ROOT="hdfs://${HEAD_ADDRESS}:9000/${MLFLOW_ARTIFACT_PATH}"
+    DEFAULT_ARTIFACT_ROOT="hdfs://${HEAD_IP_ADDRESS}:9000/${MLFLOW_ARTIFACT_PATH}"
 }
 
 function set_artifact_config_for_hdfs() {

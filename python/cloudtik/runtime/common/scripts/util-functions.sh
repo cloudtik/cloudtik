@@ -4,22 +4,32 @@
 CLOUDTIK_DOWNLOADS="https://d30257nes7d4fq.cloudfront.net/downloads"
 
 function set_head_address() {
-    if [ -z "${HEAD_ADDRESS}" ]; then
+    set_head_ip_address
+    # TODO: set the head host address when applicable
+}
+
+function set_head_ip_address() {
+    if [ -z "${HEAD_IP_ADDRESS}" ]; then
         if [ $IS_HEAD_NODE == "true" ]; then
             if [ ! -n "${CLOUDTIK_NODE_IP}" ]; then
-                HEAD_ADDRESS=$(hostname -I | awk '{print $1}')
+                HEAD_IP_ADDRESS=$(hostname -I | awk '{print $1}')
             else
-                HEAD_ADDRESS=${CLOUDTIK_NODE_IP}
+                HEAD_IP_ADDRESS=${CLOUDTIK_NODE_IP}
             fi
         else
             if [ ! -n "${CLOUDTIK_HEAD_IP}" ]; then
                 echo "Error: CLOUDTIK_HEAD_IP environment variable should be set."
                 exit 1
             else
-                HEAD_ADDRESS=${CLOUDTIK_HEAD_IP}
+                HEAD_IP_ADDRESS=${CLOUDTIK_HEAD_IP}
             fi
         fi
     fi
+}
+
+function set_node_address() {
+    set_node_ip_address
+    # TODO: set the node host address when applicable
 }
 
 function set_node_ip_address() {

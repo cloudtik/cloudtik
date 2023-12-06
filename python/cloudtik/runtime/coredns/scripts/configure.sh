@@ -75,7 +75,7 @@ function configure_coredns() {
 
 set_head_option "$@"
 check_coredns_installed
-set_node_ip_address
+set_node_address
 configure_coredns
 
 exit 0

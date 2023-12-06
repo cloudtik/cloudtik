@@ -78,7 +78,7 @@ set_head_option "$@"
 if [ "${IS_HEAD_NODE}" == "false" ]; then
     check_etcd_installed
     set_head_address
-    set_node_ip_address
+    set_node_address
     configure_etcd
 fi
 

@@ -12,7 +12,7 @@ eval set -- "${args}"
 
 set_head_option "$@"
 set_service_command "$@"
-set_node_ip_address
+set_node_address
 set_head_address
 
 USER_HOME=/home/$(whoami)
@@ -34,7 +34,7 @@ start)
             # TODO: distinguish for Case 3
             echo "Starting group replication"
             bash $BIN_DIR/start-group-replication.sh \
-              -h ${HEAD_ADDRESS} >${MYSQL_HOME}/logs/mysql-group-replication.log 2>&1
+              -h ${HEAD_IP_ADDRESS} >${MYSQL_HOME}/logs/mysql-group-replication.log 2>&1
         fi
     fi
     ;;

@@ -144,8 +144,8 @@ function update_hive_metastore_config() {
         if [ ! -z "$HIVE_METASTORE_URI" ]; then
             hive_metastore_uri="$HIVE_METASTORE_URI"
         else
-            METASTORE_IP=${HEAD_ADDRESS}
-            hive_metastore_uri="thrift://${METASTORE_IP}:9083"
+            METASTORE_HOST=${HEAD_IP_ADDRESS}
+            hive_metastore_uri="thrift://${METASTORE_HOST}:9083"
         fi
 
         sed -i "s!{%HIVE_METASTORE_URI%}!${hive_metastore_uri}!g" ${hive_properties}
@@ -193,7 +193,7 @@ function configure_presto() {
 
     node_id=$(uuid)
 
-    sed -i "s/{%HEAD_ADDRESS%}/${HEAD_ADDRESS}/g" `grep "{%HEAD_ADDRESS%}" -rl ${output_dir}`
+    sed -i "s/{%coordinator.host%}/${HEAD_IP_ADDRESS}/g" `grep "{%coordinator.host%}" -rl ${output_dir}`
     sed -i "s/{%node.environment%}/presto/g" $output_dir/presto/node.properties
     sed -i "s/{%node.id%}/${node_id}/g" $output_dir/presto/node.properties
 

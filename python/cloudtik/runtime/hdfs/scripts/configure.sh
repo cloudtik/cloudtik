@@ -109,7 +109,7 @@ function configure_hdfs() {
     CORE_SITE_CONFIG=${output_dir}/hadoop/core-site.xml
     HDFS_SITE_CONFIG=${output_dir}/hadoop/hdfs-site.xml
 
-    fs_default_dir="hdfs://${HEAD_ADDRESS}:9000"
+    fs_default_dir="hdfs://${HEAD_IP_ADDRESS}:9000"
     sed -i "s!{%fs.default.name%}!${fs_default_dir}!g" ${CORE_SITE_CONFIG}
 
     update_proxy_user_for_current_user

@@ -12,7 +12,7 @@ eval set -- "${args}"
 
 set_head_option "$@"
 set_service_command "$@"
-set_node_ip_address
+set_node_address
 set_head_address
 
 USER_HOME=/home/$(whoami)

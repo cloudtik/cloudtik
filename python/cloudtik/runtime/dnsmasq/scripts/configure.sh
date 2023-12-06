@@ -81,7 +81,7 @@ function configure_dnsmasq() {
 
 set_head_option "$@"
 check_dnsmasq_installed
-set_node_ip_address
+set_node_address
 configure_dnsmasq
 
 exit 0

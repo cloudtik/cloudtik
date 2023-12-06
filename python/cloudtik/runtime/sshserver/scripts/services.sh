@@ -18,7 +18,7 @@ SSH_AUTHORIZED_KEYS_FILE=${SSH_CONFIG_HOME}/cloudtik-ssh-server-authorized_keys
 
 set_head_option "$@"
 set_service_command "$@"
-set_node_ip_address
+set_node_address
 
 case "$SERVICE_COMMAND" in
 start)
