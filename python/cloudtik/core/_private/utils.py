@@ -2850,14 +2850,27 @@ def subscribe_cluster_variable(cluster_variable_name):
     return cluster_variable_value.decode("utf-8")
 
 
+def get_cluster_redis_address():
+    if CLOUDTIK_RUNTIME_ENV_HEAD_IP not in os.environ:
+        raise RuntimeError("Not able to connect to cluster kv store in lack of head ip.")
+    head_ip = os.environ[CLOUDTIK_RUNTIME_ENV_HEAD_IP]
+    redis_address = "{}:{}".format(head_ip, CLOUDTIK_DEFAULT_PORT)
+    redis_password = CLOUDTIK_REDIS_DEFAULT_PASSWORD
+    return redis_address, redis_password
+
+
+def get_redis_client(redis_address=None, redis_password=None):
+    if not redis_address:
+        redis_address, redis_password = get_cluster_redis_address()
+    return services.create_redis_client(
+        redis_address, redis_password)
+
+
 def _get_key_from_kv(key):
     from cloudtik.core._private.state.kv_store import kv_get, kv_initialized, kv_initialize_with_address
     if not kv_initialized():
-        if CLOUDTIK_RUNTIME_ENV_HEAD_IP not in os.environ:
-            raise RuntimeError("Not able to cluster kv store in lack of head ip.")
-        head_ip = os.environ[CLOUDTIK_RUNTIME_ENV_HEAD_IP]
-        redis_address = "{}:{}".format(head_ip, CLOUDTIK_DEFAULT_PORT)
-        kv_initialize_with_address(redis_address, CLOUDTIK_REDIS_DEFAULT_PASSWORD)
+        redis_address, redis_password = get_cluster_redis_address()
+        kv_initialize_with_address(redis_address, redis_password)
 
     return kv_get(key)
 
