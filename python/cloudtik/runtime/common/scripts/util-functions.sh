@@ -2,10 +2,10 @@
 
 COMMON_SCRIPTS_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" &> /dev/null && pwd)
 
-. ${COMMON_SCRIPTS_DIR}/utils-os.sh
-. ${COMMON_SCRIPTS_DIR}/utils-file.sh
-. ${COMMON_SCRIPTS_DIR}/utils-service.sh
-. ${COMMON_SCRIPTS_DIR}/utils-cluster.sh
+. ${COMMON_SCRIPTS_DIR}/util-os.sh
+. ${COMMON_SCRIPTS_DIR}/util-file.sh
+. ${COMMON_SCRIPTS_DIR}/util-service.sh
+. ${COMMON_SCRIPTS_DIR}/util-cluster.sh
 
 # global variables
 CLOUDTIK_DOWNLOADS="https://d30257nes7d4fq.cloudfront.net/downloads"

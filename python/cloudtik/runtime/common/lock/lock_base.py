@@ -26,8 +26,8 @@ class LockAcquisitionException(LockException):
 class Lock(object):
     def __init__(self,
                  key,
-                 acquire_timeout_ms=None,
-                 lock_timeout_seconds=None):
+                 lock_timeout_seconds=None,
+                 acquire_timeout_ms=None):
         assert key, 'Key is required for locking.'
 
         self.key = key

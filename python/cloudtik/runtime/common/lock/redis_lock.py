@@ -17,11 +17,8 @@ SET resource_name my_random_value NX PX 30000
 
 def acquire_lock_key(redis_client, key, session_id, ttl):
     try:
-        result = redis_client.set(
+        return redis_client.set(
             key.encode(), session_id.encode(), nx=True, ex=ttl)
-        if result is None or result != "OK":
-            return False
-        return True
     except Exception:
         return False
 
@@ -64,15 +61,15 @@ def release_lock_key(redis_client, key, session_id):
 class RedisLock(Lock):
     def __init__(self,
                  key,
-                 acquire_timeout_ms=None,
-                 lock_timeout_seconds=None):
+                 lock_timeout_seconds=None,
+                 acquire_timeout_ms=None):
         """
         :param key: the unique key to lock
         :param acquire_timeout_ms: how long the caller is willing to wait to acquire the lock
         :param lock_timeout_seconds: how long the lock will stay alive if it is never released,
             this is controlled by redis SET EX/PX
         """
-        super().__init__(key, acquire_timeout_ms, lock_timeout_seconds)
+        super().__init__(key, lock_timeout_seconds, acquire_timeout_ms)
         self.full_key = FULL_KEY_PATTERN % key
         self.session_id = str(uuid.uuid4())
         self._started_acquiring = False
