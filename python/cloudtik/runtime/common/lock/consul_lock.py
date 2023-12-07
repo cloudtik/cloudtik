@@ -1,9 +1,9 @@
-import contextlib
 import time
 from datetime import datetime
 from typing import Optional, Tuple
 
 from cloudtik.core._private.util.rest_api import rest_api_put_json
+from cloudtik.runtime.common.lock.lock_base import Lock, LOCK_MAX_ATTEMPTS, LockAcquisitionException
 from cloudtik.runtime.common.service_discovery.consul import CONSUL_HTTP_PORT, REST_ENDPOINT_URL_FORMAT, \
     CONSUL_CLIENT_ADDRESS, CONSUL_REQUEST_TIMEOUT
 
@@ -13,9 +13,6 @@ REST_ENDPOINT_SESSION_DESTROY = REST_ENDPOINT_SESSION + "/destroy"
 
 REST_ENDPOINT_KV = "/v1/kv"
 
-# default to wait for maximum 60 seconds
-DEFAULT_ACQUIRE_TIMEOUT_MS = 1000 * 60
-DEFAULT_LOCK_TIMEOUT_SECONDS = 60 * 3
 # the key will always be substituted into this pattern before locking,
 # a good prefix is recommended for organization
 FULL_KEY_PATTERN = 'cloudtik/locks/%s'
@@ -34,13 +31,34 @@ def consul_api_put(
         endpoint_url, body, timeout=CONSUL_REQUEST_TIMEOUT)
 
 
+"""
+The contract that Consul provides is that under any of the following situations,
+the session will be invalidated:
+
+Node is deregistered
+Any of the health checks are deregistered
+Any of the health checks go to the critical state
+Session is explicitly destroyed
+TTL expires, if applicable
+When a session is invalidated, it is destroyed and can no longer be used.
+What happens to the associated locks depends on the behavior specified at
+creation time. Consul supports a release and delete behavior. The release
+behavior is the default if none is specified.
+
+If the delete behavior is used, the key corresponding to any of the held
+locks is simply deleted. This can be used to create ephemeral entries that
+are automatically deleted by Consul.
+"""
+
+
 def create_session(lock_delay, ttl, behavior="release"):
     endpoint_url = REST_ENDPOINT_SESSION_CREATE
     data = {
         "LockDelay": f"{lock_delay}s",
-        "TTL": f"{ttl}s",
         "Behavior": behavior,
     }
+    if ttl:
+        data["TTL"] = f"{ttl}s"
     return consul_api_put(endpoint_url, data)
 
 
@@ -50,10 +68,26 @@ def destroy_session(session_id):
     return consul_api_put(endpoint_url, body=None)
 
 
+"""
+The acquire operation acts like a Check-And-Set operation except
+ it can only succeed if there is no existing lock holder.
+"""
+
+
 def acquire_key(session_id, key, data):
     endpoint_url = "{}/{}?acquire={}".format(
         REST_ENDPOINT_KV, key, session_id)
     return consul_api_put(endpoint_url, body=data)
+
+
+"""
+Once held, the lock can be released using a corresponding release operation,
+providing the same session. Again, this acts like a Check-And-Set operation
+since the request will fail if given an invalid session. A critical note is
+that the lock can be released without being the creator of the session. This
+is by design as it allows operators to intervene and force-terminate a session
+if necessary.
+"""
 
 
 def release_key(session_id, key):
@@ -62,21 +96,7 @@ def release_key(session_id, key):
     return consul_api_put(endpoint_url, body=None)
 
 
-class ConsulLockException(RuntimeError):
-    pass
-
-
-class LockAcquisitionException(ConsulLockException):
-    pass
-
-
-def _get_required(value, default):
-    if value is not None:
-        return value
-    return default
-
-
-class ConsulLock(object):
+class ConsulLock(Lock):
     def __init__(self,
                  key,
                  acquire_timeout_ms=None,
@@ -88,13 +108,8 @@ class ConsulLock(object):
             this is controlled by Consul's Session TTL and may stay alive a bit longer according
             to their docs. As of the current version of Consul, this must be between 10s and 86400s
         """
-        assert key, 'Key is required for locking.'
-        self.key = key
+        super().__init__(key, acquire_timeout_ms, lock_timeout_seconds)
         self.full_key = FULL_KEY_PATTERN % key
-        self.lock_timeout_seconds = _get_required(
-            lock_timeout_seconds, DEFAULT_LOCK_TIMEOUT_SECONDS)
-        self.acquire_timeout_ms = _get_required(
-            acquire_timeout_ms, DEFAULT_ACQUIRE_TIMEOUT_MS)
         self.session_id = None
         self._started_acquiring = False
         assert 10 <= self.lock_timeout_seconds <= 86400, \
@@ -135,7 +150,7 @@ class ConsulLock(object):
         self._started_acquiring = True
 
         acquired = False
-        max_attempts = 1000  # don't loop forever
+        max_attempts = LOCK_MAX_ATTEMPTS  # don't loop forever
         for attempt in range(0, max_attempts):
             acquired = self._acquire_consul_key()
 
@@ -179,13 +194,3 @@ class ConsulLock(object):
         # Consul.
         return destroy_session(session_id=self.session_id)
 
-    @contextlib.contextmanager
-    def hold(self):
-        """
-        Context manager for holding the lock
-        """
-        try:
-            self.acquire(fail_hard=True)
-            yield
-        finally:
-            self.release()
