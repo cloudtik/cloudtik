@@ -99,8 +99,8 @@ def release_key(session_id, key):
 class ConsulLock(Lock):
     def __init__(self,
                  key,
-                 acquire_timeout_ms=None,
-                 lock_timeout_seconds=None):
+                 lock_timeout_seconds=None,
+                 acquire_timeout_ms=None):
         """
         :param key: the unique key to lock
         :param acquire_timeout_ms: how long the caller is willing to wait to acquire the lock
