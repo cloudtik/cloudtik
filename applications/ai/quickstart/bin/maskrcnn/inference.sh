@@ -13,7 +13,7 @@ USE_IPEX=false
 PRECISION=fp32
 MODE=jit
 
-function usage(){
+usage(){
     echo "Usage: inference.sh [ --metric throughput | realtime ] [ --ipex ] [ --precision fp32 | bf16 | bf32 ] [ --mode jit or imperative ]"
     exit 1
 }

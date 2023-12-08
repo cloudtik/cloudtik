@@ -1,6 +1,6 @@
 #!/bin/bash
 
-function show_usage() {
+show_usage() {
     echo "Usage: spark-pi.sh cluster-config-file [--slices number-of-slices] [--help]"
 }
 

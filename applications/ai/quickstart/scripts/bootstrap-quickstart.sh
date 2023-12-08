@@ -24,7 +24,7 @@ else
     QUICKSTART_WORKSPACE=$QUICKSTART_WORKING
 fi
 
-function prepare() {
+prepare() {
     source ~/.bashrc
     sudo apt-get update -y
 
@@ -38,14 +38,14 @@ function prepare() {
     sudo chown $(whoami) $QUICKSTART_WORKSPACE
 }
 
-function install_tools() {
+install_tools() {
     sudo apt-get update -y
     sudo apt-get install curl unzip -y
     sudo apt-get install gcc g++ cmake -y
     sudo apt-get install autoconf -y
 }
 
-function install_libaries() {
+install_libaries() {
     pip -qq install gdown
     pip install --no-cache-dir https://github.com/mlperf/logging/archive/9ea0afa.zip
     pip install onnx==1.12.0
@@ -54,7 +54,7 @@ function install_libaries() {
     conda install ninja dataclasses -p $CLOUDTIK_CONDA_ENV -y
 }
 
-function install_quickstart() {
+install_quickstart() {
     mkdir -p $QUICKSTART_TMP
     cd $QUICKSTART_TMP
     rm -rf $QUICKSTART_TMP/cloudtik
@@ -65,7 +65,7 @@ function install_quickstart() {
     rm -rf $QUICKSTART_TMP/cloudtik
 }
 
-function install_models_dependency() {
+install_models_dependency() {
     for dir in $QUICKSTART_HOME/bin/*/; do
         if [ -d ${dir} ]; then
             install_dependency_script_path="${dir}/install-dependency.sh"

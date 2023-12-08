@@ -14,7 +14,7 @@ USE_IPEX=false
 #(fp32, int8, avx-int8, bf16, bf32 or fp16)
 PRECISION=fp32
 
-function usage(){
+usage(){
     echo "Usage: inference.sh [ --ipex ] [ --precision fp32| int8| avx-int8| bf16| bf32| fp16 ] "
     exit 1
 }

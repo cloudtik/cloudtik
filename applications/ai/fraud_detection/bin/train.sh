@@ -10,7 +10,7 @@ TABULAR2GRAPH=${SCRIPT_DIR}/../config/tabular2graph.yaml
 RAW_DATA_PATH=""
 PROCESSED_DATA_PATH=""
 
-function usage(){
+usage(){
     echo "Usage: run-training.sh [ --raw-data-path ] [ --processed-data-path ]"
     echo "Specify either raw-data-path to the raw data file or directory or"
     echo "processed-data-path to the processed data file."

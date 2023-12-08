@@ -9,7 +9,7 @@ DISEASE_PREDICTION_DATA_TMP=$DISEASE_PREDICTION_DATA/tmp
 RAW_DATA_PATH=""
 PROCESSED_DATA_PATH=""
 
-function usage(){
+usage(){
     echo "Usage: run-training.sh [ --processed-data-path ]"
     echo "Specify processed-data-path to the processed data."
     exit 1

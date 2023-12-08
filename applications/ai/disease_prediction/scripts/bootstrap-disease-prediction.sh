@@ -23,7 +23,7 @@ else
     DISEASE_PREDICTION_WORKSPACE=$DISEASE_PREDICTION_WORKING
 fi
 
-function prepare() {
+prepare() {
     source ~/.bashrc
     sudo apt-get update -y
 
@@ -37,11 +37,11 @@ function prepare() {
     sudo chown $(whoami) $DISEASE_PREDICTION_WORKSPACE
 }
 
-function install_tools() {
+install_tools() {
     :;
 }
 
-function install_libaries() {
+install_libaries() {
     pip install --no-cache-dir -qq \
       docx2txt \
       openpyxl \
@@ -50,7 +50,7 @@ function install_libaries() {
       datasets==2.11
 }
 
-function install_disease_prediction() {
+install_disease_prediction() {
     mkdir -p $DISEASE_PREDICTION_TMP
     cd $DISEASE_PREDICTION_TMP
     rm -rf $DISEASE_PREDICTION_TMP/cloudtik

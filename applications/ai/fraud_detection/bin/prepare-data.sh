@@ -7,7 +7,7 @@ FRAUD_DETECTION_WORKING_DATA=$FRAUD_DETECTION_WORKING/data
 RAW_DATA_PATH=""
 RAW_DATA_ARCHIVE=""
 
-function usage(){
+usage(){
     echo "Usage: prepare-data.sh [ --raw-data-path ] [ --raw-data-archive ]"
     echo "Specify either raw-data-path to the raw data file or directory or "
     echo "raw-data-archive to the tgz file contains the raw data."
@@ -32,14 +32,14 @@ do
     shift
 done
 
-function download_data() {
+download_data() {
     mkdir -p $FRAUD_DETECTION_WORKING_DATA
     cd $FRAUD_DETECTION_WORKING_DATA
     # TODO: download TabFormer dataset if possible
     # download from https://github.com/IBM/TabFormer/tree/main/data/credit_card/transactions.tgz
 }
 
-function prepare_data() {
+prepare_data() {
     mkdir -p $FRAUD_DETECTION_WORKING_DATA
     if [ "${RAW_DATA_PATH}" == "" ]; then
         mkdir -p $FRAUD_DETECTION_WORKING_DATA/raw

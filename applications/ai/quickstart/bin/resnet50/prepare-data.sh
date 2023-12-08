@@ -14,7 +14,7 @@ if [ ! -n "${QUICKSTART_HOME}" ]; then
   exit 1
 fi
 
-function usage(){
+usage(){
     echo "Usage: prepare-data.sh  [ --phase training | inference] "
     exit 1
 }
@@ -34,13 +34,13 @@ do
     shift
 done
 
-function download_inference_data() {
+download_inference_data() {
     mkdir -p $RESNET50_DATA/val
     cd $RESNET50_DATA
     wget https://image-net.org/data/ILSVRC/2012/ILSVRC2012_img_val.tar
 }
 
-function download_training_data() {
+download_training_data() {
     
     mkdir -p $RESNET50_DATA
     cd $RESNET50_DATA
@@ -51,7 +51,7 @@ function download_training_data() {
 }
 
 
-function prepare_training_data() {
+prepare_training_data() {
     mkdir -p $RESNET50_DATA/train
     cd $RESNET50_DATA
     tar -xvf ILSVRC2012_img_train.tar -C $RESNET50_DATA/train
@@ -65,7 +65,7 @@ function prepare_training_data() {
 }
 
 
-function prepare_val_data() {
+prepare_val_data() {
     mkdir -p $RESNET50_DATA/val
     cd $RESNET50_DATA
     tar -xvf ILSVRC2012_img_val.tar -C $RESNET50_DATA/val

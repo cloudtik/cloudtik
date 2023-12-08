@@ -1,6 +1,6 @@
 #!/bin/bash
 
-function show_usage() {
+show_usage() {
     echo "Usage: spark-sql.sh cluster-config-file [--help] [spark sql arguments]"
 }
 

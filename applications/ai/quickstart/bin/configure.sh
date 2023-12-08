@@ -28,7 +28,7 @@ export MALLOC_CONF="oversize_threshold:1,background_thread:true,metadata_thp:aut
 # Set IOMP preload for better performance
 export LD_PRELOAD=${CONDA_ROOT}/envs/${CLOUDTIK_ENV}/lib/libiomp5.so:$LD_PRELOAD
 
-function move_to_workspace() {
+move_to_workspace() {
     # Move a folder (the parameter) into workspace
     if [ $QUICKSTART_WORKSPACE != $QUICKSTART_WORKING ]; then
       mkdir -p $QUICKSTART_WORKSPACE

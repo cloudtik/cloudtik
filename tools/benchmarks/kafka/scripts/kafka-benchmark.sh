@@ -5,7 +5,7 @@ if [ -z "KAFKA_HOME" ]; then
     exit 1
 fi
 
-function prepare_brokers() {
+prepare_brokers() {
     echo "Getting brokers..."
     broker_ips=$(cloudtik head worker-ips --runtime kafka)
     bootstrap_servers=""
@@ -19,7 +19,7 @@ function prepare_brokers() {
     echo "Successfully get brokers: ${bootstrap_servers}"
 }
 
-function prepare_kafka_topic() {
+prepare_kafka_topic() {
     # delete the topic if exists
     echo "Deleting the topic cloudtik-kafka-benchmark if it exists..."
     $KAFKA_HOME/bin/kafka-topics.sh \
@@ -38,7 +38,7 @@ function prepare_kafka_topic() {
         --partitions 6 --replication-factor 3
 }
 
-function producer_perf_test(){
+producer_perf_test(){
     echo "Testing kafka cluster with single producer..."
     $KAFKA_HOME/bin/kafka-producer-perf-test.sh \
         --topic cloudtik-kafka-benchmark \
@@ -69,7 +69,7 @@ function producer_perf_test(){
     echo "Testing producer with different record size has finished."
 }
 
-function consumer_perf_test(){
+consumer_perf_test(){
     echo "Testing the consumer throughput of Kafka cluster..."
     $KAFKA_HOME/bin/kafka-consumer-perf-test.sh \
         --bootstrap-server ${bootstrap_servers} \
@@ -78,7 +78,7 @@ function consumer_perf_test(){
     echo "Testing the consumer throughput has finished..."
 }
 
-function end_to_end_latency(){
+end_to_end_latency(){
     echo "Testing end-to-end latency..."
     echo "num_msg Latency/ms"
     $KAFKA_HOME/bin/kafka-run-class.sh \

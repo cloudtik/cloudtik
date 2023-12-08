@@ -23,7 +23,7 @@ else
     FRAUD_DETECTION_WORKSPACE=$FRAUD_DETECTION_WORKING
 fi
 
-function prepare() {
+prepare() {
     source ~/.bashrc
     sudo apt-get update -y
 
@@ -37,17 +37,17 @@ function prepare() {
     sudo chown $(whoami) $FRAUD_DETECTION_WORKSPACE
 }
 
-function install_tools() {
+install_tools() {
     :;
 }
 
-function install_libaries() {
+install_libaries() {
     pip install --no-cache-dir -qq optuna sigopt modin
     pip install --no-cache-dir --pre dgl -f https://data.dgl.ai/wheels/repo.html && \
     pip install --no-cache-dir --pre dglgo -f https://data.dgl.ai/wheels-test/repo.html
 }
 
-function install_fraud_detection() {
+install_fraud_detection() {
     mkdir -p $FRAUD_DETECTION_TMP
     cd $FRAUD_DETECTION_TMP
     rm -rf $FRAUD_DETECTION_TMP/cloudtik

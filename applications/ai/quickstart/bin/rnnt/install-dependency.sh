@@ -21,7 +21,7 @@ if [ ! -n "${QUICKSTART_HOME}" ]; then
 fi
 
 
-function usage(){
+usage(){
     echo "Usage: install-dependency.sh  [ --phase training | inference | all] "
     exit 1
 }

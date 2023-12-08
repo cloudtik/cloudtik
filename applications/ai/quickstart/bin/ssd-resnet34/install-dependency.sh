@@ -8,7 +8,7 @@ SSD_RESNET34_MODEL=$SSD_RESNET34_HOME/model
 SSD_RESNET34_DATA=$SSD_RESNET34_HOME/data
 
 
-function install_libraries() {
+install_libraries() {
     pip install --no-cache-dir cython
     pip install matplotlib Pillow pycocotools defusedxml
     pip install --no-cache-dir pytz

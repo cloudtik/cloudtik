@@ -31,7 +31,7 @@ USE_IPEX=false
 PRECISION=fp32
 BACKEND=gloo
 
-function usage(){
+usage(){
     echo "Usage: train-distributed.sh [ --training_epochs ] [ --ipex ] [ --precision fp32 | bf16 | bf32 ] [ --backend ccl | gloo ]"
     exit 1
 }
