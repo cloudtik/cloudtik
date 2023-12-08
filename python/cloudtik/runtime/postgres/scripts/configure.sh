@@ -14,7 +14,7 @@ POSTGRES_HOME=$RUNTIME_PATH/postgres
 # Util functions
 . "$ROOT_DIR"/common/scripts/util-functions.sh
 
-function prepare_base_conf() {
+prepare_base_conf() {
     local source_dir=$(dirname "${BIN_DIR}")/conf
     output_dir=/tmp/postgres/conf
     rm -rf  $output_dir
@@ -22,7 +22,7 @@ function prepare_base_conf() {
     cp -r $source_dir/* $output_dir
 }
 
-function check_postgres_installed() {
+check_postgres_installed() {
     if ! command -v postgres &> /dev/null
     then
         echo "Postgres is not installed for postgres command is not available."
@@ -30,7 +30,7 @@ function check_postgres_installed() {
     fi
 }
 
-function update_data_dir() {
+update_data_dir() {
     local data_disk_dir=$(get_first_data_disk_dir)
     if [ -z "$data_disk_dir" ]; then
         data_dir="${POSTGRES_HOME}/data"
@@ -45,7 +45,7 @@ function update_data_dir() {
     export PGDATA=${data_dir}
 }
 
-function update_server_id() {
+update_server_id() {
     if [ ! -n "${CLOUDTIK_NODE_SEQ_ID}" ]; then
         echo "Replication needs unique server id. No node sequence id allocated for current node!"
         exit 1
@@ -55,7 +55,7 @@ function update_server_id() {
     update_in_file "${config_template_file}" "{%server.id%}" "${server_id}"
 }
 
-function update_synchronous_standby_names() {
+update_synchronous_standby_names() {
     local synchronous_standby_names=""
     local standby_names=""
     # Warning: this depends on that the head node seq id = 1
@@ -78,7 +78,7 @@ function update_synchronous_standby_names() {
     update_in_file "${config_template_file}" "synchronous_standby_names = ''" "synchronous_standby_names = '${synchronous_standby_names}'"
 }
 
-function configure_archive() {
+configure_archive() {
     # turn on archive mode
     update_in_file "${config_template_file}" "archive_mode = off" "archive_mode = on"
 
@@ -87,13 +87,13 @@ function configure_archive() {
     update_in_file "${config_template_file}" "archive_command = ''" "archive_command = '${archive_command}'"
 }
 
-function configure_restore_command() {
+configure_restore_command() {
     # update the restore_command
     local restore_command="cp ${ARCHIVE_DIR}/%f %p"
     update_in_file "${config_template_file}" "restore_command = ''" "restore_command = '${restore_command}'"
 }
 
-function configure_postgres() {
+configure_postgres() {
     if [ "${IS_HEAD_NODE}" != "true" ] \
         && [ "${POSTGRES_CLUSTER_MODE}" == "none" ]; then
           return

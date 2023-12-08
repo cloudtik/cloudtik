@@ -14,7 +14,7 @@ NGINX_HOME=$RUNTIME_PATH/nginx
 # Util functions
 . "$ROOT_DIR"/common/scripts/util-functions.sh
 
-function prepare_base_conf() {
+prepare_base_conf() {
     source_dir=$(dirname "${BIN_DIR}")/conf
     output_dir=/tmp/nginx/conf
     rm -rf  $output_dir
@@ -22,7 +22,7 @@ function prepare_base_conf() {
     cp -r $source_dir/* $output_dir
 }
 
-function check_nginx_installed() {
+check_nginx_installed() {
     if ! command -v nginx &> /dev/null
     then
         echo "NGINX is not installed for nginx command is not available."
@@ -30,13 +30,13 @@ function check_nginx_installed() {
     fi
 }
 
-function configure_web() {
+configure_web() {
     cat ${output_dir}/nginx-web-base.conf >> ${nginx_config_file}
     mkdir -p ${NGINX_CONFIG_DIR}/web
     cp ${output_dir}/nginx-web.conf ${NGINX_CONFIG_DIR}/web/web.conf
 }
 
-function configure_dns_backend() {
+configure_dns_backend() {
     # configure a load balancer based on Consul DNS interface
     local config_template_file=${output_dir}/nginx-load-balancer-dns.conf
 
@@ -47,20 +47,20 @@ function configure_dns_backend() {
     cat ${config_template_file} >> ${nginx_config_file}
 }
 
-function configure_static_backend() {
+configure_static_backend() {
     # python configure script will write upstream block
     cat ${output_dir}/nginx-load-balancer-static.conf >> ${nginx_config_file}
     mkdir -p ${NGINX_CONFIG_DIR}/upstreams
 }
 
-function configure_dynamic_backend() {
+configure_dynamic_backend() {
     # python discovery script will write upstream block and do reload if needed
     cat ${output_dir}/nginx-load-balancer-dynamic.conf >> ${nginx_config_file}
     mkdir -p ${NGINX_CONFIG_DIR}/upstreams
     mkdir -p ${NGINX_CONFIG_DIR}/routers
 }
 
-function configure_load_balancer() {
+configure_load_balancer() {
     if [ "${NGINX_CONFIG_MODE}" == "dns" ]; then
         configure_dns_backend
     elif [ "${NGINX_CONFIG_MODE}" == "static" ]; then
@@ -72,17 +72,17 @@ function configure_load_balancer() {
     fi
 }
 
-function configure_api_gateway_dns() {
+configure_api_gateway_dns() {
     # discovery services will discovery the api backends
     :
 }
 
-function configure_api_gateway_dynamic() {
+configure_api_gateway_dynamic() {
     # discovery services will discovery the api backends and upstream servers
     mkdir -p ${NGINX_CONFIG_DIR}/upstreams
 }
 
-function configure_api_gateway() {
+configure_api_gateway() {
     cat ${output_dir}/nginx-api-gateway-base.conf >> ${nginx_config_file}
     cp ${output_dir}/nginx-api-gateway.conf ${NGINX_CONFIG_DIR}/api-gateway.conf
     cp ${output_dir}/nginx-api-gateway-json-errors.conf ${NGINX_CONFIG_DIR}/api-gateway-json-errors.conf
@@ -97,7 +97,7 @@ function configure_api_gateway() {
     fi
 }
 
-function configure_nginx() {
+configure_nginx() {
     prepare_base_conf
     nginx_config_file=${output_dir}/nginx.conf
 

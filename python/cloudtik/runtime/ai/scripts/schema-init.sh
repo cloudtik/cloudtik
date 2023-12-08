@@ -1,5 +1,6 @@
+#!/bin/bash
 
-function create_database_schema() {
+create_database_schema() {
     DATABASE_NAME=mlflow
     if [ "${SQL_DATABASE_ENGINE}" == "mysql" ]; then
         mysql --host=${SQL_DATABASE_HOST} --port=${SQL_DATABASE_PORT} --user=${SQL_DATABASE_USERNAME} --password=${SQL_DATABASE_PASSWORD}  -e "
@@ -15,7 +16,7 @@ function create_database_schema() {
     # Future improvement: mlflow db upgrade [db_uri]
 }
 
-function init_schema() {
+init_schema() {
     if [ "${SQL_DATABASE}" == "true" ] \
       && [ "$AI_WITH_SQL_DATABASE" != "false" ]; then
         create_database_schema

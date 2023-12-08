@@ -15,7 +15,7 @@ export RUNTIME_PATH=$USER_HOME/runtime
 # Util functions
 . "$ROOT_DIR"/common/scripts/util-functions.sh
 
-function install_consul() {
+install_consul() {
     # install consul
     if ! command -v consul &> /dev/null
     then

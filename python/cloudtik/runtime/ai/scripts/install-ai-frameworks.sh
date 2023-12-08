@@ -1,6 +1,6 @@
 #!/bin/bash
 
-function install_openmpi() {
+install_openmpi() {
     echo "Installing Open MPI..."
     which mpirun > /dev/null \
     || (mkdir -p /tmp/openmpi \

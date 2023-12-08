@@ -18,7 +18,7 @@ export RUNTIME_PATH=$USER_HOME/runtime
 # Util functions
 . "$ROOT_DIR"/common/scripts/util-functions.sh
 
-function install_zookeeper() {
+install_zookeeper() {
     # install zookeeper
     export ZOOKEEPER_HOME=$RUNTIME_PATH/zookeeper
 

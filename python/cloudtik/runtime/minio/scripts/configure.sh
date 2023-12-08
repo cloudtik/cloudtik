@@ -14,14 +14,14 @@ MINIO_HOME=$RUNTIME_PATH/minio
 # Util functions
 . "$ROOT_DIR"/common/scripts/util-functions.sh
 
-function check_minio_installed() {
+check_minio_installed() {
     if [ ! -f "${MINIO_HOME}/bin/minio" ]; then
         echo "MinIO is not installed for minio command is not available."
         exit 1
     fi
 }
 
-function prepare_base_conf() {
+prepare_base_conf() {
     source_dir=$(dirname "${BIN_DIR}")/conf
     output_dir=/tmp/minio/conf
     rm -rf  $output_dir
@@ -29,7 +29,7 @@ function prepare_base_conf() {
     cp -r $source_dir/* $output_dir
 }
 
-function prepare_data_disks() {
+prepare_data_disks() {
     local minio_data_dirs=""
     if [ -d "/mnt/cloudtik" ]; then
         for data_disk in /mnt/cloudtik/*; do
@@ -57,7 +57,7 @@ function prepare_data_disks() {
     fi
 }
 
-function configure_minio() {
+configure_minio() {
     prepare_base_conf
     config_template_file=${output_dir}/minio
 

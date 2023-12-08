@@ -13,7 +13,7 @@ RUNTIME_PATH=$USER_HOME/runtime
 # Util functions
 . "$ROOT_DIR"/common/scripts/util-functions.sh
 
-function prepare_base_conf() {
+prepare_base_conf() {
     source_dir=$(dirname "${BIN_DIR}")/conf
     output_dir=/tmp/presto/conf
     rm -rf  $output_dir
@@ -21,14 +21,14 @@ function prepare_base_conf() {
     cp -r $source_dir/* $output_dir
 }
 
-function check_presto_installed() {
+check_presto_installed() {
     if [ ! -n "${PRESTO_HOME}" ]; then
         echo "Presto is not installed for PRESTO_HOME environment variable is not set."
         exit 1
     fi
 }
 
-function retrieve_resources() {
+retrieve_resources() {
     jvm_max_memory=$(awk -v total_physical_memory=$(cloudtik node resources --memory --in-mb) 'BEGIN{print 0.8 * total_physical_memory}')
     jvm_max_memory=${jvm_max_memory%.*}
     query_max_memory_per_node=$(echo $jvm_max_memory | awk '{print $1*0.5}')
@@ -39,7 +39,7 @@ function retrieve_resources() {
     memory_heap_headroom_per_node=${memory_heap_headroom_per_node%.*}
 }
 
-function update_presto_data_disks_config() {
+update_presto_data_disks_config() {
     local data_disk_dir=$(get_first_data_disk_dir)
     if [ -z "$data_disk_dir" ]; then
         presto_data_dir="${PRESTO_HOME}/data"
@@ -51,7 +51,7 @@ function update_presto_data_disks_config() {
     sed -i "s!{%node.data-dir%}!${presto_data_dir}!g" $output_dir/presto/node.properties
 }
 
-function update_storage_config_for_aws() {
+update_storage_config_for_aws() {
     # AWS_S3_ACCESS_KEY_ID
     # AWS_S3_SECRET_ACCESS_KEY
     # Since hive.s3.use-instance-credentials is default true
@@ -62,14 +62,14 @@ function update_storage_config_for_aws() {
     fi
 }
 
-function update_credential_config_for_azure() {
+update_credential_config_for_azure() {
     AZURE_ENDPOINT="blob"
     sed -i "s#{%azure.storage.account%}#${AZURE_STORAGE_ACCOUNT}#g" $catalog_dir/hive-azure-core-site.xml
     sed -i "s#{%storage.endpoint%}#${AZURE_ENDPOINT}#g" $catalog_dir/hive-azure-core-site.xml
     sed -i "s#{%azure.account.key%}#${AZURE_ACCOUNT_KEY}#g" $catalog_dir/hive-azure-core-site.xml
 }
 
-function update_storage_config_for_azure() {
+update_storage_config_for_azure() {
     if [ "$AZURE_STORAGE_TYPE" == "blob" ];then
         update_credential_config_for_azure
 
@@ -83,7 +83,7 @@ function update_storage_config_for_azure() {
     fi
 }
 
-function update_storage_config_for_gcp() {
+update_storage_config_for_gcp() {
     # GCP_PROJECT_ID
     # GCP_GCS_SERVICE_ACCOUNT_CLIENT_EMAIL
     # GCP_GCS_SERVICE_ACCOUNT_PRIVATE_KEY_ID
@@ -106,7 +106,7 @@ function update_storage_config_for_gcp() {
     cat $catalog_dir/hive.gcs.properties >> $catalog_dir/hive.properties
 }
 
-function set_cloud_storage_provider() {
+set_cloud_storage_provider() {
     cloud_storage_provider="none"
     if [ "$AWS_CLOUD_STORAGE" == "true" ]; then
         cloud_storage_provider="aws"
@@ -117,7 +117,7 @@ function set_cloud_storage_provider() {
     fi
 }
 
-function update_storage_config() {
+update_storage_config() {
     set_cloud_storage_provider
     if [ "${cloud_storage_provider}" == "aws" ]; then
         update_storage_config_for_aws
@@ -128,7 +128,7 @@ function update_storage_config() {
     fi
 }
 
-function update_hive_metastore_config() {
+update_hive_metastore_config() {
     # To be improved for external metastore cluster
     catalog_dir=$output_dir/presto/catalog
     hive_properties=${catalog_dir}/hive.properties
@@ -147,11 +147,11 @@ function update_hive_metastore_config() {
     fi
 }
 
-function update_metastore_config() {
+update_metastore_config() {
     update_hive_metastore_config
 }
 
-function update_presto_memory_config() {
+update_presto_memory_config() {
     if [ ! -z "$PRESTO_JVM_MAX_MEMORY" ]; then
         jvm_max_memory=$PRESTO_JVM_MAX_MEMORY
     fi
@@ -179,7 +179,7 @@ function update_presto_memory_config() {
     sed -i "s/{%query.max-memory%}/${query_max_memory}/g" `grep "{%query.max-memory%}" -rl ${output_dir}`
 }
 
-function configure_presto() {
+configure_presto() {
     prepare_base_conf
     update_metastore_config
 

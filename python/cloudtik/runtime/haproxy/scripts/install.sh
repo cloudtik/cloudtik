@@ -12,7 +12,7 @@ HAPROXY_VERSION=2.8
 # Util functions
 . "$ROOT_DIR"/common/scripts/util-functions.sh
 
-function install_haproxy() {
+install_haproxy() {
     if ! command -v haproxy &> /dev/null
     then
         sudo apt-get -qq update -y > /dev/null

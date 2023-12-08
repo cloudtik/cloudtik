@@ -113,7 +113,7 @@ generate_sha_hash() {
 # Returns:
 #   deb arch - string
 #########################
-function get_deb_arch() {
+get_deb_arch() {
     local deb_arch="amd64"
     arch=$(uname -m)
     if [ "${arch}" == "aarch64" ]; then

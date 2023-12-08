@@ -10,7 +10,7 @@ eval set -- "${args}"
 # Util functions
 . "$ROOT_DIR"/common/scripts/util-functions.sh
 
-function install_nginx() {
+install_nginx() {
     if ! command -v nginx &> /dev/null
     then
         deb_arch=$(get_deb_arch)

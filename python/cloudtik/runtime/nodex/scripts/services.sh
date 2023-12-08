@@ -18,7 +18,7 @@ USER_HOME=/home/$(whoami)
 RUNTIME_PATH=$USER_HOME/runtime
 NODEX_HOME=$RUNTIME_PATH/nodex
 
-function get_nodex_port() {
+get_nodex_port() {
     local service_port=9100
     if [ ! -z "${NODEX_SERVICE_PORT}" ]; then
         service_port=${NODEX_SERVICE_PORT}

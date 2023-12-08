@@ -18,7 +18,7 @@ RUNTIME_PATH=$USER_HOME/runtime
 # storage mount functions
 . "$BIN_DIR"/mount-storage.sh
 
-function install_mount() {
+install_mount() {
     install_storage_fs
 }
 

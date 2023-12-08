@@ -21,12 +21,12 @@ export RUNTIME_PATH=$USER_HOME/runtime
 # Hadoop install function
 . "$ROOT_DIR"/common/scripts/hadoop-install.sh
 
-function install_tools() {
+install_tools() {
     which uuid > /dev/null || (sudo apt-get -qq update -y > /dev/null; \
         sudo DEBIAN_FRONTEND=noninteractive apt-get -qq install uuid -y > /dev/null)
 }
 
-function install_trino() {
+install_trino() {
     # install Trino
     export TRINO_HOME=$RUNTIME_PATH/trino
 

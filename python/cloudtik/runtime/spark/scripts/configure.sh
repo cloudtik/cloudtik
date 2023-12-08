@@ -13,7 +13,7 @@ RUNTIME_PATH=$USER_HOME/runtime
 # Util functions
 . "$ROOT_DIR"/common/scripts/util-functions.sh
 
-function prepare_base_conf() {
+prepare_base_conf() {
     source_dir=$(dirname "${BIN_DIR}")/conf
     output_dir=/tmp/spark/conf
     rm -rf  $output_dir
@@ -21,7 +21,7 @@ function prepare_base_conf() {
     cp -r $source_dir/* $output_dir
 }
 
-function check_spark_installed() {
+check_spark_installed() {
     if [ ! -n "${HADOOP_HOME}" ]; then
         echo "Hadoop is not installed for HADOOP_HOME environment variable is not set."
         exit 1
@@ -33,7 +33,7 @@ function check_spark_installed() {
     fi
 }
 
-function set_resources_for_spark() {
+set_resources_for_spark() {
     # For Head Node
     if [ $IS_HEAD_NODE == "true" ];then
         spark_executor_cores=$(cat ~/cloudtik_bootstrap_config.yaml | jq '."runtime"."spark"."spark_executor_resource"."spark_executor_cores"')
@@ -42,7 +42,7 @@ function set_resources_for_spark() {
     fi
 }
 
-function update_spark_credential_config_for_aws() {
+update_spark_credential_config_for_aws() {
     if [ "$AWS_WEB_IDENTITY" == "true" ]; then
         if [ ! -z "${AWS_ROLE_ARN}" ] && [ ! -z "${AWS_WEB_IDENTITY_TOKEN_FILE}" ]; then
             WEB_IDENTITY_ENVS="spark.yarn.appMasterEnv.AWS_ROLE_ARN ${AWS_ROLE_ARN}\nspark.yarn.appMasterEnv.AWS_WEB_IDENTITY_TOKEN_FILE ${AWS_WEB_IDENTITY_TOKEN_FILE}\nspark.executorEnv.AWS_ROLE_ARN ${AWS_ROLE_ARN}\nspark.executorEnv.AWS_WEB_IDENTITY_TOKEN_FILE ${AWS_WEB_IDENTITY_TOKEN_FILE}\n"
@@ -51,14 +51,14 @@ function update_spark_credential_config_for_aws() {
     fi
 }
 
-function update_spark_credential_config() {
+update_spark_credential_config() {
     # We need do some specific config for AWS kubernetes web identity environment variables
     if [ "$AWS_CLOUD_STORAGE" == "true" ]; then
         update_spark_credential_config_for_aws
     fi
 }
 
-function update_spark_storage_dirs() {
+update_spark_storage_dirs() {
     HADOOP_FS_DEFAULT_FILE=${HADOOP_HOME}/etc/hadoop/hadoop-fs-default
     if [ -f "${HADOOP_FS_DEFAULT_FILE}" ]; then
         . ${HADOOP_FS_DEFAULT_FILE}
@@ -77,7 +77,7 @@ function update_spark_storage_dirs() {
     sed -i "s!{%spark.sql.warehouse.dir%}!${sql_warehouse_dir}!g" ${SPARK_DEFAULTS}
 }
 
-function update_spark_runtime_config() {
+update_spark_runtime_config() {
     if [ $IS_HEAD_NODE == "true" ];then
         sed -i "s/{%spark.executor.cores%}/${spark_executor_cores}/g" ${SPARK_DEFAULTS}
         sed -i "s/{%spark.executor.memory%}/${spark_executor_memory}/g" ${SPARK_DEFAULTS}
@@ -85,7 +85,7 @@ function update_spark_runtime_config() {
     fi
 }
 
-function update_spark_local_dir() {
+update_spark_local_dir() {
     # set spark local dir
     spark_local_dir=$(get_data_disk_dirs)
     if [ -z "$spark_local_dir" ]; then
@@ -94,7 +94,7 @@ function update_spark_local_dir() {
     sed -i "s!{%spark.local.dir%}!${spark_local_dir}!g" ${SPARK_DEFAULTS}
 }
 
-function update_metastore_config() {
+update_metastore_config() {
     # To be improved for external metastore cluster
     if [ ! -z "$HIVE_METASTORE_URI" ] || [ "$METASTORE_ENABLED" == "true" ]; then
         if [ ! -z "$HIVE_METASTORE_URI" ]; then
@@ -123,7 +123,7 @@ function update_metastore_config() {
     fi
 }
 
-function configure_spark_shuffle() {
+configure_spark_shuffle() {
     # We assume other modifications to this list follow the same pattern:
     # Always add its value before the mapreduce_shuffle value.
     (! grep -Fq 'spark_shuffle,' ${HADOOP_HOME}/etc/hadoop/yarn-site.xml) && \
@@ -131,7 +131,7 @@ function configure_spark_shuffle() {
       ${HADOOP_HOME}/etc/hadoop/yarn-site.xml
 }
 
-function configure_spark() {
+configure_spark() {
     prepare_base_conf
     SPARK_DEFAULTS=${output_dir}/spark/spark-defaults.conf
 
@@ -147,7 +147,7 @@ function configure_spark() {
     fi
 }
 
-function configure_jupyter_for_spark() {
+configure_jupyter_for_spark() {
   if [ $IS_HEAD_NODE == "true" ]; then
       mkdir -p ${RUNTIME_PATH}/jupyter/logs
 

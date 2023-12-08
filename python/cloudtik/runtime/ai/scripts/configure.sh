@@ -19,7 +19,7 @@ MLFLOW_ARTIFACT_PATH=shared/mlflow
 # Util functions
 . "$ROOT_DIR"/common/scripts/util-functions.sh
 
-function prepare_base_conf() {
+prepare_base_conf() {
     source_dir=$(dirname "${BIN_DIR}")/conf
     output_dir=/tmp/ai/conf
     rm -rf  $output_dir
@@ -27,25 +27,25 @@ function prepare_base_conf() {
     cp -r $source_dir/* $output_dir
 }
 
-function configure_system_folders() {
+configure_system_folders() {
     # Create dirs for data
     mkdir -p ${MLFLOW_HOME}/logs
     mkdir -p ${MLFLOW_HOME}/mlruns
 }
 
-function set_artifact_config_for_local_hdfs() {
+set_artifact_config_for_local_hdfs() {
     DEFAULT_ARTIFACT_ROOT="hdfs://${HEAD_IP_ADDRESS}:9000/${MLFLOW_ARTIFACT_PATH}"
 }
 
-function set_artifact_config_for_hdfs() {
+set_artifact_config_for_hdfs() {
     DEFAULT_ARTIFACT_ROOT="${HDFS_NAMENODE_URI}/${MLFLOW_ARTIFACT_PATH}"
 }
 
-function set_artifact_config_for_s3() {
+set_artifact_config_for_s3() {
     DEFAULT_ARTIFACT_ROOT="s3://${AWS_S3_BUCKET}/${MLFLOW_ARTIFACT_PATH}"
 }
 
-function set_artifact_config_for_azure_data_lake() {
+set_artifact_config_for_azure_data_lake() {
     if [ "$AZURE_STORAGE_TYPE" == "blob" ];then
         AZURE_SCHEMA="wasbs"
         AZURE_ENDPOINT="blob"
@@ -61,11 +61,11 @@ function set_artifact_config_for_azure_data_lake() {
     DEFAULT_ARTIFACT_ROOT="${fs_dir}/${MLFLOW_ARTIFACT_PATH}"
 }
 
-function set_artifact_config_for_gcs() {
+set_artifact_config_for_gcs() {
     DEFAULT_ARTIFACT_ROOT="gs://${GCP_GCS_BUCKET}/${MLFLOW_ARTIFACT_PATH}"
 }
 
-function set_artifact_config_for_cloud_storage() {
+set_artifact_config_for_cloud_storage() {
     if [ "${HADOOP_DEFAULT_CLUSTER}" == "true" ]; then
         if [ ! -z "${HDFS_NAMENODE_URI}" ]; then
             set_artifact_config_for_hdfs
@@ -88,7 +88,7 @@ function set_artifact_config_for_cloud_storage() {
         set_artifact_config_for_local_hdfs
     fi
 }
-function set_backend_store_uri() {
+set_backend_store_uri() {
     if [ "${SQL_DATABASE}" == "true" ] \
       && [ "$AI_WITH_SQL_DATABASE" != "false" ]; then
         DATABASE_NAME=mlflow
@@ -103,7 +103,7 @@ function set_backend_store_uri() {
     fi
 }
 
-function set_default_artifact_root() {
+set_default_artifact_root() {
     if [ "$AI_WITH_CLOUD_STORAGE" != "false" ]; then
         set_artifact_config_for_cloud_storage
     fi
@@ -113,7 +113,7 @@ function set_default_artifact_root() {
     fi
 }
 
-function update_mlflow_server_config() {
+update_mlflow_server_config() {
     set_backend_store_uri
     set_default_artifact_root
 
@@ -121,7 +121,7 @@ function update_mlflow_server_config() {
     sed -i "s#{%default.artifact.root%}#${DEFAULT_ARTIFACT_ROOT}#g" ${output_dir}/mlflow
 }
 
-function patch_libraries() {
+patch_libraries() {
     HOROVOD_PYTHON_HOME="${ROOT_DIR}/../../horovod"
     local PATCHES_DIR=$output_dir/patches
 
@@ -234,7 +234,7 @@ function patch_libraries() {
     fi
 }
 
-function configure_ai() {
+configure_ai() {
     # Do necessary configurations for AI runtime
     prepare_base_conf
     cd $output_dir

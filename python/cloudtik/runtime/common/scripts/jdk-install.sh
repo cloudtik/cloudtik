@@ -1,6 +1,6 @@
 #!/bin/bash
 
-function install_jdk() {
+install_jdk() {
     # Install JDK
     if [ -z "${USER_HOME}" ]; then
         USER_HOME=/home/$(whoami)

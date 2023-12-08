@@ -14,7 +14,7 @@ CONSUL_HOME=$RUNTIME_PATH/consul
 # Util functions
 . "$ROOT_DIR"/common/scripts/util-functions.sh
 
-function prepare_base_conf() {
+prepare_base_conf() {
     source_dir=$(dirname "${BIN_DIR}")/conf
     output_dir=/tmp/consul/conf
     rm -rf  $output_dir
@@ -22,7 +22,7 @@ function prepare_base_conf() {
     cp -r $source_dir/* $output_dir
 }
 
-function check_consul_installed() {
+check_consul_installed() {
     if ! command -v consul &> /dev/null
     then
         echo "Consul is not installed for consul command is not available."
@@ -30,7 +30,7 @@ function check_consul_installed() {
     fi
 }
 
-function update_consul_data_dir() {
+update_consul_data_dir() {
     data_disk_dir=$(get_first_data_disk_dir)
     if [ -z "$data_disk_dir" ]; then
         consul_data_dir="$CONSUL_HOME/data"
@@ -42,7 +42,7 @@ function update_consul_data_dir() {
     sed -i "s!{%data.dir%}!${consul_data_dir}!g" ${consul_output_dir}/consul.json
 }
 
-function update_ui_config() {
+update_ui_config() {
     if [ "$IS_HEAD_NODE" == "true" ]; then
         UI_ENABLED=true
     else
@@ -51,7 +51,7 @@ function update_ui_config() {
     sed -i "s!{%ui.enabled%}!${UI_ENABLED}!g" ${consul_output_dir}/server.json
 }
 
-function configure_consul() {
+configure_consul() {
     prepare_base_conf
     consul_output_dir=$output_dir/consul
 

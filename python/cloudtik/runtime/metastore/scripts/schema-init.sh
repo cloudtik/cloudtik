@@ -1,6 +1,6 @@
 #!/bin/bash
 
-function init_or_upgrade_schema() {
+init_or_upgrade_schema() {
     METASTORE_SCHEMA_OK=true
     ${METASTORE_HOME}/bin/schematool -validate \
         -dbType ${DATABASE_ENGINE} > ${METASTORE_HOME}/logs/configure.log 2>&1
@@ -26,7 +26,7 @@ function init_or_upgrade_schema() {
     fi
 }
 
-function init_schema() {
+init_schema() {
     DATABASE_NAME=hive_metastore
     if [ "${SQL_DATABASE}" == "true" ] \
       && [ "$METASTORE_WITH_SQL_DATABASE" != "false" ]; then

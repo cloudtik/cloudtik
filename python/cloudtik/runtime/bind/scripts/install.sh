@@ -10,7 +10,7 @@ eval set -- "${args}"
 # Util functions
 . "$ROOT_DIR"/common/scripts/util-functions.sh
 
-function install_bind() {
+install_bind() {
     if ! command -v named &> /dev/null
     then
         sudo apt-get -qq update -y > /dev/null; \

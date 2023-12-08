@@ -15,7 +15,7 @@ export RUNTIME_PATH=$USER_HOME/runtime
 # Util functions
 . "$ROOT_DIR"/common/scripts/util-functions.sh
 
-function install_etcd() {
+install_etcd() {
     if ! command -v etcd &> /dev/null
     then
         export ETCD_HOME=$RUNTIME_PATH/etcd

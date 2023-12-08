@@ -67,7 +67,7 @@ stop_service_using_pid() {
     done
 }
 
-function stop_process_by_name() {
+stop_process_by_name() {
     local PROCESS_NAME=$1
     local MY_PID=$(pgrep ${PROCESS_NAME})
     if [ -n "${MY_PID}" ]; then
@@ -77,7 +77,7 @@ function stop_process_by_name() {
     fi
 }
 
-function stop_process_by_pid_file() {
+stop_process_by_pid_file() {
     local PROCESS_PID_FILE=$1
     if sudo test -f "$PROCESS_PID_FILE"; then
         local PROCESS_NAME=$(basename "$PROCESS_PID_FILE")

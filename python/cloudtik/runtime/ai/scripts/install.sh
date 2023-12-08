@@ -16,7 +16,7 @@ export RUNTIME_PATH=$USER_HOME/runtime
 # Frameworks installation functions
 . "$BIN_DIR"/install-ai-frameworks.sh
 
-function install_tools() {
+install_tools() {
     # Install necessary tools
     which numactl > /dev/null || (sudo apt-get -qq update -y > /dev/null; \
       sudo DEBIAN_FRONTEND=noninteractive apt-get -qq install numactl -y > /dev/null)
@@ -39,7 +39,7 @@ function install_tools() {
       sudo DEBIAN_FRONTEND=noninteractive apt-get -qq install postgresql-client -y > /dev/null)
 }
 
-function install_ai() {
+install_ai() {
     mkdir -p $RUNTIME_PATH/mlflow
 
     # Install Machine Learning libraries and components

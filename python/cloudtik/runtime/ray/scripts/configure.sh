@@ -13,7 +13,7 @@ RUNTIME_PATH=$USER_HOME/runtime
 # Util functions
 . "$ROOT_DIR"/common/scripts/util-functions.sh
 
-function prepare_base_conf() {
+prepare_base_conf() {
     source_dir=$(dirname "${BIN_DIR}")/conf
     output_dir=/tmp/ray/conf
     rm -rf  $output_dir
@@ -21,7 +21,7 @@ function prepare_base_conf() {
     cp -r $source_dir/* $output_dir
 }
 
-function check_ray_installed() {
+check_ray_installed() {
     if ! command -v ray &> /dev/null
     then
         echo "Ray is not installed for ray command is not available."
@@ -29,7 +29,7 @@ function check_ray_installed() {
     fi
 }
 
-function configure_ray() {
+configure_ray() {
     prepare_base_conf
 }
 

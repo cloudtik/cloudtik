@@ -14,7 +14,7 @@ ETCD_HOME=$RUNTIME_PATH/etcd
 # Util functions
 . "$ROOT_DIR"/common/scripts/util-functions.sh
 
-function prepare_base_conf() {
+prepare_base_conf() {
     source_dir=$(dirname "${BIN_DIR}")/conf
     output_dir=/tmp/etcd/conf
     rm -rf  $output_dir
@@ -22,7 +22,7 @@ function prepare_base_conf() {
     cp -r $source_dir/* $output_dir
 }
 
-function check_etcd_installed() {
+check_etcd_installed() {
     if ! command -v etcd &> /dev/null
     then
         echo "etcd is not installed for etcd command is not available."
@@ -30,7 +30,7 @@ function check_etcd_installed() {
     fi
 }
 
-function update_data_dir() {
+update_data_dir() {
     data_disk_dir=$(get_first_data_disk_dir)
     if [ -z "$data_disk_dir" ]; then
         data_dir="${ETCD_HOME}/data"
@@ -42,7 +42,7 @@ function update_data_dir() {
     sed -i "s#{%data.dir%}#${data_dir}#g" ${config_template_file}
 }
 
-function configure_etcd() {
+configure_etcd() {
     prepare_base_conf
 
     ETC_LOG_DIR=${ETCD_HOME}/logs

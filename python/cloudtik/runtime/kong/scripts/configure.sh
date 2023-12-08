@@ -14,7 +14,7 @@ KONG_HOME=$RUNTIME_PATH/kong
 # Util functions
 . "$ROOT_DIR"/common/scripts/util-functions.sh
 
-function prepare_base_conf() {
+prepare_base_conf() {
     local source_dir=$(dirname "${BIN_DIR}")/conf
     output_dir=/tmp/kong/conf
     rm -rf  $output_dir
@@ -22,7 +22,7 @@ function prepare_base_conf() {
     cp -r $source_dir/* $output_dir
 }
 
-function check_kong_installed() {
+check_kong_installed() {
     if ! command -v kong &> /dev/null
     then
         echo "Kong is not installed for kong command is not available."
@@ -30,7 +30,7 @@ function check_kong_installed() {
     fi
 }
 
-function configure_database() {
+configure_database() {
     DATABASE_NAME=kong
     DATABASE_USER=kong
     # TODO: allow user to specify the database password
@@ -52,7 +52,7 @@ function configure_database() {
     sed -i "s/{%database.password%}/${DATABASE_PASSWORD}/g" ${config_template_file}
 }
 
-function configure_kong() {
+configure_kong() {
     prepare_base_conf
     mkdir -p ${KONG_HOME}/logs
 

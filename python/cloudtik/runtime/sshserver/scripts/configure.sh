@@ -18,7 +18,7 @@ SSH_AUTHORIZED_KEYS_FILE=${SSH_CONFIG_HOME}/cloudtik-ssh-server-authorized_keys
 SSH_DEFAULT_PRIVATE_KEY_FILE=${SSH_CONFIG_HOME}/id_rsa
 BOOTSTRAP_PRIVATE_KEY_FILE=${USER_HOME}/cloudtik_bootstrap_key.pem
 
-function prepare_base_conf() {
+prepare_base_conf() {
     source_dir=$(dirname "${BIN_DIR}")/conf
     output_dir=/tmp/ssh_server/conf
     rm -rf  $output_dir
@@ -26,7 +26,7 @@ function prepare_base_conf() {
     cp -r $source_dir/* $output_dir
 }
 
-function configure_ssh_server() {
+configure_ssh_server() {
     prepare_base_conf
 
     sudo chown $(whoami):$(id -gn) ~/.ssh

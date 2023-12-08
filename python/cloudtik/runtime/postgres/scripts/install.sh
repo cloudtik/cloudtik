@@ -16,7 +16,7 @@ export POSTGRES_HOME=$RUNTIME_PATH/postgres
 # Util functions
 . "$ROOT_DIR"/common/scripts/util-functions.sh
 
-function install_postgres() {
+install_postgres() {
     if ! command -v postgres &> /dev/null
     then
         # make the "en_US.UTF-8" locale so postgres will be utf-8 enabled by default

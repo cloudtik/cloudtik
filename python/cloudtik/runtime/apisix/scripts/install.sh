@@ -13,7 +13,7 @@ APISIX_VERSION=3.5
 # Util functions
 . "$ROOT_DIR"/common/scripts/util-functions.sh
 
-function install_apisix() {
+install_apisix() {
     if ! command -v apisix &> /dev/null
     then
         wget -q -O - https://openresty.org/package/pubkey.gpg | sudo apt-key add - && \

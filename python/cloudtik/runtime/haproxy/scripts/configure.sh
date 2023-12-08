@@ -14,7 +14,7 @@ HAPROXY_HOME=$RUNTIME_PATH/haproxy
 # Util functions
 . "$ROOT_DIR"/common/scripts/util-functions.sh
 
-function prepare_base_conf() {
+prepare_base_conf() {
     source_dir=$(dirname "${BIN_DIR}")/conf
     output_dir=/tmp/haproxy/conf
     rm -rf  $output_dir
@@ -22,7 +22,7 @@ function prepare_base_conf() {
     cp -r $source_dir/* $output_dir
 }
 
-function check_haproxy_installed() {
+check_haproxy_installed() {
     if ! command -v haproxy &> /dev/null
     then
         echo "HAProxy is not installed for haproxy command is not available."
@@ -30,7 +30,7 @@ function check_haproxy_installed() {
     fi
 }
 
-function configure_dns_backend() {
+configure_dns_backend() {
     # configure a load balancer based on Consul DNS interface
     local config_template_file=${output_dir}/haproxy-dns-consul.cfg
 
@@ -41,14 +41,14 @@ function configure_dns_backend() {
     cat ${config_template_file} >> ${haproxy_config_file}
 }
 
-function configure_static_backend() {
+configure_static_backend() {
     # configure a load balancer with static address
     local config_template_file=${output_dir}/haproxy-static.cfg
     # python configure script will write the list of static servers
     cat ${config_template_file} >> ${haproxy_config_file}
 }
 
-function configure_dynamic_backend() {
+configure_dynamic_backend() {
     local haproxy_template_file=${output_dir}/haproxy-template.cfg
     cp ${haproxy_config_file} ${haproxy_template_file}
 
@@ -64,7 +64,7 @@ function configure_dynamic_backend() {
     cp ${haproxy_template_file} ${HAPROXY_CONFIG_DIR}/haproxy-template.cfg
 }
 
-function configure_load_balancer() {
+configure_load_balancer() {
     if [ "${HAPROXY_CONFIG_MODE}" == "dns" ]; then
         configure_dns_backend
     elif [ "${HAPROXY_CONFIG_MODE}" == "static" ]; then
@@ -76,12 +76,12 @@ function configure_load_balancer() {
     fi
 }
 
-function configure_api_gateway() {
+configure_api_gateway() {
     # python script will use this template to generate config for API gateway backends
     cp ${haproxy_config_file} ${HAPROXY_CONFIG_DIR}/haproxy-template.cfg
 }
 
-function configure_haproxy() {
+configure_haproxy() {
     prepare_base_conf
 
     haproxy_config_file=${output_dir}/haproxy.cfg

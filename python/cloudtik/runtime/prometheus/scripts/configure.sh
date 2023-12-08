@@ -14,7 +14,7 @@ PROMETHEUS_HOME=$RUNTIME_PATH/prometheus
 # Util functions
 . "$ROOT_DIR"/common/scripts/util-functions.sh
 
-function prepare_base_conf() {
+prepare_base_conf() {
     source_dir=$(dirname "${BIN_DIR}")/conf
     output_dir=/tmp/prometheus/conf
     rm -rf  $output_dir
@@ -22,43 +22,43 @@ function prepare_base_conf() {
     cp -r $source_dir/* $output_dir
 }
 
-function check_prometheus_installed() {
+check_prometheus_installed() {
     if [ ! -f "${PROMETHEUS_HOME}/prometheus" ]; then
         echo "Prometheus is not installed for prometheus command is not available."
         exit 1
     fi
 }
 
-function update_local_file() {
+update_local_file() {
     cp -r $output_dir/scrape-config-local-file.yaml \
       ${PROMETHEUS_CONFIG_DIR}/scrape-config-local-file.yaml
 }
 
-function update_local_consul() {
+update_local_consul() {
   cp -r $output_dir/scrape-config-local-consul.yaml \
       ${PROMETHEUS_CONFIG_DIR}/scrape-config-local-consul.yaml
 }
 
-function update_workspace_consul() {
+update_workspace_consul() {
   cp -r $output_dir/scrape-config-workspace-consul.yaml \
       ${PROMETHEUS_CONFIG_DIR}/scrape-config-workspace-consul.yaml
 }
 
-function update_federation_consul() {
+update_federation_consul() {
   # Federation will also scrape local cluster
   update_local_consul
   cp -r $output_dir/scrape-config-federation-consul.yaml \
       ${PROMETHEUS_CONFIG_DIR}/scrape-config-federation-consul.yaml
 }
 
-function update_federation_file() {
+update_federation_file() {
   # Federation will also scrape local cluster
   update_local_file
   cp -r $output_dir/scrape-config-federation-file.yaml \
       ${PROMETHEUS_CONFIG_DIR}/scrape-config-federation-file.yaml
 }
 
-function configure_prometheus() {
+configure_prometheus() {
     prepare_base_conf
     prometheus_output_dir=$output_dir
     config_template_file=${output_dir}/prometheus.yaml

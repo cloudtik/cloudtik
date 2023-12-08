@@ -14,14 +14,14 @@ NODEX_HOME=$RUNTIME_PATH/nodex
 # Util functions
 . "$ROOT_DIR"/common/scripts/util-functions.sh
 
-function check_nodex_installed() {
+check_nodex_installed() {
     if [ ! -f "${NODEX_HOME}/nodex" ]; then
         echo "Nodex is not installed."
         exit 1
     fi
 }
 
-function configure_nodex() {
+configure_nodex() {
     mkdir -p ${NODEX_HOME}/logs
 }
 
