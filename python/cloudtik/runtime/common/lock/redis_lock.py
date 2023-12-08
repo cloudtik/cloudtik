@@ -120,7 +120,6 @@ class RedisLock(Lock):
         """
         if not self._started_acquiring:
             return False
-
         return self._release_key()
 
     def _acquire_key(self):
@@ -133,7 +132,7 @@ class RedisLock(Lock):
         )
 
     def _release_key(self):
-        assert self.session_id, 'Must have a session id to acquire key'
+        assert self.session_id, 'Must have a session id to release key'
         return release_lock_key(
             self.redis_client,
             key=self.full_key,

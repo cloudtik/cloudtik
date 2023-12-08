@@ -226,3 +226,19 @@ def _get_runtime_services(
             service_name: define_redis_service(define_runtime_service_on_head),
         }
     return services
+
+
+###################################
+# Calls from node at runtime
+###################################
+
+def start_service_for_sharding():
+    # TODO: choose to do one of the following:
+    #  1. Join to the bootstrap list
+    #  2. Bootstrap the initial cluster
+    #  3. Join the cluster as master and do a re-sharding
+    #  4. Join the cluster as replica
+    #  5. Do nothing if the node joined the cluster
+
+    # We store a file in data dir to mark the node has initialized
+    pass

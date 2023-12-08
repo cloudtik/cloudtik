@@ -47,21 +47,10 @@ function check_kafka_installed() {
 }
 
 function update_kafka_data_disks_config() {
-    kafka_data_dir=""
-    if [ -d "/mnt/cloudtik" ]; then
-        for data_disk in /mnt/cloudtik/*; do
-            [ -d "$data_disk" ] || continue
-            if [ -z "$kafka_data_dir" ]; then
-                kafka_data_dir=$data_disk/kafka/data
-            else
-                kafka_data_dir="$kafka_data_dir,$data_disk/kafka/data"
-            fi
-        done
-    fi
-
-    # if no disks mounted on /mnt/cloudtik
+    local kafka_data_dir=$(get_data_disk_dirs_of "kafka/data" true)
+    # if no disks mounted
     if [ -z "$kafka_data_dir" ]; then
-        kafka_data_dir="${RUNTIME_PATH}/shared/kafka/data"
+        kafka_data_dir="${KAFKA_HOME}/kafka/data"
         mkdir -p $kafka_data_dir
     fi
 

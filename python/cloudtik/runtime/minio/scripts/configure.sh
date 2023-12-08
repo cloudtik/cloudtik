@@ -34,19 +34,20 @@ function prepare_data_disks() {
     if [ -d "/mnt/cloudtik" ]; then
         for data_disk in /mnt/cloudtik/*; do
             [ -d "$data_disk" ] || continue
+            local data_dir="$data_disk/minio"
             if [ "$MINIO_FORCE_CLEAN" == "true" ]; then
-                sudo rm -rf $data_disk/minio
+                sudo rm -rf "$data_dir"
             fi
-            mkdir -p $data_disk/minio
+            mkdir -p "$data_dir"
             if [ -z "$minio_data_dirs" ]; then
-                minio_data_dirs=$data_disk/minio
+                minio_data_dirs="$data_dir"
             else
-                minio_data_dirs="$minio_data_dirs,$data_disk/minio"
+                minio_data_dirs="$minio_data_dirs,$data_dir"
             fi
         done
     fi
 
-    # if no disks mounted on /mnt/cloudtik
+    # if no disks mounted
     if [ -z "$minio_data_dirs" ]; then
         minio_data_dirs="${MINIO_HOME}/data"
         if [ "$MINIO_FORCE_CLEAN" == "true" ]; then

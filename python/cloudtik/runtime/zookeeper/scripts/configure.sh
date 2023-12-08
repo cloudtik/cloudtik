@@ -29,19 +29,11 @@ function check_zookeeper_installed() {
 }
 
 function update_zookeeper_data_disks_config() {
-    zookeeper_data_dir=""
-    if [ -d "/mnt/cloudtik" ]; then
-        for data_disk in /mnt/cloudtik/*; do
-            [ -d "$data_disk" ] || continue
-            if [ -z "$zookeeper_data_dir" ]; then
-                zookeeper_data_dir=$data_disk/zookeeper/data
-            fi
-        done
-    fi
-
-    # if no disks mounted on /mnt/cloudtik
-    if [ -z "$zookeeper_data_dir" ]; then
-        zookeeper_data_dir="${RUNTIME_PATH}/shared/zookeeper/data"
+    local data_disk_dir=$(get_first_data_disk_dir)
+    if [ -z "$data_disk_dir" ]; then
+        zookeeper_data_dir="${ZOOKEEPER_HOME}/data"
+    else
+        zookeeper_data_dir="$data_disk_dir/zookeeper/data"
     fi
 
     mkdir -p $zookeeper_data_dir
