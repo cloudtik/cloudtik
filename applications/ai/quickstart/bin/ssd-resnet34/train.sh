@@ -11,7 +11,7 @@ SSD_RESNET34_OUTPUT=$SSD_RESNET34_HOME/output
 USE_IPEX=false
 PRECISION=fp32
 
-function usage(){
+usage(){
     echo "Usage: train.sh [ --ipex ] [ --precision fp32 | bf16 | bf32 ]"
     exit 1
 }

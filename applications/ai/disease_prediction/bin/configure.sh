@@ -25,7 +25,7 @@ fi
 
 DISEASE_PREDICTION_DATA=$DISEASE_PREDICTION_WORKSPACE/data
 
-function move_to_workspace() {
+move_to_workspace() {
     # Move a folder (the first parameter) into workspace target(the second parameter)
     if [ $DISEASE_PREDICTION_WORKSPACE != $DISEASE_PREDICTION_WORKING ]; then
         SOURCE_TO_MOVE=$1

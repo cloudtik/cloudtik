@@ -5,7 +5,7 @@ which realpath > /dev/null || sudo apt-get install realpath
 args=$(getopt -a -o a:w:h -l action:workload:,cluster_config:,workspace_config:,hibench_config_dir:,docker,managed_cloud_storage,help -- "$@")
 eval set -- "${args}"
 
-function contains() {
+contains() {
     local n=$#
     local value=${!n}
     for ((i=1;i < $#;i++)) {
@@ -18,11 +18,11 @@ function contains() {
     return 1
 }
 
-function check_cloudtik_environment() {
+check_cloudtik_environment() {
     which cloudtik > /dev/null || (echo "CloudTik is not found. Please install CloudTik first!"; exit 1)
 }
 
-function check_hibench_cloudtik_action() {
+check_hibench_cloudtik_action() {
     HIBENCH_CLOUDTIK_ALLOW_ACTIONS=( run generate-data )
     if [ $(contains "${HIBENCH_CLOUDTIK_ALLOW_ACTIONS[@]}" "$ACTION") == "y" ]; then
         echo "Action $ACTION is allowed for this hibench cloudtik script."
@@ -32,7 +32,7 @@ function check_hibench_cloudtik_action() {
     fi
 }
 
-function check_cloudtik_cluster_config() {
+check_cloudtik_cluster_config() {
     if [ -f "${CLUSTER_CONFIG}" ]; then
         echo "Found the cluster config file ${CLUSTER_CONFIG}"
     else
@@ -41,7 +41,7 @@ function check_cloudtik_cluster_config() {
     fi
 }
 
-function check_cloudtik_workspace_config() {
+check_cloudtik_workspace_config() {
     if [ -f "${WORKSPACE_CONFIG}" ]; then
         echo "Found the workspace config file ${WORKSPACE_CONFIG}"
     else
@@ -50,7 +50,7 @@ function check_cloudtik_workspace_config() {
     fi
 }
 
-function check_hibench_config_dir() {
+check_hibench_config_dir() {
     if [ -d "${HIBENCH_CONFIG_DIR}" ]; then
         echo "Found the hench config directory ${HIBENCH_CONFIG_DIR}"
     else
@@ -59,7 +59,7 @@ function check_hibench_config_dir() {
     fi
 }
 
-function prepare_replace_conf_value() {
+prepare_replace_conf_value() {
     HEAD_ADDRESS=$(cloudtik head-ip $CLUSTER_CONFIG)
 
     if [ "$DOCKER_MODE" == "true" ]; then
@@ -82,7 +82,7 @@ function prepare_replace_conf_value() {
     HIBENCH_HADOOP_EXAMPLES_TEST_JAR=`echo ${HIBENCH_HADOOP_EXAMPLES_TEST_JAR//$'\015'}`
 }
 
-function update_hibench_config() {
+update_hibench_config() {
     python $CURRENT_HOME/config_utils.py $HIBENCH_CONFIG_DIR
     HIBENCH_TMP_CONFIG_DIR=$HIBENCH_CONFIG_DIR/output/hibench
     if [ -d "${HIBENCH_TMP_CONFIG_DIR}" ]; then
@@ -117,7 +117,7 @@ function update_hibench_config() {
     done
 }
 
-function hibench_generate_data() {
+hibench_generate_data() {
     cloudtik exec "$CLUSTER_CONFIG" "cd \$HOME/runtime/benchmark-tools/HiBench && bash bin/workloads/$WORKLOAD/prepare/prepare.sh"
     if [ $? -eq 0 ]; then
         echo "Succeed to generate data for the workload: $WORKLOAD."
@@ -127,7 +127,7 @@ function hibench_generate_data() {
     fi
 }
 
-function hibench_run_benchmark() {
+hibench_run_benchmark() {
     cloudtik exec "$CLUSTER_CONFIG" "cd \$HOME/runtime/benchmark-tools/HiBench && rm -rf report/"
     cloudtik exec "$CLUSTER_CONFIG" "cd \$HOME/runtime/benchmark-tools/HiBench && bash bin/workloads/$WORKLOAD/spark/run.sh"
     if [ $? -eq 0 ]; then
@@ -141,7 +141,7 @@ function hibench_run_benchmark() {
     fi
 }
 
-function usage() {
+usage() {
     echo "Docker Mode: $0 -a|--action [run|generate-data] -w|--workload [ml/kmeans| ml/als| ml/bayes] --cluster_config [your_cluster.yaml] --workspace_config [your_workspace.yaml] --hibench_config_dir [your_hibench_config_dirl] -d" >&2
     echo "Host Mode: $0 -a|--action [run|generate-data] -w|--workload [ml/kmeans| ml/als| ml/bayes] --cluster_config [your_cluster.yaml] --workspace_config [your_workspace.yaml] --hibench_config_dir [your_hibench_config_dirl]" >&2
     echo "Docker Mode with managed_cloud_storage: $0 -a|--action [run|generate-data] -w|--workload [ml/kmeans| ml/als| ml/bayes] --cluster_config [your_cluster.yaml] --workspace_config [your_workspace.yaml] --hibench_config_dir [your_hibench_config_dirl] -d -managed_cloud_storage" >&2

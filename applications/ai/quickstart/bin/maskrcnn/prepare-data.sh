@@ -15,7 +15,7 @@ if [ ! -n "${QUICKSTART_HOME}" ]; then
   exit 1
 fi
 
-function usage(){
+usage(){
     echo "Usage: prepare-data.sh  [ --phase training | inference] "
     exit 1
 }
@@ -38,7 +38,7 @@ done
 
 
 
-function download_training_data() {
+download_training_data() {
     mkdir -p $MASKRCNN_DATA
     export DATASET_DIR=$MASKRCNN_DATA
 
@@ -48,7 +48,7 @@ function download_training_data() {
 
 
 
-function download_inference_data() {
+download_inference_data() {
     mkdir -p $MASKRCNN_DATA
     export DATASET_DIR=$MASKRCNN_DATA
 
@@ -57,7 +57,7 @@ function download_inference_data() {
 }
 
 
-function download_inference_model() {
+download_inference_model() {
     export CHECKPOINT_DIR=$MASKRCNN_MODEL
 
     cd ${QUICKSTART_HOME}/scripts/object_detection/pytorch/maskrcnn/inference/cpu

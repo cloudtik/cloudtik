@@ -21,14 +21,14 @@ do
     shift
 done
 
-function prepare() {
+prepare() {
     source ~/.bashrc
     sudo apt-get update -y
     mkdir -p $BENCHMARK_TOOL_HOME
     sudo chown $(whoami) $BENCHMARK_TOOL_HOME
 }
 
-function install_jdk8() {
+install_jdk8() {
     mv $JAVA_HOME $(dirname $JAVA_HOME)/jdk_bak
     wget https://devops.egov.org.in/Downloads/jdk/jdk-8u192-linux-x64.tar.gz -O /tmp/jdk-8u192-linux-x64.tar.gz && \
     tar -xvf /tmp/jdk-8u192-linux-x64.tar.gz -C /tmp && \
@@ -36,35 +36,35 @@ function install_jdk8() {
     rm -rf /tmp/jdk-8u192-linux-x64.tar.gz
 }
 
-function check_and_install_jdk8() {
+check_and_install_jdk8() {
     jdk_major_version=$(java -version 2>&1 | head -1 | cut -d'"' -f2 | sed '/^1\./s///' | cut -d'.' -f1)
     if [ ${jdk_major_version} -gt 8 ]; then
         install_jdk8
     fi
 }
 
-function install_tools() {
+install_tools() {
     #Installl cmake, GCC 9.0
     sudo apt-get install cmake -y
     sudo apt-get install gcc-9 g++-9 -y
 }
 
-function install_libaries() {
+install_libaries() {
     sudo apt-get update && sudo apt-get install openjdk-8-jdk -y
     sudo apt-get install libsndfile1 libsndfile-dev libxxf86vm1 libxxf86vm-dev libglvnd0 libgl-dev -y
 }
 
-function install_python_libraries() {
+install_python_libraries() {
     pip -qq install dlib==19.24.0
 }
 
-function install_tpcx_ai_benchmark() {
+install_tpcx_ai_benchmark() {
     sudo apt-get install zip -y
     wget https://d30257nes7d4fq.cloudfront.net/downloads/tpcx-ai/tpcx-ai-tool-v1.0.2.zip -O /tmp/tpcx-ai-tool.zip
     unzip -o /tmp/tpcx-ai-tool.zip -d "$BENCHMARK_TOOL_HOME" && rm /tmp/tpcx-ai-tool.zip && mv $BENCHMARK_TOOL_HOME/tpcx-ai-v* $TPCX_AI_HOME
 }
 
-function download_tpcx_ai_files() {
+download_tpcx_ai_files() {
     wget https://raw.githubusercontent.com/cloudtik/cloudtik/main/tools/benchmarks/ai/tpcx-ai/confs/parallel-data-gen.sh.patch -O $TPCX_AI_HOME/tools/parallel-data-gen.sh
     wget https://raw.githubusercontent.com/cloudtik/cloudtik/main/tools/benchmarks/ai/tpcx-ai/confs/parallel-data-load.sh.patch -O $TPCX_AI_HOME/tools/parallel-data-load.sh
     wget https://raw.githubusercontent.com/cloudtik/cloudtik/main/tools/benchmarks/ai/tpcx-ai/confs/default-spark.yaml -O $TPCX_AI_HOME/driver/config/default-spark.yaml
@@ -73,7 +73,7 @@ function download_tpcx_ai_files() {
     wget https://raw.githubusercontent.com/cloudtik/cloudtik/main/tools/benchmarks/ai/tpcx-ai/confs/UseCase09.py.patch -O $TPCX_AI_HOME/workload/spark/pyspark/workload-pyspark/UseCase09.py
 }
 
-function configure_tpcx_ai_benchmark() {
+configure_tpcx_ai_benchmark() {
     download_tpcx_ai_files
     is_head_node
     echo IS_EULA_ACCEPTED=true >> ${TPCX_AI_HOME}/lib/pdgf/Constants.properties
@@ -86,7 +86,7 @@ function configure_tpcx_ai_benchmark() {
     chmod u+x -R ${TPCX_AI_HOME}
 }
 
-function is_head_node() {
+is_head_node() {
     if [ -n $IS_HEAD_NODE ]; then
         cloudtik head head-ip
         GET_HEAD_IP_CODE=$?

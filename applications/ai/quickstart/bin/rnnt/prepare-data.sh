@@ -23,7 +23,7 @@ if [ ! -n "${QUICKSTART_HOME}" ]; then
   exit 1
 fi
 
-function usage(){
+usage(){
     echo "Usage: prepare-data.sh  [ --phase training | inference] "
     exit 1
 }

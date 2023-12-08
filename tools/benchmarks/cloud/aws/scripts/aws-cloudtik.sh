@@ -3,7 +3,7 @@
 args=$(getopt -a -o a:c:hy -l action:,config:,help,yes -- "$@")
 eval set -- "${args}"
 
-function contains() {
+contains() {
     local n=$#
     local value=${!n}
     for ((i=1;i < $#;i++)) {
@@ -16,11 +16,11 @@ function contains() {
     return 1
 }
 
-function check_cloudtik_environment() {
+check_cloudtik_environment() {
     which cloudtik > /dev/null || (echo "CloudTik is not found. Please install CloudTik first!"; exit 1)
 }
 
-function check_aws_cloudtik_action() {
+check_aws_cloudtik_action() {
     AWS_CLOUDTIK_ALLOW_ACTIONS=( create-workspace delete-workspace start-cluster stop-cluster )
     if [ $(contains "${AWS_CLOUDTIK_ALLOW_ACTIONS[@]}" "$ACTION") == "y" ]; then
         echo "Action $ACTION is allowed for this aws cloudtik script."
@@ -30,7 +30,7 @@ function check_aws_cloudtik_action() {
     fi
 }
 
-function check_aws_cloudtik_config() {
+check_aws_cloudtik_config() {
     if [ -f "${CONFIG}" ]; then
         echo "Found the config file ${CONFIG}"
     else
@@ -39,23 +39,23 @@ function check_aws_cloudtik_config() {
     fi
 }
 
-function create_aws_workspace() {
+create_aws_workspace() {
     cloudtik workspace create $CONFIG $CONFIRM
 }
 
-function delete_aws_workspace() {
+delete_aws_workspace() {
     cloudtik workspace delete $CONFIG $CONFIRM
 }
 
-function start_aws_cluster() {
+start_aws_cluster() {
     cloudtik start $CONFIG $CONFIRM
 }
 
-function stop_aws_cluster() {
+stop_aws_cluster() {
     cloudtik stop $CONFIG $CONFIRM
 }
 
-function usage() {
+usage() {
     echo "Usage: $0 -a|--action [create-workspace|delete-workspace|start-cluster|stop-cluster] -c|--config [your.yaml] -y|--yes" >&2
     echo "Usage: $0 -h|--help"
 }

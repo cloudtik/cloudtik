@@ -25,7 +25,7 @@ fi
 
 FRAUD_DETECTION_DATA=$FRAUD_DETECTION_WORKSPACE/data
 
-function move_to_workspace() {
+move_to_workspace() {
     # Move a folder (the first parameter) into workspace target(the second parameter)
     if [ $FRAUD_DETECTION_WORKSPACE != $FRAUD_DETECTION_WORKING ]; then
         SOURCE_TO_MOVE=$1

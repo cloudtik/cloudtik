@@ -4,7 +4,7 @@ SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 source ${SCRIPT_DIR}/../configure.sh
 
 
-function install_libraries() {
+install_libraries() {
     pip install tqdm --upgrade
     pip install tensorboardX
     # Clone the Transformers repo in the BERT large inference directory

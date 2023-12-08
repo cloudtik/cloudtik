@@ -24,7 +24,7 @@ BUILD_DIR=${SCRIPT_DIR}/build
 THIRDPARTY_DIR=${BUILD_DIR}/thirdparty
 mkdir -p ${THIRDPARTY_DIR}
 
-function compile_redis_server() {
+compile_redis_server() {
     # download redis source code
     rm -f ${THIRDPARTY_DIR}/redis-stable.tar.gz
     wget -O ${THIRDPARTY_DIR}/redis-stable.tar.gz http://download.redis.io/redis-stable.tar.gz

@@ -17,7 +17,7 @@ if [ ! -n "${QUICKSTART_HOME}" ]; then
   exit 1
 fi
 
-function usage(){
+usage(){
     echo "Usage: prepare-data.sh  [ --phase training | inference] "
     exit 1
 }
@@ -37,7 +37,7 @@ do
     shift
 done
 
-function download_bert_training_model() {
+download_bert_training_model() {
     mkdir -p $BERT_MODEL
     cd $BERT_MODEL
     ### Download
@@ -56,7 +56,7 @@ function download_bert_training_model() {
 
 }
 
-function download_bert_training_data() {
+download_bert_training_data() {
     cd $BERT_INPUT_PREPROCESSING
     # md5 sums
     gdown https://drive.google.com/uc?id=1tmMgLwoBvbEJEHXh77sqrXYw5RpqT8R_
@@ -67,14 +67,14 @@ function download_bert_training_data() {
 
 }
 
-function download_bert_inference_data() {
+download_bert_inference_data() {
     mkdir -p $SQUAD_DATA
     cd $SQUAD_DATA
     wget https://rajpurkar.github.io/SQuAD-explorer/dataset/dev-v1.1.json
 
 }
 
-function prepare_trainint_data() {
+prepare_trainint_data() {
     cd $BERT_INPUT_PREPROCESSING
 
     # For phase1 the seq_len=128:
@@ -90,7 +90,7 @@ function prepare_trainint_data() {
     mv 2048_shards_uncompressed_512 $BERT_DATA/
 }
 
-function prepare_training_model() {
+prepare_training_model() {
     cd $BERT_INPUT_PREPROCESSING
     wget https://raw.githubusercontent.com/mlcommons/training_results_v2.1/main/Intel/benchmarks/bert/implementations/pytorch-cpu/convert_checkpoint_tf2torch.py
     wget https://raw.githubusercontent.com/mlcommons/training_results_v2.1/main/Intel/benchmarks/bert/implementations/pytorch-cpu/modeling_bert_patched.py
@@ -98,7 +98,7 @@ function prepare_training_model() {
 
 }
 
-function prepare_inference_model() {
+prepare_inference_model() {
   mkdir -p $SQUAD_MODEL
   cd $BERT_MODEL
   wget https://s3.amazonaws.com/models.huggingface.co/bert/bert-large-uncased-whole-word-masking-finetuned-squad-config.json -O bert_squad_model/config.json
@@ -106,7 +106,7 @@ function prepare_inference_model() {
   wget https://s3.amazonaws.com/models.huggingface.co/bert/bert-large-uncased-whole-word-masking-finetuned-squad-vocab.txt -O bert_squad_model/vocab.txt
 }
 
-function prepare_inference_libraries() {
+prepare_inference_libraries() {
   # Clone the Transformers repo in the BERT large inference directory
   cd ${QUICKSTART_HOME}/scripts/language_modeling/pytorch/bert_large/inference/cpu
   rm -rf transformers

@@ -12,17 +12,17 @@ ITERATION=1
 SCALE=1
 WORKLOAD=tpcds
 
-function usage() {
+usage() {
     echo "Usage: $0 -i=[iteration] -s=[scale] -w=[workload] | -h | --help" >&2
 }
 
-function prepare_coordinator() {
+prepare_coordinator() {
     echo "Getting coordinator..."
     head_ip=$(cloudtik head head-ip)
     echo "Successfully get coordinator: ${head_ip}"
 }
 
-function contains() {
+contains() {
     local n=$#
     local value=${!n}
     for ((i=1;i < $#;i++)) {
@@ -35,7 +35,7 @@ function contains() {
     return 1
 }
 
-function check_data_scale(){
+check_data_scale(){
     if [ "${WORKLOAD}" == "tpch" ];then
         TPCH_ALLOWED_SF=(1 100 1000 10000 100000 300 3000 30000)
         if [ $(contains "${TPCH_ALLOWED_SF[@]}" "$SCALE") == "y" ]; then
@@ -55,7 +55,7 @@ function check_data_scale(){
     fi
 }
 
-function prepare_tpc_connector(){
+prepare_tpc_connector(){
     tpc_workload=$1
     cloudtik head exec --all-nodes --no-parallel "mkdir -p \${TRINO_HOME}/etc/catalog/"
     cloudtik head exec --all-nodes --no-parallel "echo connector.name=${tpc_workload} > \${TRINO_HOME}/etc/catalog/${tpc_workload}.properties"
@@ -63,7 +63,7 @@ function prepare_tpc_connector(){
     sleep 30
 }
 
-function prepare_tpc_queries(){
+prepare_tpc_queries(){
     tpc_workload=$1
     if [ ! -d "/tmp/repo/trino" ]; then
         mkdir -p /tmp/repo
@@ -86,7 +86,7 @@ function prepare_tpc_queries(){
     sed -i "s#\${prefix}#${prefix}#g" `grep '\${prefix}' -rl $TRINO_HOME/${tpc_workload}`
 }
 
-function run_tpch(){
+run_tpch(){
     log_dir=$TRINO_HOME/tpch/SF${SCALE}
     rm -rf ${log_dir}
     mkdir -p ${log_dir}
@@ -113,7 +113,7 @@ function run_tpch(){
     done
 }
 
-function run_tpcds(){
+run_tpcds(){
     log_dir=$TRINO_HOME/tpcds/SF${SCALE}
     rm -rf ${log_dir}
     mkdir -p ${log_dir}

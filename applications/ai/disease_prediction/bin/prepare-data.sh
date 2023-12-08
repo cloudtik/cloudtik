@@ -5,7 +5,7 @@ source ${SCRIPT_DIR}/configure.sh
 
 DISEASE_PREDICTION_WORKING_DATA=$DISEASE_PREDICTION_WORKING/data
 
-function usage(){
+usage(){
     echo "Usage: prepare-data.sh [ --image-path ] [ --no-download ] "
     exit 1
 }
@@ -29,7 +29,7 @@ do
     shift
 done
 
-function download_data() {
+download_data() {
     RAW_DATA_PATH=$DISEASE_PREDICTION_WORKING_DATA/raw
     mkdir -p $RAW_DATA_PATH
 
@@ -41,7 +41,7 @@ function download_data() {
         --dataset-path $RAW_DATA_PATH
 }
 
-function prepare_data() {
+prepare_data() {
     if [ "$NO_DOWNLOAD" != "true" ]; then
         download_data
     fi

@@ -6,7 +6,7 @@ eval set -- "${args}"
 WORKLOAD=all
 REPOSITORY=default
 
-function prepare_prerequisite() {
+prepare_prerequisite() {
     source ~/.bashrc
     sudo apt-get update -y
     sudo apt-get install -y git
@@ -16,7 +16,7 @@ function prepare_prerequisite() {
     sudo chown $(whoami) $BENCHMARK_TOOL_HOME
 }
 
-function install_sbt() {
+install_sbt() {
     sudo apt-get update -y
     sudo apt-get install apt-transport-https curl gnupg -yqq
     echo "deb https://repo.scala-sbt.org/scalasbt/debian all main" | sudo tee /etc/apt/sources.list.d/sbt.list
@@ -31,7 +31,7 @@ function install_sbt() {
     fi
 }
 
-function use_sbt_china_repositories() {
+use_sbt_china_repositories() {
     sudo mkdir -p ~/.sbt
     sudo chown $(whoami) ~/.sbt
     tee > ~/.sbt/repositories << EOF
@@ -44,11 +44,11 @@ function use_sbt_china_repositories() {
 EOF
 }
 
-function install_maven() {
+install_maven() {
     sudo apt install maven -y
 }
 
-function install_spark_sql_perf() {
+install_spark_sql_perf() {
     install_sbt
     cd ${BENCHMARK_TOOL_HOME}
     if [ ! -d "spark-sql-perf" ]; then
@@ -62,20 +62,20 @@ function install_spark_sql_perf() {
     sbt package
 }
 
-function install_tpcds_kit() {
+install_tpcds_kit() {
     sudo apt-get install -y gcc make flex bison byacc git
     cd ${BENCHMARK_TOOL_HOME} && git clone https://github.com/databricks/tpcds-kit.git
     cd tpcds-kit/tools
     make OS=LINUX
 }
 
-function install_tpch_dbgen() {
+install_tpch_dbgen() {
     sudo apt-get install -y make patch unzip
     cd ${BENCHMARK_TOOL_HOME} && git clone https://github.com/databricks/tpch-dbgen
     cd tpch-dbgen && make clean && make;
 }
 
-function install_jdk8() {
+install_jdk8() {
     wget https://devops.egov.org.in/Downloads/jdk/jdk-8u192-linux-x64.tar.gz -O /tmp/jdk-8u192-linux-x64.tar.gz && \
     tar -xvf /tmp/jdk-8u192-linux-x64.tar.gz -C /tmp && \
     mv /tmp/jdk1.8.0_192 /tmp/jdk
@@ -83,19 +83,19 @@ function install_jdk8() {
     export PATH=$JAVA_HOME/bin:$PATH
 }
 
-function check_jdk8() {
+check_jdk8() {
     jdk_major_version=$(java -version 2>&1 | head -1 | cut -d'"' -f2 | sed '/^1\./s///' | cut -d'.' -f1)
     if [ ${jdk_major_version} -gt 8 ]; then
         install_jdk8
     fi
 }
 
-function remove_jdk8() {
+remove_jdk8() {
     rm /tmp/jdk-8u192-linux-x64.tar.gz
     rm -rf /tmp/jdk
 }
 
-function install_hibench() {
+install_hibench() {
     which bc > /dev/null || sudo apt-get install bc -y
     install_maven
     check_jdk8
@@ -109,22 +109,22 @@ function install_hibench() {
     remove_jdk8
 }
 
-function install_tpcds() {
+install_tpcds() {
     install_spark_sql_perf
     install_tpcds_kit
 }
 
-function install_tpch() {
+install_tpch() {
     install_spark_sql_perf
     install_tpch_dbgen
 }
 
-function clean_up() {
+clean_up() {
    sudo rm -rf /var/lib/apt/lists/*
    sudo apt-get clean
 }
 
-function usage() {
+usage() {
     echo "Usage: $0 --workload=[all|tpcds|tpch|hibench] --repository=[default|china]" >&2
     echo "Usage: $0 -h|--help"
 }

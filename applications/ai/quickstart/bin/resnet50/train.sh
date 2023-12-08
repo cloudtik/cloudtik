@@ -12,7 +12,7 @@ TRAINING_EPOCHS=5
 USE_IPEX=false
 PRECISION=fp32
 
-function usage(){
+usage(){
     echo "Usage: train.sh [ --training_epochs ] [ --ipex ] [ --precision fp32 | bf16 | bf32 ]"
     exit 1
 }

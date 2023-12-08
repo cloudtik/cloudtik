@@ -13,7 +13,7 @@ USE_IPEX=false
 PRECISION=fp32
 
 
-function usage(){
+usage(){
     echo "Usage: train.sh [ --num-batch ] [ --ipex ] [ --precision fp32 | bf16 | bf32 ]"
     exit 1
 }

@@ -14,7 +14,7 @@ if [ ! -n "${QUICKSTART_HOME}" ]; then
   exit 1
 fi
 
-function usage(){
+usage(){
     echo "Usage: prepare-data.sh  [ --phase training | inference] "
     exit 1
 }
@@ -35,7 +35,7 @@ do
 done
 
 
-function download_inference_data() {
+download_inference_data() {
     mkdir -p $SSD_RESNET34_DATA
     export DATASET_DIR=$SSD_RESNET34_DATA
 
@@ -44,7 +44,7 @@ function download_inference_data() {
 }
 
 
-function prepare_inference_model() {
+prepare_inference_model() {
     mkdir -p $SSD_RESNET34_MODEL
     export CHECKPOINT_DIR=$SSD_RESNET34_MODEL
 
@@ -53,7 +53,7 @@ function prepare_inference_model() {
 }
 
 
-function download_training_data() {
+download_training_data() {
     mkdir -p $SSD_RESNET34_DATA
     export DATASET_DIR=$SSD_RESNET34_DATA
 
@@ -62,7 +62,7 @@ function download_training_data() {
 }
 
 
-function prepare_training_model() {
+prepare_training_model() {
     mkdir -p $SSD_RESNET34_MODEL
     export CHECKPOINT_DIR=$SSD_RESNET34_MODEL
 
