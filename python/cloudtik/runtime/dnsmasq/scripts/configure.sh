@@ -14,7 +14,7 @@ DNSMASQ_HOME=$RUNTIME_PATH/dnsmasq
 # Util functions
 . "$ROOT_DIR"/common/scripts/util-functions.sh
 
-function prepare_base_conf() {
+prepare_base_conf() {
     local source_dir=$(dirname "${BIN_DIR}")/conf
     output_dir=/tmp/dnsmasq/conf
     rm -rf  $output_dir
@@ -22,7 +22,7 @@ function prepare_base_conf() {
     cp -r $source_dir/* $output_dir
 }
 
-function check_dnsmasq_installed() {
+check_dnsmasq_installed() {
     if ! command -v dnsmasq &> /dev/null
     then
         echo "dnsmasq is not installed for dnsmasq command is not available."
@@ -30,7 +30,7 @@ function check_dnsmasq_installed() {
     fi
 }
 
-function configure_dnsmasq() {
+configure_dnsmasq() {
     prepare_base_conf
 
     ETC_DEFAULT=/etc/default

@@ -15,7 +15,7 @@ USER_HOME=/home/$(whoami)
 # Hadoop cloud credential configuration functions
 . "$BIN_DIR"/hadoop-cloud-credential.sh
 
-function prepare_base_conf() {
+prepare_base_conf() {
     source_dir=$(dirname "${BIN_DIR}")/conf
     output_dir=/tmp/hadoop/conf
     rm -rf  $output_dir
@@ -31,14 +31,14 @@ function prepare_base_conf() {
     cp $output_dir/hadoop/core-site-minio.xml $output_dir/hadoop/core-site-minio-remote.xml
 }
 
-function check_hadoop_installed() {
+check_hadoop_installed() {
     if [ ! -n "${HADOOP_HOME}" ]; then
         echo "Hadoop is not installed for HADOOP_HOME environment variable is not set."
         exit 1
     fi
 }
 
-function set_hdfs_storage() {
+set_hdfs_storage() {
     if [ ! -z  "${HDFS_NAMENODE_URI}" ];then
         REMOTE_HDFS_STORAGE="true"
     else
@@ -52,7 +52,7 @@ function set_hdfs_storage() {
     fi
 }
 
-function set_minio_storage() {
+set_minio_storage() {
     if [ ! -z  "${MINIO_ENDPOINT_URI}" ];then
         REMOTE_MINIO_STORAGE="true"
     else
@@ -63,12 +63,12 @@ function set_minio_storage() {
     # it is not ready to use during head node starting process.
 }
 
-function set_cluster_storage() {
+set_cluster_storage() {
     set_hdfs_storage
     set_minio_storage
 }
 
-function update_config_for_local_hdfs() {
+update_config_for_local_hdfs() {
     if [ "${cloud_storage_provider}" != "none" ];then
         HADOOP_CORE_SITE=$output_dir/hadoop/${cloud_storage_provider}/core-site.xml
     else
@@ -83,7 +83,7 @@ function update_config_for_local_hdfs() {
     fi
 }
 
-function update_config_for_hdfs() {
+update_config_for_hdfs() {
     if [ "${cloud_storage_provider}" != "none" ]; then
         HADOOP_CORE_SITE=$output_dir/hadoop/${cloud_storage_provider}/core-site.xml
     else
@@ -99,7 +99,7 @@ function update_config_for_hdfs() {
     fi
 }
 
-function update_config_for_minio() {
+update_config_for_minio() {
     HADOOP_CORE_SITE=$output_dir/hadoop/core-site-minio.xml
     HADOOP_FS_DEFAULT="s3a://${MINIO_BUCKET}"
     sed -i "s!{%fs.default.name%}!${HADOOP_FS_DEFAULT}!g" $HADOOP_CORE_SITE
@@ -110,7 +110,7 @@ function update_config_for_minio() {
     update_minio_storage_credential_config
 }
 
-function update_config_for_aws() {
+update_config_for_aws() {
     HADOOP_CORE_SITE=$output_dir/hadoop/${cloud_storage_provider}/core-site.xml
     HADOOP_FS_DEFAULT="s3a://${AWS_S3_BUCKET}"
     sed -i "s!{%fs.default.name%}!${HADOOP_FS_DEFAULT}!g" $HADOOP_CORE_SITE
@@ -118,7 +118,7 @@ function update_config_for_aws() {
     update_cloud_storage_credential_config
 }
 
-function update_config_for_gcp() {
+update_config_for_gcp() {
     HADOOP_CORE_SITE=$output_dir/hadoop/${cloud_storage_provider}/core-site.xml
     HADOOP_FS_DEFAULT="gs://${GCP_GCS_BUCKET}"
     sed -i "s!{%fs.default.name%}!${HADOOP_FS_DEFAULT}!g" $HADOOP_CORE_SITE
@@ -126,7 +126,7 @@ function update_config_for_gcp() {
     update_cloud_storage_credential_config
 }
 
-function update_config_for_azure() {
+update_config_for_azure() {
     HADOOP_CORE_SITE=$output_dir/hadoop/${cloud_storage_provider}/core-site.xml
     if [ "$AZURE_STORAGE_TYPE" == "blob" ];then
         AZURE_SCHEMA="wasbs"
@@ -144,7 +144,7 @@ function update_config_for_azure() {
     update_cloud_storage_credential_config
 }
 
-function update_config_for_aliyun() {
+update_config_for_aliyun() {
     HADOOP_CORE_SITE=$output_dir/hadoop/${cloud_storage_provider}/core-site.xml
     HADOOP_FS_DEFAULT="oss://${ALIYUN_OSS_BUCKET}"
     sed -i "s!{%fs.default.name%}!${HADOOP_FS_DEFAULT}!g" $HADOOP_CORE_SITE
@@ -153,7 +153,7 @@ function update_config_for_aliyun() {
     update_cloud_storage_credential_config
 }
 
-function update_config_for_huaweicloud() {
+update_config_for_huaweicloud() {
     HADOOP_CORE_SITE=$output_dir/hadoop/${cloud_storage_provider}/core-site.xml
     HADOOP_FS_DEFAULT="obs://${HUAWEICLOUD_OBS_BUCKET}"
     sed -i "s!{%fs.default.name%}!${HADOOP_FS_DEFAULT}!g" $HADOOP_CORE_SITE
@@ -162,7 +162,7 @@ function update_config_for_huaweicloud() {
     update_cloud_storage_credential_config
 }
 
-function update_config_for_local_storage() {
+update_config_for_local_storage() {
     if [ "$REMOTE_HDFS_STORAGE" == "true" ]; then
         update_config_for_hdfs
     elif [ "$REMOTE_MINIO_STORAGE" == "true" ]; then
@@ -172,7 +172,7 @@ function update_config_for_local_storage() {
     fi
 }
 
-function update_config_for_hadoop_default() {
+update_config_for_hadoop_default() {
     if [ "${HADOOP_DEFAULT_CLUSTER}" == "true" ]; then
         update_config_for_local_storage
         if [ ! -z "${HADOOP_CORE_SITE}" ]; then
@@ -195,7 +195,7 @@ function update_config_for_hadoop_default() {
     fi
 }
 
-function update_nfs_dump_dir() {
+update_nfs_dump_dir() {
     # set nfs gateway dump dir
     data_disk_dir=$(get_first_data_disk_dir)
     if [ -z "$data_disk_dir" ]; then
@@ -206,7 +206,7 @@ function update_nfs_dump_dir() {
     sed -i "s!{%dfs.nfs3.dump.dir%}!${nfs_dump_dir}!g" ${output_dir}/hadoop/hdfs-site.xml
 }
 
-function update_local_storage_config_remote_hdfs() {
+update_local_storage_config_remote_hdfs() {
     REMOTE_HDFS_CONF_DIR=${HADOOP_HOME}/etc/remote
     # copy the existing hadoop conf
     mkdir -p ${REMOTE_HDFS_CONF_DIR}
@@ -221,7 +221,7 @@ function update_local_storage_config_remote_hdfs() {
     cp -r ${output_dir}/hadoop/hdfs-site.xml ${REMOTE_HDFS_CONF_DIR}/
 }
 
-function update_local_storage_config_local_hdfs() {
+update_local_storage_config_local_hdfs() {
     LOCAL_HDFS_CONF_DIR=${HADOOP_HOME}/etc/local
     # copy the existing hadoop conf
     mkdir -p ${LOCAL_HDFS_CONF_DIR}
@@ -236,7 +236,7 @@ function update_local_storage_config_local_hdfs() {
     cp -r ${output_dir}/hadoop/hdfs-site.xml ${LOCAL_HDFS_CONF_DIR}/
 }
 
-function update_local_storage_config_remote_minio() {
+update_local_storage_config_remote_minio() {
     REMOTE_MINIO_CONF_DIR=${HADOOP_HOME}/etc/remote
     # copy the existing hadoop conf
     mkdir -p ${REMOTE_MINIO_CONF_DIR}
@@ -256,7 +256,7 @@ function update_local_storage_config_remote_minio() {
     cp $HADOOP_CORE_SITE ${REMOTE_MINIO_CONF_DIR}/core-site.xml
 }
 
-function update_local_storage_config() {
+update_local_storage_config() {
     update_nfs_dump_dir
 
     if [ "${REMOTE_HDFS_STORAGE}" == "true" ]; then
@@ -270,7 +270,7 @@ function update_local_storage_config() {
     fi
 }
 
-function update_config_for_hadoop() {
+update_config_for_hadoop() {
     HADOOP_CORE_SITE=""
     HADOOP_FS_DEFAULT=""
 
@@ -285,7 +285,7 @@ function update_config_for_hadoop() {
     update_local_storage_config
 }
 
-function configure_hadoop() {
+configure_hadoop() {
     prepare_base_conf
     update_config_for_hadoop
 }

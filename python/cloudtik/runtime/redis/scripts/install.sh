@@ -16,7 +16,7 @@ export REDIS_HOME=$RUNTIME_PATH/redis
 # Util functions
 . "$ROOT_DIR"/common/scripts/util-functions.sh
 
-function install_redis() {
+install_redis() {
     if [ ! -d "${REDIS_HOME}" ]; then
         mkdir -p $RUNTIME_PATH
         local deb_arch=$(get_deb_arch)

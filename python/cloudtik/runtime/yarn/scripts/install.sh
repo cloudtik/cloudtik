@@ -21,7 +21,7 @@ export RUNTIME_PATH=$USER_HOME/runtime
 # Hadoop install function
 . "$ROOT_DIR"/common/scripts/hadoop-install.sh
 
-function install_tools() {
+install_tools() {
     which jq > /dev/null || (sudo apt-get -qq update -y > /dev/null; \
       sudo DEBIAN_FRONTEND=noninteractive apt-get -qq install jq -y > /dev/null)
 }

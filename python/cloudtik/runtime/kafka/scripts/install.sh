@@ -19,7 +19,7 @@ export RUNTIME_PATH=$USER_HOME/runtime
 # Util functions
 . "$ROOT_DIR"/common/scripts/util-functions.sh
 
-function install_kafka() {
+install_kafka() {
     # install kafka
     export KAFKA_HOME=$RUNTIME_PATH/kafka
 

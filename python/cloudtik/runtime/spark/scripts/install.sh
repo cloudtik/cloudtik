@@ -18,7 +18,7 @@ export RUNTIME_PATH=$USER_HOME/runtime
 # Util functions
 . "$ROOT_DIR"/common/scripts/util-functions.sh
 
-function install_spark() {
+install_spark() {
     # install Spark
     export SPARK_HOME=$RUNTIME_PATH/spark
 
@@ -57,7 +57,7 @@ function install_spark() {
     fi
 }
 
-function install_jupyter_for_spark() {
+install_jupyter_for_spark() {
     if [ $IS_HEAD_NODE == "true" ];then
         # Install Jupyter and spylon-kernel for Spark
         if ! type jupyter >/dev/null 2>&1; then
@@ -77,12 +77,12 @@ function install_jupyter_for_spark() {
     fi
 }
 
-function install_tools() {
+install_tools() {
     which jq > /dev/null || (sudo  apt-get -qq update -y > /dev/null; sudo DEBIAN_FRONTEND=noninteractive apt-get -qq install jq -y > /dev/null)
     which vim > /dev/null || (sudo apt-get -qq update -y > /dev/null; sudo DEBIAN_FRONTEND=noninteractive apt-get -qq install vim -y > /dev/null)
 }
 
-function install_yarn_with_spark_jars() {
+install_yarn_with_spark_jars() {
     # Copy spark jars to hadoop path
     jars=('spark-[0-9]*[0-9]-yarn-shuffle.jar' 'jackson-databind-[0-9]*[0-9].jar' 'jackson-core-[0-9]*[0-9].jar' 'jackson-annotations-[0-9]*[0-9].jar' 'metrics-core-[0-9]*[0-9].jar' 'netty-all-[0-9]*[0-9].Final.jar' 'commons-lang3-[0-9]*[0-9].jar')
     find ${HADOOP_HOME}/share/hadoop/yarn/lib -name netty-all-[0-9]*[0-9].Final.jar| xargs -i mv -f {} {}.old
@@ -93,7 +93,7 @@ function install_yarn_with_spark_jars() {
     done
 }
 
-function download_spark_cloud_jars() {
+download_spark_cloud_jars() {
     SPARK_JARS=${SPARK_HOME}/jars
     SPARK_HADOOP_CLOUD_JAR="spark-hadoop-cloud_2.12-${SPARK_VERSION}.jar"
     if [ ! -f "${SPARK_JARS}/${SPARK_HADOOP_CLOUD_JAR}" ]; then
@@ -101,7 +101,7 @@ function download_spark_cloud_jars() {
     fi
 }
 
-function install_spark_with_cloud_jars() {
+install_spark_with_cloud_jars() {
     download_spark_cloud_jars
 
     # Copy cloud storage jars of different cloud providers to Spark classpath

@@ -17,7 +17,7 @@ export MINIO_HOME=$RUNTIME_PATH/minio
 # Util functions
 . "$ROOT_DIR"/common/scripts/util-functions.sh
 
-function install_minio() {
+install_minio() {
     if [ ! -f "${MINIO_HOME}/bin/minio" ]; then
         deb_arch=$(get_deb_arch)
         mkdir -p $RUNTIME_PATH

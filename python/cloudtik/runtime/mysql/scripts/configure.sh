@@ -14,7 +14,7 @@ MYSQL_HOME=$RUNTIME_PATH/mysql
 # Util functions
 . "$ROOT_DIR"/common/scripts/util-functions.sh
 
-function prepare_base_conf() {
+prepare_base_conf() {
     local source_dir=$(dirname "${BIN_DIR}")/conf
     output_dir=/tmp/mysql/conf
     rm -rf  $output_dir
@@ -22,7 +22,7 @@ function prepare_base_conf() {
     cp -r $source_dir/* $output_dir
 }
 
-function check_mysql_installed() {
+check_mysql_installed() {
     if ! command -v mysqld &> /dev/null
     then
         echo "MySQL is not installed for mysqld command is not available."
@@ -30,7 +30,7 @@ function check_mysql_installed() {
     fi
 }
 
-function update_data_dir() {
+update_data_dir() {
     local data_disk_dir=$(get_first_data_disk_dir)
     if [ -z "$data_disk_dir" ]; then
         data_dir="${MYSQL_HOME}/data"
@@ -46,7 +46,7 @@ function update_data_dir() {
     fi
 }
 
-function update_server_id() {
+update_server_id() {
     if [ ! -n "${CLOUDTIK_NODE_SEQ_ID}" ]; then
         echo "Replication needs unique server id. No node sequence id allocated for current node!"
         exit 1
@@ -55,7 +55,7 @@ function update_server_id() {
     update_in_file "${config_template_file}" "{%server.id%}" "${CLOUDTIK_NODE_SEQ_ID}"
 }
 
-function turn_on_start_replication_on_boot() {
+turn_on_start_replication_on_boot() {
     if [ "${IS_HEAD_NODE}" != "true" ]; then
         # only do this for workers for now, head needs handle differently for group replication
         if [ "${MYSQL_CLUSTER_MODE}" == "replication" ]; then
@@ -66,7 +66,7 @@ function turn_on_start_replication_on_boot() {
     fi
 }
 
-function configure_mysql() {
+configure_mysql() {
     if [ "${IS_HEAD_NODE}" != "true" ] \
         && [ "${MYSQL_CLUSTER_MODE}" == "none" ]; then
           return

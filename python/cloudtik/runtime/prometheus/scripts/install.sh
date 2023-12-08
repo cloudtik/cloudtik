@@ -16,7 +16,7 @@ export PROMETHEUS_HOME=$RUNTIME_PATH/prometheus
 # Util functions
 . "$ROOT_DIR"/common/scripts/util-functions.sh
 
-function install_prometheus() {
+install_prometheus() {
     if [ ! -f "${PROMETHEUS_HOME}/prometheus" ]; then
         deb_arch=$(get_deb_arch)
         mkdir -p $RUNTIME_PATH

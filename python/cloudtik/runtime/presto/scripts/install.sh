@@ -18,12 +18,12 @@ export RUNTIME_PATH=$USER_HOME/runtime
 # Util functions
 . "$ROOT_DIR"/common/scripts/util-functions.sh
 
-function install_tools() {
+install_tools() {
     which uuid > /dev/null || (sudo apt-get -qq update -y > /dev/null; \
         sudo DEBIAN_FRONTEND=noninteractive apt-get -qq install uuid -y > /dev/null)
 }
 
-function install_presto() {
+install_presto() {
     # install Presto
     export PRESTO_HOME=$RUNTIME_PATH/presto
 

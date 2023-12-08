@@ -18,7 +18,7 @@
 #      Any cluster local storage mounts to DEFAULT_FS_MOUNT_PATH
 
 # Configuring functions
-function configure_fuse_options() {
+configure_fuse_options() {
     FUSE_CONF_FILE="/etc/fuse.conf"
     FIND_STR="^user_allow_other"
     if [ `grep -c "$FIND_STR" $FUSE_CONF_FILE` -eq '0' ];then
@@ -26,7 +26,7 @@ function configure_fuse_options() {
     fi
 }
 
-function get_fuse_cache_path() {
+get_fuse_cache_path() {
   fuse_cache_dir=""
   if [ -d "/mnt/cloudtik" ]; then
       for data_disk in /mnt/cloudtik/*; do
@@ -42,17 +42,17 @@ function get_fuse_cache_path() {
   echo $fuse_cache_dir
 }
 
-function configure_hdfs_fs() {
+configure_hdfs_fs() {
     configure_fuse_options
     CONFIGURED_FOR_DEFAULT_FS=true
 }
 
-function configure_local_hdfs_fs() {
+configure_local_hdfs_fs() {
     configure_fuse_options
     CONFIGURED_FOR_DEFAULT_FS=true
 }
 
-function configure_minio() {
+configure_minio() {
     # TODO: handle different credentials for local and remote service
     if [ -z "${MINIO_BUCKET}" ]; then
         echo "MINIO_BUCKET environment variable is not set."
@@ -64,11 +64,11 @@ function configure_minio() {
     CONFIGURED_FOR_DEFAULT_FS=true
 }
 
-function configure_minio_fs() {
+configure_minio_fs() {
     configure_minio
 }
 
-function configure_s3_fs() {
+configure_s3_fs() {
     if [ -z "${AWS_S3_BUCKET}" ]; then
         echo "AWS_S3A_BUCKET environment variable is not set."
         return
@@ -81,7 +81,7 @@ function configure_s3_fs() {
     CONFIGURED_FOR_DEFAULT_FS=true
 }
 
-function configure_azure_blob_fs() {
+configure_azure_blob_fs() {
     if [ "$AZURE_STORAGE_TYPE" == "blob" ];then
         AZURE_ENDPOINT="blob"
         BLOBFUSE_STORAGE_TYPE="block"
@@ -152,7 +152,7 @@ EOF
     CONFIGURED_FOR_DEFAULT_FS=true
 }
 
-function configure_gcs_fs() {
+configure_gcs_fs() {
     if [ -z "${GCP_GCS_BUCKET}" ]; then
         echo "GCP_GCS_BUCKET environment variable is not set."
         return
@@ -160,7 +160,7 @@ function configure_gcs_fs() {
     CONFIGURED_FOR_DEFAULT_FS=true
 }
 
-function configure_aliyun_oss_fs() {
+configure_aliyun_oss_fs() {
     if [ -z "${ALIYUN_OSS_BUCKET}" ]; then
         echo "ALIYUN_OSS_BUCKET environment variable is not set."
         return
@@ -173,7 +173,7 @@ function configure_aliyun_oss_fs() {
     CONFIGURED_FOR_DEFAULT_FS=true
 }
 
-function configure_cloud_storage_fs() {
+configure_cloud_storage_fs() {
     # cloud storage from provider
     if [ "$AWS_CLOUD_STORAGE" == "true" ]; then
         configure_s3_fs
@@ -186,7 +186,7 @@ function configure_cloud_storage_fs() {
     fi
 }
 
-function configure_local_storage_fs() {
+configure_local_storage_fs() {
     # In cluster local MinIO storage is not supported because
     # it is not ready to use during head node starting process.
 
@@ -218,7 +218,7 @@ function configure_local_storage_fs() {
     fi
 }
 
-function configure_storage_fs() {
+configure_storage_fs() {
     sudo mkdir -p /cloudtik
     sudo chown $(whoami) /cloudtik
 
@@ -228,7 +228,7 @@ function configure_storage_fs() {
 }
 
 # Installing functions
-function install_hdfs_fuse() {
+install_hdfs_fuse() {
     if ! type fuse_dfs >/dev/null 2>&1; then
         arch=$(uname -m)
         sudo wget -q ${CLOUDTIK_DOWNLOADS}/hadoop/fuse_dfs-${HADOOP_VERSION}-${arch} \
@@ -256,7 +256,7 @@ function install_hdfs_fuse() {
     fi
 }
 
-function install_s3_fuse() {
+install_s3_fuse() {
     if ! type s3fs >/dev/null 2>&1; then
         echo "Installing S3 Fuse..."
         sudo apt-get -qq update -y > /dev/null
@@ -264,7 +264,7 @@ function install_s3_fuse() {
     fi
 }
 
-function install_azure_blob_fuse() {
+install_azure_blob_fuse() {
     if ! type blobfuse2 >/dev/null 2>&1; then
         echo "Installing Azure Blob Fuse..."
         wget -q -N https://packages.microsoft.com/config/ubuntu/20.04/packages-microsoft-prod.deb
@@ -275,7 +275,7 @@ function install_azure_blob_fuse() {
     fi
 }
 
-function install_gcs_fuse() {
+install_gcs_fuse() {
     if ! type gcsfuse >/dev/null 2>&1; then
         echo "Installing GCS Fuse..."
         echo "deb http://packages.cloud.google.com/apt gcsfuse-bionic main" | sudo tee /etc/apt/sources.list.d/gcsfuse.list > /dev/null
@@ -286,7 +286,7 @@ function install_gcs_fuse() {
     fi
 }
 
-function install_aliyun_oss_fuse() {
+install_aliyun_oss_fuse() {
     if ! type ossfs >/dev/null 2>&1; then
         echo "Installing Aliyun OSS Fuse..."
         OSS_PACKAGE="ossfs_1.80.7_ubuntu20.04_amd64.deb"
@@ -298,7 +298,7 @@ function install_aliyun_oss_fuse() {
     fi
 }
 
-function install_cloud_storage_fs() {
+install_cloud_storage_fs() {
     # cloud storage from provider
     if [ "$AWS_CLOUD_STORAGE" == "true" ]; then
         install_s3_fuse
@@ -311,20 +311,20 @@ function install_cloud_storage_fs() {
     fi
 }
 
-function install_local_storage_fs() {
+install_local_storage_fs() {
     # always install local storage fs
     install_hdfs_fuse
     install_s3_fuse
 }
 
-function install_storage_fs() {
+install_storage_fs() {
     install_cloud_storage_fs
     install_local_storage_fs
 }
 
 # Service functions
 
-function mount_hdfs_fs() {
+mount_hdfs_fs() {
     fs_default_dir="${HDFS_NAMENODE_URI:1}"
     if [ -z "${MOUNTED_DEFAULT_FS}" ]; then
         FS_MOUNT_PATH=${DEFAULT_FS_MOUNT_PATH}
@@ -358,7 +358,7 @@ function mount_hdfs_fs() {
     fi
 }
 
-function mount_local_hdfs_fs() {
+mount_local_hdfs_fs() {
     fs_default_dir="dfs://${HEAD_IP_ADDRESS}:9000"
     if [ -z "${MOUNTED_DEFAULT_FS}" ]; then
         FS_MOUNT_PATH=${DEFAULT_FS_MOUNT_PATH}
@@ -394,7 +394,7 @@ function mount_local_hdfs_fs() {
     fi
 }
 
-function mount_minio() {
+mount_minio() {
     local endpoint_url=$1
     if [ -z "${MINIO_BUCKET}" ]; then
         echo "MINIO_BUCKET environment variable is not set."
@@ -415,11 +415,11 @@ function mount_minio() {
         -o passwd_file=~/.passwd-s3fs-minio,use_path_request_style,url=${endpoint_url} > /dev/null
 }
 
-function mount_minio_fs() {
+mount_minio_fs() {
     mount_minio $MINIO_ENDPOINT_URI
 }
 
-function mount_s3_fs() {
+mount_s3_fs() {
     if [ -z "${AWS_S3_BUCKET}" ]; then
         echo "AWS_S3_BUCKET environment variable is not set."
         return
@@ -436,7 +436,7 @@ function mount_s3_fs() {
     MOUNTED_DEFAULT_FS=${DEFAULT_FS_MOUNT_PATH}
 }
 
-function mount_azure_blob_fs() {
+mount_azure_blob_fs() {
     if [ -z "${AZURE_CONTAINER}" ]; then
         echo "AZURE_CONTAINER environment variable is not set."
         return
@@ -458,7 +458,7 @@ function mount_azure_blob_fs() {
     MOUNTED_DEFAULT_FS=${DEFAULT_FS_MOUNT_PATH}
 }
 
-function mount_gcs_fs() {
+mount_gcs_fs() {
     if [ ! -n "${GCP_GCS_BUCKET}" ]; then
         echo "GCP_GCS_BUCKET environment variable is not set."
         return
@@ -470,7 +470,7 @@ function mount_gcs_fs() {
     MOUNTED_DEFAULT_FS=${DEFAULT_FS_MOUNT_PATH}
 }
 
-function mount_aliyun_oss_fs() {
+mount_aliyun_oss_fs() {
     if [ -z "${ALIYUN_OSS_BUCKET}" ]; then
         echo "ALIYUN_OSS_BUCKET environment variable is not set."
         return
@@ -497,7 +497,7 @@ function mount_aliyun_oss_fs() {
     MOUNTED_DEFAULT_FS=${DEFAULT_FS_MOUNT_PATH}
 }
 
-function mount_cloud_storage_fs() {
+mount_cloud_storage_fs() {
     # cloud storage from provider
     if [ "$AWS_CLOUD_STORAGE" == "true" ]; then
         mount_s3_fs
@@ -510,7 +510,7 @@ function mount_cloud_storage_fs() {
     fi
 }
 
-function mount_local_storage_fs() {
+mount_local_storage_fs() {
     # cluster local storage
     HDFS_NFS_MOUNTED=false
     if [ -z "${MOUNTED_DEFAULT_FS}" ]; then
@@ -540,13 +540,13 @@ function mount_local_storage_fs() {
     fi
 }
 
-function mount_storage_fs() {
+mount_storage_fs() {
     MOUNTED_DEFAULT_FS=""
     mount_cloud_storage_fs
     mount_local_storage_fs
 }
 
-function unmount_fs() {
+unmount_fs() {
     local fs_mount_path="$1"
     if findmnt -o fstype -l -n ${fs_mount_path} >/dev/null 2>&1; then
         echo "Unmounting cloud fs at ${fs_mount_path}..."
@@ -564,7 +564,7 @@ function unmount_fs() {
     fi
 }
 
-function unmount_storage_fs() {
+unmount_storage_fs() {
     # use findmnt to check the existence and type of the mount
     # if findmnt doesn't exist, install it
     which findmnt > /dev/null || (sudo  apt-get -qq update -y > /dev/null; \

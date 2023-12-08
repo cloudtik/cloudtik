@@ -12,7 +12,7 @@ USER_HOME=/home/$(whoami)
 # Util functions
 . "$ROOT_DIR"/common/scripts/util-functions.sh
 
-function prepare_base_conf() {
+prepare_base_conf() {
     source_dir=$(dirname "${BIN_DIR}")/conf
     output_dir=/tmp/metastore/conf
     rm -rf  $output_dir
@@ -20,14 +20,14 @@ function prepare_base_conf() {
     cp -r $source_dir/* $output_dir
 }
 
-function check_hive_metastore_installed() {
+check_hive_metastore_installed() {
     if [ ! -n "${METASTORE_HOME}" ]; then
         echo "Hive Metastore is not installed."
         exit 1
     fi
 }
 
-function configure_hive_metastore() {
+configure_hive_metastore() {
     prepare_base_conf
     config_template_file=${output_dir}/hive/metastore-site.xml
 

@@ -18,7 +18,7 @@ USER_HOME=/home/$(whoami)
 RUNTIME_PATH=$USER_HOME/runtime
 PROMETHEUS_HOME=$RUNTIME_PATH/prometheus
 
-function get_data_dir() {
+get_data_dir() {
     data_disk_dir=$(get_first_data_disk_dir)
     if [ -z "$data_disk_dir" ]; then
         data_dir="${PROMETHEUS_HOME}/data"
@@ -28,7 +28,7 @@ function get_data_dir() {
     echo "${data_dir}"
 }
 
-function get_service_port() {
+get_service_port() {
     local service_port=9090
     if [ ! -z "${PROMETHEUS_SERVICE_PORT}" ]; then
         service_port=${PROMETHEUS_SERVICE_PORT}

@@ -14,7 +14,7 @@ BIND_HOME=$RUNTIME_PATH/bind
 # Util functions
 . "$ROOT_DIR"/common/scripts/util-functions.sh
 
-function prepare_base_conf() {
+prepare_base_conf() {
     local source_dir=$(dirname "${BIN_DIR}")/conf
     output_dir=/tmp/bind/conf
     rm -rf  $output_dir
@@ -22,7 +22,7 @@ function prepare_base_conf() {
     cp -r $source_dir/* $output_dir
 }
 
-function check_bind_installed() {
+check_bind_installed() {
     if ! command -v named &> /dev/null
     then
         echo "Bind is not installed for named command is not available."
@@ -30,7 +30,7 @@ function check_bind_installed() {
     fi
 }
 
-function configure_bind() {
+configure_bind() {
     prepare_base_conf
 
     BIND_LOGS_DIR=${BIND_HOME}/logs

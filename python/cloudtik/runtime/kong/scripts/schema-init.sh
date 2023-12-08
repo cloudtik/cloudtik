@@ -1,5 +1,5 @@
 
-function create_database_schema() {
+create_database_schema() {
     DATABASE_NAME=kong
     DATABASE_USER=kong
     # TODO: allow user to specify the database password
@@ -22,7 +22,7 @@ function create_database_schema() {
     fi
 }
 
-function init_schema() {
+init_schema() {
     create_database_schema
 
     ADMIN_PASSWORD=kong

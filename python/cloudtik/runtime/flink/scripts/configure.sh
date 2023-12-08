@@ -13,7 +13,7 @@ RUNTIME_PATH=$USER_HOME/runtime
 # Util functions
 . "$ROOT_DIR"/common/scripts/util-functions.sh
 
-function prepare_base_conf() {
+prepare_base_conf() {
     source_dir=$(dirname "${BIN_DIR}")/conf
     output_dir=/tmp/flink/conf
     rm -rf  $output_dir
@@ -21,7 +21,7 @@ function prepare_base_conf() {
     cp -r $source_dir/* $output_dir
 }
 
-function check_flink_installed() {
+check_flink_installed() {
     if [ ! -n "${HADOOP_HOME}" ]; then
         echo "Hadoop is not installed for HADOOP_HOME environment variable is not set."
         exit 1
@@ -33,7 +33,7 @@ function check_flink_installed() {
     fi
 }
 
-function set_resources_for_flink() {
+set_resources_for_flink() {
     # For Head Node
     if [ $IS_HEAD_NODE == "true" ];then
         flink_taskmanager_cores=$(cat ~/cloudtik_bootstrap_config.yaml | jq '."runtime"."flink"."flink_resource"."flink_taskmanager_cores"')
@@ -42,7 +42,7 @@ function set_resources_for_flink() {
     fi
 }
 
-function update_flink_storage_dirs() {
+update_flink_storage_dirs() {
     PATH_CHECKPOINTS="flink-checkpoints"
     PATH_SAVEPOINTS="flink-savepoints"
     PATH_HISTORY_SERVER="history-server"
@@ -68,7 +68,7 @@ function update_flink_storage_dirs() {
     sed -i "s!{%flink.historyserver.archive.fs.dir%}!${historyserver_archive_dir}!g" ${FLINK_CONFIG_FILE}
 }
 
-function update_flink_runtime_config() {
+update_flink_runtime_config() {
     if [ $IS_HEAD_NODE == "true" ];then
         sed -i "s/{%flink.taskmanager.numberOfTaskSlots%}/${flink_taskmanager_cores}/g" ${FLINK_CONFIG_FILE}
         sed -i "s/{%flink.taskmanager.memory.process.size%}/${flink_taskmanager_memory}/g" ${FLINK_CONFIG_FILE}
@@ -76,7 +76,7 @@ function update_flink_runtime_config() {
     fi
 }
 
-function update_flink_local_dir() {
+update_flink_local_dir() {
     # set flink local dir
     flink_local_dir=$local_dirs
     if [ -z "$flink_local_dir" ]; then
@@ -85,7 +85,7 @@ function update_flink_local_dir() {
     sed -i "s!{%flink.local.dir%}!${flink_local_dir}!g" ${FLINK_CONFIG_FILE}
 }
 
-function update_metastore_config() {
+update_metastore_config() {
     # To be improved for external metastore cluster
     if [ ! -z "$HIVE_METASTORE_URI" ] || [ "$METASTORE_ENABLED" == "true" ]; then
         if [ ! -z "$HIVE_METASTORE_URI" ]; then
@@ -114,7 +114,7 @@ function update_metastore_config() {
     fi
 }
 
-function configure_flink() {
+configure_flink() {
     prepare_base_conf
     FLINK_CONFIG_FILE=${output_dir}/flink/flink-conf.yaml
 
@@ -128,7 +128,7 @@ function configure_flink() {
     fi
 }
 
-function configure_jupyter_for_flink() {
+configure_jupyter_for_flink() {
   if [ $IS_HEAD_NODE == "true" ]; then
       mkdir -p ${RUNTIME_PATH}/jupyter/logs
 

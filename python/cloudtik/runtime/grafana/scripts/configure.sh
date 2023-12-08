@@ -14,7 +14,7 @@ GRAFANA_HOME=$RUNTIME_PATH/grafana
 # Util functions
 . "$ROOT_DIR"/common/scripts/util-functions.sh
 
-function prepare_base_conf() {
+prepare_base_conf() {
     source_dir=$(dirname "${BIN_DIR}")/conf
     output_dir=/tmp/grafana/conf
     rm -rf  $output_dir
@@ -22,7 +22,7 @@ function prepare_base_conf() {
     cp -r $source_dir/* $output_dir
 }
 
-function check_grafana_installed() {
+check_grafana_installed() {
     if ! command -v grafana &> /dev/null
     then
         echo "Grafana is not installed for grafana command is not available."
@@ -30,7 +30,7 @@ function check_grafana_installed() {
     fi
 }
 
-function get_service_port() {
+get_service_port() {
     local service_port=3000
     if [ ! -z "${GRAFANA_SERVICE_PORT}" ]; then
         service_port=${GRAFANA_SERVICE_PORT}
@@ -38,7 +38,7 @@ function get_service_port() {
     echo "${service_port}"
 }
 
-function get_data_dir() {
+get_data_dir() {
     data_disk_dir=$(get_first_data_disk_dir)
     if [ -z "$data_disk_dir" ]; then
         data_dir="${GRAFANA_HOME}/data"
@@ -48,7 +48,7 @@ function get_data_dir() {
     echo "${data_dir}"
 }
 
-function configure_grafana() {
+configure_grafana() {
     prepare_base_conf
     grafana_output_dir=$output_dir
     config_template_file=${output_dir}/grafana.ini

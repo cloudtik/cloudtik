@@ -14,7 +14,7 @@ APISIX_HOME=$RUNTIME_PATH/apisix
 # Util functions
 . "$ROOT_DIR"/common/scripts/util-functions.sh
 
-function prepare_base_conf() {
+prepare_base_conf() {
     local source_dir=$(dirname "${BIN_DIR}")/conf
     output_dir=/tmp/apisix/conf
     rm -rf  $output_dir
@@ -22,7 +22,7 @@ function prepare_base_conf() {
     cp -r $source_dir/* $output_dir
 }
 
-function check_apisix_installed() {
+check_apisix_installed() {
     if ! command -v apisix &> /dev/null
     then
         echo "APISIX is not installed for apisix command is not available."
@@ -30,7 +30,7 @@ function check_apisix_installed() {
     fi
 }
 
-function configure_apisix() {
+configure_apisix() {
     prepare_base_conf
     mkdir -p ${APISIX_HOME}/logs
 

@@ -21,7 +21,7 @@ export RUNTIME_PATH=$USER_HOME/runtime
 # Hadoop install function
 . "$ROOT_DIR"/common/scripts/hadoop-install.sh
 
-function download_hadoop_cloud_jars() {
+download_hadoop_cloud_jars() {
     HADOOP_TOOLS_LIB=${HADOOP_HOME}/share/hadoop/tools/lib
     HADOOP_HDFS_LIB=${HADOOP_HOME}/share/hadoop/hdfs/lib
 
@@ -39,7 +39,7 @@ function download_hadoop_cloud_jars() {
     done
 }
 
-function install_hadoop_with_cloud_jars() {
+install_hadoop_with_cloud_jars() {
     # Download jars are possible long running tasks and should be done on install step instead of configure step.
     download_hadoop_cloud_jars
 }

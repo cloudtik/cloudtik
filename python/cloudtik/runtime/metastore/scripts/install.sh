@@ -22,7 +22,7 @@ export RUNTIME_PATH=$USER_HOME/runtime
 # Hadoop install function
 . "$ROOT_DIR"/common/scripts/hadoop-install.sh
 
-function install_database_tools() {
+install_database_tools() {
     # TODO: install only when necessary
     sudo apt-get -qq update -y > /dev/null
     sudo DEBIAN_FRONTEND=noninteractive apt-get -qq install -y mariadb-server > /dev/null
@@ -31,7 +31,7 @@ function install_database_tools() {
       sudo DEBIAN_FRONTEND=noninteractive apt-get -qq install postgresql-client -y > /dev/null)
 }
 
-function install_hive_metastore() {
+install_hive_metastore() {
     # install hive metastore
     export METASTORE_HOME=$RUNTIME_PATH/hive-metastore
 

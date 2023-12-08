@@ -16,7 +16,7 @@ export GRAFANA_HOME=$RUNTIME_PATH/grafana
 # Util functions
 . "$ROOT_DIR"/common/scripts/util-functions.sh
 
-function install_grafana() {
+install_grafana() {
     if ! command -v grafana &> /dev/null
     then
         deb_arch=$(get_deb_arch)

@@ -18,7 +18,7 @@ export COREDNS_HOME=$RUNTIME_PATH/coredns
 . "$ROOT_DIR"/common/scripts/util-functions.sh
 
 
-function install_coredns() {
+install_coredns() {
     if [ ! -f "${COREDNS_HOME}/coredns" ]; then
         deb_arch=$(get_deb_arch)
         mkdir -p $RUNTIME_PATH

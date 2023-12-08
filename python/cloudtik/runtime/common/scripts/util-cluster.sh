@@ -1,11 +1,11 @@
 #!/bin/bash
 
-function set_head_address() {
+set_head_address() {
     set_head_ip_address
     # TODO: set the head host address when applicable
 }
 
-function set_head_ip_address() {
+set_head_ip_address() {
     if [ -z "${HEAD_IP_ADDRESS}" ]; then
         if [ $IS_HEAD_NODE == "true" ]; then
             if [ ! -n "${CLOUDTIK_NODE_IP}" ]; then
@@ -24,12 +24,12 @@ function set_head_ip_address() {
     fi
 }
 
-function set_node_address() {
+set_node_address() {
     set_node_ip_address
     # TODO: set the node host address when applicable
 }
 
-function set_node_ip_address() {
+set_node_ip_address() {
     if [ -z "${NODE_IP_ADDRESS}" ]; then
         if [ ! -n "${CLOUDTIK_NODE_IP}" ]; then
             NODE_IP_ADDRESS=$(hostname -I | awk '{print $1}')
@@ -39,7 +39,7 @@ function set_node_ip_address() {
     fi
 }
 
-function set_head_option() {
+set_head_option() {
     # this function set the head variable based on the arguments processed by getopt
     IS_HEAD_NODE=false
     while true
@@ -57,7 +57,7 @@ function set_head_option() {
     done
 }
 
-function set_service_command() {
+set_service_command() {
     # this function set the SERVICE_COMMAND
     # based on the arguments processed by getopt
     while true
@@ -73,7 +73,7 @@ function set_service_command() {
     SERVICE_COMMAND="$1"
 }
 
-function get_data_disk_dirs() {
+get_data_disk_dirs() {
     local data_disk_dirs=""
     if [ -d "/mnt/cloudtik" ]; then
         for data_disk in /mnt/cloudtik/*; do
@@ -88,7 +88,7 @@ function get_data_disk_dirs() {
     echo "${data_disk_dirs}"
 }
 
-function get_first_data_disk_dir() {
+get_first_data_disk_dir() {
     local data_disk_dir=""
     if [ -d "/mnt/cloudtik" ]; then
         for data_disk in /mnt/cloudtik/*; do
@@ -108,7 +108,7 @@ function get_first_data_disk_dir() {
 # Returns:
 #   Comma separated list of data disk paths
 #########################
-function get_data_disk_dirs_of() {
+get_data_disk_dirs_of() {
     local sub_dir="${1:?Sub directory is required}"
     local make_dir=${2:-false}
     local data_disk_dirs=""

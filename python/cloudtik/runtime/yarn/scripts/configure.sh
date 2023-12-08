@@ -13,7 +13,7 @@ RUNTIME_PATH=$USER_HOME/runtime
 # Util functions
 . "$ROOT_DIR"/common/scripts/util-functions.sh
 
-function prepare_base_conf() {
+prepare_base_conf() {
     source_dir=$(dirname "${BIN_DIR}")/conf
     output_dir=/tmp/yarn/conf
     rm -rf  $output_dir
@@ -21,14 +21,14 @@ function prepare_base_conf() {
     cp -r $source_dir/* $output_dir
 }
 
-function check_hadoop_installed() {
+check_hadoop_installed() {
     if [ ! -n "${HADOOP_HOME}" ]; then
         echo "Hadoop is not installed for HADOOP_HOME environment variable is not set."
         exit 1
     fi
 }
 
-function set_resources_for_yarn() {
+set_resources_for_yarn() {
     # For nodemanager
     memory_ratio=0.8
     if [ ! -z "${YARN_RESOURCE_MEMORY_RATIO}" ]; then
@@ -45,7 +45,7 @@ function set_resources_for_yarn() {
     fi
 }
 
-function update_yarn_config() {
+update_yarn_config() {
     yarn_scheduler_class="org.apache.hadoop.yarn.server.resourcemanager.scheduler.capacity.CapacityScheduler"
     if [ "${YARN_SCHEDULER}" == "fair" ];then
         yarn_scheduler_class="org.apache.hadoop.yarn.server.resourcemanager.scheduler.fair.FairScheduler"
@@ -64,7 +64,7 @@ function update_yarn_config() {
     fi
 }
 
-function update_data_disks_config() {
+update_data_disks_config() {
     # set nodemanager.local-dirs
     nodemanager_local_dirs=$(get_data_disk_dirs)
     if [ -z "$nodemanager_local_dirs" ]; then
@@ -73,7 +73,7 @@ function update_data_disks_config() {
     sed -i "s!{%yarn.nodemanager.local-dirs%}!${nodemanager_local_dirs}!g" $yarn_config_file
 }
 
-function configure_yarn() {
+configure_yarn() {
     prepare_base_conf
     mkdir -p ${HADOOP_HOME}/logs
     yarn_config_file=${output_dir}/hadoop/yarn-site.xml

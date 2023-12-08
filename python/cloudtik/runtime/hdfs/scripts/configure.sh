@@ -12,7 +12,7 @@ USER_HOME=/home/$(whoami)
 # Util functions
 . "$ROOT_DIR"/common/scripts/util-functions.sh
 
-function prepare_base_conf() {
+prepare_base_conf() {
     source_dir=$(dirname "${BIN_DIR}")/conf
     output_dir=/tmp/hdfs/conf
     rm -rf  $output_dir
@@ -20,14 +20,14 @@ function prepare_base_conf() {
     cp -r $source_dir/* $output_dir
 }
 
-function check_hadoop_installed() {
+check_hadoop_installed() {
     if [ ! -n "${HADOOP_HOME}" ]; then
         echo "Hadoop is not installed for HADOOP_HOME environment variable is not set."
         exit 1
     fi
 }
 
-function get_first_dfs_dir() {
+get_first_dfs_dir() {
     local data_disk_dir=$(get_first_data_disk_dir)
     if [ -z "$data_disk_dir" ]; then
         data_dir="${HADOOP_HOME}/data/dfs"
@@ -37,7 +37,7 @@ function get_first_dfs_dir() {
     echo "${data_dir}"
 }
 
-function update_hdfs_data_disks_config() {
+update_hdfs_data_disks_config() {
     local hdfs_nn_dirs=""
     local hdfs_dn_dirs=""
     if [ -d "/mnt/cloudtik" ]; then
@@ -73,7 +73,7 @@ function update_hdfs_data_disks_config() {
     sed -i "s!{%dfs.datanode.data.dir%}!${hdfs_dn_dirs}!g" ${HDFS_SITE_CONFIG}
 }
 
-function update_proxy_user_for_current_user() {
+update_proxy_user_for_current_user() {
     CURRENT_SYSTEM_USER=$(whoami)
 
     if [ "${CURRENT_SYSTEM_USER}" != "root" ]; then
@@ -91,7 +91,7 @@ function update_proxy_user_for_current_user() {
     fi
 }
 
-function update_nfs_dump_dir() {
+update_nfs_dump_dir() {
     # set nfs gateway dump dir
     data_disk_dir=$(get_first_data_disk_dir)
     if [ -z "$data_disk_dir" ]; then
@@ -102,7 +102,7 @@ function update_nfs_dump_dir() {
     sed -i "s!{%dfs.nfs3.dump.dir%}!${nfs_dump_dir}!g" ${HDFS_SITE_CONFIG}
 }
 
-function configure_hdfs() {
+configure_hdfs() {
     prepare_base_conf
     mkdir -p ${HADOOP_HOME}/logs
 

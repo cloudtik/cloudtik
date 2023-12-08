@@ -17,7 +17,7 @@ export MYSQL_HOME=$RUNTIME_PATH/mysql
 # Util functions
 . "$ROOT_DIR"/common/scripts/util-functions.sh
 
-function install_mysql() {
+install_mysql() {
     if ! command -v mysqld &> /dev/null
     then
         # download the signing key

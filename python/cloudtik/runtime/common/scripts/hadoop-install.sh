@@ -1,6 +1,6 @@
 #!/bin/bash
 
-function install_hadoop() {
+install_hadoop() {
     # Install Hadoop
     if [ -z "${USER_HOME}" ]; then
         USER_HOME=/home/$(whoami)

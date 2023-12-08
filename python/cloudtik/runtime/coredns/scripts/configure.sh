@@ -14,7 +14,7 @@ COREDNS_HOME=$RUNTIME_PATH/coredns
 # Util functions
 . "$ROOT_DIR"/common/scripts/util-functions.sh
 
-function prepare_base_conf() {
+prepare_base_conf() {
     local source_dir=$(dirname "${BIN_DIR}")/conf
     output_dir=/tmp/coredns/conf
     rm -rf  $output_dir
@@ -22,14 +22,14 @@ function prepare_base_conf() {
     cp -r $source_dir/* $output_dir
 }
 
-function check_coredns_installed() {
+check_coredns_installed() {
     if [ ! -f "${COREDNS_HOME}/coredns" ]; then
         echo "CoreDNS is not installed for coredns command is not available."
         exit 1
     fi
 }
 
-function configure_coredns() {
+configure_coredns() {
     prepare_base_conf
     mkdir -p ${COREDNS_HOME}/logs
 

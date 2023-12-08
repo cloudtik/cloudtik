@@ -14,7 +14,7 @@ RUNTIME_PATH=$USER_HOME/runtime
 # Util functions
 . "$ROOT_DIR"/common/scripts/util-functions.sh
 
-function set_zookeeper_connect() {
+set_zookeeper_connect() {
     while true
     do
         case "$1" in
@@ -31,7 +31,7 @@ function set_zookeeper_connect() {
     done
 }
 
-function prepare_base_conf() {
+prepare_base_conf() {
     source_dir=$(cd $(dirname ${BASH_SOURCE[0]})/..;pwd)/conf
     output_dir=/tmp/kafka/conf
     rm -rf  $output_dir
@@ -39,14 +39,14 @@ function prepare_base_conf() {
     cp -r $source_dir/* $output_dir
 }
 
-function check_kafka_installed() {
+check_kafka_installed() {
     if [ ! -n "${KAFKA_HOME}" ]; then
         echo "KAFKA_HOME environment variable is not set."
         exit 1
     fi
 }
 
-function update_kafka_data_disks_config() {
+update_kafka_data_disks_config() {
     local kafka_data_dir=$(get_data_disk_dirs_of "kafka/data" true)
     # if no disks mounted
     if [ -z "$kafka_data_dir" ]; then
@@ -57,7 +57,7 @@ function update_kafka_data_disks_config() {
     sed -i "s!{%kafka.log.dir%}!${kafka_data_dir}!g" $output_dir/kafka/server.properties
 }
 
-function update_broker_id() {
+update_broker_id() {
     # Configure my id file
     if [ ! -n "${CLOUDTIK_NODE_SEQ_ID}" ]; then
         echo "No node sequence id allocated for current node!"
@@ -67,7 +67,7 @@ function update_broker_id() {
     sed -i "s!{%kafka.broker.id%}!${CLOUDTIK_NODE_SEQ_ID}!g" $output_dir/kafka/server.properties
 }
 
-function update_zookeeper_connect() {
+update_zookeeper_connect() {
     # Update zookeeper connect
     if [ -z "$ZOOKEEPER_CONNECT" ]; then
         echo "No zookeeper connect parameter specified!"
@@ -77,12 +77,12 @@ function update_zookeeper_connect() {
     sed -i "s!{%kafka.zookeeper.connect%}!${ZOOKEEPER_CONNECT}!g" $output_dir/kafka/server.properties
 }
 
-function update_listeners() {
+update_listeners() {
     kafka_listeners="PLAINTEXT://${NODE_IP_ADDRESS}:9092"
     sed -i "s!{%kafka.listeners%}!${kafka_listeners}!g" $output_dir/kafka/server.properties
 }
 
-function configure_kafka() {
+configure_kafka() {
     prepare_base_conf
     mkdir -p ${KAFKA_HOME}/logs
     cd $output_dir

@@ -18,7 +18,7 @@ export RUNTIME_PATH=$USER_HOME/runtime
 # Util functions
 . "$ROOT_DIR"/common/scripts/util-functions.sh
 
-function install_flink() {
+install_flink() {
     # install Flink
     export FLINK_HOME=$RUNTIME_PATH/flink
 
@@ -54,7 +54,7 @@ function install_flink() {
     fi
 }
 
-function install_jupyter_for_flink() {
+install_jupyter_for_flink() {
     if [ $IS_HEAD_NODE == "true" ];then
         # Install Jupyter and spylon-kernel for Flink
         if ! type jupyter >/dev/null 2>&1; then
@@ -74,12 +74,12 @@ function install_jupyter_for_flink() {
     fi
 }
 
-function install_tools() {
+install_tools() {
     which jq > /dev/null || (sudo apt-get -qq update -y > /dev/null; sudo DEBIAN_FRONTEND=noninteractive apt-get -qq install jq -y > /dev/null)
     which vim > /dev/null || (sudo apt-get -qq update -y > /dev/null; sudo DEBIAN_FRONTEND=noninteractive apt-get -qq install vim -y > /dev/null)
 }
 
-function download_flink_cloud_jars() {
+download_flink_cloud_jars() {
     FLINK_JARS=${FLINK_HOME}/jars
     FLINK_HADOOP_CLOUD_JAR="flink-hadoop-cloud_2.12-${FLINK_VERSION}.jar"
     if [ ! -f "${FLINK_JARS}/${FLINK_HADOOP_CLOUD_JAR}" ]; then
@@ -87,7 +87,7 @@ function download_flink_cloud_jars() {
     fi
 }
 
-function install_flink_with_cloud_jars() {
+install_flink_with_cloud_jars() {
     download_flink_cloud_jars
 
     # Copy cloud storage jars of different cloud providers to Flink classpath

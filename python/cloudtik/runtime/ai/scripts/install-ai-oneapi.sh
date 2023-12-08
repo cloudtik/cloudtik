@@ -1,6 +1,6 @@
 #!/bin/bash
 
-function setup_oneapi_repository() {
+setup_oneapi_repository() {
     wget -O- -q https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB \
         | gpg --dearmor | sudo tee /usr/share/keyrings/oneapi-archive-keyring.gpg > /dev/null \
     && echo "deb [signed-by=/usr/share/keyrings/oneapi-archive-keyring.gpg] https://apt.repos.intel.com/oneapi all main" \
@@ -8,11 +8,11 @@ function setup_oneapi_repository() {
     && sudo apt-get update -y > /dev/null
 }
 
-function cleanup_oneapi_repository() {
+cleanup_oneapi_repository() {
     sudo rm -f /etc/apt/sources.list.d/oneAPI.list
 }
 
-function install_oneapi_mpi() {
+install_oneapi_mpi() {
     echo "Installing Intel MPI..."
     ONEAPI_MPI_HOME=/opt/intel/oneapi/mpi
     if [ ! -d "${ONEAPI_MPI_HOME}" ]; then
@@ -23,7 +23,7 @@ function install_oneapi_mpi() {
     source ${ONEAPI_MPI_HOME}/latest/env/vars.sh
 }
 
-function install_oneapi_ccl() {
+install_oneapi_ccl() {
     echo "Installing oneCCL..."
     ONEAPI_COMPILER_HOME=/opt/intel/oneapi/compiler
     ONEAPI_TBB_HOME=/opt/intel/oneapi/tbb
@@ -56,7 +56,7 @@ function install_oneapi_ccl() {
     export HOROVOD_CPU_OPERATIONS=CCL
 }
 
-function install_ipex() {
+install_ipex() {
     CLOUDTIK_ENV_ROOT=$(dirname $(dirname $(which cloudtik)))
     # Install Jemalloc and Intel OpenMP for better performance
     conda install jemalloc intel-openmp -p ${CLOUDTIK_ENV_ROOT} -y > /dev/null
@@ -64,7 +64,7 @@ function install_ipex() {
         oneccl_bind_pt==1.13.0+cpu -f https://developer.intel.com/ipex-whl-stable-cpu
 }
 
-function install_ai_oneapi() {
+install_ai_oneapi() {
     setup_oneapi_repository
 
     install_oneapi_mpi

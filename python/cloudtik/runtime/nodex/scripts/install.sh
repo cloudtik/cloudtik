@@ -16,7 +16,7 @@ export NODEX_HOME=$RUNTIME_PATH/nodex
 # Util functions
 . "$ROOT_DIR"/common/scripts/util-functions.sh
 
-function install_nodex() {
+install_nodex() {
     if [ ! -f "${NODEX_HOME}/nodex" ]; then
         deb_arch=$(get_deb_arch)
         mkdir -p $RUNTIME_PATH

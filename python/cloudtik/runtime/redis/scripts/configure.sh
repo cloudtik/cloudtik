@@ -14,7 +14,7 @@ REDIS_HOME=$RUNTIME_PATH/redis
 # Util functions
 . "$ROOT_DIR"/common/scripts/util-functions.sh
 
-function prepare_base_conf() {
+prepare_base_conf() {
     local source_dir=$(dirname "${BIN_DIR}")/conf
     output_dir=/tmp/redis/conf
     rm -rf  $output_dir
@@ -22,14 +22,14 @@ function prepare_base_conf() {
     cp -r $source_dir/* $output_dir
 }
 
-function check_redis_installed() {
+check_redis_installed() {
     if [ ! -d "${REDIS_HOME}" ]; then
         echo "ERROR: Redis is not installed."
         exit 1
     fi
 }
 
-function update_data_dir() {
+update_data_dir() {
     local data_disk_dir=$(get_first_data_disk_dir)
     if [ -z "$data_disk_dir" ]; then
         data_dir="${REDIS_HOME}/data"
@@ -41,7 +41,7 @@ function update_data_dir() {
     update_in_file "${config_template_file}" "{%data.dir%}" "${data_dir}"
 }
 
-function update_server_id() {
+update_server_id() {
     if [ ! -n "${CLOUDTIK_NODE_SEQ_ID}" ]; then
         echo "Replication needs unique server id. No node sequence id allocated for current node!"
         exit 1
@@ -50,7 +50,7 @@ function update_server_id() {
     update_in_file "${config_template_file}" "{%server.id%}" "${CLOUDTIK_NODE_SEQ_ID}"
 }
 
-function configure_redis() {
+configure_redis() {
     if [ "${IS_HEAD_NODE}" != "true" ] \
         && [ "${REDIS_CLUSTER_MODE}" == "none" ]; then
           return

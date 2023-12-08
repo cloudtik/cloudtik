@@ -13,7 +13,7 @@ RUNTIME_PATH=$USER_HOME/runtime
 # Util functions
 . "$ROOT_DIR"/common/scripts/util-functions.sh
 
-function prepare_base_conf() {
+prepare_base_conf() {
     source_dir=$(dirname "${BIN_DIR}")/conf
     output_dir=/tmp/zookeeper/conf
     rm -rf  $output_dir
@@ -21,14 +21,14 @@ function prepare_base_conf() {
     cp -r $source_dir/* $output_dir
 }
 
-function check_zookeeper_installed() {
+check_zookeeper_installed() {
     if [ ! -n "${ZOOKEEPER_HOME}" ]; then
         echo "ZOOKEEPER_HOME environment variable is not set."
         exit 1
     fi
 }
 
-function update_zookeeper_data_disks_config() {
+update_zookeeper_data_disks_config() {
     local data_disk_dir=$(get_first_data_disk_dir)
     if [ -z "$data_disk_dir" ]; then
         zookeeper_data_dir="${ZOOKEEPER_HOME}/data"
@@ -40,7 +40,7 @@ function update_zookeeper_data_disks_config() {
     sed -i "s!{%zookeeper.dataDir%}!${zookeeper_data_dir}!g" $output_dir/zookeeper/zoo.cfg
 }
 
-function update_myid() {
+update_myid() {
     # Configure my id file
     if [ ! -n "${CLOUDTIK_NODE_SEQ_ID}" ]; then
         echo "No node sequence id allocated for current node!"
@@ -50,7 +50,7 @@ function update_myid() {
     sed -i "s!{%zookeeper.myid%}!${CLOUDTIK_NODE_SEQ_ID}!g" $output_dir/zookeeper/myid
 }
 
-function configure_zookeeper() {
+configure_zookeeper() {
     prepare_base_conf
     mkdir -p ${ZOOKEEPER_HOME}/logs
 
