@@ -46,19 +46,11 @@ function retrieve_resources() {
 }
 
 function update_trino_data_disks_config() {
-    trino_data_dir=""
-    if [ -d "/mnt/cloudtik" ]; then
-        for data_disk in /mnt/cloudtik/*; do
-            [ -d "$data_disk" ] || continue
-            if [ -z "$trino_data_dir" ]; then
-                trino_data_dir=$data_disk/trino/data
-            fi
-        done
-    fi
-
-    # if no disks mounted on /mnt/cloudtik
-    if [ -z "$trino_data_dir" ]; then
-        trino_data_dir="${RUNTIME_PATH}/shared/trino/data"
+    local data_disk_dir=$(get_first_data_disk_dir)
+    if [ -z "$data_disk_dir" ]; then
+        trino_data_dir="${TRINO_HOME}/data"
+    else
+        trino_data_dir="$data_disk_dir/trino/data"
     fi
 
     mkdir -p $trino_data_dir

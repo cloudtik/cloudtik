@@ -40,19 +40,11 @@ function retrieve_resources() {
 }
 
 function update_presto_data_disks_config() {
-    presto_data_dir=""
-    if [ -d "/mnt/cloudtik" ]; then
-        for data_disk in /mnt/cloudtik/*; do
-            [ -d "$data_disk" ] || continue
-            if [ -z "$presto_data_dir" ]; then
-                presto_data_dir=$data_disk/presto/data
-            fi
-        done
-    fi
-
-    # if no disks mounted on /mnt/cloudtik
-    if [ -z "$presto_data_dir" ]; then
-        presto_data_dir="${RUNTIME_PATH}/shared/presto/data"
+    local data_disk_dir=$(get_first_data_disk_dir)
+    if [ -z "$data_disk_dir" ]; then
+        presto_data_dir="${PRESTO_HOME}/data"
+    else
+        presto_data_dir="$data_disk_dir/presto/data"
     fi
 
     mkdir -p $presto_data_dir

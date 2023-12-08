@@ -1,9 +1,11 @@
+import os
 import re
 import logging
 
 from kubernetes.client.rest import ApiException
 
 from cloudtik.core._private.cli_logger import cli_logger
+from cloudtik.core._private.constants import CLOUDTIK_DATA_DISK_MOUNT_POINT, CLOUDTIK_DATA_DISK_MOUNT_NAME_PREFIX
 from cloudtik.core._private.utils import _is_permanent_data_volumes
 from cloudtik.core.tags import CLOUDTIK_TAG_CLUSTER_NAME, CLOUDTIK_TAG_NODE_SEQ_ID, CLOUDTIK_TAG_NODE_NAME
 from cloudtik.providers._private._kubernetes import core_api
@@ -261,6 +263,8 @@ def _configure_pvc_for_pod(pod_pvcs, _pod_spec):
     new_volumes = []
     new_mounts = []
     index = 1
+    mount_path_prefix = os.path.join(
+        CLOUDTIK_DATA_DISK_MOUNT_POINT, CLOUDTIK_DATA_DISK_MOUNT_NAME_PREFIX)
     for pod_pvc in pod_pvcs:
         volume_name = "data-disk-{}".format(index)
         volume = {
@@ -270,7 +274,7 @@ def _configure_pvc_for_pod(pod_pvcs, _pod_spec):
             }
         }
         mount = {
-            "mountPath": "/mnt/cloudtik/data_disk_{}".format(index),
+            "mountPath": "{}{}".format(mount_path_prefix, index),
             "name": volume_name,
         }
         new_volumes.append(volume)

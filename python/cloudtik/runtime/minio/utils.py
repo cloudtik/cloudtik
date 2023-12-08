@@ -253,8 +253,7 @@ def _get_minio_volumes(
 
 
 def _get_data_dir_spec():
-    # List the existing data directories in mnt/cloudtik and get the data disk number
-    # mnt/cloudtik/data-disk{1...4}/minio
+    # List the existing data directories and get the data disk number
     data_disk_dirs = get_data_disk_dirs()
     if not data_disk_dirs:
         # use MinIO home data path if there is no disk mounted
@@ -263,7 +262,7 @@ def _get_data_dir_spec():
 
     number_disk = len(data_disk_dirs)
     data_disk_prefix = os.path.join(
-        CLOUDTIK_DATA_DISK_MOUNT_POINT, CLOUDTIK_DATA_DISK_MOUNT_NAME_PREFIX + "_")
+        CLOUDTIK_DATA_DISK_MOUNT_POINT, CLOUDTIK_DATA_DISK_MOUNT_NAME_PREFIX)
     if number_disk > 1:
         return data_disk_prefix + "{1..." + str(number_disk) + "}/minio"
     else:
@@ -282,7 +281,6 @@ def _get_server_pool_spec(
     if server_pool_size == 1:
         expansion = str(id_start + 1)
     else:
-        # http://cluster-name-{1...n}.workspace-name.cloudtik:9000/mnt/cloudtik/data-disk{1...n}/minio
         id_end = id_start + server_pool_size
         expansion = "{" + str(id_start + 1) + "..." + str(id_end) + "}"
 

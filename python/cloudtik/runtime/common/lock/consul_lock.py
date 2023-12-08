@@ -152,7 +152,7 @@ class ConsulLock(Lock):
         acquired = False
         max_attempts = LOCK_MAX_ATTEMPTS  # don't loop forever
         for attempt in range(0, max_attempts):
-            acquired = self._acquire_consul_key()
+            acquired = self._acquire_key()
 
             # exponential backoff yo
             sleep_ms = 50 * pow(attempt, 2)
@@ -172,7 +172,15 @@ class ConsulLock(Lock):
         else:
             return acquired
 
-    def _acquire_consul_key(self):
+    def release(self):
+        """
+        Release the lock immediately. Does nothing if never locked.
+        """
+        if not self._started_acquiring:
+            return False
+        return self._release_key()
+
+    def _acquire_key(self):
         assert self.session_id, 'Must have a session id to acquire key'
         data = dict(locked_at=str(datetime.now()))
         return acquire_key(
@@ -181,16 +189,10 @@ class ConsulLock(Lock):
             data=data,
         )
 
-    def release(self):
-        """
-        Release the lock immediately. Does nothing if never locked.
-        """
-        if not self._started_acquiring:
-            return False
-
+    def _release_key(self):
+        assert self.session_id, 'Must have a session id to release key'
         # destroying the session will is the safest way to release the lock. we'd like to delete the
         # key, but since it's possible we don't actually have the lock anymore (in distributed systems,
         # there is no spoon). It's best to just destroy the session and let the lock get cleaned up by
         # Consul.
         return destroy_session(session_id=self.session_id)
-

@@ -43,32 +43,32 @@ function update_hdfs_data_disks_config() {
     if [ -d "/mnt/cloudtik" ]; then
         for data_disk in /mnt/cloudtik/*; do
             [ -d "$data_disk" ] || continue
+            local data_dir="$data_disk/dfs"
             if [ "$HDFS_FORCE_CLEAN" == "true" ]; then
-                sudo rm -rf $data_disk/dfs
+                sudo rm -rf "$data_dir"
             fi
             if [ -z "$hdfs_nn_dirs" ]; then
-                hdfs_nn_dirs=$data_disk/dfs/nn
+                hdfs_nn_dirs="$data_dir/nn"
             else
-                hdfs_nn_dirs="$hdfs_nn_dirs,$data_disk/dfs/nn"
+                hdfs_nn_dirs="$hdfs_nn_dirs,$data_dir/nn"
             fi
             if [ -z "$hdfs_dn_dirs" ]; then
-                hdfs_dn_dirs=$data_disk/dfs/dn
+                hdfs_dn_dirs="$data_dir/dn"
             else
-                hdfs_dn_dirs="$hdfs_dn_dirs,$data_disk/dfs/dn"
+                hdfs_dn_dirs="$hdfs_dn_dirs,$data_dir/dn"
             fi
         done
     fi
 
-    # if no disks mounted on /mnt/cloudtik
+    # if no disks mounted
     if [ -z "$hdfs_nn_dirs" ]; then
         if [ "$HDFS_FORCE_CLEAN" == "true" ]; then
             sudo rm -rf "${HADOOP_HOME}/data/dfs"
         fi
         hdfs_nn_dirs="${HADOOP_HOME}/data/dfs/nn"
-    fi
-    if [ -z "$hdfs_dn_dirs" ]; then
         hdfs_dn_dirs="${HADOOP_HOME}/data/dfs/dn"
     fi
+
     sed -i "s!{%dfs.namenode.name.dir%}!${hdfs_nn_dirs}!g" ${HDFS_SITE_CONFIG}
     sed -i "s!{%dfs.datanode.data.dir%}!${hdfs_dn_dirs}!g" ${HDFS_SITE_CONFIG}
 }

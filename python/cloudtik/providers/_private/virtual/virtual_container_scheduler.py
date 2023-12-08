@@ -12,6 +12,7 @@ from typing import Dict, Optional, Any, List
 from cloudtik.core._private.call_context import CallContext
 from cloudtik.core._private.cli_logger import cli_logger
 from cloudtik.core._private.command_executor.docker_command_executor import DockerCommandExecutor
+from cloudtik.core._private.constants import CLOUDTIK_DATA_DISK_MOUNT_POINT, CLOUDTIK_DATA_DISK_MOUNT_NAME_PREFIX
 from cloudtik.core._private.core_utils import get_memory_in_bytes
 from cloudtik.core._private.state.file_state_store import FileStateStore
 from cloudtik.core._private.utils import DOCKER_CONFIG_KEY, AUTH_CONFIG_KEY, FILE_MOUNTS_CONFIG_KEY, \
@@ -33,8 +34,8 @@ VIRTUAL_TAG_EXTERNAL_IP = "virtual-external-ip"
 
 STATE_MOUNT_PATH = "/cloudtik/state"
 DATA_MOUNT_PATH = "/cloudtik/data"
-DATA_DISK_MOUNT_PATH = "/mnt/cloudtik"
-DATA_DISK_MOUNT_PATH_PATTERN = DATA_DISK_MOUNT_PATH + "/data_disk_"
+DATA_DISK_MOUNT_PATH = CLOUDTIK_DATA_DISK_MOUNT_POINT
+DATA_DISK_MOUNT_PATH_PATTERN = DATA_DISK_MOUNT_PATH + "/" + CLOUDTIK_DATA_DISK_MOUNT_NAME_PREFIX
 
 INSPECT_FORMAT = (
     '{'
@@ -501,7 +502,8 @@ class VirtualContainerScheduler:
                 run_env="host")
             # create a data disk for node
             target_data_disk = os.path.join(
-                DATA_DISK_MOUNT_PATH, "data_disk_{}".format(disk_index))
+                DATA_DISK_MOUNT_PATH, "{}{}".format(
+                    CLOUDTIK_DATA_DISK_MOUNT_NAME_PREFIX, disk_index))
             file_mounts[target_data_disk] = host_container_data_disk
             disk_index += 1
 

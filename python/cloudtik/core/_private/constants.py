@@ -220,7 +220,7 @@ DEFAULT_PROXY_PORT = 6000
 
 # The mount point path of the data disks on both host and container
 CLOUDTIK_DATA_DISK_MOUNT_POINT = "/mnt/cloudtik"
-CLOUDTIK_DATA_DISK_MOUNT_NAME_PREFIX = "data_disk"
+CLOUDTIK_DATA_DISK_MOUNT_NAME_PREFIX = "data_disk_"
 
 # The default location of downloading cloudtik wheels
 CLOUDTIK_WHEELS = "https://d30257nes7d4fq.cloudfront.net/downloads/cloudtik"
