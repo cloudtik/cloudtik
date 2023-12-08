@@ -115,14 +115,14 @@ function get_data_disk_dirs_of() {
     if [ -d "/mnt/cloudtik" ]; then
         for data_disk in /mnt/cloudtik/*; do
             [ -d "$data_disk" ] || continue
-            local full_data_dir="$data_disk/$sub_dir"
+            local data_dir="$data_disk/$sub_dir"
             if [[ $make_dir = true ]]; then
-              mkdir -p "$full_data_dir"
+              mkdir -p "$data_dir"
             fi
             if [ -z "$data_disk_dirs" ]; then
-                data_disk_dirs="$full_data_dir"
+                data_disk_dirs="$data_dir"
             else
-                data_disk_dirs="$data_disk_dirs,$full_data_dir"
+                data_disk_dirs="$data_disk_dirs,$data_dir"
             fi
         done
     fi
