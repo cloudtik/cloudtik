@@ -20,8 +20,8 @@ from cloudtik.core._private.state import kv_store
 from cloudtik.core._private.state.kv_store import kv_initialize_with_address
 from cloudtik.core._private.utils import CLOUDTIK_CLUSTER_SCALING_ERROR, \
     CLOUDTIK_CLUSTER_SCALING_STATUS, get_head_bootstrap_config, \
-    load_head_cluster_config, parse_bundles_json, parse_resources, prepare_runtime_config_on_head, _get_worker_node_ips, \
-    get_cluster_head_ip
+    load_head_cluster_config, parse_bundles_json, parse_resources, prepare_runtime_config_on_head, \
+    _get_worker_node_ips, get_cluster_head_ip
 from cloudtik.scripts.utils import NaturalOrderGroup, add_command_alias
 
 logger = logging.getLogger(__name__)
