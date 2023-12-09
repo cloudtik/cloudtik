@@ -3,6 +3,7 @@ from typing import Any, Dict
 
 from cloudtik.core._private.core_utils import get_config_for_update
 from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_REDIS
+from cloudtik.core._private.runtime_utils import get_first_data_disk_dir, get_worker_ips_ready_from_head
 from cloudtik.core._private.service_discovery.utils import \
     get_canonical_service_name, define_runtime_service, \
     get_service_discovery_config, SERVICE_DISCOVERY_FEATURE_KEY_VALUE, define_runtime_service_on_head, \
@@ -232,13 +233,62 @@ def _get_runtime_services(
 # Calls from node at runtime
 ###################################
 
-def start_service_for_sharding():
+
+def _get_data_dir():
+    data_disk_dir = get_first_data_disk_dir()
+    if data_disk_dir:
+        data_dir = os.path.join(data_disk_dir, "redis", "data")
+    else:
+        data_dir = os.path.join(_get_home_dir(), "data")
+    return data_dir
+
+
+def init_cluster_service(head):
     # TODO: choose to do one of the following:
+    #  0. Do nothing if the node already done with joining the cluster
     #  1. Join to the bootstrap list
     #  2. Bootstrap the initial cluster
     #  3. Join the cluster as master and do a re-sharding
     #  4. Join the cluster as replica
-    #  5. Do nothing if the node joined the cluster
 
     # We store a file in data dir to mark the node has initialized
+    data_dir = _get_data_dir()
+    cluster_init_file = os.path.join(data_dir, "cluster.init")
+    if os.path.isfile(cluster_init_file):
+        # already initialized
+        return
+
+    # if we are not initialized, the head will bootstrap the sharding
+    if head:
+        # For head, check whether there are workers running, if this is the case
+        # it means that the head is doing a cold restart (without original storage)
+        # This share be the rare cases for a storage cluster.
+        # For such cases, we assume that the existing workers are doing right and
+        # the head is act as any other new workers to join the sharding the cluster
+        # by contacting one of the live workers (or retry with others if fail)
+        # WARNING: we should also avoid the case that if there are running workers
+        # but they are not ready and then the head node get a restart.
+        worker_ips = get_worker_ips_ready_from_head(
+            runtime=BUILT_IN_RUNTIME_REDIS)
+        if not worker_ips:
+            bootstrap_cluster()
+        else:
+            join_cluster_with_workers(worker_ips)
+    else:
+        # For workers, we assume the head must be bootstrapped and running
+        join_cluster_with_head()
+
+
+def bootstrap_cluster():
+    # TODO: Bootstrap from head
+    pass
+
+
+def join_cluster_with_workers(worker_ips):
+    # TODO: Head cold restart with running workers
+    pass
+
+
+def join_cluster_with_head():
+    # TODO: Join a new worker with head
     pass

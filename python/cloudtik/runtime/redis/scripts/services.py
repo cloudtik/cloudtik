@@ -2,7 +2,7 @@ import argparse
 
 from cloudtik.core._private.runtime_utils import get_runtime_value
 from cloudtik.runtime.redis.utils import REDIS_CLUSTER_MODE_SHARDING, \
-    start_service_for_sharding
+    init_cluster_service
 
 
 def main():
@@ -24,7 +24,7 @@ def main():
     cluster_mode = get_runtime_value("REDIS_CLUSTER_MODE")
     if (cluster_mode == REDIS_CLUSTER_MODE_SHARDING and
             args.command == "start"):
-        start_service_for_sharding()
+        init_cluster_service(args.head)
 
 
 if __name__ == "__main__":

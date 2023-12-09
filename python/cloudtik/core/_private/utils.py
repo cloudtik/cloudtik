@@ -48,8 +48,7 @@ from cloudtik.core._private.provider_factory import _get_default_config, _get_no
 from cloudtik.core._private.docker import validate_docker_config
 from cloudtik.core.scaling_policy import ScalingState
 from cloudtik.core.tags import CLOUDTIK_TAG_USER_NODE_TYPE, CLOUDTIK_TAG_NODE_STATUS, STATUS_UP_TO_DATE, \
-    STATUS_UPDATE_FAILED, CLOUDTIK_TAG_NODE_KIND, NODE_KIND_HEAD
-
+    STATUS_UPDATE_FAILED, CLOUDTIK_TAG_NODE_KIND, NODE_KIND_HEAD, NODE_KIND_WORKER
 
 REQUIRED, OPTIONAL = True, False
 
@@ -2168,6 +2167,76 @@ def get_node_info(provider, node, extras: bool = False,
         node_info.update(resource_info)
 
     return node_info
+
+
+def _get_sorted_nodes_info(provider, nodes):
+    nodes_info = get_nodes_info(provider, nodes)
+
+    # sort nodes info based on node type and then node ip for workers
+    def node_info_sort(node_info):
+        node_ip = node_info[NODE_INFO_NODE_IP]
+        node_ip_addr = int(
+            ipaddr.IPAddress(node_ip)) if node_ip else 0
+        return [node_info[CLOUDTIK_TAG_NODE_KIND], node_ip_addr]
+
+    nodes_info.sort(key=node_info_sort)
+    return nodes_info
+
+
+def _get_number_of_node_in_status(node_info_list, status):
+    num_nodes = 0
+    for node_info in node_info_list:
+        if status == node_info.get(CLOUDTIK_TAG_NODE_STATUS):
+            num_nodes += 1
+    return num_nodes
+
+
+def _get_nodes_info_in_status(node_info_list, status):
+    return [node_info for node_info in node_info_list if status == node_info.get(
+        CLOUDTIK_TAG_NODE_STATUS)]
+
+
+def _get_nodes_in_status(provider, nodes: List[str], node_status: str) -> List[str]:
+    return [node for node in nodes if is_node_in_status(provider, node, node_status)]
+
+
+def is_node_in_status(provider, node: str, node_status: str):
+    node_info = provider.get_node_info(node)
+    return True if node_status == node_info.get(CLOUDTIK_TAG_NODE_STATUS) else False
+
+
+def _get_worker_nodes(config: Dict[str, Any]) -> List[str]:
+    """Returns worker node ids for given configuration."""
+    # Technically could be reused in get_worker_node_ips
+    provider = _get_node_provider(config["provider"], config["cluster_name"])
+    return provider.non_terminated_nodes({CLOUDTIK_TAG_NODE_KIND: NODE_KIND_WORKER})
+
+
+def _get_worker_node_ips(
+        config: Dict[str, Any], runtime: str = None,
+        node_status: str = None) -> List[str]:
+    provider = _get_node_provider(config["provider"], config["cluster_name"])
+    nodes = provider.non_terminated_nodes({
+        CLOUDTIK_TAG_NODE_KIND: NODE_KIND_WORKER
+    })
+
+    if runtime is not None:
+        # Filter the nodes for the specific runtime only
+        nodes = get_nodes_for_runtime(config, nodes, runtime)
+
+    if node_status:
+        nodes = _get_nodes_in_status(provider, nodes, node_status)
+
+    return [get_node_cluster_ip(provider, node) for node in nodes]
+
+
+def _get_workers_ready(config: Dict[str, Any], provider):
+    workers = _get_worker_nodes(config)
+    workers_info = get_nodes_info(provider, workers)
+
+    # get working nodes which are ready
+    workers_ready = _get_number_of_node_in_status(workers_info, STATUS_UP_TO_DATE)
+    return workers_ready
 
 
 def get_resource_info_of_node_type(node_type, available_node_types):

@@ -8,9 +8,11 @@ from cloudtik.core._private.constants import CLOUDTIK_RUNTIME_ENV_NODE_TYPE, CLO
     CLOUDTIK_RUNTIME_ENV_SECRETS, CLOUDTIK_RUNTIME_ENV_HEAD_IP, env_bool, CLOUDTIK_DATA_DISK_MOUNT_POINT, \
     CLOUDTIK_DATA_DISK_MOUNT_NAME_PREFIX
 from cloudtik.core._private.crypto import AESCipher
+from cloudtik.core._private.provider_factory import _get_node_provider
 from cloudtik.core._private.utils import load_head_cluster_config, _get_node_type_specific_runtime_config, \
-    get_runtime_config_key, _get_key_from_kv, decode_cluster_secrets, CLOUDTIK_CLUSTER_NODES_INFO_NODE_TYPE
-
+    get_runtime_config_key, _get_key_from_kv, decode_cluster_secrets, CLOUDTIK_CLUSTER_NODES_INFO_NODE_TYPE, \
+    _get_worker_nodes, _get_workers_ready, _get_worker_node_ips
+from cloudtik.core.tags import STATUS_UP_TO_DATE
 
 RUNTIME_NODE_ID = "node_id"
 RUNTIME_NODE_IP = "node_ip"
@@ -177,4 +179,24 @@ def get_data_disk_dirs():
         if not os.path.isdir(data_disk_dir):
             continue
         data_disk_dirs.append(data_disk_dir)
-    return data_disk_dirs
+    # Return sorted to make sure the dirs are in order
+    return sorted(data_disk_dirs)
+
+
+def get_first_data_disk_dir():
+    data_disk_dirs = get_data_disk_dirs()
+    if not data_disk_dirs:
+        return None
+    return data_disk_dirs[0]
+
+
+def get_workers_ready_from_head():
+    config = load_head_cluster_config()
+    provider = _get_node_provider(config["provider"], config["cluster_name"])
+    return _get_workers_ready(config, provider)
+
+
+def get_worker_ips_ready_from_head(runtime=None):
+    config = load_head_cluster_config()
+    return _get_worker_node_ips(
+        config, runtime=runtime, node_status=STATUS_UP_TO_DATE)

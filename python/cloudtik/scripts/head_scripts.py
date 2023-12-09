@@ -13,15 +13,15 @@ from cloudtik.core._private.cluster.cluster_operator import (
     debug_status_string, dump_cluster_on_head,
     RUN_ENV_TYPES, teardown_cluster_on_head, cluster_process_status_on_head, rsync_node_on_head, attach_node_on_head,
     start_node_on_head, stop_node_on_head, kill_node_on_head, scale_cluster_on_head,
-    _wait_for_ready, _get_worker_node_ips, _get_head_node_ip,
-    _show_cluster_status, _monitor_cluster, cli_call_context, _exec_node_on_head,
+    _wait_for_ready, _show_cluster_status, _monitor_cluster, cli_call_context, _exec_node_on_head,
     do_health_check, cluster_resource_metrics_on_head, show_info, _run_script_on_head)
 from cloudtik.core._private.constants import CLOUDTIK_REDIS_DEFAULT_PASSWORD
 from cloudtik.core._private.state import kv_store
 from cloudtik.core._private.state.kv_store import kv_initialize_with_address
 from cloudtik.core._private.utils import CLOUDTIK_CLUSTER_SCALING_ERROR, \
     CLOUDTIK_CLUSTER_SCALING_STATUS, get_head_bootstrap_config, \
-    load_head_cluster_config, parse_bundles_json, parse_resources, prepare_runtime_config_on_head
+    load_head_cluster_config, parse_bundles_json, parse_resources, prepare_runtime_config_on_head, \
+    _get_worker_node_ips, get_cluster_head_ip
 from cloudtik.scripts.utils import NaturalOrderGroup, add_command_alias
 
 logger = logging.getLogger(__name__)
@@ -408,7 +408,7 @@ def head_ip(public):
     """Return the head node IP of a cluster."""
     try:
         config = load_head_cluster_config()
-        head_node_ip = _get_head_node_ip(config, public)
+        head_node_ip = get_cluster_head_ip(config, public)
         click.echo(head_node_ip)
     except RuntimeError as re:
         cli_logger.error("Get head IP failed. " + str(re))
