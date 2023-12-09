@@ -28,6 +28,7 @@ RUNTIME_PROCESSES = [
 REDIS_SERVICE_PORT_CONFIG_KEY = "port"
 REDIS_CLUSTER_PORT_CONFIG_KEY = "cluster_port"
 REDIS_MASTER_SIZE_CONFIG_KEY = "master_size"
+REDIS_RESHARD_DELAY_CONFIG_KEY = "reshard_delay"
 
 REDIS_CLUSTER_MODE_CONFIG_KEY = "cluster_mode"
 REDIS_CLUSTER_MODE_NONE = "none"
@@ -51,6 +52,8 @@ REDIS_START_WAIT_RETRIES = 32
 REDIS_NODE_TYPE_MASTER = "master"
 REDIS_NODE_TYPE_SLAVE = "slave"
 REDIS_SHARDING_SLOTS = 16384
+
+REDIS_RESHARD_DELAY_DEFAULT = 5
 
 
 def _get_config(runtime_config: Dict[str, Any]):
@@ -76,6 +79,11 @@ def _get_cluster_mode(redis_config: Dict[str, Any]):
 def _get_master_size(redis_config: Dict[str, Any]):
     return redis_config.get(
         REDIS_MASTER_SIZE_CONFIG_KEY)
+
+
+def _get_reshard_delay(redis_config: Dict[str, Any]):
+    return redis_config.get(
+        REDIS_RESHARD_DELAY_CONFIG_KEY, REDIS_RESHARD_DELAY_DEFAULT)
 
 
 def _get_home_dir():
@@ -368,9 +376,10 @@ def join_cluster_with_workers(runtime_config, worker_hosts):
     # by contacting one of the live workers (or retry with others if fail)
     # WARNING: we should also avoid the case that if there are running workers
     # but they are not ready and then the head node get a restart.
-    node_host, port, password = meet_with_cluster(worker_hosts)
+    myid, node_host, port, password = meet_with_cluster(
+        runtime_config, worker_hosts)
     assign_cluster_role(
-        runtime_config, node_host, port, password, worker_hosts)
+        runtime_config, myid, node_host, port, password, worker_hosts)
 
 
 def join_cluster_with_head(runtime_config):
@@ -382,12 +391,28 @@ def join_cluster_with_head(runtime_config):
         raise RuntimeError("Missing head node ip environment variable for the running node.")
 
     cluster_nodes = [head_node_ip]
-    node_host, port, password = meet_with_cluster(cluster_nodes)
+    myid, node_host, port, password = meet_with_cluster(
+        runtime_config, cluster_nodes)
     assign_cluster_role(
-        runtime_config, node_host, port, password, cluster_nodes)
+        runtime_config, myid, node_host, port, password, cluster_nodes)
 
 
-def meet_with_cluster(cluster_nodes):
+def _get_myid(startup_nodes, node_host, port, password):
+    from redis.cluster import RedisCluster
+    from redis.cluster import ClusterNode
+
+    redis_cluster = RedisCluster(
+        startup_nodes=startup_nodes, password=password)
+    myid_bytes = redis_cluster.cluster_myid(
+        target_node=ClusterNode(node_host, port))
+    if myid_bytes is None:
+        raise RuntimeError(
+            "Failed to get the node id: {}.".format(node_host))
+    myid = myid_bytes.decode()
+    return myid
+
+
+def meet_with_cluster(runtime_config, cluster_nodes):
     from redis.cluster import RedisCluster
     from redis.cluster import ClusterNode
 
@@ -395,22 +420,50 @@ def meet_with_cluster(cluster_nodes):
     if not node_ip:
         raise RuntimeError("Missing node ip environment variable for the running node.")
 
-    password = get_runtime_value("REDIS_PASSWORD")
+    node_host = node_ip
     port = get_runtime_value("REDIS_SERVICE_PORT")
-
+    password = get_runtime_value("REDIS_PASSWORD")
     startup_nodes = [ClusterNode(cluster_node, port) for cluster_node in cluster_nodes]
+
+    wait_for_redis_to_start(
+        node_host, port, password=password)
 
     def cluster_meet():
         # retrying
         redis_cluster = RedisCluster(
             startup_nodes=startup_nodes, password=password)
         redis_cluster.cluster_meet(node_ip, port)
-
-    wait_for_redis_to_start(
-        node_ip, port, password=password)
     run_func_with_retry(cluster_meet)
 
-    return node_ip, port, password
+    # wait a few seconds for a better chance that other new masters join
+    # so that the reshard is more efficiently which avoid move around repeatedly
+    redis_config = _get_config(runtime_config)
+    reshard_delay = _get_reshard_delay(redis_config)
+    if reshard_delay:
+        time.sleep(reshard_delay)
+
+    # Although cluster meet is completed, we need to wait myself to appear
+    myid = _get_myid(
+        startup_nodes, node_host, port, password=password)
+
+    def check_myself_show():
+        redis_cluster = RedisCluster(
+            startup_nodes=startup_nodes, password=password)
+        _check_myself_show(redis_cluster, myid)
+
+    run_func_with_retry(check_myself_show)
+    return myid, node_ip, port, password
+
+
+def _check_myself_show(redis_cluster, myid):
+    nodes_info = _get_cluster_nodes_info(redis_cluster)
+    if not nodes_info:
+        raise RuntimeError("No cluster node information returned.")
+
+    my_node_info = nodes_info.get(myid)
+    if not my_node_info:
+        raise RuntimeError(
+            "Node with id {} doesn't show up in cluster yet.".format(myid))
 
 
 def _get_task_lock(runtime_config, task_name):
@@ -421,11 +474,15 @@ def _get_task_lock(runtime_config, task_name):
 
 
 def assign_cluster_role(
-        runtime_config, node_host, port, password, cluster_nodes):
+        runtime_config, myid, node_host, port, password, cluster_nodes):
+
+    def retry_func():
+        _assign_cluster_role(
+            runtime_config, myid, node_host, port, password, cluster_nodes)
+
     lock = _get_task_lock(runtime_config, "role")
     with lock.hold():
-        _assign_cluster_role(
-            runtime_config, node_host, port, password, cluster_nodes)
+        run_func_with_retry(retry_func)
 
 
 def _parse_node_type(flags_str):
@@ -510,7 +567,7 @@ def _get_master_nodes(nodes_info):
 
 
 def _assign_cluster_role(
-        runtime_config, node_host, port, password, cluster_nodes):
+        runtime_config, myid, node_host, port, password, cluster_nodes):
     # assign master role to add slots or act as replica of master
     from redis.cluster import RedisCluster
     from redis.cluster import ClusterNode
@@ -519,12 +576,6 @@ def _assign_cluster_role(
     redis_cluster = RedisCluster(
         startup_nodes=startup_nodes, password=password)
 
-    myid_bytes = redis_cluster.cluster_myid(
-        target_node=ClusterNode(node_host, port))
-    if myid_bytes is None:
-        raise RuntimeError(
-            "Failed to get the node id: {}.".format(node_host))
-    myid = myid_bytes.decode()
     nodes_info = _get_cluster_nodes_info(redis_cluster)
     if not nodes_info:
         raise RuntimeError("No cluster node information returned.")
