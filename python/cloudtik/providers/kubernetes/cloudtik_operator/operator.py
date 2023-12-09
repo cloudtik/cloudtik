@@ -13,7 +13,7 @@ import cloudtik.core._private.service.cloudtik_cluster_controller as cluster_con
 from cloudtik.core._private import constants, services
 from cloudtik.core._private.call_context import CallContext
 from cloudtik.core._private.cluster import cluster_operator
-from cloudtik.core._private.cluster.cluster_operator import _get_head_node_ip
+from cloudtik.core._private.utils import get_cluster_head_ip
 from cloudtik.providers.kubernetes.cloudtik_operator import operator_utils
 from cloudtik.providers.kubernetes.cloudtik_operator.operator_utils import (
     STATUS_RECOVERING,
@@ -115,7 +115,7 @@ class CloudTikCluster:
 
     def start_controller(self) -> None:
         """Runs the cluster controller in operator instead of on head."""
-        head_pod_ip = _get_head_node_ip(self.controller_config)
+        head_pod_ip = get_cluster_head_ip(self.controller_config)
         port = operator_utils.infer_head_port(self.controller_config)
         address = services.address(head_pod_ip, port)
         controller = cluster_controller.ClusterController(

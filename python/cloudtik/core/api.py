@@ -6,7 +6,8 @@ import os
 from cloudtik.core._private.annotations import PublicAPI
 from cloudtik.core._private.call_context import CallContext
 from cloudtik.core._private.cluster.cluster_config import _bootstrap_config, _load_cluster_config
-from cloudtik.core._private.utils import verify_runtime_list, load_head_cluster_config
+from cloudtik.core._private.utils import verify_runtime_list, load_head_cluster_config, get_cluster_head_ip, \
+    _get_worker_node_ips
 from cloudtik.core._private.workspace import workspace_operator
 from cloudtik.core._private.cluster import cluster_operator
 from cloudtik.core._private.event_system import (
@@ -32,7 +33,7 @@ class Workspace:
         else:
             if not os.path.exists(workspace_config):
                 raise ValueError("Workspace config file not found: {}".format(workspace_config))
-            self.config =workspace_operator._load_workspace_config(
+            self.config = workspace_operator._load_workspace_config(
                 workspace_config, no_config_cache=True)
 
     def create(self) -> None:
@@ -372,8 +373,8 @@ class Cluster:
                 available
             workers (int): Scale to number of workers.
             worker_type (str): The worker type if there were multiple workers available.
-            resources: Optional[Dict[str, int]]: The resources to scale for each resource_name:amount separated by comma.
-                For example, CPU:4,GPU:1,Custom:3
+            resources: Optional[Dict[str, int]]: The resources to scale for each resource_name:amount
+                separated by comma. For example, CPU:4,GPU:1,Custom:3
             bundles (List[ResourceDict]): Scale the cluster to ensure this set of
                 resource shapes can fit. This request is persistent until another
                 call to request_resources() is made to override. For example:
@@ -459,7 +460,7 @@ class Cluster:
         Raises:
             RuntimeError if the cluster is not found.
         """
-        return cluster_operator._get_head_node_ip(config=self.config, public=public)
+        return get_cluster_head_ip(config=self.config, public=public)
 
     def get_worker_node_ips(self,
                             runtime: str = None, node_status: str = None) -> List[str]:
@@ -473,7 +474,7 @@ class Cluster:
         Raises:
             RuntimeError if the cluster is not found.
         """
-        return cluster_operator._get_worker_node_ips(
+        return _get_worker_node_ips(
             config=self.config, runtime=runtime, node_status=node_status)
 
     def get_nodes(self) -> List[Dict[str, Any]]:
@@ -767,7 +768,7 @@ class ThisCluster:
         Raises:
             RuntimeError if the cluster is not found.
         """
-        return cluster_operator._get_head_node_ip(config=self.config, public=public)
+        return get_cluster_head_ip(config=self.config, public=public)
 
     def get_worker_node_ips(self,
                             runtime: str = None, node_status: str = None) -> List[str]:
@@ -781,7 +782,7 @@ class ThisCluster:
         Raises:
             RuntimeError if the cluster is not found.
         """
-        return cluster_operator._get_worker_node_ips(
+        return _get_worker_node_ips(
             config=self.config, runtime=runtime, node_status=node_status)
 
     def get_nodes(self) -> List[Dict[str, Any]]:
