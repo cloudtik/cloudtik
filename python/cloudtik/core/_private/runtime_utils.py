@@ -1,5 +1,6 @@
 import json
 import os
+import time
 from typing import Dict, Any
 
 import yaml
@@ -11,7 +12,7 @@ from cloudtik.core._private.crypto import AESCipher
 from cloudtik.core._private.provider_factory import _get_node_provider
 from cloudtik.core._private.utils import load_head_cluster_config, _get_node_type_specific_runtime_config, \
     get_runtime_config_key, _get_key_from_kv, decode_cluster_secrets, CLOUDTIK_CLUSTER_NODES_INFO_NODE_TYPE, \
-    _get_worker_nodes, _get_workers_ready, _get_worker_node_ips
+    _get_workers_ready, _get_worker_node_ips
 from cloudtik.core.tags import STATUS_UP_TO_DATE
 
 RUNTIME_NODE_ID = "node_id"
@@ -19,6 +20,9 @@ RUNTIME_NODE_IP = "node_ip"
 RUNTIME_NODE_SEQ_ID = "node_seq_id"
 RUNTIME_NODE_QUORUM_ID = "quorum_id"
 RUNTIME_NODE_QUORUM_JOIN = "quorum_join"
+
+DEFAULT_RETRY_NUM = 10
+DEFAULT_RETRY_INTERVAL = 1
 
 
 def get_runtime_value(name):
@@ -200,3 +204,18 @@ def get_worker_ips_ready_from_head(runtime=None):
     config = load_head_cluster_config()
     return _get_worker_node_ips(
         config, runtime=runtime, node_status=STATUS_UP_TO_DATE)
+
+
+def run_func_with_retry(
+        func, num_retries=DEFAULT_RETRY_NUM,
+        retry_interval=DEFAULT_RETRY_INTERVAL):
+    for i in range(num_retries):
+        try:
+            func()
+            return
+        except Exception:
+            if i >= num_retries - 1:
+                break
+            # error retry
+            time.sleep(retry_interval)
+    raise RuntimeError("Function failed with {} reties.".format(num_retries))
