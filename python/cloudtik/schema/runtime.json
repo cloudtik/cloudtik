@@ -1138,6 +1138,10 @@
                 "master_size": {
                     "type": "integer",
                     "description": "The number of masters. The remaining workers will be replicas. Default to half of the static nodes at starting cluster."
+                },
+                "reshard_delay": {
+                    "type": "integer",
+                    "description": "The number of seconds to delay for a new master nodes to do resharding after meet the cluster."
                 }
             }
         }
