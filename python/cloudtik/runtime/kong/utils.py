@@ -1,17 +1,14 @@
 import os
-from shlex import quote
 from typing import Any, Dict
 
-from cloudtik.core._private.constants import CLOUDTIK_RUNTIME_ENV_CLUSTER
-from cloudtik.core._private.core_utils import get_address_string, exec_with_output
+from cloudtik.core._private.core_utils import get_address_string
 from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_KONG, BUILT_IN_RUNTIME_POSTGRES
 from cloudtik.core._private.runtime_utils import get_runtime_bool, \
-    get_runtime_value, get_runtime_config_from_node
+    get_runtime_value
 from cloudtik.core._private.service_discovery.runtime_services import get_service_discovery_runtime
 from cloudtik.core._private.service_discovery.utils import \
     get_canonical_service_name, define_runtime_service_on_head_or_all, \
-    get_service_discovery_config, SERVICE_DISCOVERY_FEATURE_API_GATEWAY, SERVICE_DISCOVERY_PROTOCOL_HTTP, \
-    exclude_runtime_of_cluster, serialize_service_selector
+    get_service_discovery_config, SERVICE_DISCOVERY_FEATURE_API_GATEWAY, SERVICE_DISCOVERY_PROTOCOL_HTTP
 from cloudtik.core._private.util.database_utils import is_database_configured, export_database_environment_variables, \
     DATABASE_ENGINE_POSTGRES, get_database_engine, DATABASE_ENV_ENABLED, DATABASE_ENV_ENGINE
 from cloudtik.core._private.utils import get_runtime_config, is_use_managed_cloud_database, \
@@ -19,7 +16,6 @@ from cloudtik.core._private.utils import get_runtime_config, is_use_managed_clou
 from cloudtik.runtime.common.service_discovery.runtime_discovery import \
     DATABASE_CONNECT_KEY, is_database_service_discovery, discover_database_on_head, \
     discover_database_from_workspace
-from cloudtik.runtime.common.utils import stop_pull_server_by_identifier
 
 RUNTIME_PROCESSES = [
         # The first element is the substring to filter.
@@ -52,8 +48,6 @@ KONG_ADMIN_PORT_DEFAULT = 8001
 KONG_ADMIN_SSL_PORT_DEFAULT = 8444
 KONG_ADMIN_UI_PORT_DEFAULT = 8002
 KONG_ADMIN_UI_SSL_PORT_DEFAULT = 8445
-
-KONG_DISCOVER_BACKEND_SERVERS_INTERVAL = 15
 
 
 def _get_config(runtime_config: Dict[str, Any]):
@@ -253,56 +247,3 @@ def _get_runtime_services(
             features=[SERVICE_DISCOVERY_FEATURE_API_GATEWAY]),
     }
     return services
-
-
-#######################################
-# Calls from node when running services
-#######################################
-
-
-def _get_pull_identifier():
-    return "{}-discovery".format(BUILT_IN_RUNTIME_KONG)
-
-
-def _get_admin_api_endpoint(node_ip, admin_port):
-    return "http://{}:{}".format(
-        node_ip, admin_port)
-
-
-def start_pull_server(head):
-    runtime_config = get_runtime_config_from_node(head)
-    kong_config = _get_config(runtime_config)
-    admin_endpoint = _get_admin_api_endpoint(
-        "127.0.0.1", KONG_ADMIN_PORT_DEFAULT)
-
-    backend_config = _get_backend_config(kong_config)
-    config_mode = _get_config_mode(backend_config)
-    service_selector = backend_config.get(
-            KONG_BACKEND_SELECTOR_CONFIG_KEY, {})
-    cluster_name = get_runtime_value(CLOUDTIK_RUNTIME_ENV_CLUSTER)
-    exclude_runtime_of_cluster(
-        service_selector, BUILT_IN_RUNTIME_KONG, cluster_name)
-    service_selector_str = serialize_service_selector(service_selector)
-    pull_identifier = _get_pull_identifier()
-
-    cmd = ["cloudtik", "node", "pull", pull_identifier, "start"]
-    cmd += ["--pull-class=cloudtik.runtime.kong.discovery.DiscoverBackendServers"]
-    cmd += ["--interval={}".format(
-        KONG_DISCOVER_BACKEND_SERVERS_INTERVAL)]
-    # job parameters
-    cmd += ["admin_endpoint={}".format(quote(admin_endpoint))]
-    if service_selector_str:
-        cmd += ["service_selector={}".format(service_selector_str)]
-    if config_mode:
-        cmd += ["config_mode={}".format(config_mode)]
-    balance_method = get_runtime_value("KONG_BACKEND_BALANCE")
-    if balance_method:
-        cmd += ["balance_method={}".format(
-            quote(balance_method))]
-    cmd_str = " ".join(cmd)
-    exec_with_output(cmd_str)
-
-
-def stop_pull_server():
-    pull_identifier = _get_pull_identifier()
-    stop_pull_server_by_identifier(pull_identifier)

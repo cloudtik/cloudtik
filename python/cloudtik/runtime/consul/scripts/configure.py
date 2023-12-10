@@ -1,6 +1,6 @@
 import argparse
 
-from cloudtik.runtime.consul.utils import configure_consul
+from cloudtik.runtime.consul.scripting import configure_consul
 
 
 def main():

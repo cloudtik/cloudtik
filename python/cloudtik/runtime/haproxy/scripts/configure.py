@@ -1,7 +1,7 @@
 import argparse
 
 from cloudtik.core._private.runtime_utils import get_runtime_bool
-from cloudtik.runtime.haproxy.utils import configure_backend
+from cloudtik.runtime.haproxy.scripting import configure_backend
 
 
 def main():

@@ -1,7 +1,7 @@
 import argparse
 
 from cloudtik.core._private.runtime_utils import get_runtime_bool
-from cloudtik.runtime.prometheus.utils import configure_scrape
+from cloudtik.runtime.prometheus.scripting import configure_scrape
 
 
 def main():

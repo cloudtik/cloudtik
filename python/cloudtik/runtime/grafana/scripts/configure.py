@@ -1,7 +1,7 @@
 import argparse
 
 from cloudtik.core._private.runtime_utils import get_runtime_bool
-from cloudtik.runtime.grafana.utils import configure_data_sources
+from cloudtik.runtime.grafana.scripting import configure_data_sources
 
 
 def main():

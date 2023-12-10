@@ -7,7 +7,7 @@ from cloudtik.runtime.common.service_discovery.consul \
     import query_services, query_service_nodes, get_service_address_of_node, get_tags_of_service_nodes, \
     get_service_fqdn_address, get_common_label_of_service_nodes
 from cloudtik.runtime.common.service_discovery.utils import API_GATEWAY_SERVICE_DISCOVERY_LABEL_ROUTE_PATH
-from cloudtik.runtime.nginx.utils import update_load_balancer_configuration, \
+from cloudtik.runtime.nginx.scripting import update_load_balancer_configuration, \
     update_api_gateway_dynamic_backends, APIGatewayBackendService, update_api_gateway_dns_backends, \
     APIGatewayDNSBackendService
 

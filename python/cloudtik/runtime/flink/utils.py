@@ -7,8 +7,8 @@ from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_FLINK, BUILT
     BUILT_IN_RUNTIME_HADOOP
 from cloudtik.core._private.service_discovery.utils import get_canonical_service_name, define_runtime_service_on_head, \
     get_service_discovery_config, SERVICE_DISCOVERY_PROTOCOL_HTTP
-from cloudtik.core._private.utils import round_memory_size_to_gb, load_head_cluster_config, \
-    RUNTIME_CONFIG_KEY, load_properties_file, save_properties_file, get_config_for_update, get_runtime_config, \
+from cloudtik.core._private.utils import round_memory_size_to_gb, RUNTIME_CONFIG_KEY, get_config_for_update, \
+    get_runtime_config, \
     get_node_type_resources
 from cloudtik.runtime.common.service_discovery.runtime_discovery import \
     discover_metastore_from_workspace, discover_metastore_on_head, METASTORE_URI_KEY
@@ -149,25 +149,6 @@ def _get_flink_config(config: Dict[str, Any]):
 
     flink_config = _get_config(runtime_config)
     return flink_config.get("config")
-
-
-def update_flink_configurations():
-    # Merge user specified configuration and default configuration
-    config = load_head_cluster_config()
-    flink_config = _get_flink_config(config)
-    if not flink_config:
-        return
-
-    flink_conf_file = os.path.join(os.getenv("FLINK_HOME"), "conf/flink-conf.yaml")
-
-    # Read in the existing configurations
-    flink_conf, comments = load_properties_file(flink_conf_file, ':')
-
-    # Merge with the user configurations
-    flink_conf.update(flink_config)
-
-    # Write back the configuration file
-    save_properties_file(flink_conf_file, flink_conf, separator=': ', comments=comments)
 
 
 def _with_runtime_environment_variables(

@@ -1,6 +1,6 @@
 import argparse
 
-from cloudtik.runtime.bind.utils import configure_upstream
+from cloudtik.runtime.bind.scripting import configure_upstream
 
 
 def main():

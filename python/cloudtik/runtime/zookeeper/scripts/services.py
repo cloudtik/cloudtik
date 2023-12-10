@@ -3,7 +3,7 @@ import argparse
 from cloudtik.core._private.constants import CLOUDTIK_RUNTIME_ENV_QUORUM_JOIN
 from cloudtik.core._private.runtime_utils import subscribe_nodes_info, get_runtime_value
 from cloudtik.core.tags import QUORUM_JOIN_STATUS_INIT
-from cloudtik.runtime.zookeeper.utils import request_to_join_cluster
+from cloudtik.runtime.zookeeper.scripting import request_to_join_cluster
 
 
 def start_service():

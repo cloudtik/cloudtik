@@ -1,7 +1,7 @@
 import argparse
 
 from cloudtik.core._private.runtime_utils import get_runtime_bool
-from cloudtik.runtime.nginx.utils import configure_backend
+from cloudtik.runtime.nginx.scripting import configure_backend
 
 
 def main():
