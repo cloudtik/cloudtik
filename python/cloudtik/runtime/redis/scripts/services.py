@@ -1,9 +1,7 @@
 import argparse
-import logging
 
-from cloudtik.core._private import logging_utils
-from cloudtik.core._private.constants import LOGGER_FORMAT
 from cloudtik.core._private.runtime_utils import get_runtime_value
+from cloudtik.core.api import configure_logging
 from cloudtik.runtime.redis.scripting import init_cluster_service
 from cloudtik.runtime.redis.utils import REDIS_CLUSTER_MODE_SHARDING
 
@@ -23,11 +21,11 @@ def main():
         nargs=argparse.REMAINDER,
     )
     args = parser.parse_args()
+    configure_logging(verbosity=0)
 
     cluster_mode = get_runtime_value("REDIS_CLUSTER_MODE")
     if (cluster_mode == REDIS_CLUSTER_MODE_SHARDING and
             args.command == "start"):
-        logging_utils.setup_logger(logging.ERROR, LOGGER_FORMAT)
         init_cluster_service(args.head)
 
 
