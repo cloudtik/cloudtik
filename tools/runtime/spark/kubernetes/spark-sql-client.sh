@@ -15,5 +15,5 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-WORK_DIR="$(dirname "$0")"
+WORK_DIR="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 bash ${WORK_DIR}/spark-client.sh exec --cmd /opt/spark-sql.sh "$@"

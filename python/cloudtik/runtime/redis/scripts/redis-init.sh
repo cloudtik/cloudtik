@@ -1,6 +1,6 @@
 #!/bin/bash
 # Current bin directory
-BIN_DIR=`dirname "$0"`
+BIN_DIR="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 ROOT_DIR="$(dirname "$(dirname "$BIN_DIR")")"
 
 # Util functions

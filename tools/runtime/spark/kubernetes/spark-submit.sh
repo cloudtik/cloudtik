@@ -16,7 +16,7 @@
 # limitations under the License.
 #
 
-WORK_DIR="$(dirname "$0")"
+WORK_DIR="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 
 if [ ! -n "${SPARK_HOME}" ]; then
   echo "SPARK_HOME environment variable is not set."

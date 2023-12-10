@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+SCRIPT_DIR="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 CLOUDTIK_HOME=$(cd $(dirname ${BASH_SOURCE[0]})/../../../..;pwd)
 HADOOP_VERSION=3.3.1
 

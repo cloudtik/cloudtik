@@ -15,7 +15,7 @@
 # limitations under the License.
 #
 
-SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+SCRIPT_DIR="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 source ${SCRIPT_DIR}/../configure.sh
 
 export SSD_RESNET34_HOME=$QUICKSTART_WORKSPACE/ssd-resnet34
