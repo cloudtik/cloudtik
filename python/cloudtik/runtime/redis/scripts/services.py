@@ -4,8 +4,8 @@ import logging
 from cloudtik.core._private import logging_utils
 from cloudtik.core._private.constants import LOGGER_FORMAT
 from cloudtik.core._private.runtime_utils import get_runtime_value
-from cloudtik.runtime.redis.utils import REDIS_CLUSTER_MODE_SHARDING, \
-    init_cluster_service
+from cloudtik.runtime.redis.scripting import init_cluster_service
+from cloudtik.runtime.redis.utils import REDIS_CLUSTER_MODE_SHARDING
 
 
 def main():
