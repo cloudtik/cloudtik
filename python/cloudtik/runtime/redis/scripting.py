@@ -465,7 +465,7 @@ def _check_replica_set(redis_cluster, node_id, master_id):
         raise RuntimeError(
             "Node id {} is not set as replica node.".format(node_id))
 
-    if node_info["master_id"] == master_id:
+    if node_info["master_id"] != master_id:
         raise RuntimeError(
             "Node id {} is not set a replica node of master {}.".format(
                 node_id, master_id))
