@@ -1,6 +1,6 @@
 import argparse
 
-from cloudtik.runtime.apisix.utils import update_configurations
+from cloudtik.runtime.apisix.scripting import update_configurations
 
 
 def main():

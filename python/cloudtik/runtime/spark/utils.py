@@ -8,8 +8,7 @@ from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_SPARK, BUILT
 from cloudtik.core._private.service_discovery.utils import get_canonical_service_name, define_runtime_service_on_head, \
     get_service_discovery_config, SERVICE_DISCOVERY_PROTOCOL_HTTP
 from cloudtik.core._private.utils import \
-    round_memory_size_to_gb, load_head_cluster_config, \
-    RUNTIME_CONFIG_KEY, load_properties_file, save_properties_file, get_config_for_update, get_runtime_config, \
+    round_memory_size_to_gb, RUNTIME_CONFIG_KEY, get_config_for_update, get_runtime_config, \
     get_node_type_resources
 from cloudtik.runtime.common.service_discovery.runtime_discovery import \
     discover_metastore_on_head, discover_metastore_from_workspace, METASTORE_URI_KEY
@@ -179,25 +178,6 @@ def _get_spark_config(config: Dict[str, Any]):
         return None
     spark_config = _get_config(runtime_config)
     return spark_config.get("config")
-
-
-def update_spark_configurations():
-    # Merge user specified configuration and default configuration
-    config = load_head_cluster_config()
-    spark_config = _get_spark_config(config)
-    if not spark_config:
-        return
-
-    spark_conf_file = os.path.join(os.getenv("SPARK_HOME"), "conf/spark-defaults.conf")
-
-    # Read in the existing configurations
-    spark_conf, comments = load_properties_file(spark_conf_file, ' ')
-
-    # Merge with the user configurations
-    spark_conf.update(spark_config)
-
-    # Write back the configuration file
-    save_properties_file(spark_conf_file, spark_conf, separator=' ', comments=comments)
 
 
 def _with_runtime_environment_variables(

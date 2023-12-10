@@ -1,7 +1,7 @@
 import argparse
 
 from cloudtik.core._private.runtime_utils import get_runtime_config_from_node
-from cloudtik.runtime.trino.utils import configure_connectors
+from cloudtik.runtime.trino.scripting import configure_connectors
 
 
 def main():

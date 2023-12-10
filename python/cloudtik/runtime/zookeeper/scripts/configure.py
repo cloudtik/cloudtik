@@ -1,7 +1,7 @@
 import argparse
 
 from cloudtik.core._private.runtime_utils import subscribe_nodes_info
-from cloudtik.runtime.zookeeper.utils import update_configurations, configure_server_ensemble
+from cloudtik.runtime.zookeeper.scripting import update_configurations, configure_server_ensemble
 
 
 def main():

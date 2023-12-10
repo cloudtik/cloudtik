@@ -8,8 +8,10 @@ from cloudtik.runtime.common.service_discovery.utils import API_GATEWAY_SERVICE_
     API_GATEWAY_SERVICE_DISCOVERY_LABEL_SERVICE_PATH
 from cloudtik.runtime.haproxy.admin_api import list_backend_servers, enable_backend_slot, disable_backend_slot, \
     add_backend_slot, get_backend_server_address, delete_backend_slot, list_backends
-from cloudtik.runtime.haproxy.utils import update_configuration, get_default_server_name, \
-    HAPROXY_BACKEND_DYNAMIC_FREE_SLOTS, update_api_gateway_configuration, APIGatewayBackendService
+from cloudtik.runtime.haproxy.scripting import update_configuration, update_api_gateway_configuration, \
+    APIGatewayBackendService
+from cloudtik.runtime.haproxy.utils import get_default_server_name, \
+    HAPROXY_BACKEND_DYNAMIC_FREE_SLOTS
 
 logger = logging.getLogger(__name__)
 

@@ -1,6 +1,6 @@
 import argparse
 
-from cloudtik.runtime.spark.utils import update_spark_configurations
+from cloudtik.runtime.spark.scripting import update_spark_configurations
 
 
 def main():

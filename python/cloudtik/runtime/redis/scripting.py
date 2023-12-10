@@ -1,4 +1,5 @@
 import copy
+import logging
 import os
 import time
 
@@ -14,6 +15,7 @@ from cloudtik.core._private.runtime_utils import get_first_data_disk_dir, get_wo
 from cloudtik.runtime.common.lock.runtime_lock import get_runtime_lock
 from cloudtik.runtime.redis.utils import _get_home_dir, _get_master_size, _get_config, _get_reshard_delay
 
+logger = logging.getLogger(__name__)
 
 REDIS_START_WAIT_RETRIES = 32
 

@@ -1,6 +1,6 @@
 import argparse
 
-from cloudtik.runtime.flink.utils import update_flink_configurations
+from cloudtik.runtime.flink.scripting import update_flink_configurations
 
 
 def main():

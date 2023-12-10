@@ -1,7 +1,7 @@
 import argparse
 
 from cloudtik.core._private.runtime_utils import get_runtime_bool
-from cloudtik.runtime.kong.utils \
+from cloudtik.runtime.kong.scripting \
     import start_pull_server, stop_pull_server
 
 
