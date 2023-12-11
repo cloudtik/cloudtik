@@ -16,6 +16,10 @@ clean_install_cache() {
         && which conda > /dev/null && conda clean -itqy)
 }
 
+clean_apt() {
+    sudo rm -rf /var/lib/apt/lists/* && sudo apt-get clean
+}
+
 update_resolv_conf() {
     local BACKUP_RESOLV_CONF=$1
     cp /etc/resolv.conf ${BACKUP_RESOLV_CONF}

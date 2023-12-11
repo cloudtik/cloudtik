@@ -51,6 +51,7 @@ BUILT_IN_RUNTIME_COREDNS = "coredns"
 BUILT_IN_RUNTIME_KONG = "kong"
 BUILT_IN_RUNTIME_APISIX = "apisix"
 BUILT_IN_RUNTIME_REDIS = "redis"
+BUILT_IN_RUNTIME_MONGODB = "mongodb"
 
 DEFAULT_RUNTIMES = [BUILT_IN_RUNTIME_PROMETHEUS, BUILT_IN_RUNTIME_NODEX, BUILT_IN_RUNTIME_SPARK]
 
@@ -205,6 +206,11 @@ def _import_redis():
     return RedisRuntime
 
 
+def _import_mongodb():
+    from cloudtik.runtime.mongodb.runtime import MongoDBRuntime
+    return MongoDBRuntime
+
+
 _RUNTIMES = {
     BUILT_IN_RUNTIME_AI: _import_ai,
     BUILT_IN_RUNTIME_SPARK: _import_spark,
@@ -236,6 +242,7 @@ _RUNTIMES = {
     BUILT_IN_RUNTIME_KONG: _import_kong,
     BUILT_IN_RUNTIME_APISIX: _import_apisix,
     BUILT_IN_RUNTIME_REDIS: _import_redis,
+    BUILT_IN_RUNTIME_MONGODB: _import_mongodb,
 }
 
 
