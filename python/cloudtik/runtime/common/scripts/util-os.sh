@@ -59,6 +59,26 @@ get_total_memory() {
     echo $(($(grep MemTotal /proc/meminfo | awk '{print $2}') / 1024))
 }
 
+#########################
+# Redirects output to /dev/null if debug mode is disabled
+# Globals:
+#   BITNAMI_DEBUG
+# Arguments:
+#   $@ - Command to execute
+# Returns:
+#   None
+#########################
+debug_execute() {
+    local bool="${CLOUDTIK_SCRIPT_DEBUG:-false}"
+    # comparison is performed without regard to the case of alphabetic characters
+    shopt -s nocasematch
+    if [[ "$bool" = 1 || "$bool" =~ ^(yes|true)$ ]]; then
+        "$@"
+    else
+        "$@" >/dev/null 2>&1
+    fi
+}
+
 ########################
 # Retries a command a given number of times
 # Arguments:

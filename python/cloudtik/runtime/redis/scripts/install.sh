@@ -19,6 +19,16 @@ export REDIS_HOME=$RUNTIME_PATH/redis
 install_redis() {
     if [ ! -d "${REDIS_HOME}" ]; then
         mkdir -p $RUNTIME_PATH
+
+        # curl -fsSL https://packages.redis.io/gpg \
+        #   | sudo gpg --dearmor -o /usr/share/keyrings/redis-archive-keyring.gpg
+        # echo "deb [signed-by=/usr/share/keyrings/redis-archive-keyring.gpg] https://packages.redis.io/deb $(lsb_release -cs) main" \
+        #   | sudo tee /etc/apt/sources.list.d/redis.list >/dev/null
+        # sudo apt-get -qq update -y > /dev/null && \
+        # sudo DEBIAN_FRONTEND=noninteractive apt-get install -qq -y \
+        #   redis=${REDIS_VERSION} > /dev/null && \
+        # sudo rm -f /etc/apt/sources.list.d/redis.list
+
         local deb_arch=$(get_deb_arch)
         # Currently we download from bitnami, we can build in the future
         REDIS_COMPONENT="redis-${REDIS_VERSION}-1-linux-${deb_arch}-debian-11"

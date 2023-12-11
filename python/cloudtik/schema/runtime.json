@@ -1144,6 +1144,55 @@
                     "description": "The number of seconds to delay for a new master nodes to do resharding after meet the cluster."
                 }
             }
+        },
+        "mongodb": {
+            "type": "object",
+            "description": "MongoDB runtime configurations",
+            "additionalProperties": true,
+            "properties": {
+                "port": {
+                    "type": "integer",
+                    "default": 27017,
+                    "description": "The MongoDB server port."
+                },
+                "cluster_mode": {
+                    "type": "string",
+                    "default": "replication",
+                    "description": "The replication method to use: none, replication, sharding."
+                },
+                "root_user": {
+                    "type": "string",
+                    "default": "root",
+                    "description": "Specify the root user."
+                },
+                "root_password": {
+                    "type": "string",
+                    "default": "cloudtik",
+                    "description": "Specify the root user password."
+                },
+                "database": {
+                    "type": "object",
+                    "description": "Database configurations",
+                    "properties": {
+                        "name": {
+                            "type": "string",
+                            "description": "The name of the database to create at the initializing process."
+                        },
+                        "user": {
+                            "type": "string",
+                            "description": "The user to create and grant access for the database at the initializing process"
+                        },
+                        "password": {
+                            "type": "string",
+                            "description": "The password for the user set at the initializing process."
+                        }
+                    }
+                },
+                "replication_set_name": {
+                    "type": "string",
+                    "description": "The replication set name. Default to workspace_name-cluster_name."
+                }
+            }
         }
     }
 }
