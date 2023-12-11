@@ -16,7 +16,7 @@ from cloudtik.core._private.cluster.cluster_operator import (
 from cloudtik.core._private.constants import CLOUDTIK_PROCESSES, \
     CLOUDTIK_REDIS_DEFAULT_PASSWORD, \
     CLOUDTIK_DEFAULT_PORT
-from cloudtik.core._private.core_utils import get_cloudtik_temp_dir
+from cloudtik.core._private.core_utils import get_cloudtik_temp_dir, wait_for_port as _wait_for_port
 from cloudtik.core._private.node.node_services import NodeServicesStarter
 from cloudtik.core._private.parameter import StartParams
 from cloudtik.core._private.resource_spec import ResourceSpec
@@ -486,7 +486,7 @@ def pull(identifier, command,
     help="Wait for the port to be free. Default wait for in use.")
 @add_click_logging_options
 def wait_for_port(port, host, timeout, free):
-    wait_for_port_state(port, host, timeout, free)
+    _wait_for_port(port, host, timeout, free)
 
 
 @node.command()
