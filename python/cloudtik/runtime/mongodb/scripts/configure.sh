@@ -108,7 +108,8 @@ configure_mongodb() {
     export MONGODB_VOLUME_DIR="${VOLUME_DIR}"
     export MONGODB_PORT_NUMBER=${MONGODB_SERVICE_PORT}
 
-    if [ "${MYSQL_CLUSTER_MODE}" == "replication" ]; then
+    if [ "${MONGODB_CLUSTER_MODE}" == "replication" ]; then
+        export MONGODB_REPLICA_SET_NAME=${MONGODB_REPLICATION_SET_NAME}
         if [ "${IS_HEAD_NODE}" == "true" ]; then
             # Head act as primary for the first time initialization
             export MONGODB_REPLICA_SET_MODE="primary"
