@@ -91,7 +91,7 @@ configure_mongodb() {
         update_in_file "${config_template_file}" "{%replication.set.name%}" "${MONGODB_REPLICATION_SET_NAME}"
     elif [ "${MONGODB_CLUSTER_MODE}" == "sharding" ]; then
         update_server_id
-        update_in_file "${config_template_file}" "{%replication.group.name%}" "${MONGODB_SHARDING_NAME}"
+        update_in_file "${config_template_file}" "{%replication.set.name%}" "${MONGODB_REPLICATION_SET_NAME}"
     fi
 
     MONGODB_CONFIG_DIR=${MONGODB_HOME}/conf
