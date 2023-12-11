@@ -467,6 +467,29 @@ def pull(identifier, command,
 
 
 @node.command()
+@click.argument("port", required=True, type=int)
+@click.option(
+    "--host",
+    required=False,
+    type=str,
+    help="The host address to wait.")
+@click.option(
+    "--timeout",
+    type=int,
+    required=False,
+    default=30,
+    help=f"The number of seconds to wait.")
+@click.option(
+    "--free",
+    is_flag=True,
+    default=False,
+    help="Wait for the port to be free. Default wait for in use.")
+@add_click_logging_options
+def wait_for_port(port, host, timeout, free):
+    wait_for_port_state(port, host, timeout, free)
+
+
+@node.command()
 @click.option(
     "--stream",
     "-S",
@@ -566,6 +589,7 @@ node.add_command(stop)
 node.add_command(run)
 node.add_command(resources)
 node.add_command(pull)
+node.add_command(wait_for_port)
 
 # utility commands running on head or worker node for dump local data
 node.add_command(dump)

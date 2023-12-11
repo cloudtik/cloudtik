@@ -60,7 +60,7 @@ def _get_service_port(mongodb_config: Dict[str, Any]):
 
 def _get_cluster_mode(mongodb_config: Dict[str, Any]):
     return mongodb_config.get(
-        MONGODB_CLUSTER_MODE_CONFIG_KEY, MONGODB_CLUSTER_MODE_SHARDING)
+        MONGODB_CLUSTER_MODE_CONFIG_KEY, MONGODB_CLUSTER_MODE_REPLICATION)
 
 
 def _get_replication_set_name(mongodb_config: Dict[str, Any]):

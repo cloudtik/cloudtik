@@ -23,6 +23,8 @@ REDIS_NODE_TYPE_MASTER = "master"
 REDIS_NODE_TYPE_SLAVE = "slave"
 REDIS_SHARDING_SLOTS = 16384
 
+REDIS_CLUSTER_INIT_FILE = ".initialized"
+
 ###################################
 # Calls from node at runtime
 ###################################
@@ -97,7 +99,7 @@ def init_cluster_service(head):
 
     # We store a file in data dir to mark the node has initialized
     data_dir = _get_data_dir()
-    cluster_init_file = os.path.join(data_dir, "cluster.init")
+    cluster_init_file = os.path.join(data_dir, REDIS_CLUSTER_INIT_FILE)
     if os.path.isfile(cluster_init_file):
         # already initialized
         return

@@ -14,6 +14,7 @@ import subprocess
 import sys
 import tempfile
 import threading
+import time
 from contextlib import closing
 from typing import Optional
 
@@ -934,3 +935,49 @@ def get_address_string(host, port):
 
 def is_valid_dns_name(name):
     return bool(re.match("^[a-z0-9-]*$", name))
+
+
+def is_host_port_reachable(port, host, timeout):
+    if not host:
+        host = '127.0.0.1'
+    try:
+        with socket.create_connection(
+                (host, port), timeout=timeout):
+            return True
+    except Exception:
+        return False
+
+
+def is_port_in_use(port, host, timeout):
+    if is_host_port_reachable(port, host, timeout):
+        return True
+
+    if host:
+        # If we are trying to check a remote host, we cannot do more, so we consider it not in use
+        return False
+
+    # TODO: If we are checking locally, try to listen
+    return False
+
+
+def wait_for_port_state(
+        port, host=None, timeout=30, free=False):
+    def check_port_state():
+        if free:
+            return not is_port_in_use(port, host, 3)
+        else:
+            return is_port_in_use(port, host, 3)
+
+    start_time = time.perf_counter()
+    while True:
+        try:
+            if check_port_state():
+                break
+        except Exception as e:
+            time.sleep(1)
+            if time.perf_counter() - start_time >= timeout:
+                on_host = f" on {host}" if host else ""
+                state = "free" if free else "ready"
+                raise TimeoutError(
+                    'Waited too long for the port {}{} to be {} '.format(
+                        port, on_host, state)) from e

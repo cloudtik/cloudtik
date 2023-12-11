@@ -132,15 +132,16 @@ configure_hdfs() {
     if [ $IS_HEAD_NODE == "true" ]; then
         # format only once if there is no force format flag
         local dfs_dir=$(get_first_dfs_dir)
-        HDFS_INIT_DIR=${dfs_dir}/hdfs.init
-        if [ ! -d "${HDFS_INIT_DIR}" ]; then
+        HDFS_INIT_FILE=${dfs_dir}/.initialized
+        if [ ! -f "${HDFS_INIT_FILE}" ]; then
             export HADOOP_CONF_DIR=${HDFS_CONF_DIR}
             # Stop namenode in case it was running left from last try
             ${HADOOP_HOME}/bin/hdfs --daemon stop namenode > /dev/null 2>&1
             # Format hdfs once
             ${HADOOP_HOME}/bin/hdfs --loglevel WARN namenode -format -force
             if [ $? -eq 0 ]; then
-                mkdir -p ${HDFS_INIT_DIR}
+                mkdir -p "${dfs_dir}"
+                touch "${HDFS_INIT_FILE}"
             fi
         fi
     fi

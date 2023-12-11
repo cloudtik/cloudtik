@@ -24,7 +24,7 @@ start)
     if [ "${IS_HEAD_NODE}" == "true" ] \
         || [ "${MONGODB_CLUSTER_MODE}" != "none" ]; then
         MONGODB_CONFIG_FILE=${MONGODB_HOME}/conf/mongod.conf
-        mongod \
+        mongod --fork \
             --config ${MONGODB_CONFIG_FILE} \
             >${MONGODB_HOME}/logs/mongod-start.log 2>&1
     fi
