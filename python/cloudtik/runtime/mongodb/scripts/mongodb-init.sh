@@ -348,12 +348,8 @@ mongodb_set_replicasetmode_conf() {
     if ! is_file_external_mount "$conf_file_name"; then
         mongodb_config_apply_regex "#?replication:.*" "replication:" "$conf_file_path"
         mongodb_config_apply_regex "#?replSetName:" "replSetName:" "$conf_file_path"
-        mongodb_config_apply_regex "#?enableMajorityReadConcern:.*" "enableMajorityReadConcern:" "$conf_file_path"
         if [[ -n "$MONGODB_REPLICA_SET_NAME" ]]; then
             mongodb_config_apply_regex "replSetName:.*" "replSetName: $MONGODB_REPLICA_SET_NAME" "$conf_file_path"
-        fi
-        if [[ -n "$MONGODB_ENABLE_MAJORITY_READ" ]]; then
-            mongodb_config_apply_regex "enableMajorityReadConcern:.*" "enableMajorityReadConcern: $({ (is_boolean_yes "$MONGODB_ENABLE_MAJORITY_READ" || [[ "$(mongodb_get_version)" =~ ^5\..\. ]]) && echo 'true'; } || echo 'false')" "$conf_file_path"
         fi
     else
         debug "$conf_file_name mounted. Skipping replicaset mode enabling"
@@ -712,7 +708,7 @@ mongodb_configure_primary() {
     local -r port="${2:?port is required}"
 
     info "Configuring MongoDB primary node"
-    # wait-for-port --timeout 360 "$MONGODB_PORT_NUMBER"
+    cloudtik node wait-for-port --timeout 360 "$MONGODB_PORT_NUMBER"
 
     if ! retry_while "mongodb_is_primary_node_initiated $node $port" "$MONGODB_MAX_TIMEOUT"; then
         error "MongoDB primary node failed to get configured"
@@ -808,13 +804,13 @@ mongodb_wait_for_node() {
     local -r password="${4:-}"
     debug "Waiting for primary node..."
 
-    # info "Trying to connect to MongoDB server $host..."
-    # if ! retry_while "wait-for-port --host $host --timeout 10 $port" "$MONGODB_MAX_TIMEOUT"; then
-    #     error "Unable to connect to host $host"
-    #     exit 1
-    # else
-    #     info "Found MongoDB server listening at $host:$port !"
-    # fi
+    info "Trying to connect to MongoDB server $host..."
+    if ! retry_while "cloudtik node wait-for-port --host $host --timeout 10 $port" "$MONGODB_MAX_TIMEOUT"; then
+        error "Unable to connect to host $host"
+        exit 1
+    else
+        info "Found MongoDB server listening at $host:$port !"
+    fi
 
     if ! retry_while "mongodb_is_node_available $host $port $user $password" "$MONGODB_MAX_TIMEOUT"; then
         error "Node $host did not become available"
@@ -1287,11 +1283,11 @@ mongodb_execute_print_output() {
 
 ########################
 # Execute an arbitrary query/queries against the running MongoDB service,
-# discard its output unless BITNAMI_DEBUG is true
+# discard its output unless CLOUDTIK_SCRIPT_DEBUG is true
 # Stdin:
 #   Query/queries to execute
 # Globals:
-#   BITNAMI_DEBUG
+#   CLOUDTIK_SCRIPT_DEBUG
 # Arguments:
 #   $1 - User to run queries
 #   $2 - Password
@@ -1357,8 +1353,10 @@ _is_sourced() {
 _main() {
     mongodb_initialize
 
-    # Allow running custom initialization scripts
-    mongodb_custom_init_scripts
+    if [[ -n "$MONGODB_INITSCRIPTS_DIR" ]]; then
+      # Allow running custom initialization scripts
+      mongodb_custom_init_scripts
+    fi
 }
 
 # If we are sourced from elsewhere, don't perform any further actions

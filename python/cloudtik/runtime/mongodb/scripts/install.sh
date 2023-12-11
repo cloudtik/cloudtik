@@ -39,9 +39,9 @@ install_mongodb() {
           mongodb-org=${MONGODB_VERSION} \
           mongodb-org-database=${MONGODB_VERSION} \
           mongodb-org-server=${MONGODB_VERSION} \
-          mongodb-mongosh=${MONGODB_VERSION} \
-          mongodb-org-mongos=${MONGODB_VERSION} \
-          mongodb-org-tools=${MONGODB_VERSION} > /dev/null && \
+          mongodb-mongosh \
+          mongodb-org-mongos \
+          mongodb-org-tools > /dev/null && \
         sudo rm -f /etc/apt/sources.list.d/mongodb-org-7.0.list
         clean_apt
     fi

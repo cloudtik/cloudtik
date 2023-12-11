@@ -33,11 +33,12 @@ check_mongodb_installed() {
 update_data_dir() {
     local data_disk_dir=$(get_first_data_disk_dir)
     if [ -z "$data_disk_dir" ]; then
-        DATA_DIR="${MONGODB_HOME}/data"
+        VOLUME_DIR="${MONGODB_HOME}"
     else
-        DATA_DIR="$data_disk_dir/mongodb/data"
+        VOLUME_DIR="$data_disk_dir/mongodb"
     fi
 
+    DATA_DIR="${VOLUME_DIR}/data"
     mkdir -p ${DATA_DIR}
     update_in_file "${config_template_file}" "{%data.dir%}" "${DATA_DIR}"
 }
@@ -100,12 +101,28 @@ configure_mongodb() {
     cp ${config_template_file} ${MONGODB_CONFIG_FILE}
 
     # The following environment variables are needed for mongodb-init.sh
-    export MONGODB_BIN_DIR="$( dirname -- "${which mongod}" )"
+    export MONGODB_BIN_DIR="$( dirname -- "$(which mongod)" )"
     export MONGODB_CONF_FILE="${MONGODB_CONFIG_FILE}"
     export MONGODB_DATA_DIR="${DATA_DIR}"
+    export MONGODB_PID_FILE="${MONGODB_HOME}/mongodb.pid"
+    export MONGODB_VOLUME_DIR="${VOLUME_DIR}"
+    export MONGODB_PORT_NUMBER=${MONGODB_SERVICE_PORT}
+
+    if [ "${MYSQL_CLUSTER_MODE}" == "replication" ]; then
+        if [ "${IS_HEAD_NODE}" == "true" ]; then
+            # Head act as primary for the first time initialization
+            export MONGODB_REPLICA_SET_MODE="primary"
+        else
+            export MONGODB_REPLICA_SET_MODE="secondary"
+            export MONGODB_INITIAL_PRIMARY_ROOT_USER="${MONGODB_ROOT_USER}"
+            export MONGODB_INITIAL_PRIMARY_ROOT_PASSWORD="${MONGODB_ROOT_PASSWORD}"
+            export MONGODB_INITIAL_PRIMARY_HOST=${HEAD_IP_ADDRESS}
+            export MONGODB_INITIAL_PRIMARY_PORT_NUMBER=${MONGODB_PORT_NUMBER}
+        fi
+    fi
 
     # check and initialize the database if needed
-    bash $BIN_DIR/mongodb-init.sh >${MONGODB_HOME}/logs/mongo-init.log 2>&1
+    bash $BIN_DIR/mongodb-init.sh >${MONGODB_HOME}/logs/mongodb-init.log 2>&1
 }
 
 check_mongodb_installed
