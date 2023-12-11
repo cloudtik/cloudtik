@@ -316,7 +316,7 @@ mongodb_set_auth_conf() {
 
     local authorization
 
-    if ! is_file_external "$conf_file_name"; then
+    if ! is_file_external_mount "$conf_file_name"; then
         if [[ -n "$MONGODB_ROOT_PASSWORD" ]] || [[ -n "$MONGODB_INITIAL_PRIMARY_ROOT_PASSWORD" ]] || [[ -n "$MONGODB_PASSWORD" ]]; then
             authorization="$(yq eval .security.authorization "$MONGODB_CONF_FILE")"
             if [[ "$authorization" = "disabled" ]]; then
@@ -345,7 +345,7 @@ mongodb_set_replicasetmode_conf() {
     local -r conf_file_path="${1:-$MONGODB_CONF_FILE}"
     local -r conf_file_name="${conf_file_path#"$MONGODB_CONF_DIR"}"
 
-    if ! is_file_external "$conf_file_name"; then
+    if ! is_file_external_mount "$conf_file_name"; then
         mongodb_config_apply_regex "#?replication:.*" "replication:" "$conf_file_path"
         mongodb_config_apply_regex "#?replSetName:" "replSetName:" "$conf_file_path"
         mongodb_config_apply_regex "#?enableMajorityReadConcern:.*" "enableMajorityReadConcern:" "$conf_file_path"
@@ -453,7 +453,7 @@ mongodb_set_keyfile_conf() {
     local -r conf_file_path="${1:-$MONGODB_CONF_FILE}"
     local -r conf_file_name="${conf_file_path#"$MONGODB_CONF_DIR"}"
 
-    if ! is_file_external "$conf_file_name"; then
+    if ! is_file_external_mount "$conf_file_name"; then
         mongodb_config_apply_regex "#?keyFile:.*" "keyFile: $MONGODB_KEY_FILE" "$conf_file_path"
     else
         debug "$conf_file_name mounted. Skipping keyfile location configuration"
@@ -472,7 +472,7 @@ mongodb_set_keyfile_conf() {
 mongodb_create_keyfile() {
     local -r key="${1:?key is required}"
 
-    if ! is_file_external "keyfile"; then
+    if ! is_file_external_mount "keyfile"; then
         info "Writing keyfile for replica set authentication..."
         echo "$key" >"$MONGODB_KEY_FILE"
 

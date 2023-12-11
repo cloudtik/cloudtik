@@ -194,7 +194,7 @@ configure_permissions_ownership() {
 # Returns:
 #   true if the file was mounted externally, false otherwise
 #########################
-is_file_mount_external() {
+is_file_external_mount() {
     local -r filepath="${1:?file_is_missing}"
     if [[ -f "${filepath}" ]] || { [[ -f "${filepath}" ]] && ! test -w "/${filepath}"; }; then
         true
