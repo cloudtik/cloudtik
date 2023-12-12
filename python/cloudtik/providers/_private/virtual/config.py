@@ -200,6 +200,9 @@ def _get_existing_port_mapping():
 
 def _configure_port_mappings(config):
     provider = config["provider"]
+    if not provider.get("enable_port_mapping", False):
+        return config
+
     # configure port mappings for head node
     runtime_config = config.get("runtime", {})
     service_ports = get_head_service_ports(runtime_config)

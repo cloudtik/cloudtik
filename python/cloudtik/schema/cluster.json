@@ -306,6 +306,11 @@
                     "type": "string",
                     "description": "On-premise cloud simulator address in the format of address:port."
                 },
+                "enable_port_mapping": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Virtual: enable port mapping of head service ports to host node."
+                },
                 "port_mapping_base": {
                     "type": "integer",
                     "description": "Virtual: the port mapping shift to avoid port conflicts with host."
