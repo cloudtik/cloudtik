@@ -44,12 +44,15 @@ MONGODB_SHARDING_CLUSTER_ROLE_CONFIG_SERVER = "config_server"
 MONGODB_SHARDING_CLUSTER_ROLE_MONGOS = "mongos"
 MONGODB_SHARDING_CLUSTER_ROLE_SHARD = "shard"
 
+MONGODB_MONGOS_PORT_CONFIG_KEY = "mongos_port"
+
 MONGODB_SERVICE_TYPE = BUILT_IN_RUNTIME_MONGODB
 
 MONGODB_DYNAMIC_SERVICE_TYPE = MONGODB_SERVICE_TYPE + "-dynamic"
 MONGODB_REPLICA_SERVICE_TYPE = MONGODB_SERVICE_TYPE + "-replica"
 
 MONGODB_SERVICE_PORT_DEFAULT = 27017
+MONGODB_MONGOS_PORT_DEFAULT = 27018
 
 MONGODB_ROOT_USER_DEFAULT = "root"
 MONGODB_ROOT_PASSWORD_DEFAULT = "cloudtik"
@@ -88,6 +91,11 @@ def _get_sharding_cluster_role(sharding_config: Dict[str, Any]):
     return sharding_config.get(
         MONGODB_SHARDING_CLUSTER_ROLE_CONFIG_KEY,
         MONGODB_SHARDING_CLUSTER_ROLE_SHARD)
+
+
+def _get_mongos_port(sharding_config: Dict[str, Any]):
+    return sharding_config.get(
+        MONGODB_MONGOS_PORT_CONFIG_KEY)
 
 
 def _generate_replication_set_name(config: Dict[str, Any]):
@@ -194,6 +202,14 @@ def _with_runtime_environment_variables(
             sharding_config = _get_sharding_config(mongodb_config)
             cluster_role = _get_sharding_cluster_role(sharding_config)
             runtime_envs["MONGODB_SHARDING_CLUSTER_ROLE"] = cluster_role
+
+            mongos_port = _get_mongos_port(sharding_config)
+            if not mongos_port:
+                if cluster_role == MONGODB_SHARDING_CLUSTER_ROLE_MONGOS:
+                    mongos_port = MONGODB_SERVICE_PORT_DEFAULT
+                else:
+                    mongos_port = MONGODB_MONGOS_PORT_DEFAULT
+            runtime_envs["MONGODB_MONGOS_PORT"] = mongos_port
 
     return runtime_envs
 
