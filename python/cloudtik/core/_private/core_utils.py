@@ -901,6 +901,16 @@ def deserialize_config(config_str):
     return json.loads(json_str)
 
 
+def base64_encode_string(value):
+    return base64.b64encode(
+        value.encode("utf-8")).decode("utf-8")
+
+
+def base64_decode_string(value):
+    return base64.b64decode(
+        value.encode("utf-8")).decode("utf-8")
+
+
 def get_config_for_update(config, config_key):
     if config_key not in config:
         config[config_key] = {}

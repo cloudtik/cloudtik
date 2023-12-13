@@ -90,6 +90,133 @@ mongodb_auth() {
 }
 
 ########################
+# Validate settings in MONGODB_* env. variables
+# Globals:
+#   MONGODB_*
+# Arguments:
+#   None
+# Returns:
+#   None
+#########################
+mongodb_validate() {
+    info "Validating settings in MONGODB_* env vars..."
+
+    local error_message=""
+    local -r replicaset_error_message="In order to configure MongoDB replica set authentication you \
+need to provide the MONGODB_REPLICA_SET_KEY on every node, specify MONGODB_ROOT_PASSWORD \
+in the primary node and MONGODB_INITIAL_PRIMARY_ROOT_PASSWORD in the rest of nodes"
+    local error_code=0
+    local usernames databases passwords
+
+    # Auxiliary functions
+    print_validation_error() {
+        error "$1"
+        error_code=1
+    }
+
+    check_yes_no_value() {
+        if ! is_yes_no_value "${!1}" && ! is_true_false_value "${!1}"; then
+            print_validation_error "The allowed values for ${1} are: yes no"
+        fi
+    }
+
+    if [[ -n "$MONGODB_REPLICA_SET_MODE" ]]; then
+        if [[ "$MONGODB_REPLICA_SET_MODE" =~ ^(secondary|arbiter|hidden) ]]; then
+            if [[ -z "$MONGODB_INITIAL_PRIMARY_HOST" ]]; then
+                error_message="In order to configure MongoDB as a secondary or arbiter node \
+you need to provide the MONGODB_INITIAL_PRIMARY_HOST env var"
+                print_validation_error "$error_message"
+            fi
+            if { [[ -n "$MONGODB_INITIAL_PRIMARY_ROOT_PASSWORD" ]] && [[ -z "$MONGODB_REPLICA_SET_KEY" ]]; } ||
+                { [[ -z "$MONGODB_INITIAL_PRIMARY_ROOT_PASSWORD" ]] && [[ -n "$MONGODB_REPLICA_SET_KEY" ]]; }; then
+                print_validation_error "$replicaset_error_message"
+            fi
+            if [[ -n "$MONGODB_ROOT_PASSWORD" ]]; then
+                error_message="MONGODB_ROOT_PASSWORD shouldn't be set on a 'non-primary' node"
+                print_validation_error "$error_message"
+            fi
+        elif [[ "$MONGODB_REPLICA_SET_MODE" = "primary" ]]; then
+            if { [[ -n "$MONGODB_ROOT_PASSWORD" ]] && [[ -z "$MONGODB_REPLICA_SET_KEY" ]]; } ||
+                { [[ -z "$MONGODB_ROOT_PASSWORD" ]] && [[ -n "$MONGODB_REPLICA_SET_KEY" ]]; }; then
+                print_validation_error "$replicaset_error_message"
+            fi
+            if [[ -n "$MONGODB_INITIAL_PRIMARY_ROOT_PASSWORD" ]]; then
+                error_message="MONGODB_INITIAL_PRIMARY_ROOT_PASSWORD shouldn't be set on a 'primary' node"
+                print_validation_error "$error_message"
+            fi
+            if [[ -z "$MONGODB_ROOT_PASSWORD" ]] && ! is_boolean_yes "$MONGODB_ALLOW_EMPTY_PASSWORD"; then
+                error_message="The MONGODB_ROOT_PASSWORD environment variable is empty or not set. \
+Set the environment variable MONGODB_ALLOW_EMPTY_PASSWORD=yes to allow the container to be started with blank passwords. \
+This is only recommended for development."
+                print_validation_error "$error_message"
+            fi
+        else
+            error_message="You set the environment variable MONGODB_REPLICA_SET_MODE with an invalid value. \
+Available options are 'primary/secondary/arbiter/hidden'"
+            print_validation_error "$error_message"
+        fi
+    fi
+
+    if [[ -n "$MONGODB_REPLICA_SET_KEY" ]] && ((${#MONGODB_REPLICA_SET_KEY} < 5)); then
+        error_message="MONGODB_REPLICA_SET_KEY must be, at least, 5 characters long!"
+        print_validation_error "$error_message"
+    fi
+
+    if [[ -n "$MONGODB_EXTRA_USERNAMES" ]]; then
+        # Capture list of extra (only!) users, passwords and databases in the
+        # usernames, passwords and databases arrays.
+        mongodb_auth extra
+
+        # Verify there as many usernames as passwords
+        if [[ "${#usernames[@]}" -ne "${#passwords[@]}" ]]; then
+            print_validation_error "Specify the same number of passwords on MONGODB_EXTRA_PASSWORDS as the number of users in MONGODB_EXTRA_USERNAMES"
+        fi
+        # When we have a list of databases, there should be as many databases as
+        # users (thus as passwords).
+        if [[ -n "$MONGODB_EXTRA_DATABASES" ]] && [[ "${#usernames[@]}" -ne "${#databases[@]}" ]]; then
+            print_validation_error "Specify the same number of users on MONGODB_EXTRA_USERNAMES as the number of databases in MONGODB_EXTRA_DATABASES"
+        fi
+        # When the list of database is empty, then all users will be added to
+        # default database.
+        if [[ -z "$MONGODB_EXTRA_DATABASES" ]]; then
+            warn "All users specified in MONGODB_EXTRA_USERNAMES will be added to the default database called 'test'"
+        fi
+    fi
+
+    if is_boolean_yes "$MONGODB_ALLOW_EMPTY_PASSWORD"; then
+        warn "You set the environment variable MONGODB_ALLOW_EMPTY_PASSWORD=${MONGODB_ALLOW_EMPTY_PASSWORD}. For safety reasons, do not use this flag in a production environment."
+    elif { [[ -n "$MONGODB_EXTRA_USERNAMES" ]] || [[ -n "$MONGODB_USERNAME" ]]; } && [[ -z "$MONGODB_ROOT_PASSWORD" ]]; then
+        # Authorization is turned on as soon as a set of users or a root
+        # password are given. If we have a set of users, but an empty root
+        # password, validation should fail unless MONGODB_ALLOW_EMPTY_PASSWORD is turned
+        # on.
+        error_message="The MONGODB_ROOT_PASSWORD environment variable is empty or not set. Set the environment variable MONGODB_ALLOW_EMPTY_PASSWORD=yes to allow the container to be started with a blank root password. This is only recommended for development."
+        print_validation_error "$error_message"
+    fi
+
+    # Warn for users with empty passwords, as these won't be created. Maybe
+    # should we just end with an error here instead?
+    if [[ -n "$MONGODB_EXTRA_USERNAMES" ]]; then
+        # Here we can access the arrays usernames and passwordsa, as these have
+        # been initialised earlier on.
+        for ((i = 0; i < ${#passwords[@]}; i++)); do
+            if [[ -z "${passwords[i]}" ]]; then
+                warn "User ${usernames[i]} will not be created as its password is empty or not set. MongoDB cannot create users with blank passwords."
+            fi
+        done
+    fi
+    if [[ -n "$MONGODB_USERNAME" ]] && [[ -z "$MONGODB_PASSWORD" ]]; then
+        warn "User $MONGODB_USERNAME will not be created as its password is empty or not set. MongoDB cannot create users with blank passwords."
+    fi
+    if ! is_boolean_yes "$MONGODB_ALLOW_EMPTY_PASSWORD" && [[ -n "$MONGODB_METRICS_USERNAME" ]] && [[ -z "$MONGODB_METRICS_PASSWORD" ]]; then
+        error_message="The MONGODB_METRICS_PASSWORD environment variable is empty or not set. Set the environment variable MONGODB_ALLOW_EMPTY_PASSWORD=yes to allow the container to be started with blank passwords. This is only recommended for development."
+        print_validation_error "$error_message"
+    fi
+
+    [[ "$error_code" -eq 0 ]] || exit "$error_code"
+}
+
+########################
 # Determine the hostname by which to contact the locally running mongo daemon
 # Globals:
 #   MONGODB_*
@@ -1351,6 +1478,8 @@ _is_sourced() {
 }
 
 _main() {
+    # Ensure MongoDB env var settings are valid
+    mongodb_validate
     mongodb_initialize
 
     if [[ -n "$MONGODB_INITSCRIPTS_DIR" ]]; then

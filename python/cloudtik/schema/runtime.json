@@ -1191,6 +1191,20 @@
                 "replication_set_name": {
                     "type": "string",
                     "description": "The replication set name. Default to workspace_name-cluster_name."
+                },
+                "replication_set_key": {
+                    "type": "string",
+                    "description": "The replication set key to use. Length should be greater than 5 characters and should not contain any special characters."
+                },
+                "sharding": {
+                    "type": "object",
+                    "description": "Database configurations",
+                    "properties": {
+                        "cluster_role": {
+                            "type": "string",
+                            "description": "Sharding cluster role: config_server, mongos, or shard."
+                        }
+                    }
                 }
             }
         }

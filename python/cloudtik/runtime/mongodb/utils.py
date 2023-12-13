@@ -1,6 +1,8 @@
 import os
+import uuid
 from typing import Any, Dict
 
+from cloudtik.core._private.core_utils import base64_encode_string
 from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_MONGODB
 from cloudtik.core._private.service_discovery.utils import \
     get_canonical_service_name, define_runtime_service, \
@@ -18,9 +20,7 @@ RUNTIME_PROCESSES = [
 MONGODB_SERVICE_PORT_CONFIG_KEY = "port"
 
 MONGODB_REPLICATION_SET_NAME_CONFIG_KEY = "replication_set_name"
-
-MONGODB_SHARDING_CONFIG_KEY = "sharding"
-
+MONGODB_REPLICATION_SET_KEY_CONFIG_KEY = "replication_set_key"
 
 MONGODB_CLUSTER_MODE_CONFIG_KEY = "cluster_mode"
 MONGODB_CLUSTER_MODE_NONE = "none"
@@ -37,16 +37,22 @@ MONGODB_DATABASE_NAME_CONFIG_KEY = "name"
 MONGODB_DATABASE_USER_CONFIG_KEY = "user"
 MONGODB_DATABASE_PASSWORD_CONFIG_KEY = "password"
 
+MONGODB_SHARDING_CONFIG_KEY = "sharding"
+
+MONGODB_SHARDING_CLUSTER_ROLE_CONFIG_KEY = "cluster_role"
+MONGODB_SHARDING_CLUSTER_ROLE_CONFIG_SERVER = "config_server"
+MONGODB_SHARDING_CLUSTER_ROLE_MONGOS = "mongos"
+MONGODB_SHARDING_CLUSTER_ROLE_SHARD = "shard"
+
 MONGODB_SERVICE_TYPE = BUILT_IN_RUNTIME_MONGODB
 
 MONGODB_DYNAMIC_SERVICE_TYPE = MONGODB_SERVICE_TYPE + "-dynamic"
 MONGODB_REPLICA_SERVICE_TYPE = MONGODB_SERVICE_TYPE + "-replica"
 
-
 MONGODB_SERVICE_PORT_DEFAULT = 27017
 
 MONGODB_ROOT_USER_DEFAULT = "root"
-MONGODB_ROOT_PASSWORD_DEFAULT = ""
+MONGODB_ROOT_PASSWORD_DEFAULT = "cloudtik"
 
 
 def _get_config(runtime_config: Dict[str, Any]):
@@ -68,15 +74,32 @@ def _get_replication_set_name(mongodb_config: Dict[str, Any]):
         MONGODB_REPLICATION_SET_NAME_CONFIG_KEY)
 
 
+def _get_replication_set_key(mongodb_config: Dict[str, Any]):
+    return mongodb_config.get(
+        MONGODB_REPLICATION_SET_KEY_CONFIG_KEY)
+
+
 def _get_sharding_config(mongodb_config: Dict[str, Any]):
     return mongodb_config.get(
         MONGODB_SHARDING_CONFIG_KEY, {})
+
+
+def _get_sharding_cluster_role(sharding_config: Dict[str, Any]):
+    return sharding_config.get(
+        MONGODB_SHARDING_CLUSTER_ROLE_CONFIG_KEY,
+        MONGODB_SHARDING_CLUSTER_ROLE_SHARD)
 
 
 def _generate_replication_set_name(config: Dict[str, Any]):
     workspace_name = config["workspace_name"]
     cluster_name = config["cluster_name"]
     return f"{workspace_name}-{cluster_name}"
+
+
+def _generate_replication_set_key(config: Dict[str, Any]):
+    workspace_name = config["workspace_name"]
+    key_material = str(uuid.uuid3(uuid.NAMESPACE_OID, workspace_name))
+    return base64_encode_string(key_material)
 
 
 def _get_home_dir():
@@ -128,18 +151,6 @@ def _with_runtime_environment_variables(
     service_port = _get_service_port(mongodb_config)
     runtime_envs["MONGODB_SERVICE_PORT"] = service_port
 
-    cluster_mode = _get_cluster_mode(mongodb_config)
-    runtime_envs["MONGODB_CLUSTER_MODE"] = cluster_mode
-
-    if (cluster_mode == MONGODB_CLUSTER_MODE_REPLICATION
-            or cluster_mode == MONGODB_CLUSTER_MODE_SHARDING):
-        # default to workspace name + cluster name
-        replication_set_name = _get_replication_set_name(
-            mongodb_config)
-        if not replication_set_name:
-            replication_set_name = _generate_replication_set_name(config)
-        runtime_envs["MONGODB_REPLICATION_SET_NAME"] = replication_set_name
-
     root_user = mongodb_config.get(
         MONGODB_ROOT_USER_CONFIG_KEY, MONGODB_ROOT_USER_DEFAULT)
     runtime_envs["MONGODB_ROOT_USER"] = root_user
@@ -158,6 +169,31 @@ def _with_runtime_environment_variables(
     password = database.get(MONGODB_DATABASE_PASSWORD_CONFIG_KEY)
     if password:
         runtime_envs["MONGODB_PASSWORD"] = password
+
+    cluster_mode = _get_cluster_mode(mongodb_config)
+    runtime_envs["MONGODB_CLUSTER_MODE"] = cluster_mode
+
+    if (cluster_mode == MONGODB_CLUSTER_MODE_REPLICATION
+            or cluster_mode == MONGODB_CLUSTER_MODE_SHARDING):
+        # default to workspace name + cluster name
+        replication_set_name = _get_replication_set_name(
+            mongodb_config)
+        if not replication_set_name:
+            replication_set_name = _generate_replication_set_name(config)
+        runtime_envs["MONGODB_REPLICATION_SET_NAME"] = replication_set_name
+
+        if root_password:
+            # use replication set key only when there is a root password set
+            replication_set_key = _get_replication_set_name(
+                mongodb_config)
+            if not replication_set_key:
+                replication_set_key = _generate_replication_set_key(config)
+            runtime_envs["MONGODB_REPLICATION_SET_KEY"] = replication_set_key
+
+        if cluster_mode == MONGODB_CLUSTER_MODE_SHARDING:
+            sharding_config = _get_sharding_config(mongodb_config)
+            cluster_role = _get_sharding_cluster_role(sharding_config)
+            runtime_envs["MONGODB_SHARDING_CLUSTER_ROLE"] = cluster_role
 
     return runtime_envs
 
