@@ -83,7 +83,7 @@ set_env_for_init() {
     export MONGODB_CONF_DIR="${MONGODB_CONFIG_DIR}"
     export MONGODB_CONF_FILE="${MONGODB_CONFIG_FILE}"
     export MONGODB_DATA_DIR="${DATA_DIR}"
-    export MONGODB_PID_FILE="${MONGODB_HOME}/mongodb.pid"
+    export MONGODB_PID_FILE="${MONGODB_HOME}/mongod.pid"
     export MONGODB_VOLUME_DIR="${VOLUME_DIR}"
     export MONGODB_PORT_NUMBER=${MONGODB_SERVICE_PORT}
 
@@ -107,6 +107,7 @@ set_env_for_replica_set() {
 
     if [[ -n "$MONGODB_REPLICATION_SET_KEY" ]]; then
         export MONGODB_REPLICA_SET_KEY=$MONGODB_REPLICATION_SET_KEY
+        export MONGODB_KEY_FILE="$MONGODB_CONF_DIR/keyfile"
     fi
 }
 
@@ -115,24 +116,34 @@ set_env_for_config_server() {
     export MONGODB_SHARDING_MODE="configsvr"
 }
 
-set_env_for_mongos() {
-    export MONGODB_SHARDING_MODE="mongos"
+set_env_for_mongos_common() {
     export MONGODB_MONGOS_CONF_FILE="${MONGODB_MONGOS_CONFIG_FILE}"
     if [[ -n "$MONGODB_REPLICATION_SET_KEY" ]]; then
         export MONGODB_REPLICA_SET_KEY="${MONGODB_REPLICATION_SET_KEY}"
+        export MONGODB_KEY_FILE="$MONGODB_CONF_DIR/keyfile"
     fi
 }
 
-set_env_for_remote_mongos() {
-    set_env_for_mongos
+set_env_for_mongos_config() {
     # TODO: support list of config server hosts instead of the primary
     export MONGODB_CFG_REPLICA_SET_NAME=${MONGODB_CFG_REPLICATION_SET_NAME}
     export MONGODB_CFG_PRIMARY_HOST=${MONGODB_CFG_PRIMARY_HOST}
     export MONGODB_CFG_PRIMARY_PORT_NUMBER="${MONGODB_CFG_PORT_NUMBER:-${MONGODB_SERVICE_PORT}}"
 }
 
+set_env_for_mongos() {
+    set_env_for_mongos_common
+    export MONGODB_SHARDING_MODE="mongos"
+    set_env_for_mongos_config
+}
+
+set_env_for_mongos_on_shard_server() {
+    set_env_for_mongos_common
+    set_env_for_mongos_config
+}
+
 set_env_for_mongos_on_config_server() {
-    set_env_for_mongos
+    set_env_for_mongos_common
     # The mongos is in the same node of config server
     export MONGODB_CFG_REPLICA_SET_NAME=${MONGODB_REPLICATION_SET_NAME}
     export MONGODB_CFG_PRIMARY_HOST=${HEAD_IP_ADDRESS}
@@ -201,10 +212,10 @@ configure_mongodb() {
                 set_env_for_config_server
                 set_env_for_mongos_on_config_server
             elif [ "${MONGODB_SHARDING_CLUSTER_ROLE}" == "mongos" ]; then
-                set_env_for_remote_mongos
+                set_env_for_mongos
             else
                 set_env_for_shard
-                set_env_for_remote_mongos
+                set_env_for_mongos_on_shard_server
             fi
         fi
     fi

@@ -50,6 +50,9 @@ MONGODB_SERVICE_TYPE = BUILT_IN_RUNTIME_MONGODB
 
 MONGODB_DYNAMIC_SERVICE_TYPE = MONGODB_SERVICE_TYPE + "-dynamic"
 MONGODB_REPLICA_SERVICE_TYPE = MONGODB_SERVICE_TYPE + "-replica"
+MONGODB_CONFIG_SERVER_SERVICE_TYPE = MONGODB_SERVICE_TYPE + "-configsvr"
+MONGODB_MONGOS_SERVICE_TYPE = MONGODB_SERVICE_TYPE + "-mongos"
+MONGODB_SHARD_SERVER_SERVICE_TYPE = MONGODB_SERVICE_TYPE + "-shardsvr"
 
 MONGODB_SERVICE_PORT_DEFAULT = 27017
 MONGODB_MONGOS_PORT_DEFAULT = 27018
@@ -150,6 +153,17 @@ def _validate_config(config: Dict[str, Any]):
         raise ValueError("User and password must be both specified or not specified.")
 
 
+def _get_mongos_port_with_default(sharding_config):
+    mongos_port = _get_mongos_port(sharding_config)
+    if not mongos_port:
+        cluster_role = _get_sharding_cluster_role(sharding_config)
+        if cluster_role == MONGODB_SHARDING_CLUSTER_ROLE_MONGOS:
+            mongos_port = MONGODB_SERVICE_PORT_DEFAULT
+        else:
+            mongos_port = MONGODB_MONGOS_PORT_DEFAULT
+    return mongos_port
+
+
 def _with_runtime_environment_variables(
         runtime_config, config):
     runtime_envs = {}
@@ -203,12 +217,7 @@ def _with_runtime_environment_variables(
             cluster_role = _get_sharding_cluster_role(sharding_config)
             runtime_envs["MONGODB_SHARDING_CLUSTER_ROLE"] = cluster_role
 
-            mongos_port = _get_mongos_port(sharding_config)
-            if not mongos_port:
-                if cluster_role == MONGODB_SHARDING_CLUSTER_ROLE_MONGOS:
-                    mongos_port = MONGODB_SERVICE_PORT_DEFAULT
-                else:
-                    mongos_port = MONGODB_MONGOS_PORT_DEFAULT
+            mongos_port = _get_mongos_port_with_default(sharding_config)
             runtime_envs["MONGODB_MONGOS_PORT"] = mongos_port
 
     return runtime_envs
@@ -236,6 +245,46 @@ def _get_head_service_ports(runtime_config: Dict[str, Any]) -> Dict[str, Any]:
     return service_ports
 
 
+def _get_sharding_runtime_services(
+        mongodb_config, cluster_name,
+        service_discovery_config, service_port):
+    sharding_config = _get_sharding_config(mongodb_config)
+    cluster_role = _get_sharding_cluster_role(sharding_config)
+    mongos_service_name = get_canonical_service_name(
+        service_discovery_config, cluster_name, MONGODB_MONGOS_SERVICE_TYPE)
+    mongos_service_port = _get_mongos_port_with_default(sharding_config)
+
+    if cluster_role == MONGODB_SHARDING_CLUSTER_ROLE_CONFIG_SERVER:
+        config_server_service_name = get_canonical_service_name(
+            service_discovery_config, cluster_name, MONGODB_CONFIG_SERVER_SERVICE_TYPE)
+        services = {
+            config_server_service_name: define_runtime_service(
+                MONGODB_CONFIG_SERVER_SERVICE_TYPE,
+                service_discovery_config, service_port),
+            mongos_service_name: define_runtime_service(
+                MONGODB_MONGOS_SERVICE_TYPE,
+                service_discovery_config, mongos_service_port),
+        }
+    elif cluster_role == MONGODB_SHARDING_CLUSTER_ROLE_SHARD:
+        shard_server_service_name = get_canonical_service_name(
+            service_discovery_config, cluster_name, MONGODB_SHARD_SERVER_SERVICE_TYPE)
+        services = {
+            shard_server_service_name: define_runtime_service(
+                MONGODB_SHARD_SERVER_SERVICE_TYPE,
+                service_discovery_config, service_port),
+            mongos_service_name: define_runtime_service(
+                MONGODB_MONGOS_SERVICE_TYPE,
+                service_discovery_config, mongos_service_port),
+        }
+    else:
+        services = {
+            mongos_service_name: define_runtime_service(
+                MONGODB_MONGOS_SERVICE_TYPE,
+                service_discovery_config, mongos_service_port),
+        }
+    return services
+
+
 def _get_runtime_services(
         runtime_config: Dict[str, Any], cluster_name: str) -> Dict[str, Any]:
     mongodb_config = _get_config(runtime_config)
@@ -253,14 +302,9 @@ def _get_runtime_services(
                 service_discovery_config, service_port),
         }
     elif cluster_mode == MONGODB_CLUSTER_MODE_SHARDING:
-        # TODO: Ideally a middle layer needs to expose a client discoverable service.
-        dynamic_service_name = get_canonical_service_name(
-            service_discovery_config, cluster_name, MONGODB_DYNAMIC_SERVICE_TYPE)
-        services = {
-            dynamic_service_name: define_runtime_service(
-                MONGODB_DYNAMIC_SERVICE_TYPE,
-                service_discovery_config, service_port),
-        }
+        services = _get_sharding_runtime_services(
+            mongodb_config, cluster_name,
+            service_discovery_config, service_port)
     else:
         # single standalone on head
         service_name = get_canonical_service_name(

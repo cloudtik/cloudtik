@@ -333,9 +333,11 @@ mongodb_sharded_mongos_initialize() {
         mongodb_create_keyfile "$MONGODB_REPLICA_SET_KEY"
         mongodb_set_keyfile_conf "$MONGODB_MONGOS_CONF_FILE"
     fi
-    mongodb_set_auth_conf
+    mongodb_set_auth_conf "$MONGODB_MONGOS_CONF_FILE"
     mongodb_sharded_set_cfg_server_host_conf "$MONGODB_MONGOS_CONF_FILE"
-    mongodb_wait_for_primary_node "$MONGODB_CFG_PRIMARY_HOST" "$MONGODB_CFG_PRIMARY_PORT_NUMBER" "$MONGODB_ROOT_USER" "$MONGODB_ROOT_PASSWORD"
+    if [[ "$MONGODB_SHARDING_MODE" != "configsvr" ]]; then
+        mongodb_wait_for_primary_node "$MONGODB_CFG_PRIMARY_HOST" "$MONGODB_CFG_PRIMARY_PORT_NUMBER" "$MONGODB_ROOT_USER" "$MONGODB_ROOT_PASSWORD"
+    fi
 }
 
 ########################
@@ -358,6 +360,106 @@ mongodb_sharded_set_cfg_server_host_conf() {
     fi
 }
 
+########################
+# Check if Mongos is running
+# Globals:
+#   MONGODB_MONGOS_PID_FILE
+# Arguments:
+#   None
+# Returns:
+#   Boolean
+#########################
+is_mongos_running() {
+    local pid
+    pid="$(get_pid_from_file "$MONGODB_MONGOS_PID_FILE")"
+
+    if [[ -z "$pid" ]]; then
+        false
+    else
+        is_service_running "$pid"
+    fi
+}
+
+########################
+# Check if Mongos is not running
+# Globals:
+#   MONGODB_MONGOS_PID_FILE
+# Arguments:
+#   None
+# Returns:
+#   Boolean
+#########################
+is_mongos_not_running() {
+    ! is_mongos_running
+    return "$?"
+}
+
+########################
+# Stop Mongos
+# Globals:
+#   MONGODB_PID_FILE
+# Arguments:
+#   None
+# Returns:
+#   None
+#########################
+mongodb_stop_mongos() {
+    ! is_mongos_running && return
+    info "Stopping Mongos..."
+
+    stop_service_using_pid "$MONGODB_MONGOS_PID_FILE"
+    if ! retry_while "is_mongos_not_running" "$MONGODB_MAX_TIMEOUT"; then
+        error "Mongos failed to stop"
+        exit 1
+    fi
+}
+
+########################
+# Start Mongos server in the background and waits until it's ready
+# Globals:
+#   MONGODB_*
+# Arguments:
+#   $1 - Path to Mongos configuration file
+# Returns:
+#   None
+#########################
+mongodb_start_mongos() {
+    # Use '--fork' option to enable daemon mode
+    # ref: https://docs.mongodb.com/manual/reference/program/mongod/#cmdoption-mongod-fork
+    local -r conf_file="${1:-$MONGODB_MONGOS_CONF_FILE}"
+    local flags=("--fork" "--config=$conf_file")
+
+    debug "Starting Mongos in background..."
+
+    is_mongos_running && returnv
+
+    if am_i_root; then
+        debug_execute run_as_user "$MONGODB_DAEMON_USER" "$MONGODB_BIN_DIR/mongos" "${flags[@]}"
+    else
+        debug_execute "$MONGODB_BIN_DIR/mongos" "${flags[@]}"
+    fi
+
+    # wait until the server is up and answering queries
+    if ! retry_while "mongodb_wait_for_node 127.0.0.1 $MONGODB_MONGOS_PORT_NUMBER $MONGODB_ROOT_USER $MONGODB_ROOT_PASSWORD" "$MONGODB_MAX_TIMEOUT"; then
+        error "Mongos did not start"
+        exit 1
+    fi
+}
+
+########################
+# Stop mongod and mongos process if they are running
+# Globals:
+#   MONGODB_*
+# Arguments:
+#   None
+# Returns:
+#   None
+#########################
+mongodb_stop_all(){
+    mongodb_stop
+    mongodb_stop_mongos
+}
+
 # check to see if this file is being run or sourced from another script
 _is_sourced() {
 	# https://unix.stackexchange.com/a/215279
@@ -370,10 +472,18 @@ _main() {
     # Ensure MongoDB env var settings are valid
     mongodb_sharded_validate
 
+    # Ensure MongoDB is stopped when this script ends.
+    trap "mongodb_stop_all" EXIT
+
     # Ensure MongoDB is initialized
     if [[ "$MONGODB_SHARDING_MODE" = "mongos" ]]; then
         mongodb_sharded_mongos_initialize
+    elif [[ "$MONGODB_SHARDING_MODE" = "configsvr" ]]; then
+        mongodb_sharded_mongod_initialize
+        mongodb_sharded_mongos_initialize
     else
+        mongodb_sharded_mongos_initialize
+        mongodb_start_mongos
         mongodb_sharded_mongod_initialize
     fi
 
