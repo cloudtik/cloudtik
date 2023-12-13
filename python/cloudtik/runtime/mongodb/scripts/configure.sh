@@ -43,15 +43,6 @@ update_data_dir() {
     update_in_file "${config_template_file}" "{%data.dir%}" "${DATA_DIR}"
 }
 
-update_server_id() {
-    if [ ! -n "${CLOUDTIK_NODE_SEQ_ID}" ]; then
-        echo "Replication needs unique server id. No node sequence id allocated for current node!"
-        exit 1
-    fi
-
-    update_in_file "${config_template_file}" "{%server.id%}" "${CLOUDTIK_NODE_SEQ_ID}"
-}
-
 turn_on_start_replication_on_boot() {
     if [ "${IS_HEAD_NODE}" != "true" ]; then
         # only do this for workers for now, head needs handle differently for sharding
@@ -102,6 +93,7 @@ set_env_for_config_server() {
 
 set_env_for_mongos() {
     export MONGODB_SHARDING_MODE="mongos"
+    export MONGODB_MONGOS_CONF_FILE="${MONGODB_MONGOS_CONFIG_FILE}"
     # TODO: future to support config server, mongos or shard server on single cluster
     # TODO: support list of config server hosts instead of the primary
     export MONGODB_CFG_REPLICA_SET_NAME=${MONGODB_CFG_REPLICATION_SET_NAME}
@@ -130,12 +122,18 @@ configure_mongodb() {
     if [ "${MONGODB_CLUSTER_MODE}" == "replication" ]; then
         config_template_file=${output_dir}/mongod-replication.conf
     elif [ "${MONGODB_CLUSTER_MODE}" == "sharding" ]; then
-        config_template_file=${output_dir}/mongod-sharding.conf
+        if [ "${MONGODB_SHARDING_CLUSTER_ROLE}" == "mongos" ]; then
+            config_template_file=${output_dir}/mongod-sharding-mongos.conf
+        else
+            config_template_file=${output_dir}/mongod-sharding.conf
     else
         config_template_file=${output_dir}/mongod.conf
     fi
 
     mkdir -p ${MONGODB_HOME}/logs
+    MONGODB_CONFIG_DIR=${MONGODB_HOME}/conf
+    mkdir -p ${MONGODB_CONFIG_DIR}
+    MONGODB_CONFIG_FILE=${MONGODB_CONFIG_DIR}/mongod.conf
 
     # TODO: can bind to a hostname instead of IP if hostname is stable
     update_in_file "${config_template_file}" "{%bind.address%}" "${NODE_IP_ADDRESS}"
@@ -144,17 +142,22 @@ configure_mongodb() {
     update_data_dir
 
     if [ "${MONGODB_CLUSTER_MODE}" == "replication" ]; then
-        update_server_id
-        update_in_file "${config_template_file}" "{%replication.set.name%}" "${MONGODB_REPLICATION_SET_NAME}"
+        update_in_file "${config_template_file}" \
+          "{%replication.set.name%}" "${MONGODB_REPLICATION_SET_NAME}"
     elif [ "${MONGODB_CLUSTER_MODE}" == "sharding" ]; then
-        update_server_id
-        update_in_file "${config_template_file}" "{%replication.set.name%}" "${MONGODB_REPLICATION_SET_NAME}"
+        if [ "${MONGODB_SHARDING_CLUSTER_ROLE}" != "mongos" ]; then
+          update_in_file "${config_template_file}" \
+            "{%replication.set.name%}" "${MONGODB_REPLICATION_SET_NAME}"
+        fi
     fi
 
-    MONGODB_CONFIG_DIR=${MONGODB_HOME}/conf
-    mkdir -p ${MONGODB_CONFIG_DIR}
-    MONGODB_CONFIG_FILE=${MONGODB_CONFIG_DIR}/mongod.conf
-    cp ${config_template_file} ${MONGODB_CONFIG_FILE}
+    if [ "${MONGODB_CLUSTER_MODE}" == "sharding" ] \
+        && [ "${MONGODB_SHARDING_CLUSTER_ROLE}" == "mongos" ]; then
+        MONGODB_MONGOS_CONFIG_FILE=${MONGODB_CONFIG_DIR}/mongos.conf
+        cp ${config_template_file} ${MONGODB_MONGOS_CONFIG_FILE}
+    else
+        cp ${config_template_file} ${MONGODB_CONFIG_FILE}
+    fi
 
     # The following environment variables are needed for mongodb-init.sh
     set_env_for_init
