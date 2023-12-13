@@ -991,4 +991,4 @@ def wait_for_port(
             state = "free" if free else "ready"
             raise TimeoutError(
                 'Waited too long for the port {}{} to be {} '.format(
-                    port, on_host, state)) from e
+                    port, on_host, state))

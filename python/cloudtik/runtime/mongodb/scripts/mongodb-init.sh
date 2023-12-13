@@ -131,18 +131,10 @@ you need to provide the MONGODB_INITIAL_PRIMARY_HOST env var"
                 { [[ -z "$MONGODB_INITIAL_PRIMARY_ROOT_PASSWORD" ]] && [[ -n "$MONGODB_REPLICA_SET_KEY" ]]; }; then
                 print_validation_error "$replicaset_error_message"
             fi
-            if [[ -n "$MONGODB_ROOT_PASSWORD" ]]; then
-                error_message="MONGODB_ROOT_PASSWORD shouldn't be set on a 'non-primary' node"
-                print_validation_error "$error_message"
-            fi
         elif [[ "$MONGODB_REPLICA_SET_MODE" = "primary" ]]; then
             if { [[ -n "$MONGODB_ROOT_PASSWORD" ]] && [[ -z "$MONGODB_REPLICA_SET_KEY" ]]; } ||
                 { [[ -z "$MONGODB_ROOT_PASSWORD" ]] && [[ -n "$MONGODB_REPLICA_SET_KEY" ]]; }; then
                 print_validation_error "$replicaset_error_message"
-            fi
-            if [[ -n "$MONGODB_INITIAL_PRIMARY_ROOT_PASSWORD" ]]; then
-                error_message="MONGODB_INITIAL_PRIMARY_ROOT_PASSWORD shouldn't be set on a 'primary' node"
-                print_validation_error "$error_message"
             fi
             if [[ -z "$MONGODB_ROOT_PASSWORD" ]] && ! is_boolean_yes "$MONGODB_ALLOW_EMPTY_PASSWORD"; then
                 error_message="The MONGODB_ROOT_PASSWORD environment variable is empty or not set. \
@@ -445,14 +437,9 @@ mongodb_set_auth_conf() {
 
     if ! is_file_external_mount "$conf_file_name"; then
         if [[ -n "$MONGODB_ROOT_PASSWORD" ]] || [[ -n "$MONGODB_INITIAL_PRIMARY_ROOT_PASSWORD" ]] || [[ -n "$MONGODB_PASSWORD" ]]; then
-            authorization="$(yq eval .security.authorization "$MONGODB_CONF_FILE")"
-            if [[ "$authorization" = "disabled" ]]; then
-
-                info "Enabling authentication..."
-                # TODO: replace 'sed' calls with 'yq' once 'yq write' does not remove comments
-                mongodb_config_apply_regex "#?authorization:.*" "authorization: enabled" "$conf_file_path"
-                mongodb_config_apply_regex "#?enableLocalhostAuthBypass:.*" "enableLocalhostAuthBypass: false" "$conf_file_path"
-            fi
+            info "Enabling authentication..."
+            mongodb_config_apply_regex "#?authorization:.*" "authorization: enabled" "$conf_file_path"
+            # mongodb_config_apply_regex "#?enableLocalhostAuthBypass:.*" "enableLocalhostAuthBypass: false" "$conf_file_path"
         fi
     else
         debug "$conf_file_name mounted. Skipping authorization enabling"
@@ -1244,6 +1231,7 @@ mongodb_initialize() {
 
         mongodb_start_bg "$MONGODB_CONF_FILE"
         mongodb_create_users
+        mongodb_set_auth_conf "$MONGODB_CONF_FILE"
         if [[ -n "$MONGODB_REPLICA_SET_MODE" ]]; then
             mongodb_set_replicasetmode_conf "$MONGODB_CONF_FILE"
             mongodb_configure_replica_set
@@ -1480,6 +1468,10 @@ _is_sourced() {
 _main() {
     # Ensure MongoDB env var settings are valid
     mongodb_validate
+
+    # Ensure MongoDB is stopped when this script ends.
+    trap "mongodb_stop" EXIT
+
     mongodb_initialize
 
     if [[ -n "$MONGODB_INITSCRIPTS_DIR" ]]; then
