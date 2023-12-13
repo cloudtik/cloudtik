@@ -19,35 +19,69 @@ USER_HOME=/home/$(whoami)
 RUNTIME_PATH=$USER_HOME/runtime
 MONGODB_HOME=$RUNTIME_PATH/mongodb
 
+start_mongod() {
+    MONGODB_CONFIG_FILE=${MONGODB_HOME}/conf/mongod.conf
+    mongod --fork \
+        --config ${MONGODB_CONFIG_FILE} \
+        >${MONGODB_HOME}/logs/mongod-start.log 2>&1
+}
+
+stop_mongod() {
+  local pid_file=${MONGODB_HOME}/mongod.pid
+  stop_process_by_pid_file "${pid_file}"
+}
+
+start_mongos() {
+    MONGODB_MONGOS_CONFIG_FILE=${MONGODB_HOME}/conf/mongos.conf
+    mongos --fork \
+    --config ${MONGODB_MONGOS_CONFIG_FILE} \
+    >${MONGODB_HOME}/logs/mongos-start.log 2>&1
+}
+
+stop_mongos() {
+  local pid_file=${MONGODB_HOME}/mongos.pid
+  stop_process_by_pid_file "${pid_file}"
+}
+
 case "$SERVICE_COMMAND" in
 start)
     if [ "${IS_HEAD_NODE}" == "true" ] \
         || [ "${MONGODB_CLUSTER_MODE}" != "none" ]; then
-        if [ "${MONGODB_CLUSTER_MODE}" == "sharding" ] \
-            && [ "${MONGODB_SHARDING_CLUSTER_ROLE}" == "mongos" ]; then
-            MONGODB_MONGOS_CONFIG_FILE=${MONGODB_HOME}/conf/mongos.conf
-            mongos --fork \
-            --config ${MONGODB_MONGOS_CONFIG_FILE} \
-            >${MONGODB_HOME}/logs/mongos-start.log 2>&1
+        if [ "${MONGODB_CLUSTER_MODE}" == "sharding" ]; then
+            if [ "${MONGODB_SHARDING_CLUSTER_ROLE}" == "config_server" ]; then
+                # start config server before mongos
+                start_mongod
+                start_mongos
+            elif [ "${MONGODB_SHARDING_CLUSTER_ROLE}" == "shard" ]; then
+                # start mongos before shard
+                start_mongos
+                start_mongod
+            else
+                start_mongos
+            fi
         else
-            MONGODB_CONFIG_FILE=${MONGODB_HOME}/conf/mongod.conf
-            mongod --fork \
-                --config ${MONGODB_CONFIG_FILE} \
-                >${MONGODB_HOME}/logs/mongod-start.log 2>&1
+            start_mongod
         fi
     fi
     ;;
 stop)
     if [ "${IS_HEAD_NODE}" == "true" ] \
         || [ "${MONGODB_CLUSTER_MODE}" != "none" ]; then
-        local pid_file
-        if [ "${MONGODB_CLUSTER_MODE}" == "sharding" ] \
-            && [ "${MONGODB_SHARDING_CLUSTER_ROLE}" == "mongos" ]; then
-            pid_file=${MONGODB_HOME}/mongos.pid
+        if [ "${MONGODB_CLUSTER_MODE}" == "sharding" ]; then
+            if [ "${MONGODB_SHARDING_CLUSTER_ROLE}" == "config_server" ]; then
+                # start config server before mongos
+                stop_mongos
+                stop_mongod
+            elif [ "${MONGODB_SHARDING_CLUSTER_ROLE}" == "shard" ]; then
+                # start mongos before shard
+                stop_mongod
+                stop_mongos
+            else
+                stop_mongos
+            fi
         else
-            pid_file=${MONGODB_HOME}/mongod.pid
+            stop_mongod
         fi
-        stop_process_by_pid_file "${pid_file}"
     fi
     ;;
 -h|--help)

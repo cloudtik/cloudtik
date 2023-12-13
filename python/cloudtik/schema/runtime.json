@@ -1203,6 +1203,10 @@
                         "cluster_role": {
                             "type": "string",
                             "description": "Sharding cluster role: config_server, mongos, or shard."
+                        },
+                        "mongos_port": {
+                            "type": "integer",
+                            "description": "The mongos port. Default to 27017 for standalone mongos and 27018 for mongos running on config server or shard server."
                         }
                     }
                 }

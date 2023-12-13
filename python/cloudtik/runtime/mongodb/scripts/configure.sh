@@ -54,6 +54,30 @@ turn_on_start_replication_on_boot() {
     fi
 }
 
+configure_common() {
+    local -r config_file="${1:-${config_template_file}}"
+      # TODO: can bind to a hostname instead of IP if hostname is stable
+    update_in_file "${config_file}" "{%bind.address%}" "${NODE_IP_ADDRESS}"
+    update_in_file "${config_file}" "{%home.dir%}" "${MONGODB_HOME}"
+}
+
+configure_mongod() {
+    configure_common
+    update_in_file "${config_template_file}" "{%bind.port%}" "${MONGODB_SERVICE_PORT}"
+    update_data_dir
+}
+
+configure_mongos() {
+    local -r config_file="${1:-${config_template_file}}"
+    configure_common "${config_file}"
+    update_in_file "${config_file}" "{%bind.port%}" "${MONGODB_MONGOS_PORT}"
+}
+
+configure_replica_set() {
+    update_in_file "${config_template_file}" \
+          "{%replication.set.name%}" "${MONGODB_REPLICATION_SET_NAME}"
+}
+
 set_env_for_init() {
     export MONGODB_BIN_DIR="$( dirname -- "$(which mongod)" )"
     export MONGODB_CONF_DIR="${MONGODB_CONFIG_DIR}"
@@ -94,21 +118,34 @@ set_env_for_config_server() {
 set_env_for_mongos() {
     export MONGODB_SHARDING_MODE="mongos"
     export MONGODB_MONGOS_CONF_FILE="${MONGODB_MONGOS_CONFIG_FILE}"
-    # TODO: future to support config server, mongos or shard server on single cluster
-    # TODO: support list of config server hosts instead of the primary
-    export MONGODB_CFG_REPLICA_SET_NAME=${MONGODB_CFG_REPLICATION_SET_NAME}
-    export MONGODB_CFG_PRIMARY_HOST=${MONGODB_CFG_PRIMARY_HOST}
-    export MONGODB_CFG_PRIMARY_PORT_NUMBER="${MONGODB_CFG_PORT_NUMBER:-${MONGODB_SERVICE_PORT}}"
     if [[ -n "$MONGODB_REPLICATION_SET_KEY" ]]; then
         export MONGODB_REPLICA_SET_KEY="${MONGODB_REPLICATION_SET_KEY}"
     fi
 }
 
+set_env_for_remote_mongos() {
+    set_env_for_mongos
+    # TODO: support list of config server hosts instead of the primary
+    export MONGODB_CFG_REPLICA_SET_NAME=${MONGODB_CFG_REPLICATION_SET_NAME}
+    export MONGODB_CFG_PRIMARY_HOST=${MONGODB_CFG_PRIMARY_HOST}
+    export MONGODB_CFG_PRIMARY_PORT_NUMBER="${MONGODB_CFG_PORT_NUMBER:-${MONGODB_SERVICE_PORT}}"
+}
+
+set_env_for_mongos_on_config_server() {
+    set_env_for_mongos
+    # The mongos is in the same node of config server
+    export MONGODB_CFG_REPLICA_SET_NAME=${MONGODB_REPLICATION_SET_NAME}
+    export MONGODB_CFG_PRIMARY_HOST=${HEAD_IP_ADDRESS}
+    export MONGODB_CFG_PRIMARY_PORT_NUMBER=${MONGODB_SERVICE_PORT}
+}
+
 set_env_for_shard() {
     set_env_for_replica_set
     export MONGODB_SHARDING_MODE="shardsvr"
-    export MONGODB_MONGOS_HOST=${MONGODB_MONGOS_HOST}
-    export MONGODB_MONGOS_PORT_NUMBER="${MONGODB_MONGOS_PORT:-${MONGODB_SERVICE_PORT}}"
+
+    # Use mongos on cluster head ( or on the same node)
+    export MONGODB_MONGOS_HOST=${HEAD_IP_ADDRESS}
+    export MONGODB_MONGOS_PORT_NUMBER=${MONGODB_MONGOS_PORT}
 }
 
 configure_mongodb() {
@@ -119,43 +156,35 @@ configure_mongodb() {
 
     prepare_base_conf
 
-    if [ "${MONGODB_CLUSTER_MODE}" == "replication" ]; then
-        config_template_file=${output_dir}/mongod-replication.conf
-    elif [ "${MONGODB_CLUSTER_MODE}" == "sharding" ]; then
-        if [ "${MONGODB_SHARDING_CLUSTER_ROLE}" == "mongos" ]; then
-            config_template_file=${output_dir}/mongod-sharding-mongos.conf
-        else
-            config_template_file=${output_dir}/mongod-sharding.conf
-    else
-        config_template_file=${output_dir}/mongod.conf
-    fi
-
     mkdir -p ${MONGODB_HOME}/logs
     MONGODB_CONFIG_DIR=${MONGODB_HOME}/conf
     mkdir -p ${MONGODB_CONFIG_DIR}
     MONGODB_CONFIG_FILE=${MONGODB_CONFIG_DIR}/mongod.conf
-
-    # TODO: can bind to a hostname instead of IP if hostname is stable
-    update_in_file "${config_template_file}" "{%bind.address%}" "${NODE_IP_ADDRESS}"
-    update_in_file "${config_template_file}" "{%bind.port%}" "${MONGODB_SERVICE_PORT}"
-    update_in_file "${config_template_file}" "{%home.dir%}" "${MONGODB_HOME}"
-    update_data_dir
+    MONGODB_MONGOS_CONFIG_FILE=${MONGODB_CONFIG_DIR}/mongos.conf
 
     if [ "${MONGODB_CLUSTER_MODE}" == "replication" ]; then
-        update_in_file "${config_template_file}" \
-          "{%replication.set.name%}" "${MONGODB_REPLICATION_SET_NAME}"
+        config_template_file=${output_dir}/mongod-replication.conf
+        configure_mongod
+        configure_replica_set
+        cp ${config_template_file} ${MONGODB_CONFIG_FILE}
     elif [ "${MONGODB_CLUSTER_MODE}" == "sharding" ]; then
-        if [ "${MONGODB_SHARDING_CLUSTER_ROLE}" != "mongos" ]; then
-          update_in_file "${config_template_file}" \
-            "{%replication.set.name%}" "${MONGODB_REPLICATION_SET_NAME}"
-        fi
-    fi
+        if [ "${MONGODB_SHARDING_CLUSTER_ROLE}" == "mongos" ]; then
+            config_template_file=${output_dir}/mongod-sharding-mongos.conf
+            configure_mongos
+            cp ${config_template_file} ${MONGODB_MONGOS_CONFIG_FILE}
+        else
+            config_template_file=${output_dir}/mongod-sharding.conf
+            configure_mongod
+            configure_replica_set
+            cp ${config_template_file} ${MONGODB_CONFIG_FILE}
 
-    if [ "${MONGODB_CLUSTER_MODE}" == "sharding" ] \
-        && [ "${MONGODB_SHARDING_CLUSTER_ROLE}" == "mongos" ]; then
-        MONGODB_MONGOS_CONFIG_FILE=${MONGODB_CONFIG_DIR}/mongos.conf
-        cp ${config_template_file} ${MONGODB_MONGOS_CONFIG_FILE}
+            # The mongos need on a different port number
+            configure_mongos ${output_dir}/mongod-sharding-mongos.conf
+            cp ${output_dir}/mongod-sharding-mongos.conf ${MONGODB_MONGOS_CONFIG_FILE}
+        fi
     else
+        config_template_file=${output_dir}/mongod.conf
+        configure_mongod
         cp ${config_template_file} ${MONGODB_CONFIG_FILE}
     fi
 
@@ -170,10 +199,12 @@ configure_mongodb() {
         if [ "${MONGODB_CLUSTER_MODE}" == "sharding" ]; then
             if [ "${MONGODB_SHARDING_CLUSTER_ROLE}" == "config_server" ]; then
                 set_env_for_config_server
+                set_env_for_mongos_on_config_server
             elif [ "${MONGODB_SHARDING_CLUSTER_ROLE}" == "mongos" ]; then
-                set_env_for_mongos
+                set_env_for_remote_mongos
             else
                 set_env_for_shard
+                set_env_for_remote_mongos
             fi
         fi
     fi
