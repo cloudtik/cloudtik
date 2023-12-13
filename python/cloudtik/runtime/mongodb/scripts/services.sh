@@ -80,7 +80,7 @@ stop)
                 stop_mongos
             fi
         else
-            start_mongod
+            stop_mongod
         fi
     fi
     ;;
