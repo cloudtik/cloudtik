@@ -24,6 +24,7 @@ RUNTIME_PROCESSES = [
         # The third element is the process name.
         # The forth element, if node, the process should on all nodes,if head, the process should on head node.
         ["mongod", True, "MongoDB", "node"],
+        ["mongos", True, "Mongos", "node"],
     ]
 
 MONGODB_SERVICE_PORT_CONFIG_KEY = "port"
@@ -49,15 +50,14 @@ MONGODB_DATABASE_PASSWORD_CONFIG_KEY = "password"
 MONGODB_SHARDING_CONFIG_KEY = "sharding"
 
 MONGODB_SHARDING_CLUSTER_ROLE_CONFIG_KEY = "cluster_role"
-MONGODB_SHARDING_CLUSTER_ROLE_CONFIG_SERVER = "config_server"
+MONGODB_SHARDING_CLUSTER_ROLE_CONFIG_SERVER = "configsvr"
 MONGODB_SHARDING_CLUSTER_ROLE_MONGOS = "mongos"
-MONGODB_SHARDING_CLUSTER_ROLE_SHARD = "shard"
+MONGODB_SHARDING_CLUSTER_ROLE_SHARD = "shardsvr"
 
 MONGODB_MONGOS_PORT_CONFIG_KEY = "mongos_port"
 
 MONGODB_SERVICE_TYPE = BUILT_IN_RUNTIME_MONGODB
 
-MONGODB_DYNAMIC_SERVICE_TYPE = MONGODB_SERVICE_TYPE + "-dynamic"
 MONGODB_REPLICA_SERVICE_TYPE = MONGODB_SERVICE_TYPE + "-replica"
 MONGODB_CONFIG_SERVER_SERVICE_TYPE = MONGODB_SERVICE_TYPE + "-configsvr"
 MONGODB_MONGOS_SERVICE_TYPE = MONGODB_SERVICE_TYPE + "-mongos"
@@ -377,7 +377,8 @@ def register_sharding_service(mongodb_config, cluster_config, head_ip):
     if cluster_role == MONGODB_SHARDING_CLUSTER_ROLE_CONFIG_SERVER:
         register_service_to_workspace(
             cluster_config, BUILT_IN_RUNTIME_MONGODB,
-            service_addresses=[(head_ip, service_port)])
+            service_addresses=[(head_ip, service_port)],
+            service_name=MONGODB_CONFIG_SERVER_SERVICE_TYPE)
     elif cluster_role == MONGODB_SHARDING_CLUSTER_ROLE_SHARD:
         register_service_to_workspace(
             cluster_config, BUILT_IN_RUNTIME_MONGODB,
@@ -489,11 +490,11 @@ def _get_runtime_services(
     cluster_mode = _get_cluster_mode(mongodb_config)
     if cluster_mode == MONGODB_CLUSTER_MODE_REPLICATION:
         # all nodes are possible primary
-        dynamic_service_name = get_canonical_service_name(
-            service_discovery_config, cluster_name, MONGODB_DYNAMIC_SERVICE_TYPE)
+        replica_service_name = get_canonical_service_name(
+            service_discovery_config, cluster_name, MONGODB_REPLICA_SERVICE_TYPE)
         services = {
-            dynamic_service_name: define_runtime_service(
-                MONGODB_DYNAMIC_SERVICE_TYPE,
+            replica_service_name: define_runtime_service(
+                MONGODB_REPLICA_SERVICE_TYPE,
                 service_discovery_config, service_port),
         }
     elif cluster_mode == MONGODB_CLUSTER_MODE_SHARDING:
