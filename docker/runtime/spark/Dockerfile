@@ -29,7 +29,8 @@ RUN sudo apt-get update -y \
     # Install fuse tools
     && wget -N https://packages.microsoft.com/config/ubuntu/20.04/packages-microsoft-prod.deb \
     && sudo dpkg -i packages-microsoft-prod.deb \
-    && echo "deb http://packages.cloud.google.com/apt gcsfuse-bionic main" |sudo tee /etc/apt/sources.list.d/gcsfuse.list \
+    && curl -fsSL https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo tee /usr/share/keyrings/cloud.google.asc >/dev/null \
+    && echo "deb [signed-by=/usr/share/keyrings/cloud.google.asc] https://packages.cloud.google.com/apt gcsfuse-$(lsb_release -c -s) main" | sudo tee /etc/apt/sources.list.d/gcsfuse.list \
     && sudo apt-get update -y && sudo apt-get install -y \
          libfuse3-dev \
          fuse3 \

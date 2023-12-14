@@ -278,11 +278,11 @@ install_azure_blob_fuse() {
 install_gcs_fuse() {
     if ! type gcsfuse >/dev/null 2>&1; then
         echo "Installing GCS Fuse..."
-        echo "deb http://packages.cloud.google.com/apt gcsfuse-bionic main" | sudo tee /etc/apt/sources.list.d/gcsfuse.list > /dev/null
-        wget -O - -q https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add -
-        sudo apt-get -qq update -y > /dev/null
-        sudo DEBIAN_FRONTEND=noninteractive apt-get install -qq gcsfuse -y > /dev/null
-        sudo rm -f /etc/apt/sources.list.d/gcsfuse.list
+        curl -fsSL https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo tee /usr/share/keyrings/cloud.google.asc >/dev/null \
+          && echo "deb [signed-by=/usr/share/keyrings/cloud.google.asc] https://packages.cloud.google.com/apt gcsfuse-$(lsb_release -c -s) main" | sudo tee /etc/apt/sources.list.d/gcsfuse.list >/dev/null \
+          && sudo apt-get -qq update -y > /dev/null \
+          && sudo DEBIAN_FRONTEND=noninteractive apt-get install -qq gcsfuse -y > /dev/null \
+          && sudo rm -f /etc/apt/sources.list.d/gcsfuse.list
     fi
 }
 
