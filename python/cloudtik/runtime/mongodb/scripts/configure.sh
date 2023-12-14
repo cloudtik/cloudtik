@@ -210,7 +210,7 @@ configure_mongodb() {
         set_env_for_replica_set
     elif [ "${MONGODB_CLUSTER_MODE}" == "sharding" ]; then
         if [ "${MONGODB_CLUSTER_MODE}" == "sharding" ]; then
-            if [ "${MONGODB_SHARDING_CLUSTER_ROLE}" == "config_server" ]; then
+            if [ "${MONGODB_SHARDING_CLUSTER_ROLE}" == "configsvr" ]; then
                 set_env_for_config_server
                 set_env_for_mongos_on_config_server
             elif [ "${MONGODB_SHARDING_CLUSTER_ROLE}" == "mongos" ]; then

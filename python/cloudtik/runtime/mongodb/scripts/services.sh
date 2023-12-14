@@ -48,11 +48,11 @@ start)
     if [ "${IS_HEAD_NODE}" == "true" ] \
         || [ "${MONGODB_CLUSTER_MODE}" != "none" ]; then
         if [ "${MONGODB_CLUSTER_MODE}" == "sharding" ]; then
-            if [ "${MONGODB_SHARDING_CLUSTER_ROLE}" == "config_server" ]; then
+            if [ "${MONGODB_SHARDING_CLUSTER_ROLE}" == "configsvr" ]; then
                 # start config server before mongos
                 start_mongod
                 start_mongos
-            elif [ "${MONGODB_SHARDING_CLUSTER_ROLE}" == "shard" ]; then
+            elif [ "${MONGODB_SHARDING_CLUSTER_ROLE}" == "shardsvr" ]; then
                 # start mongos before shard
                 start_mongos
                 start_mongod
@@ -68,11 +68,11 @@ stop)
     if [ "${IS_HEAD_NODE}" == "true" ] \
         || [ "${MONGODB_CLUSTER_MODE}" != "none" ]; then
         if [ "${MONGODB_CLUSTER_MODE}" == "sharding" ]; then
-            if [ "${MONGODB_SHARDING_CLUSTER_ROLE}" == "config_server" ]; then
+            if [ "${MONGODB_SHARDING_CLUSTER_ROLE}" == "configsvr" ]; then
                 # start config server before mongos
                 stop_mongos
                 stop_mongod
-            elif [ "${MONGODB_SHARDING_CLUSTER_ROLE}" == "shard" ]; then
+            elif [ "${MONGODB_SHARDING_CLUSTER_ROLE}" == "shardsvr" ]; then
                 # start mongos before shard
                 stop_mongod
                 stop_mongos

@@ -1202,7 +1202,7 @@
                     "properties": {
                         "cluster_role": {
                             "type": "string",
-                            "description": "Sharding cluster role: config_server, mongos, or shard."
+                            "description": "Sharding cluster role: configsvr, mongos, or shardsvr."
                         },
                         "mongos_port": {
                             "type": "integer",
