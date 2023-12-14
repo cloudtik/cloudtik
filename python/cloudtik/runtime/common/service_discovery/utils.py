@@ -25,11 +25,11 @@ def get_service_addresses_string(service_addresses):
                      for service_address in service_addresses])
 
 
-def get_service_addresses_from_string(registry_addresses):
-    registry_address_list = [x.strip() for x in registry_addresses.split(',')]
+def get_service_addresses_from_string(addresses_string):
+    addresses_list = [x.strip() for x in addresses_string.split(',')]
     service_addresses = []
-    for registry_address in registry_address_list:
-        address_parts = [x.strip() for x in registry_address.split(':')]
+    for address_string in addresses_list:
+        address_parts = [x.strip() for x in address_string.split(':')]
         n = len(address_parts)
         if n == 1:
             host = address_parts[0]
@@ -39,6 +39,6 @@ def get_service_addresses_from_string(registry_addresses):
             port = int(address_parts[1])
         else:
             raise ValueError(
-                "Invalid service address find in: {}".format(registry_addresses))
+                "Invalid service address find in: {}".format(addresses_string))
         service_addresses.append((host, port))
     return service_addresses

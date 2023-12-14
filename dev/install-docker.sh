@@ -11,7 +11,7 @@ sudo apt-get install -y \
     lsb-release
 
 # Add Docker's official GPG key:
-curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --yes --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
 
 #  Set up the stable repository
 echo \
@@ -21,3 +21,12 @@ echo \
 # Update the apt package index, and install the latest version of Docker Engine and containerd
 sudo apt-get update -y
 sudo apt-get install -y docker-ce docker-ce-cli containerd.io
+
+if [[ "$(id -u)" != "0" ]]; then
+    getent group "docker" >/dev/null 2>&1
+    if [ $? != 0 ]; then
+        sudo groupadd docker
+    fi
+    current_user=$(whoami)
+    sudo gpasswd -a $current_user docker
+fi

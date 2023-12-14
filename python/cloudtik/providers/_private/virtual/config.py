@@ -378,7 +378,7 @@ def _configure_permanent_data_volumes(config):
 def is_rootless_docker():
     # run docker image list for a test
     try:
-        exec_with_output("docker image list")
+        exec_with_output("docker image list 2>&1")
         return True
     except:
         return False
