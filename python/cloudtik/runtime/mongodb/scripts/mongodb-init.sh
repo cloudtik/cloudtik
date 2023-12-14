@@ -234,13 +234,13 @@ get_mongo_hostname() {
 # Arguments:
 #   None
 # Returns:
-#   The value of $MONGODB_ADVERTISED_PORT_NUMBER or $MONGODB_PORT_NUMBER
+#   The value of $MONGODB_ADVERTISED_PORT or $MONGODB_PORT
 ########################
 get_mongo_port() {
-    if [[ -n "$MONGODB_ADVERTISED_PORT_NUMBER" ]]; then
-        echo "$MONGODB_ADVERTISED_PORT_NUMBER"
+    if [[ -n "$MONGODB_ADVERTISED_PORT" ]]; then
+        echo "$MONGODB_ADVERTISED_PORT"
     else
-        echo "$MONGODB_PORT_NUMBER"
+        echo "$MONGODB_PORT"
     fi
 }
 
@@ -564,6 +564,7 @@ mongodb_set_keyfile_conf() {
     local -r conf_file_name="${conf_file_path#"$MONGODB_CONF_DIR"}"
 
     if ! is_file_external_mount "$conf_file_name"; then
+        mongodb_config_apply_regex "#?security:.*" "security:" "$conf_file_path"
         mongodb_config_apply_regex "#?keyFile:.*" "keyFile: $MONGODB_KEY_FILE" "$conf_file_path"
     else
         debug "$conf_file_name mounted. Skipping keyfile location configuration"
@@ -613,7 +614,7 @@ mongodb_is_primary_node_initiated() {
     local port="${2:?port is required}"
     local result
     result=$(
-        mongodb_execute_print_output "$MONGODB_ROOT_USER" "$MONGODB_ROOT_PASSWORD" "admin" "127.0.0.1" "$MONGODB_PORT_NUMBER" <<EOF
+        mongodb_execute_print_output "$MONGODB_ROOT_USER" "$MONGODB_ROOT_PASSWORD" "admin" "127.0.0.1" "$MONGODB_PORT" <<EOF
 rs.initiate({"_id":"$MONGODB_REPLICA_SET_NAME", "members":[{"_id":0,"host":"$node:$port","priority":5}]})
 EOF
     )
@@ -645,7 +646,7 @@ mongodb_set_dwc() {
     local result
 
     result=$(
-        mongodb_execute_print_output "$MONGODB_INITIAL_PRIMARY_ROOT_USER" "$MONGODB_INITIAL_PRIMARY_ROOT_PASSWORD" "admin" "$MONGODB_INITIAL_PRIMARY_HOST" "$MONGODB_INITIAL_PRIMARY_PORT_NUMBER" <<EOF
+        mongodb_execute_print_output "$MONGODB_INITIAL_PRIMARY_ROOT_USER" "$MONGODB_INITIAL_PRIMARY_ROOT_PASSWORD" "admin" "$MONGODB_INITIAL_PRIMARY_HOST" "$MONGODB_INITIAL_PRIMARY_PORT" <<EOF
 db.adminCommand({"setDefaultRWConcern" : 1, "defaultWriteConcern" : {"w" : "majority"}})
 EOF
     )
@@ -676,7 +677,7 @@ mongodb_is_secondary_node_pending() {
 
     debug "Adding secondary node ${node}:${port}"
     result=$(
-        mongodb_execute_print_output "$MONGODB_INITIAL_PRIMARY_ROOT_USER" "$MONGODB_INITIAL_PRIMARY_ROOT_PASSWORD" "admin" "$MONGODB_INITIAL_PRIMARY_HOST" "$MONGODB_INITIAL_PRIMARY_PORT_NUMBER" <<EOF
+        mongodb_execute_print_output "$MONGODB_INITIAL_PRIMARY_ROOT_USER" "$MONGODB_INITIAL_PRIMARY_ROOT_PASSWORD" "admin" "$MONGODB_INITIAL_PRIMARY_HOST" "$MONGODB_INITIAL_PRIMARY_PORT" <<EOF
 rs.add({host: '$node:$port', priority: 0, votes: 0})
 EOF
     )
@@ -708,7 +709,7 @@ mongodb_is_secondary_node_ready() {
 
     debug "Waiting for the node to be marked as secondary"
     result=$(
-        mongodb_execute_print_output "$MONGODB_INITIAL_PRIMARY_ROOT_USER" "$MONGODB_INITIAL_PRIMARY_ROOT_PASSWORD" "admin" "$MONGODB_INITIAL_PRIMARY_HOST" "$MONGODB_INITIAL_PRIMARY_PORT_NUMBER" <<EOF
+        mongodb_execute_print_output "$MONGODB_INITIAL_PRIMARY_ROOT_USER" "$MONGODB_INITIAL_PRIMARY_ROOT_PASSWORD" "admin" "$MONGODB_INITIAL_PRIMARY_HOST" "$MONGODB_INITIAL_PRIMARY_PORT" <<EOF
 rs.status().members.filter(m => m.name === '$node:$port' && m.stateStr === 'SECONDARY').length === 1
 EOF
     )
@@ -735,7 +736,7 @@ mongodb_configure_secondary_node_voting() {
     local reconfig_cmd="rs.reconfigForPSASet(member, cfg)"
     [[ "$(mongodb_get_version)" =~ ^4\.(0|2)\. ]] && reconfig_cmd="rs.reconfig(cfg)"
     result=$(
-        mongodb_execute_print_output "$MONGODB_INITIAL_PRIMARY_ROOT_USER" "$MONGODB_INITIAL_PRIMARY_ROOT_PASSWORD" "admin" "$MONGODB_INITIAL_PRIMARY_HOST" "$MONGODB_INITIAL_PRIMARY_PORT_NUMBER" <<EOF
+        mongodb_execute_print_output "$MONGODB_INITIAL_PRIMARY_ROOT_USER" "$MONGODB_INITIAL_PRIMARY_ROOT_PASSWORD" "admin" "$MONGODB_INITIAL_PRIMARY_HOST" "$MONGODB_INITIAL_PRIMARY_PORT" <<EOF
 cfg = rs.conf()
 member = cfg.members.findIndex(m => m.host === '$node:$port')
 cfg.members[member].priority = 1
@@ -767,7 +768,7 @@ mongodb_is_hidden_node_pending() {
 
     debug "Adding hidden node ${node}:${port}"
     result=$(
-        mongodb_execute_print_output "$MONGODB_INITIAL_PRIMARY_ROOT_USER" "$MONGODB_INITIAL_PRIMARY_ROOT_PASSWORD" "admin" "$MONGODB_INITIAL_PRIMARY_HOST" "$MONGODB_INITIAL_PRIMARY_PORT_NUMBER" <<EOF
+        mongodb_execute_print_output "$MONGODB_INITIAL_PRIMARY_ROOT_USER" "$MONGODB_INITIAL_PRIMARY_ROOT_PASSWORD" "admin" "$MONGODB_INITIAL_PRIMARY_HOST" "$MONGODB_INITIAL_PRIMARY_PORT" <<EOF
 rs.add({host: '$node:$port', hidden: true, priority: 0, votes: 0})
 EOF
     )
@@ -800,7 +801,7 @@ mongodb_is_arbiter_node_pending() {
 
     debug "Adding arbiter node ${node}:${port}"
     result=$(
-        mongodb_execute_print_output "$MONGODB_INITIAL_PRIMARY_ROOT_USER" "$MONGODB_INITIAL_PRIMARY_ROOT_PASSWORD" "admin" "$MONGODB_INITIAL_PRIMARY_HOST" "$MONGODB_INITIAL_PRIMARY_PORT_NUMBER" <<EOF
+        mongodb_execute_print_output "$MONGODB_INITIAL_PRIMARY_ROOT_USER" "$MONGODB_INITIAL_PRIMARY_ROOT_PASSWORD" "admin" "$MONGODB_INITIAL_PRIMARY_HOST" "$MONGODB_INITIAL_PRIMARY_PORT" <<EOF
 rs.addArb('$node:$port')
 EOF
     )
@@ -822,7 +823,7 @@ mongodb_configure_primary() {
     local -r port="${2:?port is required}"
 
     info "Configuring MongoDB primary node"
-    cloudtik node wait-for-port --timeout 360 "$MONGODB_PORT_NUMBER"
+    cloudtik node wait-for-port --timeout 360 "$MONGODB_PORT"
 
     if ! retry_while "mongodb_is_primary_node_initiated $node $port" "$MONGODB_MAX_TIMEOUT"; then
         error "MongoDB primary node failed to get configured"
@@ -973,7 +974,7 @@ mongodb_configure_secondary() {
     local -r node="${1:?node is required}"
     local -r port="${2:?port is required}"
 
-    mongodb_wait_for_primary_node "$MONGODB_INITIAL_PRIMARY_HOST" "$MONGODB_INITIAL_PRIMARY_PORT_NUMBER" "$MONGODB_INITIAL_PRIMARY_ROOT_USER" "$MONGODB_INITIAL_PRIMARY_ROOT_PASSWORD"
+    mongodb_wait_for_primary_node "$MONGODB_INITIAL_PRIMARY_HOST" "$MONGODB_INITIAL_PRIMARY_PORT" "$MONGODB_INITIAL_PRIMARY_ROOT_USER" "$MONGODB_INITIAL_PRIMARY_ROOT_PASSWORD"
 
     if mongodb_node_currently_in_cluster "$node" "$port"; then
         info "Node currently in the cluster"
@@ -1023,7 +1024,7 @@ mongodb_configure_hidden() {
     local -r node="${1:?node is required}"
     local -r port="${2:?port is required}"
 
-    mongodb_wait_for_primary_node "$MONGODB_INITIAL_PRIMARY_HOST" "$MONGODB_INITIAL_PRIMARY_PORT_NUMBER" "$MONGODB_INITIAL_PRIMARY_ROOT_USER" "$MONGODB_INITIAL_PRIMARY_ROOT_PASSWORD"
+    mongodb_wait_for_primary_node "$MONGODB_INITIAL_PRIMARY_HOST" "$MONGODB_INITIAL_PRIMARY_PORT" "$MONGODB_INITIAL_PRIMARY_ROOT_USER" "$MONGODB_INITIAL_PRIMARY_ROOT_PASSWORD"
 
     if mongodb_node_currently_in_cluster "$node" "$port"; then
         info "Node currently in the cluster"
@@ -1051,7 +1052,7 @@ mongodb_configure_arbiter() {
     local -r node="${1:?node is required}"
     local -r port="${2:?port is required}"
 
-    mongodb_wait_for_primary_node "$MONGODB_INITIAL_PRIMARY_HOST" "$MONGODB_INITIAL_PRIMARY_PORT_NUMBER" "$MONGODB_INITIAL_PRIMARY_ROOT_USER" "$MONGODB_INITIAL_PRIMARY_ROOT_PASSWORD"
+    mongodb_wait_for_primary_node "$MONGODB_INITIAL_PRIMARY_HOST" "$MONGODB_INITIAL_PRIMARY_PORT" "$MONGODB_INITIAL_PRIMARY_ROOT_USER" "$MONGODB_INITIAL_PRIMARY_ROOT_PASSWORD"
 
     if mongodb_node_currently_in_cluster "$node" "$port"; then
         info "Node currently in the cluster"
@@ -1078,7 +1079,7 @@ mongodb_is_not_in_sync() {
     local result
 
     result=$(
-        mongodb_execute_print_output "$MONGODB_INITIAL_PRIMARY_ROOT_USER" "$MONGODB_INITIAL_PRIMARY_ROOT_PASSWORD" "admin" "$MONGODB_INITIAL_PRIMARY_HOST" "$MONGODB_INITIAL_PRIMARY_PORT_NUMBER" <<EOF
+        mongodb_execute_print_output "$MONGODB_INITIAL_PRIMARY_ROOT_USER" "$MONGODB_INITIAL_PRIMARY_ROOT_PASSWORD" "admin" "$MONGODB_INITIAL_PRIMARY_HOST" "$MONGODB_INITIAL_PRIMARY_PORT" <<EOF
 db.printSecondaryReplicationInfo()
 EOF
     )
@@ -1122,7 +1123,7 @@ mongodb_node_currently_in_cluster() {
     local result
 
     result=$(
-        mongodb_execute "$MONGODB_INITIAL_PRIMARY_ROOT_USER" "$MONGODB_INITIAL_PRIMARY_ROOT_PASSWORD" "admin" "$MONGODB_INITIAL_PRIMARY_HOST" "$MONGODB_INITIAL_PRIMARY_PORT_NUMBER" <<EOF
+        mongodb_execute "$MONGODB_INITIAL_PRIMARY_ROOT_USER" "$MONGODB_INITIAL_PRIMARY_ROOT_PASSWORD" "admin" "$MONGODB_INITIAL_PRIMARY_HOST" "$MONGODB_INITIAL_PRIMARY_PORT" <<EOF
 rs.status().members
 EOF
     )
@@ -1367,7 +1368,7 @@ mongodb_custom_init_scripts() {
 #   $2 - Password
 #   $3 - Database where to run the queries
 #   $4 - Host (default to result of get_mongo_hostname function)
-#   $5 - Port (default $MONGODB_PORT_NUMBER)
+#   $5 - Port (default $MONGODB_PORT)
 #   $6 - Extra arguments (default $MONGODB_SHELL_EXTRA_FLAGS)
 # Returns:
 #   output of mongo query
@@ -1377,7 +1378,7 @@ mongodb_execute_print_output() {
     local -r password="${2:-}"
     local -r database="${3:-}"
     local -r host="${4:-$(get_mongo_hostname)}"
-    local -r port="${5:-$MONGODB_PORT_NUMBER}"
+    local -r port="${5:-$MONGODB_PORT}"
     local -r extra_args="${6:-$MONGODB_SHELL_EXTRA_FLAGS}"
     local final_user="$user"
     # If password is empty it means no auth, do not specify user
@@ -1408,7 +1409,7 @@ mongodb_execute_print_output() {
 #   $2 - Password
 #   $3 - Database where to run the queries
 #   $4 - Host (default to result of get_mongo_hostname function)
-#   $5 - Port (default $MONGODB_PORT_NUMBER)
+#   $5 - Port (default $MONGODB_PORT)
 #   $6 - Extra arguments (default $MONGODB_SHELL_EXTRA_FLAGS)
 # Returns:
 #   None
@@ -1428,7 +1429,7 @@ mongodb_execute() {
 #   $2 - Password
 #   $3 - Database where to run the queries
 #   $4 - Host (default to result of get_mongo_hostname function)
-#   $5 - Port (default $MONGODB_PORT_NUMBER)
+#   $5 - Port (default $MONGODB_PORT)
 #   $6 - Extra arguments (default $MONGODB_SHELL_EXTRA_FLAGS)
 # Returns:
 #   None
@@ -1438,7 +1439,7 @@ mongodb_execute() {
     local -r password="${2:-}"
     local -r database="${3:-}"
     local -r host="${4:-$(get_mongo_hostname)}"
-    local -r port="${5:-$MONGODB_PORT_NUMBER}"
+    local -r port="${5:-$MONGODB_PORT}"
     local -r extra_args="${6:-$MONGODB_SHELL_EXTRA_FLAGS}"
     local final_user="$user"
     # If password is empty it means no auth, do not specify user

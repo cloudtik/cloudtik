@@ -21,7 +21,7 @@ install_redis() {
         mkdir -p $RUNTIME_PATH
 
         # curl -fsSL https://packages.redis.io/gpg \
-        #   | sudo gpg --dearmor -o /usr/share/keyrings/redis-archive-keyring.gpg
+        #   | sudo gpg --yes --dearmor -o /usr/share/keyrings/redis-archive-keyring.gpg
         # echo "deb [signed-by=/usr/share/keyrings/redis-archive-keyring.gpg] https://packages.redis.io/deb $(lsb_release -cs) main" \
         #   | sudo tee /etc/apt/sources.list.d/redis.list >/dev/null
         # sudo apt-get -qq update -y > /dev/null && \

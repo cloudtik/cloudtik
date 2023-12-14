@@ -70,7 +70,7 @@ configure_mongod() {
 configure_mongos() {
     local -r config_file="${1:-${config_template_file}}"
     configure_common "${config_file}"
-    update_in_file "${config_file}" "{%bind.port%}" "${MONGODB_MONGOS_PORT}"
+    update_in_file "${config_file}" "{%bind.port%}" "${MONGODB_MONGOS_SERVICE_PORT}"
 }
 
 configure_replica_set() {
@@ -85,7 +85,7 @@ set_env_for_init() {
     export MONGODB_DATA_DIR="${DATA_DIR}"
     export MONGODB_PID_FILE="${MONGODB_HOME}/mongod.pid"
     export MONGODB_VOLUME_DIR="${VOLUME_DIR}"
-    export MONGODB_PORT_NUMBER=${MONGODB_SERVICE_PORT}
+    export MONGODB_PORT=${MONGODB_SERVICE_PORT}
 
     if [ -z "${MONGODB_ROOT_PASSWORD}" ]; then
         export MONGODB_ALLOW_EMPTY_PASSWORD=true
@@ -102,7 +102,7 @@ set_env_for_replica_set() {
         export MONGODB_INITIAL_PRIMARY_ROOT_USER="${MONGODB_ROOT_USER}"
         export MONGODB_INITIAL_PRIMARY_ROOT_PASSWORD="${MONGODB_ROOT_PASSWORD}"
         export MONGODB_INITIAL_PRIMARY_HOST=${HEAD_IP_ADDRESS}
-        export MONGODB_INITIAL_PRIMARY_PORT_NUMBER=${MONGODB_PORT_NUMBER}
+        export MONGODB_INITIAL_PRIMARY_PORT=${MONGODB_PORT}
     fi
 
     if [[ -n "$MONGODB_REPLICATION_SET_KEY" ]]; then
@@ -118,6 +118,8 @@ set_env_for_config_server() {
 
 set_env_for_mongos_common() {
     export MONGODB_MONGOS_CONF_FILE="${MONGODB_MONGOS_CONFIG_FILE}"
+    export MONGODB_MONGOS_PORT=${MONGODB_MONGOS_SERVICE_PORT}
+    export MONGODB_MONGOS_PID_FILE="${MONGODB_HOME}/mongos.pid"
     if [[ -n "$MONGODB_REPLICATION_SET_KEY" ]]; then
         export MONGODB_REPLICA_SET_KEY="${MONGODB_REPLICATION_SET_KEY}"
         export MONGODB_KEY_FILE="$MONGODB_CONF_DIR/keyfile"
@@ -126,9 +128,9 @@ set_env_for_mongos_common() {
 
 set_env_for_mongos_config() {
     # TODO: support list of config server hosts instead of the primary
-    export MONGODB_CFG_REPLICA_SET_NAME=${MONGODB_CFG_REPLICATION_SET_NAME}
-    export MONGODB_CFG_PRIMARY_HOST=${MONGODB_CFG_PRIMARY_HOST}
-    export MONGODB_CFG_PRIMARY_PORT_NUMBER="${MONGODB_CFG_PORT_NUMBER:-${MONGODB_SERVICE_PORT}}"
+    export MONGODB_CFG_REPLICA_SET_NAME=${MONGODB_CONFIG_SERVER_REPLICATION_SET_NAME}
+    export MONGODB_CFG_PRIMARY_HOST=${MONGODB_CONFIG_SERVER_HOST}
+    export MONGODB_CFG_PRIMARY_PORT="${MONGODB_CONFIG_SERVER_PORT:-${MONGODB_SERVICE_PORT}}"
 }
 
 set_env_for_mongos() {
@@ -147,7 +149,7 @@ set_env_for_mongos_on_config_server() {
     # The mongos is in the same node of config server
     export MONGODB_CFG_REPLICA_SET_NAME=${MONGODB_REPLICATION_SET_NAME}
     export MONGODB_CFG_PRIMARY_HOST=${HEAD_IP_ADDRESS}
-    export MONGODB_CFG_PRIMARY_PORT_NUMBER=${MONGODB_SERVICE_PORT}
+    export MONGODB_CFG_PRIMARY_PORT=${MONGODB_SERVICE_PORT}
 }
 
 set_env_for_shard() {
@@ -156,7 +158,7 @@ set_env_for_shard() {
 
     # Use mongos on cluster head ( or on the same node)
     export MONGODB_MONGOS_HOST=${HEAD_IP_ADDRESS}
-    export MONGODB_MONGOS_PORT_NUMBER=${MONGODB_MONGOS_PORT}
+    export MONGODB_MONGOS_HOST_PORT=${MONGODB_MONGOS_SERVICE_PORT}
 }
 
 configure_mongodb() {

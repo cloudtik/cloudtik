@@ -27,7 +27,7 @@ mongodb_sharded_shard_currently_in_cluster() {
     local result
 
     result=$(
-        mongodb_execute_print_output "$MONGODB_ROOT_USER" "$MONGODB_ROOT_PASSWORD" "admin" "$MONGODB_MONGOS_HOST" "$MONGODB_MONGOS_PORT_NUMBER" <<EOF
+        mongodb_execute_print_output "$MONGODB_ROOT_USER" "$MONGODB_ROOT_PASSWORD" "admin" "$MONGODB_MONGOS_HOST" "$MONGODB_MONGOS_HOST_PORT" <<EOF
 db.adminCommand({ listShards: 1 })
 EOF
     )
@@ -84,7 +84,7 @@ mongodb_sharded_mongod_initialize() {
     fi
 
     if [[ "$MONGODB_SHARDING_MODE" = "shardsvr" ]] && [[ "$MONGODB_REPLICA_SET_MODE" = "primary" ]]; then
-        mongodb_wait_for_node "$MONGODB_MONGOS_HOST" "$MONGODB_MONGOS_PORT_NUMBER" "$MONGODB_ROOT_USER" "$MONGODB_ROOT_PASSWORD"
+        mongodb_wait_for_node "$MONGODB_MONGOS_HOST" "$MONGODB_MONGOS_HOST_PORT" "$MONGODB_ROOT_USER" "$MONGODB_ROOT_PASSWORD"
         if ! mongodb_sharded_shard_currently_in_cluster "$MONGODB_REPLICA_SET_NAME"; then
             mongodb_sharded_join_shard_cluster
         else
@@ -181,7 +181,7 @@ mongodb_sharded_set_sharding_conf() {
 mongodb_sharded_join_shard_cluster() {
     mongodb_start_bg
     info "Joining the shard cluster"
-    if ! retry_while "mongodb_sharded_is_join_shard_pending $MONGODB_REPLICA_SET_NAME/$MONGODB_ADVERTISED_HOSTNAME:$MONGODB_PORT_NUMBER $MONGODB_MONGOS_HOST $MONGODB_MONGOS_PORT_NUMBER root $MONGODB_ROOT_PASSWORD" "$MONGODB_MAX_TIMEOUT"; then
+    if ! retry_while "mongodb_sharded_is_join_shard_pending $MONGODB_REPLICA_SET_NAME/$MONGODB_ADVERTISED_HOSTNAME:$MONGODB_PORT $MONGODB_MONGOS_HOST $MONGODB_MONGOS_HOST_PORT root $MONGODB_ROOT_PASSWORD" "$MONGODB_MAX_TIMEOUT"; then
         error "Unable to join the sharded cluster"
         exit 1
     fi
@@ -237,10 +237,10 @@ mongodb_sharded_configure_replica_set() {
         fi
         ;;
     "secondary")
-        mongodb_configure_secondary "$node" "$MONGODB_PORT_NUMBER"
+        mongodb_configure_secondary "$node" "$MONGODB_PORT"
         ;;
     "arbiter")
-        mongodb_configure_arbiter "$node" "$MONGODB_PORT_NUMBER"
+        mongodb_configure_arbiter "$node" "$MONGODB_PORT"
         ;;
     "dynamic")
         # Do nothing
@@ -266,7 +266,7 @@ mongodb_sharded_initiate_svr_primary() {
         local result
         result=$(
             mongodb_execute_print_output "" "" "" "127.0.0.1" <<EOF
-rs.initiate({"_id":"$MONGODB_REPLICA_SET_NAME", "protocolVersion":1, "members":[{"_id":0,"host":"127.0.0.1:$MONGODB_PORT_NUMBER"}]})
+rs.initiate({"_id":"$MONGODB_REPLICA_SET_NAME", "protocolVersion":1, "members":[{"_id":0,"host":"127.0.0.1:$MONGODB_PORT"}]})
 EOF
         )
         grep -q "ok: 1" <<<"$result"
@@ -277,7 +277,7 @@ EOF
         error "Unable to initialize primary config server: cannot initiate"
         exit 1
     fi
-    if ! retry_while "mongodb_is_primary_node_up 127.0.0.1 $MONGODB_PORT_NUMBER admin" "$MONGODB_MAX_TIMEOUT"; then
+    if ! retry_while "mongodb_is_primary_node_up 127.0.0.1 $MONGODB_PORT admin" "$MONGODB_MAX_TIMEOUT"; then
         error "Unable to initialize primary config server: cannot become primary"
         exit 1
     fi
@@ -297,8 +297,8 @@ mongodb_sharded_is_svr_primary_reconfigured() {
     local result
 
     result=$(
-        mongodb_execute_print_output "$MONGODB_ROOT_USER" "$MONGODB_ROOT_PASSWORD" "admin" "$node" "$MONGODB_PORT_NUMBER" <<EOF
-rs.reconfig({"_id":"$MONGODB_REPLICA_SET_NAME","configsvr": $([[ "$MONGODB_SHARDING_MODE" = "configsvr" ]] && echo "true" || echo "false"),"protocolVersion":1,"members":[{"_id":0,"host":"$node:$MONGODB_PORT_NUMBER","priority":5}]})
+        mongodb_execute_print_output "$MONGODB_ROOT_USER" "$MONGODB_ROOT_PASSWORD" "admin" "$node" "$MONGODB_PORT" <<EOF
+rs.reconfig({"_id":"$MONGODB_REPLICA_SET_NAME","configsvr": $([[ "$MONGODB_SHARDING_MODE" = "configsvr" ]] && echo "true" || echo "false"),"protocolVersion":1,"members":[{"_id":0,"host":"$node:$MONGODB_PORT","priority":5}]})
 EOF
     )
     grep -q "ok: 1" <<<"$result"
@@ -317,7 +317,7 @@ mongodb_sharded_reconfigure_svr_primary() {
     local -r node="${1:?node is required}"
 
     info "Configuring MongoDB primary node...: $node"
-    cloudtik node wait-for-port --timeout 360 "$MONGODB_PORT_NUMBER"
+    cloudtik node wait-for-port --timeout 360 "$MONGODB_PORT"
 
     if ! retry_while "mongodb_sharded_is_svr_primary_reconfigured $node" "$MONGODB_MAX_TIMEOUT"; then
         error "Unable to initialize primary config server"
@@ -336,7 +336,7 @@ mongodb_sharded_mongos_initialize() {
     mongodb_set_auth_conf "$MONGODB_MONGOS_CONF_FILE"
     mongodb_sharded_set_cfg_server_host_conf "$MONGODB_MONGOS_CONF_FILE"
     if [[ "$MONGODB_SHARDING_MODE" != "configsvr" ]]; then
-        mongodb_wait_for_primary_node "$MONGODB_CFG_PRIMARY_HOST" "$MONGODB_CFG_PRIMARY_PORT_NUMBER" "$MONGODB_ROOT_USER" "$MONGODB_ROOT_PASSWORD"
+        mongodb_wait_for_primary_node "$MONGODB_CFG_PRIMARY_HOST" "$MONGODB_CFG_PRIMARY_PORT" "$MONGODB_ROOT_USER" "$MONGODB_ROOT_PASSWORD"
     fi
 }
 
@@ -354,7 +354,7 @@ mongodb_sharded_set_cfg_server_host_conf() {
     local -r conf_file_name="${conf_file_path#"$MONGODB_CONF_DIR"}"
 
     if ! is_file_external_mount "$conf_file_name"; then
-        mongodb_config_apply_regex "configDB:.*" "configDB: $MONGODB_CFG_REPLICA_SET_NAME/$MONGODB_CFG_PRIMARY_HOST:$MONGODB_CFG_PRIMARY_PORT_NUMBER" "$conf_file_path"
+        mongodb_config_apply_regex "configDB:.*" "configDB: $MONGODB_CFG_REPLICA_SET_NAME/$MONGODB_CFG_PRIMARY_HOST:$MONGODB_CFG_PRIMARY_PORT" "$conf_file_path"
     else
         debug "$conf_file_name mounted. Skipping setting config server host"
     fi
@@ -440,7 +440,7 @@ mongodb_start_mongos() {
     fi
 
     # wait until the server is up and answering queries
-    if ! retry_while "mongodb_wait_for_node 127.0.0.1 $MONGODB_MONGOS_PORT_NUMBER $MONGODB_ROOT_USER $MONGODB_ROOT_PASSWORD" "$MONGODB_MAX_TIMEOUT"; then
+    if ! retry_while "mongodb_wait_for_node 127.0.0.1 $MONGODB_MONGOS_PORT $MONGODB_ROOT_USER $MONGODB_ROOT_PASSWORD" "$MONGODB_MAX_TIMEOUT"; then
         error "Mongos did not start"
         exit 1
     fi
