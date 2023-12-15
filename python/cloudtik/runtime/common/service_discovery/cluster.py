@@ -1,4 +1,5 @@
-from cloudtik.core._private.utils import publish_cluster_variable, subscribe_cluster_variable, is_runtime_enabled
+from cloudtik.core._private.utils import is_runtime_enabled
+from cloudtik.core._private.runtime_utils import publish_cluster_variable, subscribe_cluster_variable
 from cloudtik.runtime.common.service_discovery.utils import get_service_addresses_string, \
     get_service_addresses_from_string
 
