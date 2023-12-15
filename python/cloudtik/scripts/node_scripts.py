@@ -230,22 +230,13 @@ def start(node_ip_address, address, port, head,
             print(redis_address, file=f)
     else:
         # Start on a non-head node.
-        redis_address = None
-        if address is not None:
-            (redis_address, redis_address_ip,
-             redis_address_port) = services.validate_redis_address(address)
-        if not (port is None):
-            cli_logger.abort("`{}` should not be specified without `{}`.",
-                             cf.bold("--port"), cf.bold("--head"))
+        if not address:
+            cli_logger.abort("`{}` is required for starting worker node",
+                             cf.bold("--address"))
+            raise Exception("Invalid command. --address must be provided for worker node.")
 
-            raise Exception("If --head is not passed in, --port is not "
-                            "allowed.")
-        if redis_shard_ports is not None:
-            cli_logger.abort("`{}` should not be specified without `{}`.",
-                             cf.bold("--redis-shard-ports"), cf.bold("--head"))
-
-            raise Exception("If --head is not passed in, --redis-shard-ports "
-                            "is not allowed.")
+        (redis_address,
+         redis_ip, redis_port) = services.validate_redis_address(address)
         if redis_address is None:
             cli_logger.abort("`{}` is required unless starting with `{}`.",
                              cf.bold("--address"), cf.bold("--head"))
@@ -256,7 +247,7 @@ def start(node_ip_address, address, port, head,
         # Wait for the Redis server to be started. And throw an exception if we
         # can't connect to it.
         services.wait_for_redis_to_start(
-            redis_address_ip, redis_address_port, password=redis_password)
+            redis_ip, redis_port, password=redis_password)
 
         # Create a Redis client.
         redis_client = services.create_redis_client(

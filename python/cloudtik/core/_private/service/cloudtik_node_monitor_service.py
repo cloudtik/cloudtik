@@ -119,7 +119,7 @@ class NodeMonitor:
     def _run_heartbeat(self):
         thread = threading.Thread(target=self._heartbeat)
         # ensure when node_monitor exits, the thread will stop automatically.
-        thread.setDaemon(True)
+        thread.daemon = True
         thread.start()
 
     def _heartbeat(self):

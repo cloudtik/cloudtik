@@ -2528,8 +2528,8 @@ def cluster_process_status_on_head(
     provider = _get_node_provider(config["provider"], config["cluster_name"])
 
     control_state = ControlState()
-    _, redis_ip_address, redis_port = validate_redis_address(redis_address)
-    control_state.initialize_control_state(redis_ip_address, redis_port,
+    _, redis_ip, redis_port = validate_redis_address(redis_address)
+    control_state.initialize_control_state(redis_ip, redis_port,
                                            redis_password)
     node_processes_table = control_state.get_node_processes_table()
     node_processes_rows = node_processes_table.get_all().values()
@@ -4117,8 +4117,8 @@ def do_nodes_health_check(redis_address, redis_password, with_details=False):
         return failed_nodes
 
     control_state = ControlState()
-    _, redis_ip_address, redis_port = validate_redis_address(redis_address)
-    control_state.initialize_control_state(redis_ip_address, redis_port,
+    _, redis_ip, redis_port = validate_redis_address(redis_address)
+    control_state.initialize_control_state(redis_ip, redis_port,
                                            redis_password)
     node_processes_table = control_state.get_node_processes_table()
     node_processes_rows = node_processes_table.get_all().values()
@@ -4255,7 +4255,7 @@ def cluster_resource_metrics(
 def cluster_resource_metrics_on_head(
         redis_address, redis_password):
     config = load_head_cluster_config()
-    _, redis_ip_address, redis_port = validate_redis_address(redis_address)
+    _, redis_ip, redis_port = validate_redis_address(redis_address)
     call_context = cli_call_context()
 
     show_cluster_metrics(

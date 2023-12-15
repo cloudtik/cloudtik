@@ -46,7 +46,7 @@ def wait_for_redis_to_start(redis_host, redis_port, password=None):
     command to the server until the command gets through.
 
     Args:
-        redis_host (str): The IP address of the redis server.
+        redis_host (str): The host address of the redis server.
         redis_port (int): The port of the redis server.
         password (str): The password of the redis server.
 

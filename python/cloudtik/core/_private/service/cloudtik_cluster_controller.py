@@ -62,7 +62,10 @@ class ClusterController:
         # Initialize the Redis clients.
         self.redis = services.create_redis_client(
             redis_address, password=redis_password)
-        (host, port) = redis_address.split(":")
+
+        (redis_address,
+         redis_ip, redis_port) = validate_redis_address(redis_address)
+        (redis_host, _) = redis_address.split(":")
 
         if prometheus_client:
             controller_addr = f"{controller_ip}:{CLOUDTIK_METRIC_PORT}"
@@ -70,8 +73,8 @@ class ClusterController:
             self.redis.set(constants.CLOUDTIK_METRIC_ADDRESS_KEY, controller_addr)
 
         control_state = ControlState()
-        _, redis_host, redis_port = validate_redis_address(redis_address)
-        control_state.initialize_control_state(redis_host, redis_port, redis_password)
+
+        control_state.initialize_control_state(redis_ip, redis_port, redis_password)
 
         # initialize the global kv store client
         state_client = StateClient.create_from_redis(self.redis)
@@ -82,7 +85,7 @@ class ClusterController:
 
         self.scaling_state_client = ScalingStateClient.create_from(control_state)
 
-        self.head_host = redis_address.split(":")[0]
+        self.head_host = redis_host
         self.redis_address = redis_address
         self.redis_password = redis_password
 

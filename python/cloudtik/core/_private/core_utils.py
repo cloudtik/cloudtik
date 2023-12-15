@@ -950,6 +950,11 @@ def is_valid_dns_name(name):
 def is_host_port_reachable(port, host, timeout):
     if not host:
         host = '127.0.0.1'
+    # This is a higher-level function than socket.connect().
+    # if host is a non-numeric hostname, it will try to resolve it for both
+    # AF_INET and AF_INET6, and then try to connect to all possible addresses
+    # in turn until a connection succeeds. This makes it easy to write clients
+    # that are compatible to both IPv4 and IPv6.
     try:
         with socket.create_connection(
                 (host, port), timeout=timeout):
