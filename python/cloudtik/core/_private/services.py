@@ -134,8 +134,8 @@ class ConsolePopen(subprocess.Popen):
             super(ConsolePopen, self).__init__(*args, **kwargs)
 
 
-def address(ip_address, port):
-    return ip_address + ":" + str(port)
+def address(host, port):
+    return host + ":" + str(port)
 
 
 def new_port(lower_bound=10000, upper_bound=65535, denylist=None):
@@ -211,13 +211,11 @@ def get_address_to_use_or_die():
 
 
 def find_redis_address_or_die():
-
     redis_addresses = find_redis_address()
     if len(redis_addresses) > 1:
         raise ConnectionError(
             f"Found multiple active Redis instances: {redis_addresses}. "
             "Please specify the one to connect to by setting `address`.")
-        sys.exit(1)
     elif not redis_addresses:
         raise ConnectionError(
             "Could not find any running Redis instance. "
@@ -243,8 +241,8 @@ def wait_for_node(redis_address,
             the node appears in the client table.
     """
 
-    redis_ip_address, redis_port = redis_address.split(":")
-    wait_for_redis_to_start(redis_ip_address, redis_port, redis_password)
+    redis_host, redis_port = redis_address.split(":")
+    wait_for_redis_to_start(redis_host, redis_port, redis_password)
     # TODO (haifeng): implement control state for node services
     global_state = ControlState()
     global_state.initialize_control_state(redis_address, redis_port, redis_password)
@@ -268,7 +266,7 @@ def validate_redis_address(address):
 
     Returns:
         redis_address: string containing the full <host:port> address.
-        redis_ip: string representing the host portion of the address.
+        redis_ip: string representing the ip portion of the address.
         redis_port: integer representing the port portion of the address.
     """
 
@@ -289,7 +287,7 @@ def validate_redis_address(address):
         raise ValueError("Invalid address port. Must "
                          "be between 1024 and 65535.")
 
-    return redis_address, redis_ip, redis_port
+    return address, redis_ip, redis_port
 
 
 def address_to_ip(address):
@@ -318,18 +316,18 @@ def node_ip_address_from_perspective(address):
     """IP address by which the local node can be reached *from* the `address`.
 
     Args:
-        address (str): The IP address and port of any known live service on the
+        address (str): The host and port of any known live service on the
             network you care about.
 
     Returns:
         The IP address by which the local node can be reached from the address.
     """
-    ip_address, port = address.split(":")
+    host, port = address.split(":")
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     try:
         # This command will raise an exception if there is no internet
         # connection.
-        s.connect((ip_address, int(port)))
+        s.connect((host, int(port)))
         node_ip_address = s.getsockname()[0]
     except OSError as e:
         node_ip_address = "127.0.0.1"
@@ -376,11 +374,11 @@ def create_redis_client(redis_address, password=None):
             except Exception:
                 create_redis_client.instances.pop(redis_address)
 
-    _, redis_ip_address, redis_port = validate_redis_address(redis_address)
+    _, redis_ip, redis_port = validate_redis_address(redis_address)
     # For this command to work, some other client (on the same machine
     # as Redis) must have run "CONFIG SET protected-mode no".
     create_redis_client.instances[redis_address] = redis.StrictRedis(
-        host=redis_ip_address, port=int(redis_port), password=password)
+        host=redis_ip, port=int(redis_port), password=password)
 
     return create_redis_client.instances[redis_address]
 
@@ -595,14 +593,14 @@ def start_cloudtik_process(command,
         use_tmux=use_tmux)
 
 
-def wait_for_redis_to_start(redis_ip_address, redis_port, password=None):
+def wait_for_redis_to_start(redis_host, redis_port, password=None):
     """Wait for a Redis server to be available.
 
     This is accomplished by creating a Redis client and sending a random
     command to the server until the command gets through.
 
     Args:
-        redis_ip_address (str): The IP address of the redis server.
+        redis_host (str): The host address of the redis server.
         redis_port (int): The port of the redis server.
         password (str): The password of the redis server.
 
@@ -610,7 +608,7 @@ def wait_for_redis_to_start(redis_ip_address, redis_port, password=None):
         Exception: An exception is raised if we could not connect with Redis.
     """
     redis_client = redis.StrictRedis(
-        host=redis_ip_address, port=redis_port, password=password)
+        host=redis_host, port=redis_port, password=password)
     # Wait for the Redis server to start.
     num_retries = constants.CLOUDTIK_START_REDIS_WAIT_RETRIES
     delay = 0.001
@@ -619,7 +617,7 @@ def wait_for_redis_to_start(redis_ip_address, redis_port, password=None):
             # Run some random command and see if it worked.
             logger.debug(
                 "Waiting for redis server at {}:{} to respond...".format(
-                    redis_ip_address, redis_port))
+                    redis_host, redis_port))
             redis_client.client_list()
         # If the Redis service is delayed getting set up for any reason, we may
         # get a redis.ConnectionError: Error 111 connecting to host:port.
@@ -631,13 +629,13 @@ def wait_for_redis_to_start(redis_ip_address, redis_port, password=None):
         # redis.AuthenticationError isn't trapped here.
         except redis.AuthenticationError as authEx:
             raise RuntimeError("Unable to connect to Redis at {}:{}.".format(
-                redis_ip_address, redis_port)) from authEx
+                redis_host, redis_port)) from authEx
         except redis.ConnectionError as connEx:
             if i >= num_retries - 1:
                 raise RuntimeError(
-                    f"Unable to connect to Redis at {redis_ip_address}:"
+                    f"Unable to connect to Redis at {redis_host}:"
                     f"{redis_port} after {num_retries} retries. Check that "
-                    f"{redis_ip_address}:{redis_port} is reachable from this "
+                    f"{redis_host}:{redis_port} is reachable from this "
                     "machine. If it is not, your firewall may be blocking "
                     "this port. If the problem is a flaky connection, try "
                     "setting the environment variable "
@@ -981,6 +979,7 @@ def _start_redis_instance(executable,
     """
     assert os.path.isfile(executable)
     counter = 0
+    process_info = None
 
     while counter < num_retries:
         # Construct the command to start the Redis server.

@@ -536,7 +536,7 @@ class NodeServicesStarter:
                     self.get_log_file_handles(f"redis-shard_{i}", unique=True))
 
         (self._redis_address, redis_shards,
-         process_infos) = services.start_redis(
+         processes) = services.start_redis(
              self._node_ip_address,
              redis_log_files,
              self.get_resource_spec(),
@@ -553,7 +553,7 @@ class NodeServicesStarter:
         assert (
             constants.PROCESS_TYPE_REDIS_SERVER not in self.all_processes)
         self.all_processes[constants.PROCESS_TYPE_REDIS_SERVER] = (
-            process_infos)
+            processes)
 
     def start_cluster_controller(self):
         """Start the cluster controller.

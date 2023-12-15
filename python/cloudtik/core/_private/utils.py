@@ -1253,6 +1253,7 @@ def get_cloudtik_worker_start_command(config) -> str:
     # ulimit -n 65536; cloudtik node start --node-ip-address=$CLOUDTIK_NODE_IP --address=$CLOUDTIK_HEAD_IP:6789
     # --runtimes=$CLOUDTIK_RUNTIMES
     start_command = "ulimit -n 65536; cloudtik node start --node-ip-address=$CLOUDTIK_NODE_IP"
+    # TODO: use DNS hostnames instead of IP addresses
     start_command += " --address=$CLOUDTIK_HEAD_IP:{}".format(CLOUDTIK_DEFAULT_PORT)
     start_command += " --runtimes=$CLOUDTIK_RUNTIMES --node-type=$CLOUDTIK_NODE_TYPE"
     return start_command
