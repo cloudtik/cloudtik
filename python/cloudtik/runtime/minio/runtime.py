@@ -43,7 +43,7 @@ class MinIORuntime(RuntimeBase):
         return _with_runtime_environment_variables(
             self.runtime_config, config=config)
 
-    def configure(self, head: bool):
+    def node_configure(self, head: bool):
         """ This method is called on every node as the first step of executing runtime
         configure command.
         """

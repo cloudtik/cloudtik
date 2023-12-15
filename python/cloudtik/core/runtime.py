@@ -64,7 +64,7 @@ class Runtime:
         """
         return {}
 
-    def configure(
+    def node_configure(
             self, head: bool):
         """ This method is called on every node as the first step of executing runtime
         configure command. After this configure method complete successfully, configure
@@ -73,7 +73,7 @@ class Runtime:
         """
         pass
 
-    def services(
+    def node_services(
             self, head: bool):
         """ This method is called on every node as the first step of executing runtime
         services command. This method can be used either to do some real service start

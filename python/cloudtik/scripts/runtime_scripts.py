@@ -106,13 +106,13 @@ def _run_runtime_script(
 def _run_runtime_configure(runtime_type, head: bool):
     runtime_config = get_runtime_config_from_node(head)
     _runtime = _get_runtime(runtime_type, runtime_config)
-    _runtime.configure(head)
+    _runtime.node_configure(head)
 
 
 def _run_runtime_services(runtime_type, head: bool):
     runtime_config = get_runtime_config_from_node(head)
     _runtime = _get_runtime(runtime_type, runtime_config)
-    _runtime.services(head)
+    _runtime.node_services(head)
 
 
 @click.group(cls=NaturalOrderGroup)
