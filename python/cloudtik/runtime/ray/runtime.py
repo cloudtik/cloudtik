@@ -43,9 +43,9 @@ class RayRuntime(RuntimeBase):
         return _get_runtime_services(self.runtime_config, cluster_name)
 
     def get_scaling_policy(
-            self, cluster_config: Dict[str, Any], head_ip: str
+            self, cluster_config: Dict[str, Any], head_host: str
     ) -> Optional[ScalingPolicy]:
-        return _get_scaling_policy(self.runtime_config, cluster_config, head_ip)
+        return _get_scaling_policy(self.runtime_config, cluster_config, head_host)
 
     @staticmethod
     def get_logs() -> Dict[str, str]:

@@ -64,8 +64,8 @@ SECONDS_OF_A_DAY = 3600 * 24
 
 
 class ScalingPolicyForTest(ScalingPolicy):
-    def __init__(self, config: Dict[str, Any], head_ip: str) -> None:
-        super().__init__(config, head_ip)
+    def __init__(self, config: Dict[str, Any], head_host: str) -> None:
+        super().__init__(config, head_host)
 
     def name(self):
         return "scaling-for-test"
@@ -80,8 +80,8 @@ class ScalingPolicyForTest(ScalingPolicy):
 class ScalingWithTimeTest(ScalingWithTime):
     def __init__(self,
                  config: Dict[str, Any],
-                 head_ip: str) -> None:
-        ScalingWithTime.__init__(self, config, head_ip)
+                 head_host: str) -> None:
+        ScalingWithTime.__init__(self, config, head_host)
 
     def get_scaling_state(self) -> Optional[ScalingState]:
         self.last_state_time = time.time()

@@ -93,13 +93,13 @@ def _get_head_service_ports(runtime_config: Dict[str, Any]) -> Dict[str, Any]:
 def _get_scaling_policy(
         runtime_config: Dict[str, Any],
         cluster_config: Dict[str, Any],
-        head_ip: str) -> Optional[ScalingPolicy]:
+        head_host: str) -> Optional[ScalingPolicy]:
     ray_config = _get_config(runtime_config)
     if "scaling" not in ray_config:
         return None
 
     return RayScalingPolicy(
-        cluster_config, head_ip,
+        cluster_config, head_host,
         ray_port=RAY_SERVICE_PORT)
 
 

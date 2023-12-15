@@ -176,7 +176,7 @@ class Runtime:
         pass
 
     def get_scaling_policy(
-            self, cluster_config: Dict[str, Any], head_ip: str) -> Optional[ScalingPolicy]:
+            self, cluster_config: Dict[str, Any], head_host: str) -> Optional[ScalingPolicy]:
         """
         If the runtime has a resource management and configured to act resource scaling source
         return a scaling policy object to use by the cluster scaler.

@@ -46,9 +46,9 @@ def _address_to_ip(address):
 class YARNScalingPolicy(ScalingPolicy):
     def __init__(self,
                  config: Dict[str, Any],
-                 head_ip: str,
+                 head_host: str,
                  rest_port) -> None:
-        ScalingPolicy.__init__(self, config, head_ip)
+        ScalingPolicy.__init__(self, config, head_host)
 
         # scaling parameters
         self.scaling_config = {}
@@ -185,7 +185,7 @@ class YARNScalingPolicy(ScalingPolicy):
             return None
 
         cluster_metrics_url = YARN_REST_ENDPOINT_CLUSTER_METRICS.format(
-            self.head_ip, self.rest_port)
+            self.head_host, self.rest_port)
         try:
             response = urllib.request.urlopen(cluster_metrics_url, timeout=10)
             content = response.read()
@@ -287,7 +287,7 @@ class YARNScalingPolicy(ScalingPolicy):
         """
 
         cluster_nodes_url = YARN_REST_ENDPOINT_CLUSTER_NODES.format(
-            self.head_ip, self.rest_port)
+            self.head_host, self.rest_port)
         try:
             response = urllib.request.urlopen(cluster_nodes_url, timeout=10)
             content = response.read()

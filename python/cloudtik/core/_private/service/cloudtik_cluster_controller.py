@@ -55,12 +55,14 @@ class ClusterController:
                  controller_ip=None,
                  stop_event: Optional[Event] = None,
                  retry_on_failure: bool = True):
-
+        # For controller, since we reside on head, there is no problem
+        # for the redis address and resource scaling policy to use the
+        # IP address.
         self.controller_ip = controller_ip
         # Initialize the Redis clients.
         self.redis = services.create_redis_client(
             redis_address, password=redis_password)
-        (ip, port) = redis_address.split(":")
+        (host, port) = redis_address.split(":")
 
         if prometheus_client:
             controller_addr = f"{controller_ip}:{CLOUDTIK_METRIC_PORT}"
@@ -68,8 +70,8 @@ class ClusterController:
             self.redis.set(constants.CLOUDTIK_METRIC_ADDRESS_KEY, controller_addr)
 
         control_state = ControlState()
-        _, redis_ip_address, redis_port = validate_redis_address(redis_address)
-        control_state.initialize_control_state(redis_ip_address, redis_port, redis_password)
+        _, redis_host, redis_port = validate_redis_address(redis_address)
+        control_state.initialize_control_state(redis_host, redis_port, redis_password)
 
         # initialize the global kv store client
         state_client = StateClient.create_from_redis(self.redis)
@@ -80,7 +82,7 @@ class ClusterController:
 
         self.scaling_state_client = ScalingStateClient.create_from(control_state)
 
-        self.head_ip = redis_address.split(":")[0]
+        self.head_host = redis_address.split(":")[0]
         self.redis_address = redis_address
         self.redis_password = redis_password
 
@@ -92,7 +94,7 @@ class ClusterController:
         self.cluster_config = cluster_config
         self.cluster_scaler = None
         self.resource_scaling_policy = ResourceScalingPolicy(
-            self.head_ip, self.scaling_state_client)
+            self.head_host, self.scaling_state_client)
         self.cluster_metrics_updater = ClusterMetricsUpdater(
             self.cluster_metrics, self.event_summarizer, self.scaling_state_client)
 

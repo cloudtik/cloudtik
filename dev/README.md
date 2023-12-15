@@ -77,6 +77,14 @@ bash ./dev/release.sh --branch branch-<version>
 ### Step 3: Release docker images (if necessary)
 This step will build all the docker images and upload to docker hub
 of cloudtik account.
+
+First make sure we have login:
+```
+sudo docker login
+```
+Note: use sudo because the docker push is also called with sudo.
+If they don't match, docker will consider it doesn't login.
+
 Execute:
 ```
 bash ./dev/release-docker.sh --release-all --image-tag <version>
