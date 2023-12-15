@@ -58,7 +58,7 @@ class PrestoRuntime(RuntimeBase):
     def get_runtime_endpoints(self, cluster_head_ip: str):
         return _get_runtime_endpoints(cluster_head_ip)
 
-    def get_head_service_ports(self) -> Dict[str, Any]:
+    def get_head_service_ports(self) -> Optional[Dict[str, Any]]:
         return _get_head_service_ports(self.runtime_config)
 
     def get_runtime_services(self, cluster_name: str):
