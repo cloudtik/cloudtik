@@ -1,7 +1,7 @@
 import inspect
 import logging
 import os
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 from cloudtik.core._private.utils import _get_runtime_config_object, merge_rooted_config_hierarchy
 from cloudtik.core.runtime import Runtime
@@ -17,11 +17,13 @@ class RuntimeBase(Runtime):
     def __init__(self, runtime_config: Dict[str, Any]) -> None:
         super().__init__(runtime_config)
 
-    def get_runtime_commands(self, cluster_config: Dict[str, Any]) -> Dict[str, Any]:
+    def get_runtime_commands(
+            self, cluster_config: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         """Returns a copy of runtime commands to run at different stages"""
         return self._get_config_object_default(cluster_config, "commands")
 
-    def get_defaults_config(self, cluster_config: Dict[str, Any]) -> Dict[str, Any]:
+    def get_defaults_config(
+            self, cluster_config: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         """Returns a copy of runtime config"""
         return self._get_config_object_default(cluster_config, "defaults")
 

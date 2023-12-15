@@ -44,7 +44,7 @@ class ConsulRuntime(RuntimeBase):
         return _get_runtime_endpoints(
             self.server_mode, cluster_head_ip)
 
-    def get_head_service_ports(self) -> Dict[str, Any]:
+    def get_head_service_ports(self) -> Optional[Dict[str, Any]]:
         return _get_head_service_ports(
             self.server_mode, self.runtime_config)
 

@@ -40,7 +40,7 @@ class PrestoRuntime(RuntimeBase):
         return _with_runtime_environment_variables(
             self.runtime_config, config=config, provider=provider, node_id=node_id)
 
-    def configure(self, head: bool):
+    def node_configure(self, head: bool):
         """ This method is called on every node as the first step of executing runtime
         configure command.
         """
@@ -58,7 +58,7 @@ class PrestoRuntime(RuntimeBase):
     def get_runtime_endpoints(self, cluster_head_ip: str):
         return _get_runtime_endpoints(cluster_head_ip)
 
-    def get_head_service_ports(self) -> Dict[str, Any]:
+    def get_head_service_ports(self) -> Optional[Dict[str, Any]]:
         return _get_head_service_ports(self.runtime_config)
 
     def get_runtime_services(self, cluster_name: str):

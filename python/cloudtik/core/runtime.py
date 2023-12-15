@@ -64,7 +64,7 @@ class Runtime:
         """
         return {}
 
-    def configure(
+    def node_configure(
             self, head: bool):
         """ This method is called on every node as the first step of executing runtime
         configure command. After this configure method complete successfully, configure
@@ -73,7 +73,7 @@ class Runtime:
         """
         pass
 
-    def services(
+    def node_services(
             self, head: bool):
         """ This method is called on every node as the first step of executing runtime
         services command. This method can be used either to do some real service start
@@ -94,17 +94,20 @@ class Runtime:
         """
         pass
 
-    def get_runnable_command(self, target: str, runtime_options: Optional[List[str]]):
+    def get_runnable_command(
+            self, target: str, runtime_options: Optional[List[str]]):
         """Return the runnable command for the target script.
         For example: ["bash", target]
         """
         return None
 
-    def get_runtime_commands(self, cluster_config: Dict[str, Any]) -> Dict[str, Any]:
+    def get_runtime_commands(
+            self, cluster_config: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         """Returns a copy of runtime commands to run at different stages"""
         return None
 
-    def get_defaults_config(self, cluster_config: Dict[str, Any]) -> Dict[str, Any]:
+    def get_defaults_config(
+            self, cluster_config: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         """Returns a copy of runtime config"""
         return None
 
@@ -122,7 +125,7 @@ class Runtime:
         """
         return None
 
-    def get_head_service_ports(self) -> Dict[str, Any]:
+    def get_head_service_ports(self) -> Optional[Dict[str, Any]]:
         """Return a dictionary of service port with name as the key.
         For example:
             {

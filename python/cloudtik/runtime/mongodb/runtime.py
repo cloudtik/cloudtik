@@ -1,5 +1,5 @@
 import logging
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 from cloudtik.core.node_provider import NodeProvider
 from cloudtik.runtime.common.runtime_base import RuntimeBase
@@ -60,7 +60,7 @@ class MongoDBRuntime(RuntimeBase):
         return _with_runtime_environment_variables(
             self.runtime_config, config=config)
 
-    def configure(self, head: bool):
+    def node_configure(self, head: bool):
         """ This method is called on every node as the first step of executing runtime
         configure command.
         """
@@ -74,7 +74,7 @@ class MongoDBRuntime(RuntimeBase):
     def get_runtime_endpoints(self, cluster_head_ip: str):
         return _get_runtime_endpoints(self.runtime_config, cluster_head_ip)
 
-    def get_head_service_ports(self) -> Dict[str, Any]:
+    def get_head_service_ports(self) -> Optional[Dict[str, Any]]:
         return _get_head_service_ports(self.runtime_config)
 
     def get_runtime_services(self, cluster_name: str):
