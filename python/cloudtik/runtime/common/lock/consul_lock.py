@@ -102,9 +102,10 @@ class ConsulLock(Lock):
                  lock_timeout_seconds=None,
                  acquire_timeout_ms=None):
         """
-        :param key: the unique key to lock
-        :param acquire_timeout_ms: how long the caller is willing to wait to acquire the lock
-        :param lock_timeout_seconds: how long the lock will stay alive if it is never released,
+        Args:
+        key: the unique key to lock
+        acquire_timeout_ms: how long the caller is willing to wait to acquire the lock
+        lock_timeout_seconds: how long the lock will stay alive if it is never released,
             this is controlled by Consul's Session TTL and may stay alive a bit longer according
             to their docs. As of the current version of Consul, this must be between 10s and 86400s
         """
@@ -119,11 +120,12 @@ class ConsulLock(Lock):
         """
         Attempt to acquire the lock.
 
-        :param fail_hard: when true, this method will only return gracefully
+        Args:
+        fail_hard: when true, this method will only return gracefully
             if the lock has been acquired and will throw an exception if
             it cannot acquire the lock.
 
-        :return: True if the lock was successfully acquired,
+        return: True if the lock was successfully acquired,
             false if it was not (unreachable if failing hard)
         """
         assert not self._started_acquiring, 'Can only lock once'

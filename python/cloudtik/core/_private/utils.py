@@ -31,8 +31,7 @@ from cloudtik.core._private.concurrent_cache import ConcurrentObjectCache
 from cloudtik.core._private.constants import CLOUDTIK_WHEELS, \
     CLOUDTIK_DEFAULT_MAX_WORKERS, CLOUDTIK_NODE_SSH_INTERVAL_S, CLOUDTIK_NODE_START_WAIT_S, MAX_PARALLEL_EXEC_NODES, \
     CLOUDTIK_CLUSTER_URI_TEMPLATE, CLOUDTIK_RUNTIME_NAME, CLOUDTIK_RUNTIME_ENV_NODE_IP, CLOUDTIK_RUNTIME_ENV_HEAD_IP, \
-    CLOUDTIK_DEFAULT_PORT, CLOUDTIK_REDIS_DEFAULT_PASSWORD, \
-    PRIVACY_REPLACEMENT_TEMPLATE, PRIVACY_REPLACEMENT, CLOUDTIK_CONFIG_SECRET, \
+    CLOUDTIK_DEFAULT_PORT, PRIVACY_REPLACEMENT_TEMPLATE, PRIVACY_REPLACEMENT, CLOUDTIK_CONFIG_SECRET, \
     CLOUDTIK_ENCRYPTION_PREFIX, CLOUDTIK_RUNTIME_ENV_SECRETS
 from cloudtik.core._private.core_utils import load_class, double_quote, check_process_exists, get_cloudtik_temp_dir, \
     get_config_for_update, get_json_object_md5
@@ -2904,56 +2903,6 @@ def get_running_head_node(
             return _backup_head_node
         raise HeadNotRunningError("Head node of cluster {} not found!".format(
             config["cluster_name"]))
-
-
-def publish_cluster_variable(cluster_variable_name, cluster_variable_value):
-    cluster_variable_key = CLOUDTIK_CLUSTER_VARIABLE.format(cluster_variable_name)
-    return _put_key_to_kv(cluster_variable_key, cluster_variable_value)
-
-
-def subscribe_cluster_variable(cluster_variable_name):
-    cluster_variable_key = CLOUDTIK_CLUSTER_VARIABLE.format(cluster_variable_name)
-    cluster_variable_value = _get_key_from_kv(cluster_variable_key)
-    if cluster_variable_value is None:
-        return None
-    return cluster_variable_value.decode("utf-8")
-
-
-def get_cluster_redis_address():
-    if CLOUDTIK_RUNTIME_ENV_HEAD_IP not in os.environ:
-        raise RuntimeError("Not able to connect to cluster kv store in lack of head ip.")
-    head_ip = os.environ[CLOUDTIK_RUNTIME_ENV_HEAD_IP]
-    redis_address = "{}:{}".format(head_ip, CLOUDTIK_DEFAULT_PORT)
-    redis_password = CLOUDTIK_REDIS_DEFAULT_PASSWORD
-    return redis_address, redis_password
-
-
-def get_redis_client(redis_address=None, redis_password=None):
-    if not redis_address:
-        redis_address, redis_password = get_cluster_redis_address()
-    return services.create_redis_client(
-        redis_address, redis_password)
-
-
-def _get_key_from_kv(key):
-    from cloudtik.core._private.state.kv_store import kv_get, kv_initialized, kv_initialize_with_address
-    if not kv_initialized():
-        redis_address, redis_password = get_cluster_redis_address()
-        kv_initialize_with_address(redis_address, redis_password)
-
-    return kv_get(key)
-
-
-def _put_key_to_kv(key, value):
-    from cloudtik.core._private.state.kv_store import kv_put, kv_initialized, kv_initialize_with_address
-    if not kv_initialized():
-        if CLOUDTIK_RUNTIME_ENV_HEAD_IP not in os.environ:
-            raise RuntimeError("Not able to cluster kv store in lack of head ip.")
-        head_ip = os.environ[CLOUDTIK_RUNTIME_ENV_HEAD_IP]
-        redis_address = "{}:{}".format(head_ip, CLOUDTIK_DEFAULT_PORT)
-        kv_initialize_with_address(redis_address, CLOUDTIK_REDIS_DEFAULT_PASSWORD)
-
-    return kv_put(key, value)
 
 
 def load_properties_file(properties_file, separator='=') -> Tuple[Dict[str, str], Dict[str, List[str]]]:

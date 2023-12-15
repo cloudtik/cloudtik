@@ -5,14 +5,15 @@ from typing import Dict, Any
 
 import yaml
 
+from cloudtik.core._private import services
 from cloudtik.core._private.constants import CLOUDTIK_RUNTIME_ENV_NODE_TYPE, CLOUDTIK_RUNTIME_ENV_NODE_IP, \
     CLOUDTIK_RUNTIME_ENV_SECRETS, CLOUDTIK_RUNTIME_ENV_HEAD_IP, env_bool, CLOUDTIK_DATA_DISK_MOUNT_POINT, \
-    CLOUDTIK_DATA_DISK_MOUNT_NAME_PREFIX
+    CLOUDTIK_DATA_DISK_MOUNT_NAME_PREFIX, CLOUDTIK_DEFAULT_PORT, CLOUDTIK_REDIS_DEFAULT_PASSWORD
 from cloudtik.core._private.crypto import AESCipher
 from cloudtik.core._private.provider_factory import _get_node_provider
 from cloudtik.core._private.utils import load_head_cluster_config, _get_node_type_specific_runtime_config, \
-    get_runtime_config_key, _get_key_from_kv, decode_cluster_secrets, CLOUDTIK_CLUSTER_NODES_INFO_NODE_TYPE, \
-    _get_workers_ready, _get_worker_node_ips
+    get_runtime_config_key, decode_cluster_secrets, CLOUDTIK_CLUSTER_NODES_INFO_NODE_TYPE, \
+    _get_workers_ready, _get_worker_node_ips, CLOUDTIK_CLUSTER_VARIABLE
 from cloudtik.core.tags import STATUS_UP_TO_DATE
 
 RUNTIME_NODE_ID = "node_id"
@@ -219,3 +220,50 @@ def run_func_with_retry(
             # error retry
             time.sleep(retry_interval)
     raise RuntimeError("Function failed with {} reties.".format(num_retries))
+
+
+def publish_cluster_variable(cluster_variable_name, cluster_variable_value):
+    cluster_variable_key = CLOUDTIK_CLUSTER_VARIABLE.format(cluster_variable_name)
+    return _put_key_to_kv(cluster_variable_key, cluster_variable_value)
+
+
+def subscribe_cluster_variable(cluster_variable_name):
+    cluster_variable_key = CLOUDTIK_CLUSTER_VARIABLE.format(cluster_variable_name)
+    cluster_variable_value = _get_key_from_kv(cluster_variable_key)
+    if cluster_variable_value is None:
+        return None
+    return cluster_variable_value.decode("utf-8")
+
+
+def get_cluster_redis_address():
+    if CLOUDTIK_RUNTIME_ENV_HEAD_IP not in os.environ:
+        raise RuntimeError("Not able to connect to cluster kv store in lack of head ip.")
+    head_ip = os.environ[CLOUDTIK_RUNTIME_ENV_HEAD_IP]
+    redis_address = "{}:{}".format(head_ip, CLOUDTIK_DEFAULT_PORT)
+    redis_password = CLOUDTIK_REDIS_DEFAULT_PASSWORD
+    return redis_address, redis_password
+
+
+def get_redis_client(redis_address=None, redis_password=None):
+    if not redis_address:
+        redis_address, redis_password = get_cluster_redis_address()
+    return services.create_redis_client(
+        redis_address, redis_password)
+
+
+def _get_key_from_kv(key):
+    from cloudtik.core._private.state.kv_store import kv_get, kv_initialized, kv_initialize_with_address
+    if not kv_initialized():
+        redis_address, redis_password = get_cluster_redis_address()
+        kv_initialize_with_address(redis_address, redis_password)
+
+    return kv_get(key)
+
+
+def _put_key_to_kv(key, value):
+    from cloudtik.core._private.state.kv_store import kv_put, kv_initialized, kv_initialize_with_address
+    if not kv_initialized():
+        redis_address, redis_password = get_cluster_redis_address()
+        kv_initialize_with_address(redis_address, redis_password)
+
+    return kv_put(key, value)
