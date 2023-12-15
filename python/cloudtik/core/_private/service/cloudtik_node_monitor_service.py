@@ -42,7 +42,7 @@ class NodeMonitor:
         if node_id is None:
             node_id = make_node_id(node_ip)
         self.node_id = node_id
-        (redis_ip, redis_port) = redis_address.split(":")
+        (redis_host, redis_port) = redis_address.split(":")
 
         self.redis_address = redis_address
         self.redis_password = redis_password
@@ -77,7 +77,7 @@ class NodeMonitor:
         self.stop_event = stop_event  # type: Optional[Event]
 
         self.control_state = ControlState()
-        self.control_state.initialize_control_state(redis_ip, redis_port, redis_password)
+        self.control_state.initialize_control_state(redis_host, redis_port, redis_password)
         self.node_table = self.control_state.get_node_table()
         self.node_processes_table = self.control_state.get_node_processes_table()
         self.node_metrics_table = self.control_state.get_node_metrics_table()

@@ -49,9 +49,9 @@ class ScalingPolicy:
 
     def __init__(self,
                  config: Dict[str, Any],
-                 head_ip: str) -> None:
+                 head_host: str) -> None:
         self.config = config
-        self.head_ip = head_ip
+        self.head_host = head_host
 
     def name(self):
         """Return the name of the scaling policy"""

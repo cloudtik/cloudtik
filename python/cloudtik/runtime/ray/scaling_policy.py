@@ -84,9 +84,9 @@ def get_resource_demands(waiting_bundles, infeasible_bundles, clip=True):
 class RayScalingPolicy(ScalingPolicy):
     def __init__(self,
                  config: Dict[str, Any],
-                 head_ip: str,
+                 head_host: str,
                  ray_port) -> None:
-        ScalingPolicy.__init__(self, config, head_ip)
+        ScalingPolicy.__init__(self, config, head_host)
 
         # scaling parameters
         self.scaling_config = {}
@@ -180,7 +180,7 @@ class RayScalingPolicy(ScalingPolicy):
         import ray._private.ray_constants as ray_constants
         from ray.core.generated import gcs_pb2, gcs_service_pb2, gcs_service_pb2_grpc
 
-        gcs_address = get_address_string(self.head_ip, self.ray_port)
+        gcs_address = get_address_string(self.head_host, self.ray_port)
         options = ray_constants.GLOBAL_GRPC_OPTIONS
         gcs_channel = ray._private.utils.init_grpc_channel(gcs_address, options)
         self.gcs_node_resources_stub = (

@@ -143,13 +143,13 @@ def _get_runtime_services(
 def _get_scaling_policy(
         runtime_config: Dict[str, Any],
         cluster_config: Dict[str, Any],
-        head_ip: str) -> Optional[ScalingPolicy]:
+        head_host: str) -> Optional[ScalingPolicy]:
     yarn_config = _get_config(runtime_config)
     if "scaling" not in yarn_config:
         return None
 
     return YARNScalingPolicy(
-        cluster_config, head_ip,
+        cluster_config, head_host,
         rest_port=YARN_WEB_API_PORT)
 
 

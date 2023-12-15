@@ -38,12 +38,12 @@ SCALING_WITH_TIME_PERIODIC_MONTHLY = "monthly"
 class ScalingWithResources(ScalingPolicy):
     def __init__(self,
                  config: Dict[str, Any],
-                 head_ip: str) -> None:
-        ScalingPolicy.__init__(self, config, head_ip)
+                 head_host: str) -> None:
+        ScalingPolicy.__init__(self, config, head_host)
         self.last_state_time = 0
         self.control_state = ControlState()
         self.control_state.initialize_control_state(
-            head_ip, constants.CLOUDTIK_DEFAULT_PORT, constants.CLOUDTIK_REDIS_DEFAULT_PASSWORD)
+            head_host, constants.CLOUDTIK_DEFAULT_PORT, constants.CLOUDTIK_REDIS_DEFAULT_PASSWORD)
 
         self.scaling_config = {}
         self.in_use_cpu_load_threshold = SCALING_WITH_LOAD_IN_USE_CPU_LOAD_THRESHOLD_DEFAULT
@@ -163,8 +163,8 @@ class ScalingWithResources(ScalingPolicy):
 class ScalingWithLoad(ScalingWithResources):
     def __init__(self,
                  config: Dict[str, Any],
-                 head_ip: str) -> None:
-        ScalingWithResources.__init__(self, config, head_ip)
+                 head_host: str) -> None:
+        ScalingWithResources.__init__(self, config, head_host)
 
         self.last_resource_demands_time = 0
         self.last_resource_state_snapshot = None
@@ -336,8 +336,8 @@ class ScalingWithLoad(ScalingWithResources):
 class ScalingWithTime(ScalingWithResources):
     def __init__(self,
                  config: Dict[str, Any],
-                 head_ip: str) -> None:
-        ScalingWithResources.__init__(self, config, head_ip)
+                 head_host: str) -> None:
+        ScalingWithResources.__init__(self, config, head_host)
 
         # scaling parameters
         self.min_workers = 0
@@ -546,10 +546,10 @@ class ScalingWithTime(ScalingWithResources):
         return self._get_resource_requests_for(number_of_nodes)
 
 
-def _create_scaling_policy(scaling_policy_name: str, config, head_ip):
+def _create_scaling_policy(scaling_policy_name: str, config, head_host):
     if SCALING_WITH_LOAD == scaling_policy_name:
-        return ScalingWithLoad(config, head_ip)
+        return ScalingWithLoad(config, head_host)
     elif SCALING_WITH_TIME == scaling_policy_name:
-        return ScalingWithTime(config, head_ip)
+        return ScalingWithTime(config, head_host)
 
     return None

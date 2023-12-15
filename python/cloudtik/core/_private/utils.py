@@ -3215,7 +3215,7 @@ def get_runtime_encryption_key(config):
     return secrets
 
 
-def _get_runtime_scaling_policy(config, head_ip):
+def _get_runtime_scaling_policy(config, head_host):
     runtime_config = config.get(RUNTIME_CONFIG_KEY)
     if runtime_config is None:
         return None
@@ -3224,12 +3224,12 @@ def _get_runtime_scaling_policy(config, head_ip):
     if len(runtime_types) > 0:
         for runtime_type in runtime_types:
             runtime = _get_runtime(runtime_type, runtime_config)
-            scaling_policy = runtime.get_scaling_policy(config, head_ip)
+            scaling_policy = runtime.get_scaling_policy(config, head_host)
             if scaling_policy is not None:
                 return scaling_policy
 
     # Check whether there are any user scaling policies configured
-    user_scaling_policy = _get_user_scaling_policy(runtime_config, config, head_ip)
+    user_scaling_policy = _get_user_scaling_policy(runtime_config, config, head_host)
     if user_scaling_policy is not None:
         return user_scaling_policy
 
@@ -3248,7 +3248,7 @@ def _get_scaling_policy_cls(class_path):
     return scaling_policy_class
 
 
-def _get_user_scaling_policy(runtime_config, config, head_ip):
+def _get_user_scaling_policy(runtime_config, config, head_host):
     if "scaling" not in runtime_config:
         return None
     scaling_config = runtime_config["scaling"]
@@ -3256,7 +3256,7 @@ def _get_user_scaling_policy(runtime_config, config, head_ip):
         return None
 
     scaling_policy_cls = _get_scaling_policy_cls(scaling_config["scaling_policy_class"])
-    return scaling_policy_cls(config, head_ip)
+    return scaling_policy_cls(config, head_host)
 
 
 def merge_optional_dict(config, updates):
