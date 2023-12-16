@@ -299,12 +299,22 @@ def start(node_ip_address, address, port, head,
     "--force",
     is_flag=True,
     help="If set, will send SIGKILL instead of SIGTERM.")
+@click.option(
+    "--no-redis",
+    is_flag=True,
+    hidden=True,
+    default=False,
+    help="If True, the redis services will not be stopped as part of this command",
+)
 @add_click_logging_options
-def stop(force):
+def stop(force, no_redis):
     """Stop CloudTik processes on the local machine."""
 
     is_linux = sys.platform.startswith("linux")
-    processes_to_kill = CLOUDTIK_PROCESSES
+    processes_to_kill = [
+        to_kill for to_kill in CLOUDTIK_PROCESSES
+        if not no_redis or to_kill[0] != "cloudtik-redis-server"
+    ]
 
     process_infos = []
     for proc in psutil.process_iter(["name", "cmdline"]):
@@ -377,13 +387,15 @@ def stop(force):
             cli_logger.warning("Try running the command again, or use `{}`.",
                                cf.bold("--force"))
 
-    try:
-        os.remove(
-            os.path.join(get_cloudtik_temp_dir(),
-                         "cloudtik_current_cluster"))
-    except OSError:
-        # This just means the file doesn't exist.
-        pass
+    if not no_redis:
+        # Stopping the redis service means the end of cluster
+        try:
+            os.remove(
+                os.path.join(get_cloudtik_temp_dir(),
+                             "cloudtik_current_cluster"))
+        except OSError:
+            # This just means the file doesn't exist.
+            pass
     # Wait for the processes to actually stop.
     psutil.wait_procs(stopped, timeout=2)
 
