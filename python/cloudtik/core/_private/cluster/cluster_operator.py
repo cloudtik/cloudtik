@@ -395,7 +395,7 @@ def _teardown_cluster(config: Dict[str, Any],
     if not hard:
         if not workers_only:
             with cli_logger.group(
-                    "Requesting head to stop controller services",
+                    "Requesting head to stop clustering services",
                     _numbered=("[]", current_step, total_steps)):
                 current_step += 1
                 try:
@@ -408,7 +408,7 @@ def _teardown_cluster(config: Dict[str, Any],
                 except Exception as e:
                     cli_logger.verbose_error("{}", str(e))
                     cli_logger.warning(
-                        "Exception occurred when stopping controller services "
+                        "Exception occurred when stopping clustering services "
                         "(use -v to show details).")
                     cli_logger.warning(
                         "Ignoring the exception and "

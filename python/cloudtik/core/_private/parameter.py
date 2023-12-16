@@ -1,5 +1,4 @@
 import logging
-import os
 
 import cloudtik.core._private.constants as constants
 
@@ -59,6 +58,8 @@ class StartParams:
         runtimes: Runtimes enabled on this node.
         node_type: The node type of this node.
         no_controller: No controller to start on the head.
+        no_redis: Don't start redis
+        no_clustering: Don't start clustering services
     """
 
     def __init__(self,
@@ -86,7 +87,9 @@ class StartParams:
                  redirect_output=None,
                  runtimes=None,
                  node_type=None,
-                 no_controller=False
+                 no_controller=False,
+                 no_redis=False,
+                 no_clustering=False,
                  ):
         self.external_addresses = external_addresses
         self.redis_address = redis_address
@@ -112,6 +115,8 @@ class StartParams:
         self.runtimes = runtimes
         self.node_type = node_type
         self.no_controller = no_controller
+        self.no_redis = no_redis
+        self.no_clustering = no_clustering
         self._check_usage()
 
     def update(self, **kwargs):
