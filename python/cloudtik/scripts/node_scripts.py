@@ -143,14 +143,31 @@ def node():
     is_flag=True,
     hidden=True,
     default=False,
-    help="If True, the cluster controller will not be started on head",
+    help="If True, the cluster controller will not be started on head "
+         "for this command",
+)
+@click.option(
+    "--no-redis",
+    is_flag=True,
+    hidden=True,
+    default=False,
+    help="If True, the redis services will not be started as part of this command",
+)
+@click.option(
+    "--no-clustering",
+    is_flag=True,
+    hidden=True,
+    default=False,
+    help="If True, the clustering services including controller and node services"
+         "will not be started as part of this command",
 )
 @add_click_logging_options
 def start(node_ip_address, address, port, head,
           redis_password, redis_shard_ports, redis_max_memory,
           memory, num_cpus, num_gpus, resources,
           cluster_config, temp_dir, metrics_export_port,
-          no_redirect_output, runtimes, node_type, no_controller):
+          no_redirect_output, runtimes, node_type,
+          no_controller, no_redis, no_clustering):
     """Start the main daemon processes on the local machine."""
     # Convert hostnames to numerical IP address.
     if node_ip_address is not None:
@@ -171,6 +188,8 @@ def start(node_ip_address, address, port, head,
         runtimes=runtimes,
         node_type=node_type,
         no_controller=no_controller,
+        no_redis=no_redis,
+        no_clustering=no_clustering,
     )
     if head:
         # Use default if port is none, allocate an available port if port is 0
@@ -204,7 +223,9 @@ def start(node_ip_address, address, port, head,
         )
 
         # Fail early when starting a new cluster when one is already running
-        if address is None:
+        if address is None and not no_redis:
+            # TODO: since we start redis and clustering services separately
+            #  check clustering services exists for duplicated start
             default_address = f"{start_params.node_ip_address}:{port}"
             redis_addresses = services.find_redis_address(default_address)
             if len(redis_addresses) > 0:
@@ -213,10 +234,10 @@ def start(node_ip_address, address, port, head,
                     f"Please specify a different port using the `--port`"
                     f" command to `cloudtik node start`.")
 
-        node = NodeServicesStarter(
+        node_starter = NodeServicesStarter(
             start_params, head=True, shutdown_at_exit=False, spawn_reaper=False)
 
-        redis_address = node.redis_address
+        redis_address = node_starter.redis_address
         if temp_dir is None:
             # Default temp directory.
             temp_dir = get_cloudtik_temp_dir()
@@ -264,7 +285,7 @@ def start(node_ip_address, address, port, head,
         cli_logger.labeled_value("Local node IP", start_params.node_ip_address)
 
         start_params.update(redis_address=redis_address)
-        node = NodeServicesStarter(
+        NodeServicesStarter(
             start_params, head=False, shutdown_at_exit=False, spawn_reaper=False)
 
     startup_msg = "CloudTik runtime started."

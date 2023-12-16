@@ -161,7 +161,7 @@ def find_redis_address(address=None):
     Returns:
         Set of detected Redis instances.
     """
-    # Currently, this extracts the deprecated --redis-address from the command
+    # Currently, this extracts the --redis-address from the command
     # that launched the service running on this node, if any.
     pids = psutil.pids()
     redis_addresses = set()

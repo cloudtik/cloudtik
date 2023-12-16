@@ -52,8 +52,7 @@ class NodeServicesStarter:
                  start_params,
                  head=False,
                  shutdown_at_exit=True,
-                 spawn_reaper=True,
-                 connect_only=False):
+                 spawn_reaper=True):
         """Start a node with all service started
 
         Args:
@@ -66,13 +65,8 @@ class NodeServicesStarter:
                 up if this process exits normally.
             spawn_reaper (bool): If true, spawns a process that will clean up
                 other spawned processes if this process dies unexpectedly.
-            connect_only (bool): If true, connect to the node without starting
-                new processes.
         """
         if shutdown_at_exit:
-            if connect_only:
-                raise ValueError("'shutdown_at_exit' and 'connect_only' "
-                                 "cannot both be true.")
             self._register_shutdown_hooks()
 
         self.head = head
@@ -140,16 +134,15 @@ class NodeServicesStarter:
         start_params.update_if_absent(
             metrics_export_port=self._metrics_export_port)
 
-        if not connect_only and spawn_reaper and not self.kernel_fate_share:
+        if spawn_reaper and not self.kernel_fate_share:
             self.start_reaper_process()
-        if not connect_only:
-            self._start_params.update_pre_selected_port()
+        self._start_params.update_pre_selected_port()
 
         # Start processes.
         if head:
             self.start_head_processes()
 
-        if not connect_only:
+        if not self._start_params.no_clustering:
             self.start_node_processes()
             # we should update the address info after the node has been started
             try:
@@ -612,11 +605,20 @@ class NodeServicesStarter:
         logger.debug(f"Process STDOUT and STDERR is being "
                      f"redirected to {self._logs_dir}.")
         assert self._redis_address is None
-        # If this is the head node, start the relevant head node processes.
-        self.start_redis()
-        self._write_cluster_info_to_state()
 
-        if not self._start_params.no_controller:
+        if not self._start_params.no_redis:
+            # If this is the head node, start the relevant head node processes.
+            self.start_redis()
+            self._write_cluster_info_to_state()
+        else:
+            # For head, start_redis will update redis address to the right one
+            # set redis address to use as we don't start redis here
+            # TODO: handle dynamic port allocated if the default is in use
+            self._redis_address = services.address(
+                self._node_ip_address, constants.CLOUDTIK_DEFAULT_PORT)
+
+        if (not self._start_params.no_clustering
+                and not self._start_params.no_controller):
             self.start_cluster_controller()
 
     def start_node_processes(self):

@@ -597,7 +597,7 @@ def fill_with_defaults(config: Dict[str, Any]) -> Dict[str, Any]:
     return merged_config
 
 
-def prepare_internal_commands(config, built_in_commands):
+def prepare_pre_internal_commands(config, built_in_commands):
     setup_commands = built_in_commands.get("setup_commands", [])
     cloudtik_setup_command = get_cloudtik_setup_command(config)
     setup_commands += [cloudtik_setup_command]
@@ -629,6 +629,19 @@ def prepare_internal_commands(config, built_in_commands):
     built_in_commands["worker_stop_commands"] = worker_stop_commands
 
 
+def prepare_post_internal_commands(config, built_in_commands):
+    cloudtik_stop_command = get_cloudtik_stop_clustering_command(config)
+
+    head_start_commands = built_in_commands.get("head_start_commands", [])
+    cloudtik_head_start_command = get_cloudtik_head_start_clustering_command(config)
+    head_start_commands += [cloudtik_stop_command, cloudtik_head_start_command]
+    built_in_commands["head_start_commands"] = head_start_commands
+
+    head_stop_commands = built_in_commands.get("head_stop_commands", [])
+    head_stop_commands += [cloudtik_stop_command]
+    built_in_commands["head_stop_commands"] = head_stop_commands
+
+
 def merge_command_key(merged_commands, group_name, from_config, command_key):
     if command_key not in merged_commands:
         merged_commands[command_key] = []
@@ -658,9 +671,11 @@ def merge_runtime_commands(config, commands_root):
 
 
 def merge_built_in_commands(config, commands_root, built_in_commands):
-    # Merge runtime commands with built-in: runtime after built-in
-    merge_commands_from(commands_root, CLOUDTIK_RUNTIME_NAME, built_in_commands)
+    # Merge runtime commands with built-in: built-in -> runtime -> post-built-in
+    pre_built_in_commands, post_built_in_commands = built_in_commands
+    merge_commands_from(commands_root, CLOUDTIK_RUNTIME_NAME, pre_built_in_commands)
     merge_runtime_commands(config, commands_root)
+    merge_commands_from(commands_root, CLOUDTIK_RUNTIME_NAME, post_built_in_commands)
 
 
 def merge_commands_from(config, group_name, from_config):
@@ -890,11 +905,15 @@ def merge_user_commands(config):
 
 def merge_commands(config):
     # Load the built-in commands and merge with defaults
-    built_in_commands = merge_config_hierarchy(config["provider"], {},
-                                               False, "commands")
+    pre_built_in_commands = merge_config_hierarchy(
+        config["provider"], {}, False, "commands")
     # Populate some internal command which is generated on the fly
-    prepare_internal_commands(config, built_in_commands)
+    prepare_pre_internal_commands(config, pre_built_in_commands)
 
+    post_built_in_commands = {}
+    prepare_post_internal_commands(config, post_built_in_commands)
+
+    built_in_commands = (pre_built_in_commands, post_built_in_commands)
     merge_global_commands(config, built_in_commands=built_in_commands)
 
     # Merge commands for node types if needed
@@ -1236,11 +1255,23 @@ def get_cloudtik_head_prepare_command(config) -> str:
 
 
 def get_cloudtik_head_start_command(config) -> str:
+    # Start the Redis service for state and data
     # ulimit -n 65536; cloudtik node start --head --node-ip-address=$CLOUDTIK_NODE_IP --port=6789
-    # --cluster-config=~/cloudtik_bootstrap_config.yaml --runtimes=$CLOUDTIK_RUNTIMES
-    no_controller_on_head = config.get("no_controller_on_head", False)
+    # --no-clustering
     start_command = "ulimit -n 65536; cloudtik node start --head --node-ip-address=$CLOUDTIK_NODE_IP"
     start_command += " --port={}".format(CLOUDTIK_DEFAULT_PORT)
+    start_command += " --no-clustering"
+    return start_command
+
+
+def get_cloudtik_head_start_clustering_command(config) -> str:
+    # ulimit -n 65536; cloudtik node start --head --node-ip-address=$CLOUDTIK_NODE_IP --port=6789
+    # --cluster-config=~/cloudtik_bootstrap_config.yaml --runtimes=$CLOUDTIK_RUNTIMES
+    start_command = "ulimit -n 65536; cloudtik node start --head --node-ip-address=$CLOUDTIK_NODE_IP"
+    start_command += " --port={}".format(CLOUDTIK_DEFAULT_PORT)
+    start_command += " --no-redis"
+
+    no_controller_on_head = config.get("no_controller_on_head", False)
     if no_controller_on_head:
         start_command += " --no-controller"
     else:
@@ -1261,6 +1292,11 @@ def get_cloudtik_worker_start_command(config) -> str:
 
 def get_cloudtik_stop_command(config) -> str:
     stop_command = "cloudtik node stop"
+    return stop_command
+
+
+def get_cloudtik_stop_clustering_command(config) -> str:
+    stop_command = "cloudtik node stop --no-redis"
     return stop_command
 
 

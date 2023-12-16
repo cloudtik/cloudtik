@@ -359,7 +359,10 @@ def attach(cluster_config_file, screen, tmux, cluster_name,
     default=False,
     help="Whether to execute commands on all nodes.")
 @click.option(
-    "--parallel/--no-parallel", is_flag=True, default=True, help="Whether the run the commands on nodes in parallel.")
+    "--parallel/--no-parallel",
+    is_flag=True,
+    default=True,
+    help="Whether the run the commands on nodes in parallel.")
 @click.option(
     "--yes",
     "-y",
