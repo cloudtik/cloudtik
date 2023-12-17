@@ -1286,8 +1286,8 @@ def get_cloudtik_worker_start_command(config) -> str:
     # ulimit -n 65536; cloudtik node start --node-ip-address=$CLOUDTIK_NODE_IP --address=$CLOUDTIK_HEAD_IP:6789
     # --runtimes=$CLOUDTIK_RUNTIMES
     start_command = "ulimit -n 65536; cloudtik node start --node-ip-address=$CLOUDTIK_NODE_IP"
-    # TODO: use DNS hostnames instead of IP addresses
-    start_command += " --address=$CLOUDTIK_HEAD_IP:{}".format(CLOUDTIK_DEFAULT_PORT)
+    # CLOUDTIK_HEAD_HOST will be IP if hostname is not proper
+    start_command += " --address=$CLOUDTIK_HEAD_HOST:{}".format(CLOUDTIK_DEFAULT_PORT)
     start_command += " --runtimes=$CLOUDTIK_RUNTIMES --node-type=$CLOUDTIK_NODE_TYPE"
     return start_command
 
@@ -1979,6 +1979,12 @@ def is_peering_firewall_allow_ssh_only(config: Dict[str, Any]) -> bool:
 
 def get_node_cluster_ip(provider: NodeProvider, node: str) -> str:
     return provider.internal_ip(node)
+
+
+def get_node_cluster_ip_of(config: Dict[str, Any], node: str) -> str:
+    provider = _get_node_provider(
+        config["provider"], config["cluster_name"])
+    return get_node_cluster_ip(provider, node)
 
 
 def wait_for_cluster_ip(call_context, provider, node_id, deadline):

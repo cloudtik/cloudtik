@@ -1,14 +1,13 @@
 import os
 from typing import Any, Dict
 
-from cloudtik.core._private.provider_factory import _get_node_provider
 from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_METASTORE
 from cloudtik.core._private.service_discovery.naming import get_cluster_head_host
 from cloudtik.core._private.service_discovery.utils import get_canonical_service_name, \
     get_service_discovery_config, define_runtime_service_on_head_or_all
 from cloudtik.core._private.util.database_utils import is_database_configured, \
     export_database_environment_variables
-from cloudtik.core._private.utils import export_runtime_flags
+from cloudtik.core._private.utils import export_runtime_flags, get_node_cluster_ip_of
 from cloudtik.runtime.common.service_discovery.runtime_discovery import \
     discover_database_from_workspace, discover_database_on_head, DATABASE_CONNECT_KEY, get_database_runtime_in_cluster, \
     export_database_runtime_environment_variables
@@ -98,12 +97,11 @@ def _services(runtime_config, head: bool):
 
 
 def register_service(cluster_config: Dict[str, Any], head_node_id: str) -> None:
-    provider = _get_node_provider(
-        cluster_config["provider"], cluster_config["cluster_name"])
-    head_ip = provider.internal_ip(head_node_id)
+    head_ip = get_node_cluster_ip_of(cluster_config, head_node_id)
+    head_host = get_cluster_head_host(cluster_config, head_ip)
     register_service_to_workspace(
         cluster_config, BUILT_IN_RUNTIME_METASTORE,
-        service_addresses=[(head_ip, METASTORE_SERVICE_PORT)])
+        service_addresses=[(head_host, METASTORE_SERVICE_PORT)])
 
 
 def _get_runtime_logs():

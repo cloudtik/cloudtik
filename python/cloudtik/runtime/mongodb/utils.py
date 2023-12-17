@@ -3,7 +3,6 @@ import uuid
 from typing import Any, Dict
 
 from cloudtik.core._private.core_utils import base64_encode_string, get_config_for_update
-from cloudtik.core._private.provider_factory import _get_node_provider
 from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_MONGODB
 from cloudtik.core._private.service_discovery.naming import get_cluster_head_host
 from cloudtik.core._private.service_discovery.runtime_services import get_service_discovery_runtime
@@ -11,7 +10,7 @@ from cloudtik.core._private.service_discovery.utils import \
     get_canonical_service_name, define_runtime_service, \
     get_service_discovery_config, define_runtime_service_on_head
 from cloudtik.core._private.utils import RUNTIME_CONFIG_KEY, is_node_seq_id_enabled, enable_node_seq_id, \
-    get_runtime_config
+    get_runtime_config, get_node_cluster_ip_of
 from cloudtik.runtime.common.service_discovery.discovery import DiscoveryType
 from cloudtik.runtime.common.service_discovery.runtime_discovery import \
     discover_runtime_service
@@ -399,23 +398,22 @@ def register_service(
     mongodb_config = _get_config(runtime_config)
     service_port = _get_service_port(mongodb_config)
 
-    provider = _get_node_provider(
-        cluster_config["provider"], cluster_config["cluster_name"])
-    head_ip = provider.internal_ip(head_node_id)
+    head_ip = get_node_cluster_ip_of(cluster_config, head_node_id)
+    head_host = get_cluster_head_host(cluster_config, head_ip)
 
     cluster_mode = _get_cluster_mode(mongodb_config)
     if cluster_mode == MONGODB_CLUSTER_MODE_REPLICATION:
         register_service_to_workspace(
             cluster_config, BUILT_IN_RUNTIME_MONGODB,
-            service_addresses=[(head_ip, service_port)])
+            service_addresses=[(head_host, service_port)])
     elif cluster_mode == MONGODB_CLUSTER_MODE_SHARDING:
         register_sharding_service(
-            mongodb_config, cluster_config, head_ip)
+            mongodb_config, cluster_config, head_host)
     else:
         # single standalone on head
         register_service_to_workspace(
             cluster_config, BUILT_IN_RUNTIME_MONGODB,
-            service_addresses=[(head_ip, service_port)])
+            service_addresses=[(head_host, service_port)])
 
 
 def _get_runtime_endpoints(

@@ -1,11 +1,14 @@
 from typing import Dict, Any, Optional
 
+from cloudtik.core._private.constants import CLOUDTIK_RUNTIME_ENV_NODE_HOST, CLOUDTIK_RUNTIME_ENV_HEAD_HOST, \
+    CLOUDTIK_RUNTIME_ENV_NODE_IP, CLOUDTIK_RUNTIME_ENV_HEAD_IP
 from cloudtik.core._private.core_utils import is_valid_dns_name
 from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_DNSMASQ, BUILT_IN_RUNTIME_BIND, \
     BUILT_IN_RUNTIME_COREDNS
 from cloudtik.core._private.service_discovery.runtime_services import get_service_discovery_runtime
 from cloudtik.core._private.utils import is_config_use_hostname, get_runtime_config, \
     get_workspace_name, get_cluster_name, is_node_seq_id_enabled, is_runtime_enabled, is_config_use_fqdn
+from cloudtik.core.tags import CLOUDTIK_TAG_HEAD_NODE_SEQ_ID
 
 CONSUL_CONFIG_DISABLE_CLUSTER_NODE_NAME = "disable_cluster_node_name"
 DNS_DEFAULT_RESOLVER_CONFIG_KEY = "default_resolver"
@@ -14,6 +17,8 @@ DNS_NAMING_RUNTIMES = [
     BUILT_IN_RUNTIME_DNSMASQ,
     BUILT_IN_RUNTIME_BIND,
     BUILT_IN_RUNTIME_COREDNS]
+
+HEAD_NODE_SEQ_ID = CLOUDTIK_TAG_HEAD_NODE_SEQ_ID
 
 
 def get_cluster_node_name(cluster_name, seq_id):
@@ -72,43 +77,62 @@ def is_cluster_hostname_available(config):
     return True
 
 
-def get_cluster_head_host(config: Dict[str, Any], head_ip) -> str:
-    head_hostname = _get_cluster_head_hostname(config)
-    if not head_hostname:
-        return head_hostname
-    return head_ip
+def get_cluster_node_host(config: Dict[str, Any], node_seq_id, node_ip) -> str:
+    node_hostname = get_cluster_node_hostname(config, node_seq_id)
+    if node_hostname:
+        return node_hostname
+    return node_ip
 
 
-def get_cluster_head_hostname(config: Dict[str, Any]) -> Optional[str]:
-    if (is_cluster_hostname_available(config) and
+def get_cluster_node_hostname(config: Dict[str, Any], node_seq_id) -> Optional[str]:
+    if (node_seq_id is not None and
+            is_cluster_hostname_available(config) and
             is_config_use_hostname(config)):
-        return _get_cluster_head_hostname(config)
+        return _get_cluster_node_hostname(config, node_seq_id)
     return None
 
 
-def _get_cluster_head_hostname(config: Dict[str, Any]) -> str:
+def get_cluster_head_host(config: Dict[str, Any], head_ip) -> str:
+    return get_cluster_node_host(config, HEAD_NODE_SEQ_ID, head_ip)
+
+
+def get_cluster_head_hostname(config: Dict[str, Any]) -> Optional[str]:
+    return get_cluster_node_hostname(config, HEAD_NODE_SEQ_ID)
+
+
+def _get_cluster_node_hostname(config: Dict[str, Any], node_seq_id) -> str:
     if is_config_use_fqdn(config):
-        return get_cluster_head_fqdn(config)
+        return get_cluster_node_fqdn_of(config, node_seq_id)
     else:
-        return get_cluster_head_name(config)
+        return get_cluster_node_name_of(config, node_seq_id)
 
 
-def get_cluster_head_name(config):
+def get_cluster_node_name_of(config, node_seq_id):
     cluster_name = get_cluster_name(config)
-    return _get_cluster_head_name(cluster_name)
+    return get_cluster_node_name(cluster_name, node_seq_id)
 
 
-def _get_cluster_head_name(cluster_name):
-    # Assume that the head node will always get SEQ ID of 1
-    return get_cluster_node_name(cluster_name, 1)
-
-
-def get_cluster_head_fqdn(config):
+def get_cluster_node_fqdn_of(config, node_seq_id):
     workspace_name = get_workspace_name(config)
-    head_name = get_cluster_head_name(config)
-    return get_cluster_node_fqdn(head_name, workspace_name)
+    node_name = get_cluster_node_name_of(config, node_seq_id)
+    return get_cluster_node_fqdn(node_name, workspace_name)
 
 
-def _get_cluster_head_fqdn(workspace_name, cluster_name):
-    head_name = _get_cluster_head_name(cluster_name)
-    return get_cluster_node_fqdn(head_name, workspace_name)
+def with_node_host_environment_variables(
+        config: Dict[str, Any], node_seq_id, node_envs):
+    node_ip = node_envs.get(CLOUDTIK_RUNTIME_ENV_NODE_IP)
+    if not node_ip:
+        raise RuntimeError("Node IP must be set.")
+    node_host = get_cluster_node_host(config, node_seq_id, node_ip)
+    node_envs[CLOUDTIK_RUNTIME_ENV_NODE_HOST] = node_host
+    return node_envs
+
+
+def with_head_host_environment_variables(
+        config: Dict[str, Any], node_envs):
+    head_ip = node_envs.get(CLOUDTIK_RUNTIME_ENV_HEAD_IP)
+    if not head_ip:
+        raise RuntimeError("Head IP must be set.")
+    head_host = get_cluster_node_host(config, HEAD_NODE_SEQ_ID, head_ip)
+    node_envs[CLOUDTIK_RUNTIME_ENV_HEAD_HOST] = head_host
+    return node_envs
