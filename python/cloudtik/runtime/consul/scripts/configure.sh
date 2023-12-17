@@ -85,14 +85,10 @@ configure_consul() {
     CONSUL_CONFIG_DIR=${CONSUL_HOME}/consul.d
     mkdir -p ${CONSUL_CONFIG_DIR}
     cp -r ${consul_output_dir}/consul.json ${CONSUL_CONFIG_DIR}/consul.json
-
-    if [ "${CONSUL_SERVER}" == "true" ]; then
-        cp -r ${consul_output_dir}/server.json ${CONSUL_CONFIG_DIR}/server.json
-    fi
-
     chmod 640 ${CONSUL_CONFIG_DIR}/consul.json
 
     if [ "${CONSUL_SERVER}" == "true" ]; then
+        cp -r ${consul_output_dir}/server.json ${CONSUL_CONFIG_DIR}/server.json
         chmod 640 ${CONSUL_CONFIG_DIR}/server.json
     fi
 }

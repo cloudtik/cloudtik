@@ -3,6 +3,7 @@ from typing import Any, Dict
 
 from cloudtik.core._private.provider_factory import _get_node_provider
 from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_HDFS
+from cloudtik.core._private.service_discovery.naming import get_cluster_head_host
 from cloudtik.core._private.service_discovery.utils import get_canonical_service_name, define_runtime_service_on_head, \
     get_service_discovery_config, SERVICE_DISCOVERY_FEATURE_STORAGE
 from cloudtik.runtime.common.service_discovery.workspace import register_service_to_workspace
@@ -61,15 +62,16 @@ def _get_runtime_logs():
     return all_logs
 
 
-def _get_runtime_endpoints(cluster_head_ip):
+def _get_runtime_endpoints(cluster_config, cluster_head_ip):
+    head_host = get_cluster_head_host(cluster_config, cluster_head_ip)
     endpoints = {
         "hdfs-web": {
             "name": "HDFS Web UI",
-            "url": "http://{}:{}".format(cluster_head_ip, HDFS_WEB_PORT)
+            "url": "http://{}:{}".format(head_host, HDFS_WEB_PORT)
         },
         "hdfs": {
             "name": "HDFS Service",
-            "url": "hdfs://{}:{}".format(cluster_head_ip, HDFS_SERVICE_PORT)
+            "url": "hdfs://{}:{}".format(head_host, HDFS_SERVICE_PORT)
         },
     }
     return endpoints

@@ -2,6 +2,7 @@ import os
 from typing import Any, Dict
 
 from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_COREDNS, BUILT_IN_RUNTIME_CONSUL
+from cloudtik.core._private.service_discovery.naming import DNS_DEFAULT_RESOLVER_CONFIG_KEY
 from cloudtik.core._private.service_discovery.utils import \
     get_canonical_service_name, define_runtime_service, \
     get_service_discovery_config, SERVICE_DISCOVERY_FEATURE_DNS, SERVICE_DISCOVERY_FEATURE_METRICS
@@ -17,7 +18,7 @@ RUNTIME_PROCESSES = [
     ]
 
 COREDNS_SERVICE_PORT_CONFIG_KEY = "port"
-COREDNS_DEFAULT_RESOLVER_CONFIG_KEY = "default_resolver"
+COREDNS_DEFAULT_RESOLVER_CONFIG_KEY = DNS_DEFAULT_RESOLVER_CONFIG_KEY
 
 COREDNS_SERVICE_TYPE = BUILT_IN_RUNTIME_COREDNS
 COREDNS_METRICS_SERVICE_TYPE = BUILT_IN_RUNTIME_COREDNS + "-metrics"

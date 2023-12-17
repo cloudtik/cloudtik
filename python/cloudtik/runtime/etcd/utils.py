@@ -75,7 +75,8 @@ def _handle_node_constraints_reached(
         logger.warning("Error happened: {}", str(e))
 
 
-def _get_runtime_endpoints(runtime_config: Dict[str, Any], cluster_head_ip):
+def _get_runtime_endpoints(
+        runtime_config: Dict[str, Any], cluster_config, cluster_head_ip):
     # TODO: future to retrieve the endpoints from service discovery
     return None
 

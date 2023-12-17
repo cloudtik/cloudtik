@@ -2,6 +2,7 @@ import os
 from typing import Any, Dict
 
 from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_PROMETHEUS, BUILT_IN_RUNTIME_GRAFANA
+from cloudtik.core._private.service_discovery.naming import get_cluster_head_host
 from cloudtik.core._private.service_discovery.runtime_services import get_service_discovery_runtime, \
     get_services_of_runtime
 from cloudtik.core._private.service_discovery.utils import \
@@ -119,13 +120,15 @@ def with_workspace_data_sources(
     pass
 
 
-def _get_runtime_endpoints(runtime_config: Dict[str, Any], cluster_head_ip):
+def _get_runtime_endpoints(
+        runtime_config: Dict[str, Any], cluster_config, cluster_head_ip):
+    head_host = get_cluster_head_host(cluster_config, cluster_head_ip)
     grafana_config = _get_config(runtime_config)
     service_port = _get_service_port(grafana_config)
     endpoints = {
         "grafana": {
             "name": "Grafana",
-            "url": "http://{}:{}".format(cluster_head_ip, service_port)
+            "url": "http://{}:{}".format(head_host, service_port)
         },
     }
     return endpoints

@@ -2,6 +2,7 @@ import os
 from typing import Any, Dict
 
 from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_HAPROXY
+from cloudtik.core._private.service_discovery.naming import get_cluster_head_host
 from cloudtik.core._private.service_discovery.runtime_services import get_service_discovery_runtime
 from cloudtik.core._private.service_discovery.utils import get_canonical_service_name, \
     get_service_discovery_config, define_runtime_service_on_head_or_all, \
@@ -285,14 +286,17 @@ def _with_runtime_envs_for_api_gateway(config, backend_config, runtime_envs):
     runtime_envs["HAPROXY_CONFIG_MODE"] = config_mode
 
 
-def _get_runtime_endpoints(runtime_config: Dict[str, Any], cluster_head_ip):
+def _get_runtime_endpoints(
+        runtime_config: Dict[str, Any], cluster_config, cluster_head_ip):
+    head_host = get_cluster_head_host(cluster_config, cluster_head_ip)
     haproxy_config = _get_config(runtime_config)
     service_port = _get_service_port(haproxy_config)
     service_protocol = _get_service_protocol(haproxy_config)
     endpoints = {
         "haproxy": {
             "name": "HAProxy",
-            "url": "{}://{}:{}".format(service_protocol, cluster_head_ip, service_port)
+            "url": "{}://{}:{}".format(
+                service_protocol, head_host, service_port)
         },
     }
     return endpoints

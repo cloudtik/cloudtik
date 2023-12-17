@@ -5,6 +5,7 @@ from cloudtik.core._private.cluster.cluster_tunnel_request import _request_rest_
 from cloudtik.core._private.core_utils import double_quote
 from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_FLINK, BUILT_IN_RUNTIME_YARN, \
     BUILT_IN_RUNTIME_HADOOP
+from cloudtik.core._private.service_discovery.naming import get_cluster_head_host
 from cloudtik.core._private.service_discovery.utils import get_canonical_service_name, define_runtime_service_on_head, \
     get_service_discovery_config, SERVICE_DISCOVERY_PROTOCOL_HTTP
 from cloudtik.core._private.utils import round_memory_size_to_gb, RUNTIME_CONFIG_KEY, get_config_for_update, \
@@ -178,16 +179,17 @@ def _validate_config(config: Dict[str, Any], final=False):
     pass
 
 
-def _get_runtime_endpoints(cluster_head_ip):
+def _get_runtime_endpoints(cluster_config, cluster_head_ip):
+    head_host = get_cluster_head_host(cluster_config, cluster_head_ip)
     endpoints = {
         "jupyter-web": {
             "name": "Jupyter Web UI",
-            "url": "http://{}:{}".format(cluster_head_ip, FLINK_JUPYTER_WEB_PORT),
+            "url": "http://{}:{}".format(head_host, FLINK_JUPYTER_WEB_PORT),
             "info": "default password is \'cloudtik\'"
          },
         "flink-history": {
             "name": "Flink History Server Web UI",
-            "url": "http://{}:{}".format(cluster_head_ip, FLINK_HISTORY_SERVER_API_PORT)
+            "url": "http://{}:{}".format(head_host, FLINK_HISTORY_SERVER_API_PORT)
          },
     }
     return endpoints

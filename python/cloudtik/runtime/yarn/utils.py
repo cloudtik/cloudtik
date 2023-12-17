@@ -5,6 +5,7 @@ from typing import Any, Dict, Optional
 from cloudtik.core._private.cli_logger import cli_logger
 from cloudtik.core._private.cluster.cluster_tunnel_request import _request_rest_to_head
 from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_YARN
+from cloudtik.core._private.service_discovery.naming import get_cluster_head_host
 from cloudtik.core._private.service_discovery.utils import get_canonical_service_name, define_runtime_service_on_head, \
     get_service_discovery_config, SERVICE_DISCOVERY_FEATURE_SCHEDULER
 from cloudtik.core._private.utils import \
@@ -97,15 +98,16 @@ def get_runtime_logs():
     return all_logs
 
 
-def _get_runtime_endpoints(cluster_head_ip):
+def _get_runtime_endpoints(cluster_config, cluster_head_ip):
+    head_host = get_cluster_head_host(cluster_config, cluster_head_ip)
     endpoints = {
         "yarn": {
             "name": "Yarn",
-            "url": "{}:{}".format(cluster_head_ip, YARN_RESOURCE_MANAGER_PORT)
+            "url": "{}:{}".format(head_host, YARN_RESOURCE_MANAGER_PORT)
         },
         "yarn-web": {
             "name": "Yarn Web UI",
-            "url": "http://{}:{}".format(cluster_head_ip, YARN_WEB_API_PORT)
+            "url": "http://{}:{}".format(head_host, YARN_WEB_API_PORT)
         },
     }
     return endpoints

@@ -58,7 +58,7 @@ def _with_runtime_environment_variables(runtime_config, config, provider, node_i
     return runtime_envs
 
 
-def _get_runtime_endpoints(cluster_head_ip):
+def _get_runtime_endpoints(cluster_config, cluster_head_ip):
     # TODO: future to retrieve the endpoints from service discovery
     return None
 

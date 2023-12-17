@@ -2,6 +2,7 @@ import os
 from typing import Any, Dict
 
 from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_NGINX
+from cloudtik.core._private.service_discovery.naming import get_cluster_head_host
 from cloudtik.core._private.service_discovery.runtime_services import get_service_discovery_runtime
 from cloudtik.core._private.service_discovery.utils import get_canonical_service_name, \
     get_service_discovery_config, define_runtime_service_on_head_or_all, SERVICE_DISCOVERY_PROTOCOL_HTTP, \
@@ -86,12 +87,14 @@ def _get_runtime_processes():
     return RUNTIME_PROCESSES
 
 
-def _get_runtime_endpoints(runtime_config: Dict[str, Any], cluster_head_ip):
+def _get_runtime_endpoints(
+        runtime_config: Dict[str, Any], cluster_config, cluster_head_ip):
+    head_host = get_cluster_head_host(cluster_config, cluster_head_ip)
     service_port = _get_service_port(runtime_config)
     endpoints = {
         "nginx": {
             "name": "NGINX",
-            "url": "http://{}:{}".format(cluster_head_ip, service_port)
+            "url": "http://{}:{}".format(head_host, service_port)
         },
     }
     return endpoints

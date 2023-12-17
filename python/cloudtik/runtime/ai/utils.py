@@ -4,6 +4,7 @@ from typing import Any, Dict
 from cloudtik.core._private.core_utils import get_env_string_value
 from cloudtik.core._private.provider_factory import _get_node_provider
 from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_AI
+from cloudtik.core._private.service_discovery.naming import get_cluster_head_host
 from cloudtik.core._private.service_discovery.utils import get_canonical_service_name, \
     get_service_discovery_config, SERVICE_DISCOVERY_PROTOCOL_HTTP, define_runtime_service_on_head_or_all
 from cloudtik.core._private.util.database_utils import is_database_configured, export_database_environment_variables
@@ -130,11 +131,12 @@ def _get_runtime_logs():
     return all_logs
 
 
-def _get_runtime_endpoints(cluster_head_ip):
+def _get_runtime_endpoints(cluster_config, cluster_head_ip):
+    head_host = get_cluster_head_host(cluster_config, cluster_head_ip)
     endpoints = {
         "mlflow": {
             "name": "MLflow",
-            "url": "http://{}:{}".format(cluster_head_ip, MLFLOW_SERVICE_PORT)
+            "url": "http://{}:{}".format(head_host, MLFLOW_SERVICE_PORT)
         },
     }
     return endpoints

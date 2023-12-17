@@ -100,6 +100,8 @@ TEMPORARY_COMMAND_KEYS = [
                 "stop_commands"]
 
 MERGED_COMMAND_KEY = "merged_commands"
+
+OPTIONS_CONFIG_KEY = "options"
 RUNTIME_CONFIG_KEY = "runtime"
 DOCKER_CONFIG_KEY = "docker"
 AUTH_CONFIG_KEY = "auth"
@@ -2551,7 +2553,8 @@ def _get_runtime_config_object(config_home: str, provider_config, object_name: s
     return config_object
 
 
-def get_runtime_endpoints(runtime_config, head_cluster_ip):
+def get_runtime_endpoints(config, head_cluster_ip):
+    runtime_config = get_runtime_config(config)
     runtime_endpoints = {}
     if runtime_config is None:
         return runtime_endpoints
@@ -2560,7 +2563,8 @@ def get_runtime_endpoints(runtime_config, head_cluster_ip):
     runtime_types = runtime_config.get(RUNTIME_TYPES_CONFIG_KEY, [])
     for runtime_type in runtime_types:
         runtime = _get_runtime(runtime_type, runtime_config)
-        endpoints = runtime.get_runtime_endpoints(head_cluster_ip)
+        endpoints = runtime.get_runtime_endpoints(
+            config, head_cluster_ip)
         if endpoints:
             runtime_endpoints.update(endpoints)
 
@@ -3043,24 +3047,52 @@ def _is_permanent_data_volumes(provider_config: Dict[str, Any]) -> bool:
     return provider_config.get("permanent_data_volumes", False)
 
 
+def get_config_options(config: Dict[str, Any]):
+    return config.get(OPTIONS_CONFIG_KEY, {})
+
+
+def get_config_options_for_update(config: Dict[str, Any]):
+    return get_config_for_update(config, OPTIONS_CONFIG_KEY)
+
+
+def get_config_option(
+        config: Dict[str, Any], option_name, default=None):
+    options = config.get(OPTIONS_CONFIG_KEY)
+    if options is None:
+        return default
+    return options.get(option_name, default)
+
+
 def is_node_seq_id_enabled(config):
-    return not config.get("disable_node_seq_id", False)
+    return not get_config_option(
+        config, "disable_node_seq_id", False)
 
 
 def enable_node_seq_id(config):
-    config["disable_node_seq_id"] = False
+    config_options = get_config_options_for_update(config)
+    config_options["disable_node_seq_id"] = False
 
 
 def is_stable_node_seq_id_enabled(config):
     if not is_node_seq_id_enabled(config):
         return False
-    return config.get("stable_node_seq_id", False)
+    return get_config_option(
+        config, "stable_node_seq_id", False)
 
 
 def enable_stable_node_seq_id(config):
     if not is_node_seq_id_enabled(config):
         enable_node_seq_id(config)
-    config["stable_node_seq_id"] = True
+    config_options = get_config_options_for_update(config)
+    config_options["stable_node_seq_id"] = True
+
+
+def is_config_use_hostname(config):
+    return get_config_option(config, "use_hostname", True)
+
+
+def is_config_use_fqdn(config):
+    return get_config_option(config, "use_fqdn", True)
 
 
 def check_workspace_name_format(workspace_name):
@@ -3593,3 +3625,11 @@ def get_node_type_resources(
         cluster_resource["worker_cpu"] = cluster_resource["head_cpu"]
 
     return cluster_resource
+
+
+def get_cluster_name(config):
+    return config["cluster_name"]
+
+
+def get_workspace_name(config):
+    return config["workspace_name"]

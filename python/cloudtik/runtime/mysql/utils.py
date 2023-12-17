@@ -3,6 +3,7 @@ import uuid
 from typing import Any, Dict
 
 from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_MYSQL
+from cloudtik.core._private.service_discovery.naming import get_cluster_head_host
 from cloudtik.core._private.service_discovery.utils import \
     get_canonical_service_name, define_runtime_service, \
     get_service_discovery_config, SERVICE_DISCOVERY_FEATURE_DATABASE, define_runtime_service_on_head, \
@@ -175,12 +176,14 @@ def _with_runtime_environment_variables(
     return runtime_envs
 
 
-def _get_runtime_endpoints(runtime_config: Dict[str, Any], cluster_head_ip):
+def _get_runtime_endpoints(
+        runtime_config: Dict[str, Any], cluster_config, cluster_head_ip):
+    head_host = get_cluster_head_host(cluster_config, cluster_head_ip)
     service_port = _get_service_port(runtime_config)
     endpoints = {
         "mysql": {
             "name": "MySQL",
-            "url": "{}:{}".format(cluster_head_ip, service_port)
+            "url": "{}:{}".format(head_host, service_port)
         },
     }
     return endpoints

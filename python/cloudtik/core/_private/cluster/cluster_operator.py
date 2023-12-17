@@ -37,6 +37,7 @@ from cloudtik.core._private.core_utils import stop_process_tree, double_quote, g
     memory_to_gb, memory_to_gb_string
 from cloudtik.core._private.job_waiter.job_waiter_factory import create_job_waiter
 from cloudtik.core._private.runtime_factory import _get_runtime_cls
+from cloudtik.core._private.service_discovery.naming import get_cluster_head_hostname
 from cloudtik.core._private.service_discovery.utils import ServiceRegisterException
 from cloudtik.core._private.services import validate_redis_address
 from cloudtik.core._private.state import kv_store
@@ -385,16 +386,16 @@ def _teardown_cluster(config: Dict[str, Any],
         total_steps += 1
         if not workers_only:
             total_steps += 2
-
+    _cli_logger = call_context.cli_logger
     if proxy_stop and is_proxy_needed(config):
-        with cli_logger.group(
+        with _cli_logger.group(
                 "Stopping proxy",
                 _numbered=("[]", current_step, total_steps)):
             current_step += 1
             _stop_proxy(config)
     if not hard:
         if not workers_only:
-            with cli_logger.group(
+            with _cli_logger.group(
                     "Requesting head to stop clustering services",
                     _numbered=("[]", current_step, total_steps)):
                 current_step += 1
@@ -406,17 +407,17 @@ def _teardown_cluster(config: Dict[str, Any],
                         runtimes=[CLOUDTIK_RUNTIME_NAME],
                         indent_level=2)
                 except Exception as e:
-                    cli_logger.verbose_error("{}", str(e))
-                    cli_logger.warning(
+                    _cli_logger.verbose_error("{}", str(e))
+                    _cli_logger.warning(
                         "Exception occurred when stopping clustering services "
                         "(use -v to show details).")
-                    cli_logger.warning(
+                    _cli_logger.warning(
                         "Ignoring the exception and "
                         "attempting to shut down the cluster nodes anyway.")
 
         # Running teardown cluster process on head first. But we allow this to fail.
         # Since head node problem should not prevent cluster tear down
-        with cli_logger.group(
+        with _cli_logger.group(
                 "Requesting head to stop workers",
                 _numbered=("[]", current_step, total_steps)):
             current_step += 1
@@ -426,8 +427,8 @@ def _teardown_cluster(config: Dict[str, Any],
                 keep_min_workers=keep_min_workers)
 
         if not workers_only:
-            with cli_logger.group(
-                    "Requesting head to stop head services",
+            with _cli_logger.group(
+                    "Requesting to stop head services",
                     _numbered=("[]", current_step, total_steps)):
                 current_step += 1
                 try:
@@ -437,15 +438,15 @@ def _teardown_cluster(config: Dict[str, Any],
                         node_ip=None, all_nodes=False,
                         indent_level=2)
                 except Exception as e:
-                    cli_logger.verbose_error("{}", str(e))
-                    cli_logger.warning(
+                    _cli_logger.verbose_error("{}", str(e))
+                    _cli_logger.warning(
                         "Exception occurred when stopping head services "
                         "(use -v to show details).")
-                    cli_logger.warning(
+                    _cli_logger.warning(
                         "Ignoring the exception and "
                         "attempting to shut down the cluster nodes anyway.")
 
-    with cli_logger.group(
+    with _cli_logger.group(
             "Stopping head and remaining nodes",
             _numbered=("[]", current_step, total_steps)):
         current_step += 1
@@ -460,7 +461,7 @@ def _teardown_cluster(config: Dict[str, Any],
                                on_head=False,
                                hard=hard)
 
-    with cli_logger.group(
+    with _cli_logger.group(
             "Clean up the cluster",
             _numbered=("[]", current_step, total_steps)):
         current_step += 1
@@ -1083,6 +1084,7 @@ def _set_up_config_for_head_node(config: Dict[str, Any],
     remote_config["auth"].pop("ssh_proxy_command", None)
     remote_config["auth"].pop("ssh_public_key", None)
 
+    remote_key_path = None
     if "ssh_private_key" in config["auth"]:
         remote_key_path = "~/cloudtik_bootstrap_key.pem"
         remote_config["auth"]["ssh_private_key"] = remote_key_path
@@ -1104,7 +1106,7 @@ def _set_up_config_for_head_node(config: Dict[str, Any],
         "~/cloudtik_bootstrap_config.yaml": remote_config_file.name
     })
 
-    if "ssh_private_key" in config["auth"]:
+    if remote_key_path:
         config["file_mounts"].update({
             remote_key_path: config["auth"]["ssh_private_key"],
         })
@@ -2132,9 +2134,9 @@ def show_useful_commands(call_context: CallContext,
                     cf.bold("{}:{}"),
                     bind_address_show, port)
 
-        head_node_cluster_ip = get_node_cluster_ip(provider, head_node)
+        head_cluster_ip = get_node_cluster_ip(provider, head_node)
 
-        runtime_endpoints = get_runtime_endpoints(config.get(RUNTIME_CONFIG_KEY), head_node_cluster_ip)
+        runtime_endpoints = get_runtime_endpoints(config, head_cluster_ip)
         sorted_runtime_endpoints = sorted(runtime_endpoints.items(), key=lambda kv: kv[1]["name"])
         for endpoint_id, runtime_endpoint in sorted_runtime_endpoints:
             with _cli_logger.group(runtime_endpoint["name"] + ":"):
@@ -2203,6 +2205,13 @@ def _get_cluster_info(config: Dict[str, Any],
 
     head_ssh_ip = get_head_working_ip(config, provider, head_node)
     cluster_info["head-ssh-ip"] = head_ssh_ip
+
+    head_ip = get_node_cluster_ip(provider, head_node)
+    cluster_info["head-ip"] = head_ip
+
+    head_hostname = get_cluster_head_hostname(config)
+    if head_hostname:
+        cluster_info["head-hostname"] = head_hostname
 
     # Check the running worker nodes
     workers = _get_worker_nodes(config)

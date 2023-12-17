@@ -18,7 +18,7 @@ def get_runtime_endpoints_of(config: Dict[str, Any], runtime_name: str):
     head_internal_ip = get_cluster_head_ip(config)
 
     runtime = _get_runtime(runtime_name, runtime_config)
-    return runtime.get_runtime_endpoints(head_internal_ip)
+    return runtime.get_runtime_endpoints(config, head_internal_ip)
 
 
 def get_runtime_default_storage_of(config: Dict[str, Any], runtime_name: str):
