@@ -6,6 +6,8 @@ import time
 from typing import Dict
 from threading import Thread
 
+from cloudtik.core._private.service_discovery.naming import with_node_host_environment_variables, \
+    with_head_host_environment_variables
 from cloudtik.core._private.utils import with_runtime_environment_variables, with_node_ip_environment_variables, \
     _get_cluster_uri, _is_use_internal_ip, get_node_type, get_runtime_shared_memory_ratio, \
     with_head_node_ip_environment_variables, get_default_python_version, get_config_option
@@ -137,6 +139,7 @@ class NodeUpdater:
         self.runtime_config = runtime_config
         self.cluster_uri = _get_cluster_uri(self.provider_type, cluster_name)
         self.environment_variables = environment_variables
+        self.exitcode = -1
 
     @property
     def cli_logger(self) -> CliLogger:
@@ -345,6 +348,10 @@ class NodeUpdater:
             ip_envs = with_head_node_ip_environment_variables(head_ip, ip_envs)
         node_envs.update(ip_envs)
 
+        # head host
+        node_envs = with_head_host_environment_variables(
+            self.config, node_envs)
+
         if self.environment_variables is not None:
             node_envs.update(self.environment_variables)
 
@@ -354,6 +361,8 @@ class NodeUpdater:
         node_seq_id = node_tags.get(CLOUDTIK_TAG_NODE_SEQ_ID)
         if node_seq_id is not None:
             node_envs[CLOUDTIK_RUNTIME_ENV_NODE_SEQ_ID] = node_seq_id
+        node_envs = with_node_host_environment_variables(
+            self.config, node_seq_id, node_envs)
 
         # Set node quorum join flag
         quorum_join = node_tags.get(CLOUDTIK_TAG_QUORUM_JOIN)
@@ -715,4 +724,3 @@ class NodeUpdaterThread(NodeUpdater, Thread):
     def __init__(self, *args, **kwargs):
         Thread.__init__(self)
         NodeUpdater.__init__(self, *args, **kwargs)
-        self.exitcode = -1

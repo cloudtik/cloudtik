@@ -330,7 +330,6 @@ class MockNodeUpdaterThread(MockNodeUpdater, Thread):
     def __init__(self, *args, **kwargs):
         Thread.__init__(self)
         MockNodeUpdater.__init__(self, *args, **kwargs)
-        self.exitcode = -1
 
 
 class MockClusterScaler(ClusterScaler):

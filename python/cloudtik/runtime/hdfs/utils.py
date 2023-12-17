@@ -1,11 +1,11 @@
 import os
 from typing import Any, Dict
 
-from cloudtik.core._private.provider_factory import _get_node_provider
 from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_HDFS
 from cloudtik.core._private.service_discovery.naming import get_cluster_head_host
 from cloudtik.core._private.service_discovery.utils import get_canonical_service_name, define_runtime_service_on_head, \
     get_service_discovery_config, SERVICE_DISCOVERY_FEATURE_STORAGE
+from cloudtik.core._private.utils import get_node_cluster_ip_of
 from cloudtik.runtime.common.service_discovery.workspace import register_service_to_workspace
 
 RUNTIME_PROCESSES = [
@@ -31,12 +31,11 @@ def _get_config(runtime_config: Dict[str, Any]):
 
 def register_service(
         cluster_config: Dict[str, Any], head_node_id: str) -> None:
-    provider = _get_node_provider(
-        cluster_config["provider"], cluster_config["cluster_name"])
-    head_ip = provider.internal_ip(head_node_id)
+    head_ip = get_node_cluster_ip_of(cluster_config, head_node_id)
+    head_host = get_cluster_head_host(cluster_config, head_ip)
     register_service_to_workspace(
         cluster_config, BUILT_IN_RUNTIME_HDFS,
-        service_addresses=[(head_ip, HDFS_SERVICE_PORT)])
+        service_addresses=[(head_host, HDFS_SERVICE_PORT)])
 
 
 def _get_runtime_processes():

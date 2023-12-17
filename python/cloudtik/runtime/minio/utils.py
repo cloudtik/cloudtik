@@ -4,7 +4,6 @@ from typing import Any, Dict
 from cloudtik.core._private.constants import CLOUDTIK_RUNTIME_ENV_WORKSPACE, CLOUDTIK_RUNTIME_ENV_CLUSTER, \
     CLOUDTIK_DATA_DISK_MOUNT_POINT, CLOUDTIK_DATA_DISK_MOUNT_NAME_PREFIX
 from cloudtik.core._private.core_utils import get_config_for_update
-from cloudtik.core._private.provider_factory import _get_node_provider
 from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_MINIO
 from cloudtik.core._private.runtime_utils import get_runtime_value, get_data_disk_dirs
 from cloudtik.core._private.service_discovery.runtime_services import get_service_discovery_runtime
@@ -15,7 +14,7 @@ from cloudtik.core._private.service_discovery.utils import \
 from cloudtik.core._private.service_discovery.naming import get_cluster_node_name, get_cluster_node_fqdn, \
     is_discoverable_cluster_node_name, get_cluster_head_host
 from cloudtik.core._private.utils import get_runtime_config, get_runtime_config_for_update, _sum_min_workers, \
-    enable_node_seq_id, is_node_seq_id_enabled
+    enable_node_seq_id, is_node_seq_id_enabled, get_node_cluster_ip_of
 from cloudtik.runtime.common.service_discovery.workspace import register_service_to_workspace
 
 RUNTIME_PROCESSES = [
@@ -147,14 +146,13 @@ def register_service(
     if not _is_service_on_head(minio_config):
         return
 
-    provider = _get_node_provider(
-        cluster_config["provider"], cluster_config["cluster_name"])
-    head_ip = provider.internal_ip(head_node_id)
+    head_ip = get_node_cluster_ip_of(cluster_config, head_node_id)
+    head_host = get_cluster_head_host(cluster_config, head_ip)
 
     service_port = _get_service_port(minio_config)
     register_service_to_workspace(
         cluster_config, BUILT_IN_RUNTIME_MINIO,
-        service_addresses=[(head_ip, service_port)])
+        service_addresses=[(head_host, service_port)])
 
 
 def _get_runtime_endpoints(
