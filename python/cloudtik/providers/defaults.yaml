@@ -4,11 +4,16 @@ workspace_name: default
 # A unique identifier for this cluster.
 cluster_name: default
 
-# The cluster scaler will scale up the cluster faster with higher upscaling speed.
-# E.g., if the task requires adding more nodes then cluster scaler will gradually
-# scale up the cluster in chunks of upscaling_speed*currently_running_nodes.
-# This number should be > 0.
-upscaling_speed: 1.0
+# Cluster options
+cluster_options:
+    # The cluster scaler will scale up the cluster faster with higher upscaling speed.
+    # E.g., if the task requires adding more nodes then cluster scaler will gradually
+    # scale up the cluster in chunks of upscaling_speed*currently_running_nodes.
+    # This number should be > 0.
+    upscaling_speed: 1.0
+
+    # If a node is idle for this many minutes, it will be removed.
+    idle_timeout_minutes: 5
 
 # This executes all commands on all nodes in the docker container,
 # and opens all the necessary ports to support the cluster.
@@ -21,9 +26,6 @@ docker:
 # How CloudTik will authenticate with newly launched nodes.
 auth:
     ssh_user: ubuntu
-
-# If a node is idle for this many minutes, it will be removed.
-idle_timeout_minutes: 5
 
 # Files or directories to copy to the head and worker nodes. The format is a
 # dictionary from REMOTE_PATH: LOCAL_PATH, e.g.

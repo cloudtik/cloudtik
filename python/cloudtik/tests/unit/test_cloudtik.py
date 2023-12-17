@@ -415,7 +415,9 @@ SMALL_CLUSTER = {
     "cluster_name": "default",
     "min_workers": 2,
     "max_workers": 2,
-    "idle_timeout_minutes": 5,
+    "options": {
+        "idle_timeout_minutes": 5,
+    },
     "provider": {
         "type": "mock",
         "region": "us-east-1",
@@ -467,7 +469,9 @@ MOCK_DEFAULT_CONFIG = {
     "workspace_name": "default",
     "cluster_name": "default",
     "max_workers": 2,
-    "idle_timeout_minutes": 5,
+    "options": {
+        "idle_timeout_minutes": 5,
+    },
     "provider": {
         "type": "aws",
         "region": "us-east-1",

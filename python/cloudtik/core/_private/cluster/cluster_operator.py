@@ -2134,9 +2134,9 @@ def show_useful_commands(call_context: CallContext,
                     cf.bold("{}:{}"),
                     bind_address_show, port)
 
-        head_node_cluster_ip = get_node_cluster_ip(provider, head_node)
+        head_cluster_ip = get_node_cluster_ip(provider, head_node)
 
-        runtime_endpoints = get_runtime_endpoints(config, head_node_cluster_ip)
+        runtime_endpoints = get_runtime_endpoints(config, head_cluster_ip)
         sorted_runtime_endpoints = sorted(runtime_endpoints.items(), key=lambda kv: kv[1]["name"])
         for endpoint_id, runtime_endpoint in sorted_runtime_endpoints:
             with _cli_logger.group(runtime_endpoint["name"] + ":"):

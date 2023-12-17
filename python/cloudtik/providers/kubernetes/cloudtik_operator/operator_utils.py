@@ -11,7 +11,7 @@ from cloudtik.core._private.core_utils import get_config_for_update
 from cloudtik.providers._private._kubernetes import custom_objects_api
 from cloudtik.providers._private._kubernetes.config import _get_cluster_selector
 from cloudtik.providers._private._kubernetes.node_provider import head_service_selector
-from cloudtik.core._private.utils import _get_default_config, PROVIDER_STORAGE_CONFIG_KEY
+from cloudtik.core._private.utils import _get_default_config, PROVIDER_STORAGE_CONFIG_KEY, OPTIONS_CONFIG_KEY
 
 CLOUDTIK_API_GROUP = "cloudtik.io"
 CLOUDTIK_API_VERSION = "v1"
@@ -40,8 +40,6 @@ CONFIG_SUFFIX = "_config.yaml"
 
 CONFIG_FIELDS = {
     "maxWorkers": "max_workers",
-    "upscalingSpeed": "upscaling_speed",
-    "idleTimeoutMinutes": "idle_timeout_minutes",
     "headPodType": "head_node_type",
     "podTypes": "available_node_types",
     "setupCommands": "setup_commands",
@@ -66,6 +64,11 @@ NODE_TYPE_FIELDS = {
     "bootstrapCommands": "bootstrap_commands",
     "workerStartCommands": "worker_start_commands",
     "workerStopCommands": "worker_stop_commands",
+}
+
+CONFIG_OPTIONS_FIELDS = {
+    "upscalingSpeed": "upscaling_speed",
+    "idleTimeoutMinutes": "idle_timeout_minutes",
 }
 
 NODE_TYPE_NAMES = {
@@ -106,6 +109,9 @@ def config_path(cluster_namespace: str, file_name: str) -> str:
 def custom_resource_to_config(cluster_resource: Dict[str, Any]) -> Dict[str, Any]:
     """Convert CloudTikCluster custom resource to a cluster config."""
     config = translate(cluster_resource["spec"], dictionary=CONFIG_FIELDS)
+    config_options = translate(
+        cluster_resource["spec"], dictionary=CONFIG_OPTIONS_FIELDS)
+    config[OPTIONS_CONFIG_KEY] = config_options
     cluster_name = cluster_resource["metadata"]["name"]
     namespace = cluster_resource["metadata"]["namespace"]
     cluster_owner_reference = get_cluster_owner_reference(

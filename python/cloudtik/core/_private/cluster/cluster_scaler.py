@@ -494,7 +494,8 @@ class ClusterScaler:
         is the same as the total resources. (We may need some tolerance when making such comparisons)
         """
         last_used = self.cluster_metrics.last_used_time_by_ip
-        horizon = now - (60 * self.config["idle_timeout_minutes"])
+        horizon = now - (60 * get_config_option(
+            self.config, "idle_timeout_minutes", 5))
 
         if logger.isEnabledFor(logging.DEBUG):
             logger.debug("Nodes last used (horizon={}): {}".format(horizon, last_used))
@@ -958,7 +959,7 @@ class ClusterScaler:
         self.available_node_types = self.config["available_node_types"]
         self._update_runtime_hashes(self.config)
 
-        upscaling_speed = self.config.get("upscaling_speed")
+        upscaling_speed = get_config_option(self.config, "upscaling_speed")
         target_utilization_fraction = self.config.get(
             "target_utilization_fraction")
         if upscaling_speed:

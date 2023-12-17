@@ -42,16 +42,6 @@
             "type": "integer",
             "minimum": 0
         },
-        "upscaling_speed": {
-            "description": "The scaler will scale up the cluster faster with higher upscaling speed. E.g., if the task requires adding more nodes then scaler will gradually scale up the cluster in chunks of upscaling_speed*currently_running_nodes. This number should be > 0.",
-            "type": "number",
-            "minimum": 0
-        },
-        "idle_timeout_minutes": {
-            "description": "If a node is idle for this many minutes, it will be removed.",
-            "type": "number",
-            "minimum": 0
-        },
         "cloudtik_wheel_url": {
             "type": "string",
             "description": "The CloudTik wheel URL from which to download and install when needed. If not given, will use pip to install."
@@ -64,11 +54,21 @@
             "type": "string",
             "description": "The 32 bytes hex encoded encryption key for data sharing among the cluster. Will not do encryption if not specified."
         },
-        "options": {
+        "cluster_options": {
             "type": "object",
             "description": "Cluster options.",
             "additionalProperties": true,
             "properties": {
+                "upscaling_speed": {
+                    "description": "The scaler will scale up the cluster faster with higher upscaling speed. E.g., if the task requires adding more nodes then scaler will gradually scale up the cluster in chunks of upscaling_speed*currently_running_nodes. This number should be > 0.",
+                    "type": "number",
+                    "minimum": 0
+                },
+                "idle_timeout_minutes": {
+                    "description": "If a node is idle for this many minutes, it will be removed.",
+                    "type": "number",
+                    "minimum": 0
+                },
                 "stable_node_seq_id": {
                     "type": "boolean",
                     "description": "Whether the node sequence id assigned to each node is stable. If a node is dead, a new node will be launched with the seq id of this node.",

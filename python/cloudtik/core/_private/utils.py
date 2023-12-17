@@ -100,6 +100,8 @@ TEMPORARY_COMMAND_KEYS = [
                 "stop_commands"]
 
 MERGED_COMMAND_KEY = "merged_commands"
+
+OPTIONS_CONFIG_KEY = "options"
 RUNTIME_CONFIG_KEY = "runtime"
 DOCKER_CONFIG_KEY = "docker"
 AUTH_CONFIG_KEY = "auth"
@@ -3046,16 +3048,16 @@ def _is_permanent_data_volumes(provider_config: Dict[str, Any]) -> bool:
 
 
 def get_config_options(config: Dict[str, Any]):
-    return config.get("options", {})
+    return config.get(OPTIONS_CONFIG_KEY, {})
 
 
 def get_config_options_for_update(config: Dict[str, Any]):
-    return get_config_for_update(config, "options")
+    return get_config_for_update(config, OPTIONS_CONFIG_KEY)
 
 
 def get_config_option(
         config: Dict[str, Any], option_name, default=None):
-    options = config.get("options")
+    options = config.get(OPTIONS_CONFIG_KEY)
     if options is None:
         return default
     return options.get(option_name, default)
