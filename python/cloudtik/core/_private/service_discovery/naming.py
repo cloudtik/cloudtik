@@ -25,6 +25,11 @@ def get_cluster_node_name(cluster_name, seq_id):
     return "{}-{}".format(cluster_name, seq_id)
 
 
+def get_cluster_node_sdn(node_name):
+    # short domain name without workspace-name.dc
+    return "{}.node.cloudtik".format(node_name)
+
+
 def get_cluster_node_fqdn(node_name, workspace_name):
     return "{}.node.{}.cloudtik".format(node_name, workspace_name)
 
@@ -72,7 +77,7 @@ def is_cluster_hostname_available(config):
 
     # the cluster name must be a valid DNS domain name
     cluster_name = get_cluster_name(config)
-    if is_valid_dns_name(cluster_name):
+    if not is_valid_dns_name(cluster_name):
         return False
     return True
 
@@ -104,17 +109,19 @@ def _get_cluster_node_hostname(config: Dict[str, Any], node_seq_id) -> str:
     if is_config_use_fqdn(config):
         return get_cluster_node_fqdn_of(config, node_seq_id)
     else:
-        return get_cluster_node_name_of(config, node_seq_id)
+        return get_cluster_node_sdn_of(config, node_seq_id)
 
 
-def get_cluster_node_name_of(config, node_seq_id):
+def get_cluster_node_sdn_of(config, node_seq_id):
     cluster_name = get_cluster_name(config)
-    return get_cluster_node_name(cluster_name, node_seq_id)
+    node_name = get_cluster_node_name(cluster_name, node_seq_id)
+    return get_cluster_node_sdn(node_name)
 
 
 def get_cluster_node_fqdn_of(config, node_seq_id):
     workspace_name = get_workspace_name(config)
-    node_name = get_cluster_node_name_of(config, node_seq_id)
+    cluster_name = get_cluster_name(config)
+    node_name = get_cluster_node_name(cluster_name, node_seq_id)
     return get_cluster_node_fqdn(node_name, workspace_name)
 
 

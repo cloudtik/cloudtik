@@ -3098,7 +3098,7 @@ def is_config_use_hostname(config):
 
 
 def is_config_use_fqdn(config):
-    return get_config_option(config, "use_fqdn", True)
+    return get_config_option(config, "use_fqdn", False)
 
 
 def check_workspace_name_format(workspace_name):

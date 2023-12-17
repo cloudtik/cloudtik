@@ -91,7 +91,7 @@ update_metastore_config() {
         if [ ! -z "$HIVE_METASTORE_URI" ]; then
             hive_metastore_uris="$HIVE_METASTORE_URI"
         else
-            METASTORE_HOST=${HEAD_IP_ADDRESS}
+            METASTORE_HOST=${HEAD_HOST_ADDRESS}
             hive_metastore_uris="thrift://${METASTORE_HOST}:9083"
         fi
 
@@ -140,13 +140,14 @@ configure_jupyter_for_flink() {
       export JUPYTER_WORKSPACE=${RUNTIME_PATH}/jupyter/notebooks
       mkdir -p $JUPYTER_WORKSPACE
       sed -i  "1 ic.NotebookApp.notebook_dir = '${JUPYTER_WORKSPACE}'" ~/.jupyter/jupyter_lab_config.py
-      sed -i  "1 ic.NotebookApp.ip = '${HEAD_IP_ADDRESS}'" ~/.jupyter/jupyter_lab_config.py
+      sed -i  "1 ic.NotebookApp.ip = '${NODE_IP_ADDRESS}'" ~/.jupyter/jupyter_lab_config.py
   fi
 }
 
 set_head_option "$@"
 check_flink_installed
 set_head_address
+set_node_address
 set_resources_for_flink
 configure_flink
 configure_jupyter_for_flink

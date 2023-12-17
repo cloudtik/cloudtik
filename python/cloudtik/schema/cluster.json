@@ -104,8 +104,8 @@
                 },
                 "use_fqdn": {
                     "type": "boolean",
-                    "default": true,
-                    "description": "Whether to use full qualified domain name if available"
+                    "default": false,
+                    "description": "Whether to use full qualified domain name including the workspace name."
                 }
             }
         },

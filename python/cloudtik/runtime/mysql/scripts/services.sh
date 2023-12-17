@@ -34,7 +34,7 @@ start)
             # TODO: distinguish for Case 3
             echo "Starting group replication"
             bash $BIN_DIR/start-group-replication.sh \
-              -h ${HEAD_IP_ADDRESS} >${MYSQL_HOME}/logs/mysql-group-replication.log 2>&1
+              -h ${HEAD_HOST_ADDRESS} >${MYSQL_HOME}/logs/mysql-group-replication.log 2>&1
         fi
     fi
     ;;
