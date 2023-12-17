@@ -7,15 +7,15 @@ from cloudtik.core._private.core_utils import get_config_for_update
 from cloudtik.core._private.provider_factory import _get_node_provider
 from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_MINIO
 from cloudtik.core._private.runtime_utils import get_runtime_value, get_data_disk_dirs
-from cloudtik.core._private.service_discovery.runtime_services import get_service_discovery_runtime, \
-    is_discoverable_cluster_node_name
+from cloudtik.core._private.service_discovery.runtime_services import get_service_discovery_runtime
 from cloudtik.core._private.service_discovery.utils import \
     get_canonical_service_name, define_runtime_service, \
     get_service_discovery_config, SERVICE_DISCOVERY_PROTOCOL_HTTP, SERVICE_DISCOVERY_FEATURE_METRICS, \
-    get_cluster_node_name, SERVICE_DISCOVERY_NODE_KIND_NODE, SERVICE_DISCOVERY_NODE_KIND_WORKER
+    SERVICE_DISCOVERY_NODE_KIND_NODE, SERVICE_DISCOVERY_NODE_KIND_WORKER
+from cloudtik.core._private.service_discovery.naming import get_cluster_node_name, get_cluster_node_fqdn, \
+    is_discoverable_cluster_node_name, get_cluster_head_host
 from cloudtik.core._private.utils import get_runtime_config, get_runtime_config_for_update, _sum_min_workers, \
     enable_node_seq_id, is_node_seq_id_enabled
-from cloudtik.runtime.common.service_discovery.consul import get_dns_hostname_of_node
 from cloudtik.runtime.common.service_discovery.workspace import register_service_to_workspace
 
 RUNTIME_PROCESSES = [
@@ -158,7 +158,8 @@ def register_service(
 
 
 def _get_runtime_endpoints(
-        runtime_config: Dict[str, Any], cluster_head_ip):
+        runtime_config: Dict[str, Any], cluster_config, cluster_head_ip):
+    head_host = get_cluster_head_host(cluster_config, cluster_head_ip)
     minio_config = _get_config(runtime_config)
     if not _is_service_on_head(minio_config):
         return {}
@@ -166,12 +167,12 @@ def _get_runtime_endpoints(
         "minio": {
             "name": "MinIO Service",
             "url": "http://{}:{}".format(
-                cluster_head_ip, _get_service_port(minio_config))
+                head_host, _get_service_port(minio_config))
         },
         "minio-console": {
             "name": "MinIO Console",
             "url": "http://{}:{}".format(
-                cluster_head_ip, _get_console_port(minio_config))
+                head_host, _get_console_port(minio_config))
         },
     }
     return endpoints
@@ -285,6 +286,6 @@ def _get_server_pool_spec(
         expansion = "{" + str(id_start + 1) + "..." + str(id_end) + "}"
 
     node_name = get_cluster_node_name(cluster_name, expansion)
-    hostname = get_dns_hostname_of_node(node_name, workspace_name)
+    hostname = get_cluster_node_fqdn(node_name, workspace_name)
     service_port = _get_service_port(minio_config)
     return "http://{}:{}{}".format(hostname, service_port, data_dir_spec)

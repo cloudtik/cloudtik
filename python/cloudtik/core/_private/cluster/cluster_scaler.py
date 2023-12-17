@@ -54,7 +54,8 @@ from cloudtik.core._private.utils import validate_config, \
     _get_node_specific_docker_config, _get_node_specific_runtime_config, \
     _has_node_type_specific_runtime_config, get_runtime_config_key, RUNTIME_CONFIG_KEY, \
     process_config_with_privacy, decrypt_config, CLOUDTIK_CLUSTER_SCALING_STATUS, get_runtime_encryption_key, \
-    with_runtime_encryption_key, PROVIDER_STORAGE_CONFIG_KEY, PROVIDER_DATABASE_CONFIG_KEY, prepare_config_for_runtime_hash
+    with_runtime_encryption_key, PROVIDER_STORAGE_CONFIG_KEY, PROVIDER_DATABASE_CONFIG_KEY, \
+    prepare_config_for_runtime_hash, get_config_option
 from cloudtik.core._private.constants import CLOUDTIK_MAX_NUM_FAILURES, \
     CLOUDTIK_MAX_LAUNCH_BATCH, CLOUDTIK_MAX_CONCURRENT_LAUNCHES, \
     CLOUDTIK_UPDATE_INTERVAL_S, CLOUDTIK_HEARTBEAT_TIMEOUT_S, \
@@ -270,10 +271,10 @@ class ClusterScaler:
             "disable_launch_config_check", False)
 
         # Disable the feature to assign each node with a unique number
-        self.disable_node_seq_id = self.config.get(
-            "disable_node_seq_id", False)
-        self.stable_node_seq_id = self.config.get(
-            "stable_node_seq_id", False)
+        self.disable_node_seq_id = get_config_option(
+            self.config, "disable_node_seq_id", False)
+        self.stable_node_seq_id = get_config_option(
+            self.config, "stable_node_seq_id", False)
 
         if self._is_stable_node_seq_id():
             # for stable node seq id, launch one node at a time

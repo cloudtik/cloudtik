@@ -5,6 +5,7 @@ from cloudtik.core._private.core_utils import get_address_string
 from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_KONG, BUILT_IN_RUNTIME_POSTGRES
 from cloudtik.core._private.runtime_utils import get_runtime_bool, \
     get_runtime_value
+from cloudtik.core._private.service_discovery.naming import get_cluster_head_host
 from cloudtik.core._private.service_discovery.runtime_services import get_service_discovery_runtime
 from cloudtik.core._private.service_discovery.utils import \
     get_canonical_service_name, define_runtime_service_on_head_or_all, \
@@ -207,13 +208,14 @@ def _services(runtime_config, head: bool):
 
 
 def _get_runtime_endpoints(
-        runtime_config: Dict[str, Any], cluster_head_ip):
+        runtime_config: Dict[str, Any], cluster_config, cluster_head_ip):
+    head_host = get_cluster_head_host(cluster_config, cluster_head_ip)
     service_port = _get_service_port(runtime_config)
     endpoints = {
         "kong": {
             "name": "Kong",
             "url": "http://{}".format(
-                get_address_string(cluster_head_ip, service_port))
+                get_address_string(head_host, service_port))
         },
     }
     return endpoints

@@ -299,7 +299,3 @@ def include_feature_for_selector(service_selector, feature):
     if feature_tag not in tags:
         tags.append(feature_tag)
     return service_selector
-
-
-def get_cluster_node_name(cluster_name, seq_id):
-    return "{}-{}".format(cluster_name, seq_id)

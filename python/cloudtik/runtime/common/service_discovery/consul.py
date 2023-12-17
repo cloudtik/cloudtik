@@ -1,6 +1,7 @@
 from typing import Optional, Tuple
 from urllib.parse import quote
 
+from cloudtik.core._private.service_discovery.naming import get_cluster_node_fqdn
 from cloudtik.core._private.service_discovery.utils import SERVICE_SELECTOR_SERVICES, SERVICE_SELECTOR_TAGS, \
     SERVICE_SELECTOR_LABELS, SERVICE_SELECTOR_EXCLUDE_LABELS, SERVICE_DISCOVERY_LABEL_CLUSTER, \
     SERVICE_SELECTOR_RUNTIMES, SERVICE_SELECTOR_CLUSTERS, SERVICE_SELECTOR_EXCLUDE_JOINED_LABELS, \
@@ -180,7 +181,7 @@ def get_service_address_of_node(
 
 
 def get_dns_hostname_of_node(node_name, workspace_name):
-    return "{}.node.{}.cloudtik".format(node_name, workspace_name)
+    return get_cluster_node_fqdn(node_name, workspace_name)
 
 
 def get_service_cluster_of_node(service_node):

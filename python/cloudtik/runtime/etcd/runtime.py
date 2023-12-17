@@ -51,8 +51,10 @@ class EtcdRuntime(RuntimeBase):
             self.runtime_config, cluster_config,
             node_type, head_info, nodes_info)
 
-    def get_runtime_endpoints(self, cluster_head_ip: str):
-        return _get_runtime_endpoints(self.runtime_config, cluster_head_ip)
+    def get_runtime_endpoints(
+            self, cluster_config: Dict[str, Any], cluster_head_ip: str):
+        return _get_runtime_endpoints(
+            self.runtime_config, cluster_config, cluster_head_ip)
 
     def get_runtime_services(self, cluster_name: str):
         return _get_runtime_services(self.runtime_config, cluster_name)

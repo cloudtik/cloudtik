@@ -6,8 +6,8 @@ from typing import Any, Dict
 from cloudtik.core._private.core_utils import get_list_for_update, get_config_for_update
 from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_CONSUL
 from cloudtik.core._private.runtime_utils import RUNTIME_NODE_SEQ_ID, RUNTIME_NODE_IP
-from cloudtik.core._private.service_discovery.runtime_services import get_runtime_services_by_node_type, \
-    CONSUL_CONFIG_DISABLE_CLUSTER_NODE_NAME
+from cloudtik.core._private.service_discovery.runtime_services import get_runtime_services_by_node_type
+from cloudtik.core._private.service_discovery.naming import CONSUL_CONFIG_DISABLE_CLUSTER_NODE_NAME
 from cloudtik.core._private.service_discovery.utils import SERVICE_DISCOVERY_TAGS, SERVICE_DISCOVERY_LABELS, \
     SERVICE_DISCOVERY_LABEL_RUNTIME, \
     SERVICE_DISCOVERY_LABEL_CLUSTER, \
@@ -197,7 +197,8 @@ def _get_runtime_logs():
     return {"consul": logs_dir}
 
 
-def _get_runtime_endpoints(server_mode, cluster_head_ip):
+def _get_runtime_endpoints(
+        server_mode, cluster_config, cluster_head_ip):
     endpoints = {
         "consul": {
             "name": "Consul",

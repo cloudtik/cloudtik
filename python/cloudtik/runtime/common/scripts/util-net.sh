@@ -106,3 +106,23 @@ wait_for_http_connection() {
         return 1
     fi
 }
+
+########################
+# Wait for port
+# Globals:
+#   *
+# Arguments:
+#   $1 - Port to wait for
+#   $2 - Host of the port (optional)
+#   $3 - Time seconds (optional)
+# Returns:
+#   Boolean
+#########################
+wait_for_port() {
+    local port="${1:?missing port to wait for}"
+    local host="${2:-}"
+    local timeout="${3:-}"
+    local -a args=()
+    [[ -n "$host" ]] && args+=("--host" "$host")
+    [[ -n "$timeout" ]] && args+=("--timeout" "$timeout")
+    cloudtik node wait-for-port $port "${args[@]}"

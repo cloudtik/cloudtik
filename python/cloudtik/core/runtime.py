@@ -111,7 +111,8 @@ class Runtime:
         """Returns a copy of runtime config"""
         return None
 
-    def get_runtime_endpoints(self, cluster_head_ip: str):
+    def get_runtime_endpoints(
+            self, cluster_config: Dict[str, Any], cluster_head_ip: str):
         """Return the runtime service endpoints information provided by this runtime
         It's a map of dictionary of service endpoint properties
         For example:

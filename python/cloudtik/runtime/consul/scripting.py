@@ -10,8 +10,8 @@ from cloudtik.core._private.runtime_utils import get_runtime_node_type, get_runt
     load_and_save_json, get_runtime_value
 from cloudtik.core._private.service_discovery.utils import SERVICE_DISCOVERY_PORT, \
     SERVICE_DISCOVERY_TAGS, SERVICE_DISCOVERY_LABELS, SERVICE_DISCOVERY_CHECK_INTERVAL, SERVICE_DISCOVERY_CHECK_TIMEOUT, \
-    SERVICE_DISCOVERY_LABEL_CLUSTER, \
-    get_cluster_node_name
+    SERVICE_DISCOVERY_LABEL_CLUSTER
+from cloudtik.core._private.service_discovery.naming import get_cluster_node_name
 from cloudtik.core.tags import QUORUM_JOIN_STATUS_INIT
 from cloudtik.runtime.consul.utils import _get_home_dir, _is_disable_cluster_node_name, _get_config, \
     _get_services_of_node_type

@@ -979,21 +979,24 @@ def wait_for_port(
         port, host=None, timeout=30, free=False):
     def check_port_state():
         if free:
-            return not is_port_in_use(port, host, 3)
+            if is_port_in_use(port, host, 3):
+                raise RuntimeError(
+                    "Port {} is in use.".format(port))
         else:
-            return is_port_in_use(port, host, 3)
+            if not is_port_in_use(port, host, 3):
+                raise RuntimeError(
+                    "Port {} is not in reachable.".format(port))
 
     start_time = time.perf_counter()
     while True:
         try:
-            if check_port_state():
-                break
-        except Exception as e:
-            pass
-        time.sleep(1)
-        if time.perf_counter() - start_time >= timeout:
-            on_host = f" on {host}" if host else ""
-            state = "free" if free else "ready"
-            raise TimeoutError(
-                'Waited too long for the port {}{} to be {} '.format(
-                    port, on_host, state))
+            check_port_state()
+            break
+        except Exception:
+            time.sleep(1)
+            if time.perf_counter() - start_time >= timeout:
+                on_host = f" on {host}" if host else ""
+                state = "free" if free else "ready"
+                raise TimeoutError(
+                    'Waited too long for the port {}{} to be {} '.format(
+                        port, on_host, state))

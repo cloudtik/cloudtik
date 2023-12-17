@@ -3,6 +3,7 @@ from typing import Any, Dict
 
 from cloudtik.core._private.core_utils import get_list_for_update, get_config_for_update
 from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_PROMETHEUS
+from cloudtik.core._private.service_discovery.naming import get_cluster_head_host
 from cloudtik.core._private.service_discovery.runtime_services import get_service_discovery_runtime, \
     get_runtime_services_by_node_type
 from cloudtik.core._private.service_discovery.utils import \
@@ -183,13 +184,15 @@ def _with_consul_sd_environment_variables(
     pass
 
 
-def _get_runtime_endpoints(runtime_config: Dict[str, Any], cluster_head_ip):
+def _get_runtime_endpoints(
+        runtime_config: Dict[str, Any], cluster_config, cluster_head_ip):
+    head_host = get_cluster_head_host(cluster_config, cluster_head_ip)
     prometheus_config = _get_config(runtime_config)
     service_port = _get_service_port(prometheus_config)
     endpoints = {
         "prometheus": {
             "name": "Prometheus",
-            "url": "http://{}:{}".format(cluster_head_ip, service_port)
+            "url": "http://{}:{}".format(head_host, service_port)
         },
     }
     return endpoints

@@ -3,6 +3,7 @@ from typing import Any, Dict
 
 from cloudtik.core._private.core_utils import double_quote
 from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_TRINO
+from cloudtik.core._private.service_discovery.naming import get_cluster_head_host
 from cloudtik.core._private.service_discovery.utils import get_canonical_service_name, define_runtime_service_on_head, \
     get_service_discovery_config, SERVICE_DISCOVERY_FEATURE_ANALYTICS
 from cloudtik.core._private.utils import \
@@ -97,11 +98,12 @@ def _get_runtime_logs():
     return all_logs
 
 
-def _get_runtime_endpoints(cluster_head_ip):
+def _get_runtime_endpoints(cluster_config, cluster_head_ip):
+    head_host = get_cluster_head_host(cluster_config, cluster_head_ip)
     endpoints = {
         "trino": {
             "name": "Trino Web UI",
-            "url": "http://{}:{}".format(cluster_head_ip, TRINO_SERVICE_PORT)
+            "url": "http://{}:{}".format(head_host, TRINO_SERVICE_PORT)
         },
     }
     return endpoints

@@ -3,6 +3,7 @@ from typing import Any, Dict
 
 from cloudtik.core._private.provider_factory import _get_node_provider
 from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_METASTORE
+from cloudtik.core._private.service_discovery.naming import get_cluster_head_host
 from cloudtik.core._private.service_discovery.utils import get_canonical_service_name, \
     get_service_discovery_config, define_runtime_service_on_head_or_all
 from cloudtik.core._private.util.database_utils import is_database_configured, \
@@ -111,11 +112,12 @@ def _get_runtime_logs():
     return all_logs
 
 
-def _get_runtime_endpoints(cluster_head_ip):
+def _get_runtime_endpoints(cluster_config, cluster_head_ip):
+    head_host = get_cluster_head_host(cluster_config, cluster_head_ip)
     endpoints = {
         "metastore": {
             "name": "Metastore Uri",
-            "url": "thrift://{}:{}".format(cluster_head_ip, METASTORE_SERVICE_PORT)
+            "url": "thrift://{}:{}".format(head_host, METASTORE_SERVICE_PORT)
         },
     }
     return endpoints

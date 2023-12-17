@@ -49,8 +49,10 @@ class APISIXRuntime(RuntimeBase):
         """
         _configure(self.runtime_config, head)
 
-    def get_runtime_endpoints(self, cluster_head_ip: str):
-        return _get_runtime_endpoints(self.runtime_config, cluster_head_ip)
+    def get_runtime_endpoints(
+            self, cluster_config: Dict[str, Any], cluster_head_ip: str):
+        return _get_runtime_endpoints(
+            self.runtime_config, cluster_config, cluster_head_ip)
 
     def get_head_service_ports(self) -> Optional[Dict[str, Any]]:
         return _get_head_service_ports(self.runtime_config)

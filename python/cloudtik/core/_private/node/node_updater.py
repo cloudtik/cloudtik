@@ -8,7 +8,7 @@ from threading import Thread
 
 from cloudtik.core._private.utils import with_runtime_environment_variables, with_node_ip_environment_variables, \
     _get_cluster_uri, _is_use_internal_ip, get_node_type, get_runtime_shared_memory_ratio, \
-    with_head_node_ip_environment_variables, get_default_python_version
+    with_head_node_ip_environment_variables, get_default_python_version, get_config_option
 from cloudtik.core.command_executor import get_cmd_to_print
 from cloudtik.core.tags import CLOUDTIK_TAG_NODE_STATUS, CLOUDTIK_TAG_RUNTIME_CONFIG, \
     CLOUDTIK_TAG_FILE_MOUNTS_CONTENTS, \
@@ -544,9 +544,10 @@ class NodeUpdater:
                 environment_variables=runtime_envs,
                 ssh_options_override_ssh_key=self.auth_config.get("ssh_private_key"),
                 run_env="host",
-                number_of_retries=self.config.get(
-                    "number_of_retries", INITIALIZATION_COMMAND_DEFAULT_NUMBER_OF_RETRIES),
-                retry_interval=self.config.get("retry_interval")
+                number_of_retries=get_config_option(
+                    self.config, "number_of_retries",
+                    INITIALIZATION_COMMAND_DEFAULT_NUMBER_OF_RETRIES),
+                retry_interval=get_config_option(self.config, "retry_interval")
             )
         except ProcessRunnerError as e:
             if e.msg_type == "ssh_command_failed":
@@ -589,12 +590,13 @@ class NodeUpdater:
 
         try:
             # Runs in the container if docker is in use
-            if self.config.get("retry_setup_command", True):
+            if get_config_option(self.config, "retry_setup_command", True):
                 self.cmd_executor.run_with_retry(
                     cmd, environment_variables=runtime_envs, run_env="auto",
-                    number_of_retries=self.config.get(
-                        "number_of_retries", SETUP_COMMAND_DEFAULT_NUMBER_OF_RETRIES),
-                    retry_interval=self.config.get("retry_interval")
+                    number_of_retries=get_config_option(
+                        self.config, "number_of_retries",
+                        SETUP_COMMAND_DEFAULT_NUMBER_OF_RETRIES),
+                    retry_interval=get_config_option(self.config, "retry_interval")
                 )
             else:
                 self.cmd_executor.run(cmd, environment_variables=runtime_envs, run_env="auto")
@@ -649,14 +651,15 @@ class NodeUpdater:
             old_redirected = self.call_context.is_output_redirected()
             self.call_context.set_output_redirected(False)
             # Runs in the container if docker is in use
-            if self.config.get("retry_start_command", True):
+            if get_config_option(self.config, "retry_start_command", True):
                 self.cmd_executor.run_with_retry(
                     cmd,
                     environment_variables=runtime_envs,
                     run_env="auto",
-                    number_of_retries=self.config.get(
-                        "number_of_retries", START_COMMAND_DEFAULT_NUMBER_OF_RETRIES),
-                    retry_interval=self.config.get("retry_interval")
+                    number_of_retries=get_config_option(
+                        self.config, "number_of_retries",
+                        START_COMMAND_DEFAULT_NUMBER_OF_RETRIES),
+                    retry_interval=get_config_option(self.config, "retry_interval")
                 )
             else:
                 self.cmd_executor.run(
