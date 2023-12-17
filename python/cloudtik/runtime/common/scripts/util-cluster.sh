@@ -99,6 +99,7 @@ get_head_ip_address() {
     else
         head_ip_address=${HEAD_IP_ADDRESS}
     fi
+    echo "${head_ip_address}"
 }
 
 get_head_host_address() {
@@ -116,6 +117,7 @@ get_head_host_address() {
     else
         head_host_address=${HEAD_HOST_ADDRESS}
     fi
+    echo "${head_host_address}"
 }
 
 set_head_option() {

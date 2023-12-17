@@ -182,7 +182,7 @@ update_hive_metastore_config() {
         if [ ! -z "$HIVE_METASTORE_URI" ]; then
             hive_metastore_uri="$HIVE_METASTORE_URI"
         else
-            METASTORE_HOST=${HEAD_IP_ADDRESS}
+            METASTORE_HOST=${HEAD_HOST_ADDRESS}
             hive_metastore_uri="thrift://${METASTORE_HOST}:9083"
         fi
 
@@ -227,7 +227,7 @@ configure_trino() {
 
     node_id=$(uuid)
 
-    sed -i "s/{%coordinator.host%}/${HEAD_IP_ADDRESS}/g" `grep "{%coordinator.host%}" -rl ${output_dir}`
+    sed -i "s/{%coordinator.host%}/${HEAD_HOST_ADDRESS}/g" `grep "{%coordinator.host%}" -rl ${output_dir}`
     sed -i "s/{%node.environment%}/trino/g" $output_dir/trino/node.properties
     sed -i "s/{%node.id%}/${node_id}/g" $output_dir/trino/node.properties
 

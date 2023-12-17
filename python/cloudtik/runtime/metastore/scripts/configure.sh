@@ -57,10 +57,9 @@ configure_hive_metastore() {
         DATABASE_CONNECTION="jdbc:postgresql://${DATABASE_ADDRESS}/${DATABASE_NAME}"
     fi
 
-    # TODO: bind to host or ip?
-    sed -i "s/{%metastore.bind.host%}/${HEAD_IP_ADDRESS}/g" ${config_template_file}
-    # TODO: This is client configuration to access metastore
-    sed -i "s/{%metastore.host%}/${HEAD_IP_ADDRESS}/g" ${config_template_file}
+    sed -i "s/{%metastore.bind.host%}/${NODE_IP_ADDRESS}/g" ${config_template_file}
+    # This is client configuration to access metastore
+    sed -i "s/{%metastore.host%}/${NODE_HOST_ADDRESS}/g" ${config_template_file}
 
     sed -i "s#{%DATABASE_CONNECTION%}#${DATABASE_CONNECTION}#g" ${config_template_file}
     sed -i "s#{%DATABASE_DRIVER%}#${DATABASE_DRIVER}#g" ${config_template_file}
@@ -70,7 +69,7 @@ configure_hive_metastore() {
     # set metastore warehouse dir according to the storage options: HDFS, S3, GCS, Azure
     # The full path will be decided on the default.fs of hadoop core-site.xml
     METASTORE_WAREHOUSE_DIR=/shared/warehouse
-    sed -i "s|{%METASTORE_WAREHOUSE_DIR%}|${METASTORE_WAREHOUSE_DIR}|g" ${config_template_file}
+    sed -i "s|{%metastore.warehouse.dir%}|${METASTORE_WAREHOUSE_DIR}|g" ${config_template_file}
 
     cp -r ${config_template_file}  ${METASTORE_HOME}/conf/metastore-site.xml
 }
@@ -78,6 +77,7 @@ configure_hive_metastore() {
 set_head_option "$@"
 check_hive_metastore_installed
 set_head_address
+set_node_address
 configure_hive_metastore
 
 exit 0

@@ -94,7 +94,7 @@ configure_redis() {
     fi
 
     if [ "${REDIS_CLUSTER_MODE}" == "replication" ]; then
-        export REDIS_MASTER_HOST=${HEAD_IP_ADDRESS}
+        export REDIS_MASTER_HOST=${HEAD_HOST_ADDRESS}
     fi
 
     # check and initialize redis if needed

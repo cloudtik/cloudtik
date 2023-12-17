@@ -101,7 +101,7 @@ set_env_for_replica_set() {
         export MONGODB_REPLICA_SET_MODE="secondary"
         export MONGODB_INITIAL_PRIMARY_ROOT_USER="${MONGODB_ROOT_USER}"
         export MONGODB_INITIAL_PRIMARY_ROOT_PASSWORD="${MONGODB_ROOT_PASSWORD}"
-        export MONGODB_INITIAL_PRIMARY_HOST=${HEAD_IP_ADDRESS}
+        export MONGODB_INITIAL_PRIMARY_HOST=${HEAD_HOST_ADDRESS}
         export MONGODB_INITIAL_PRIMARY_PORT=${MONGODB_PORT}
     fi
 
@@ -148,7 +148,7 @@ set_env_for_mongos_on_config_server() {
     set_env_for_mongos_common
     # The mongos is in the same node of config server
     export MONGODB_CFG_REPLICA_SET_NAME=${MONGODB_REPLICATION_SET_NAME}
-    export MONGODB_CFG_PRIMARY_HOST=${HEAD_IP_ADDRESS}
+    export MONGODB_CFG_PRIMARY_HOST=${HEAD_HOST_ADDRESS}
     export MONGODB_CFG_PRIMARY_PORT=${MONGODB_SERVICE_PORT}
 }
 
@@ -157,7 +157,7 @@ set_env_for_shard() {
     export MONGODB_SHARDING_MODE="shardsvr"
 
     # Use mongos on cluster head ( or on the same node)
-    export MONGODB_MONGOS_HOST=${HEAD_IP_ADDRESS}
+    export MONGODB_MONGOS_HOST=${HEAD_HOST_ADDRESS}
     export MONGODB_MONGOS_HOST_PORT=${MONGODB_MONGOS_SERVICE_PORT}
 }
 

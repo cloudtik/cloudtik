@@ -78,7 +78,7 @@ configure_yarn() {
     mkdir -p ${HADOOP_HOME}/logs
     yarn_config_file=${output_dir}/hadoop/yarn-site.xml
 
-    sed -i "s/{%resourcemanager.host%}/${HEAD_IP_ADDRESS}/g" $yarn_config_file
+    sed -i "s/{%resourcemanager.host%}/${HEAD_HOST_ADDRESS}/g" $yarn_config_file
 
     set_resources_for_yarn
     update_yarn_config

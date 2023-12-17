@@ -105,8 +105,8 @@ group_replication_group_name="{%group.replication.group.name%}"
 
 # Configuring the network address and port which the member uses for internal communication
 # with other members in the group
-# TODO: use fqdn of the node
-group_replication_local_address="{%bind.address%}:{%group.replication.port%}"
+# use fqdn of the node if possible
+group_replication_local_address="{%group.replication.local.host%}:{%group.replication.port%}"
 
 # Configuring group_replication_group_seeds sets the hostname and port of the group members
 # which are used by the new member to establish its connection to the group. A subset of the

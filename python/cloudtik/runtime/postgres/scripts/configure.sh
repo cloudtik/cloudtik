@@ -147,7 +147,7 @@ configure_postgres() {
     fi
 
     if [ "${POSTGRES_CLUSTER_MODE}" == "replication" ]; then
-        export POSTGRES_PRIMARY_HOST=${HEAD_IP_ADDRESS}
+        export POSTGRES_PRIMARY_HOST=${HEAD_HOST_ADDRESS}
         if [ "${POSTGRES_REPLICATION_SLOT}" == "true" ]; then
             export POSTGRES_REPLICATION_SLOT_NAME="postgres_${CLOUDTIK_NODE_SEQ_ID}"
         fi

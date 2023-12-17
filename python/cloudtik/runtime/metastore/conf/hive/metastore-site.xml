@@ -43,7 +43,7 @@
     </property>
     <property>
         <name>metastore.warehouse.dir</name>
-        <value>{%METASTORE_WAREHOUSE_DIR%}</value>
+        <value>{%metastore.warehouse.dir%}</value>
     </property>
     <property>
         <name>metastore.thrift.uris</name>
