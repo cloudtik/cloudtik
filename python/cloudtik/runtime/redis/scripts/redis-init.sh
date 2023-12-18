@@ -3,7 +3,7 @@
 BIN_DIR="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 ROOT_DIR="$(dirname "$(dirname "$BIN_DIR")")"
 
-# Include util functions
+# Load util functions
 . "$ROOT_DIR"/common/scripts/utils.sh
 
 # Functions
