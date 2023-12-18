@@ -22,12 +22,21 @@ case "$SERVICE_COMMAND" in
 start)
     if [ "${IS_HEAD_NODE}" == "true" ] \
         || [ "${POSTGRES_CLUSTER_MODE}" != "none" ]; then
+        POSTGRES_CONFIG_FILE=${POSTGRES_HOME}/conf/postgresql.conf
+
+        # set the configurations needed by postgres-init
+        . $POSTGRES_HOME/conf/postgres
+
+        # check and initialize the database if needed
+        bash $BIN_DIR/postgres-init.sh postgres \
+            -c config_file=${POSTGRES_CONFIG_FILE} >${POSTGRES_HOME}/logs/postgres-init.log 2>&1
+
         if [ "${POSTGRES_ARCHIVE_MODE}" == "true" ]; then
             # create dir here for mount runtime ready
             ARCHIVE_DIR="/cloudtik/fs/postgres/archives/${CLOUDTIK_CLUSTER}"
             mkdir -p "${ARCHIVE_DIR}"
         fi
-        POSTGRES_CONFIG_FILE=${POSTGRES_HOME}/conf/postgresql.conf
+
         nohup postgres \
             -c config_file=${POSTGRES_CONFIG_FILE} \
             >${POSTGRES_HOME}/logs/postgres.log 2>&1 &

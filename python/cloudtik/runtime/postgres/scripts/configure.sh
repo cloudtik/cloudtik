@@ -55,29 +55,6 @@ update_server_id() {
     update_in_file "${config_template_file}" "{%server.id%}" "${server_id}"
 }
 
-update_synchronous_standby_names() {
-    local synchronous_standby_names=""
-    local standby_names=""
-    # Warning: this depends on that the head node seq id = 1
-    END_SERVER_ID=$((POSTGRES_SYNCHRONOUS_SIZE+1))
-    for i in $(seq 2 $END_SERVER_ID); do
-        if [ -z "$standby_names" ]; then
-            standby_names="postgres_$i"
-        else
-            standby_names="$standby_names,postgres_$i"
-        fi
-    done
-
-    if [ "${POSTGRES_SYNCHRONOUS_MODE}" == "first" ]; then
-        synchronous_standby_names="FIRST ${POSTGRES_SYNCHRONOUS_NUM} (${standby_names})"
-    elif [ "${POSTGRES_SYNCHRONOUS_MODE}" == "any" ]; then
-        synchronous_standby_names="ANY ${POSTGRES_SYNCHRONOUS_NUM} (${standby_names})"
-    else
-        synchronous_standby_names="${standby_names}"
-    fi
-    update_in_file "${config_template_file}" "synchronous_standby_names = ''" "synchronous_standby_names = '${synchronous_standby_names}'"
-}
-
 configure_archive() {
     # turn on archive mode
     update_in_file "${config_template_file}" "archive_mode = off" "archive_mode = on"
@@ -91,6 +68,21 @@ configure_restore_command() {
     # update the restore_command
     local restore_command="cp ${ARCHIVE_DIR}/%f %p"
     update_in_file "${config_template_file}" "restore_command = ''" "restore_command = '${restore_command}'"
+}
+
+configure_service_init() {
+    POSTGRES_INIT_CONFIG_FILE=${POSTGRES_CONFIG_DIR}/postgres
+    echo "export POSTGRES_CONF_FILE=${POSTGRES_CONFIG_FILE}"
+    echo "export POSTGRES_MASTER_NODE=${IS_HEAD_NODE}" > ${POSTGRES_INIT_CONFIG_FILE}
+
+    if [ "${POSTGRES_CLUSTER_MODE}" == "replication" ]; then
+        echo "export POSTGRES_PRIMARY_HOST=${HEAD_HOST_ADDRESS}" \
+          >> ${POSTGRES_INIT_CONFIG_FILE}
+        if [ "${POSTGRES_REPLICATION_SLOT}" == "true" ]; then
+            echo "export POSTGRES_REPLICATION_SLOT_NAME=postgres_${CLOUDTIK_NODE_SEQ_ID}" \
+              >> ${POSTGRES_INIT_CONFIG_FILE}
+        fi
+    fi
 }
 
 configure_postgres() {
@@ -139,31 +131,7 @@ configure_postgres() {
 
     # This is needed for postgres-init.sh to decide whether need to do user db setup
     # or do a base backup through the primary server.
-
-    if [ "${IS_HEAD_NODE}" == "true" ]; then
-        export POSTGRES_MASTER_NODE=true
-    else
-        export POSTGRES_MASTER_NODE=false
-    fi
-
-    if [ "${POSTGRES_CLUSTER_MODE}" == "replication" ]; then
-        export POSTGRES_PRIMARY_HOST=${HEAD_HOST_ADDRESS}
-        if [ "${POSTGRES_REPLICATION_SLOT}" == "true" ]; then
-            export POSTGRES_REPLICATION_SLOT_NAME="postgres_${CLOUDTIK_NODE_SEQ_ID}"
-        fi
-    fi
-
-    # check and initialize the database if needed
-    bash $BIN_DIR/postgres-init.sh postgres \
-        -c config_file=${POSTGRES_CONFIG_FILE} >${POSTGRES_HOME}/logs/postgres-init.log 2>&1
-
-    if [ "${IS_HEAD_NODE}" == "true" ] && \
-        [ "${POSTGRES_CLUSTER_MODE}" == "replication" ] && \
-        [ "${POSTGRES_SYNCHRONOUS_MODE}" != "none" ]; then
-        update_synchronous_standby_names
-        # copy again the updated version
-        cp -r ${config_template_file} ${POSTGRES_CONFIG_FILE}
-    fi
+    configure_service_init
 }
 
 set_head_option "$@"
