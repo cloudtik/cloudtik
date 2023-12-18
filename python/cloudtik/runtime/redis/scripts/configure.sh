@@ -59,6 +59,7 @@ configure_variable() {
 
 configure_service_init() {
     echo "# Redis init variables" > ${REDIS_CONFIG_DIR}/redis
+
     configure_variable REDIS_CONF_FILE "${REDIS_CONFIG_FILE}"
     configure_variable REDIS_BASE_DIR "${REDIS_HOME}"
     configure_variable REDIS_MASTER_NODE ${IS_HEAD_NODE}

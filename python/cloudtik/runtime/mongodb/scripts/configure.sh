@@ -101,7 +101,7 @@ set_env_for_init() {
 }
 
 set_env_for_replica_set() {
-    configure_variable MONGODB_REPLICA_SET_NAME ${MONGODB_REPLICATION_SET_NAME}
+    configure_variable MONGODB_REPLICA_SET_NAME "${MONGODB_REPLICATION_SET_NAME}"
     if [ "${IS_HEAD_NODE}" == "true" ]; then
         # Head act as primary for the first time initialization
         configure_variable MONGODB_REPLICA_SET_MODE "primary"
@@ -137,7 +137,7 @@ set_env_for_mongos_common() {
 set_env_for_mongos_config() {
     # TODO: support list of config server hosts instead of the primary
     configure_variable MONGODB_CFG_REPLICA_SET_NAME "${MONGODB_CONFIG_SERVER_REPLICATION_SET_NAME}"
-    configure_variable MONGODB_CFG_PRIMARY_HOST ${MONGODB_CONFIG_SERVER_HOST}
+    configure_variable MONGODB_CFG_PRIMARY_HOST "${MONGODB_CONFIG_SERVER_HOST}"
     local cfg_server_port="${MONGODB_CONFIG_SERVER_PORT:-${MONGODB_SERVICE_PORT}}"
     configure_variable MONGODB_CFG_PRIMARY_PORT $cfg_server_port
 }
