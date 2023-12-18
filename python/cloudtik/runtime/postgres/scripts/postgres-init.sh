@@ -2,6 +2,36 @@
 set -Eeo pipefail
 # TODO swap to -Eeuo pipefail above (after handling all potentially-unset variables)
 
+# Current bin directory
+BIN_DIR="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+ROOT_DIR="$(dirname "$(dirname "$BIN_DIR")")"
+
+# Load generic functions
+. "$ROOT_DIR"/common/scripts/util-file.sh
+
+########################
+# Change a PostgreSQL configuration file by setting a property
+# Globals:
+#   POSTGRES_CONF_FILE
+# Arguments:
+#   $1 - property
+#   $2 - value
+#   $3 - Path to configuration file (default: $POSTGRESQL_CONF_FILE)
+# Returns:
+#   None
+#########################
+postgres_set_property() {
+    local -r property="${1:?missing property}"
+    local -r value="${2:?missing value}"
+    local -r conf_file="${3:-$POSTGRES_CONF_FILE}"
+    local psql_conf
+    if grep -qE "^#*\s*${property}" "$conf_file" >/dev/null; then
+        replace_in_file "$conf_file" "^#*\s*${property}\s*=.*" "${property} = '${value}'" false
+    else
+        echo "${property} = '${value}'" >>"$conf_file"
+    fi
+}
+
 # usage: file_env VAR [DEFAULT]
 #    ie: file_env 'XYZ_DB_PASSWORD' 'example'
 # (will allow for "$XYZ_DB_PASSWORD_FILE" to fill in the value of
@@ -311,6 +341,38 @@ _pg_want_help() {
 	return 1
 }
 
+set_synchronous_standby_names() {
+    local synchronous_standby_names=""
+    local standby_names=""
+    # Warning: this depends on that the head node seq id = 1
+    END_SERVER_ID=$((POSTGRES_SYNCHRONOUS_SIZE+1))
+    for i in $(seq 2 $END_SERVER_ID); do
+        if [ -z "$standby_names" ]; then
+            standby_names="postgres_$i"
+        else
+            standby_names="$standby_names,postgres_$i"
+        fi
+    done
+
+    if [ "${POSTGRES_SYNCHRONOUS_MODE}" == "first" ]; then
+        synchronous_standby_names="FIRST ${POSTGRES_SYNCHRONOUS_NUM} (${standby_names})"
+    elif [ "${POSTGRES_SYNCHRONOUS_MODE}" == "any" ]; then
+        synchronous_standby_names="ANY ${POSTGRES_SYNCHRONOUS_NUM} (${standby_names})"
+    else
+        synchronous_standby_names="${standby_names}"
+    fi
+
+    postgres_set_property "synchronous_standby_names" "$synchronous_standby_names"
+}
+
+postgres_setup_synchronous_standby(){
+  if [ "${POSTGRES_MASTER_NODE}" == "true" ] && \
+      [ "${POSTGRES_CLUSTER_MODE}" == "replication" ] && \
+      [ "${POSTGRES_SYNCHRONOUS_MODE}" != "none" ]; then
+      set_synchronous_standby_names
+  fi
+}
+
 _main() {
 	# if first arg looks like a flag, assume we want to run postgres server
 	if [ "${1:0:1}" = '-' ]; then
@@ -383,6 +445,7 @@ _main() {
 
 			EOM
 		fi
+		postgres_setup_synchronous_standby
 	fi
 
   #  Use this as init script
