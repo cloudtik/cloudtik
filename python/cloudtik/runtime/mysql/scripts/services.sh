@@ -23,9 +23,15 @@ case "$SERVICE_COMMAND" in
 start)
     if [ "${IS_HEAD_NODE}" == "true" ] \
         || [ "${MYSQL_CLUSTER_MODE}" != "none" ]; then
-        MYSQL_CONFIG_FILE=${MYSQL_HOME}/conf/my.cnf
+        # set the variables needed by postgres-init
+        . $MYSQL_HOME/conf/mysql
+
+        # check and initialize the database if needed
+        bash $BIN_DIR/mysql-init.sh mysqld \
+            --defaults-file=${MYSQL_CONF_FILE} >${MYSQL_HOME}/logs/mysql-init.log 2>&1
+
         nohup mysqld \
-            --defaults-file=${MYSQL_CONFIG_FILE} \
+            --defaults-file=${MYSQL_CONF_FILE} \
             >${MYSQL_HOME}/logs/mysqld.log 2>&1 &
 
         if [ "${IS_HEAD_NODE}" == "true" ] \

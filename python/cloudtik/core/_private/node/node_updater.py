@@ -348,12 +348,12 @@ class NodeUpdater:
             ip_envs = with_head_node_ip_environment_variables(head_ip, ip_envs)
         node_envs.update(ip_envs)
 
+        if self.environment_variables is not None:
+            node_envs.update(self.environment_variables)
+
         # head host
         node_envs = with_head_host_environment_variables(
             self.config, node_envs)
-
-        if self.environment_variables is not None:
-            node_envs.update(self.environment_variables)
 
         node_tags = self.provider.node_tags(self.node_id)
 

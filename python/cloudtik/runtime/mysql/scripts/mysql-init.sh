@@ -2,6 +2,13 @@
 set -eo pipefail
 shopt -s nullglob
 
+# Current bin directory
+BIN_DIR="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+ROOT_DIR="$(dirname "$(dirname "$BIN_DIR")")"
+
+# Load generic functions
+. "$ROOT_DIR"/common/scripts/util-file.sh
+
 # logging functions
 mysql_log() {
 	local type="$1"; shift
@@ -10,12 +17,15 @@ mysql_log() {
 	local dt; dt="$(date --rfc-3339=seconds)"
 	printf '%s [%s] [init]: %s\n' "$dt" "$type" "$text"
 }
+
 mysql_note() {
 	mysql_log Note "$@"
 }
+
 mysql_warn() {
 	mysql_log Warn "$@" >&2
 }
+
 mysql_error() {
 	mysql_log ERROR "$@" >&2
 	exit 1
@@ -454,6 +464,20 @@ _mysql_want_help() {
 	return 1
 }
 
+mysql_set_start_replication_on_boot() {
+    # set this after init is done
+    if [ "${MYSQL_MASTER_NODE}" != "true" ]; then
+        # only do this for workers for now, head needs handle differently for group replication
+        if [ "${MYSQL_CLUSTER_MODE}" == "replication" ]; then
+            update_in_file "${MYSQL_CONF_FILE}" \
+              "^skip_replica_start=ON" "skip_replica_start=OFF"
+        elif [ "${MYSQL_CLUSTER_MODE}" == "group_replication" ]; then
+            update_in_file "${MYSQL_CONF_FILE}" \
+              "^group_replication_start_on_boot=OFF" "group_replication_start_on_boot=ON"
+        fi
+    fi
+}
+
 _main() {
 	# if command starts with an option, prepend mysqld
 	if [ "${1:0:1}" = '-' ]; then
@@ -526,6 +550,7 @@ _main() {
 		else
 			mysql_socket_fix
 		fi
+		mysql_set_start_replication_on_boot
 	fi
 	#  Use this as init script
 	# exec "$@"

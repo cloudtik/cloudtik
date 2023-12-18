@@ -55,14 +55,19 @@ update_server_id() {
     update_in_file "${config_template_file}" "{%server.id%}" "${CLOUDTIK_NODE_SEQ_ID}"
 }
 
-turn_on_start_replication_on_boot() {
-    if [ "${IS_HEAD_NODE}" != "true" ]; then
-        # only do this for workers for now, head needs handle differently for group replication
-        if [ "${MYSQL_CLUSTER_MODE}" == "replication" ]; then
-            update_in_file "${MYSQL_CONFIG_FILE}" "^skip_replica_start=ON" "skip_replica_start=OFF"
-        elif [ "${MYSQL_CLUSTER_MODE}" == "group_replication" ]; then
-            update_in_file "${MYSQL_CONFIG_FILE}" "^group_replication_start_on_boot=OFF" "group_replication_start_on_boot=ON"
-        fi
+configure_service_init() {
+    MYSQL_INIT_CONFIG_FILE=${MYSQL_CONFIG_DIR}/mysql
+    echo "export MYSQL_CONF_FILE=${MYSQL_CONFIG_FILE}" > ${MYSQL_INIT_CONFIG_FILE}
+
+    echo "export MYSQL_MASTER_NODE=${IS_HEAD_NODE}" \
+      >> ${MYSQL_INIT_CONFIG_FILE}
+
+    if [ "${MYSQL_CLUSTER_MODE}" == "replication" ]; then
+        echo "export MYSQL_REPLICATION_SOURCE_HOST=${HEAD_HOST_ADDRESS}" \
+          >> ${MYSQL_INIT_CONFIG_FILE}
+    elif [ "${MYSQL_CLUSTER_MODE}" == "group_replication" ]; then
+        echo "export MYSQL_INIT_DATADIR_CONF=${MYSQL_CONFIG_DIR}/my-init.cnf" \
+          >> ${MYSQL_INIT_CONFIG_FILE}
     fi
 }
 
@@ -124,31 +129,16 @@ configure_mysql() {
     MYSQL_CONFIG_FILE=${MYSQL_CONFIG_DIR}/my.cnf
     cp -r ${config_template_file} ${MYSQL_CONFIG_FILE}
 
-    # This is needed for mysql-init.sh to decide whether need to do user db setup
-
-    if [ "${IS_HEAD_NODE}" == "true" ]; then
-        # export for mysql_init.sh
-        export MYSQL_MASTER_NODE=true
-    else
-        export MYSQL_MASTER_NODE=false
-    fi
-
-    if [ "${MYSQL_CLUSTER_MODE}" == "replication" ]; then
-        export MYSQL_REPLICATION_SOURCE_HOST=${HEAD_HOST_ADDRESS}
-    elif [ "${MYSQL_CLUSTER_MODE}" == "group_replication" ]; then
+    if [ "${MYSQL_CLUSTER_MODE}" == "group_replication" ]; then
         # This is needed because mysqld --initialize(-insecure) cannot recognize
         # many group replications options in the conf file (plugin is not loaded
         # for initialize process) and also we need to skip all bin log during this
         # process.
         cp ${output_dir}/my-init.cnf ${MYSQL_CONFIG_DIR}/my-init.cnf
-        export MYSQL_INIT_DATADIR_CONF=${MYSQL_CONFIG_DIR}/my-init.cnf
     fi
 
-    # check and initialize the database if needed
-    bash $BIN_DIR/mysql-init.sh mysqld \
-        --defaults-file=${MYSQL_CONFIG_FILE} >${MYSQL_HOME}/logs/mysql-init.log 2>&1
-
-    turn_on_start_replication_on_boot
+    # Set variables for export to mysql-init.sh
+    configure_service_init
 }
 
 check_mysql_installed

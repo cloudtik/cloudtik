@@ -41,8 +41,7 @@ update_data_dir() {
     mkdir -p ${data_dir}
     update_in_file "${config_template_file}" "{%data.dir%}" "${data_dir}"
 
-    # the init script used PGDATA environment
-    export PGDATA=${data_dir}
+    POSTGRES_DATA_DIR=${data_dir}
 }
 
 update_server_id() {
@@ -72,8 +71,14 @@ configure_restore_command() {
 
 configure_service_init() {
     POSTGRES_INIT_CONFIG_FILE=${POSTGRES_CONFIG_DIR}/postgres
-    echo "export POSTGRES_CONF_FILE=${POSTGRES_CONFIG_FILE}"
-    echo "export POSTGRES_MASTER_NODE=${IS_HEAD_NODE}" > ${POSTGRES_INIT_CONFIG_FILE}
+    echo "export POSTGRES_CONF_FILE=${POSTGRES_CONFIG_FILE}" > ${POSTGRES_INIT_CONFIG_FILE}
+
+    # the init script used PGDATA environment
+    echo "export PGDATA=\"${POSTGRES_DATA_DIR}\"" \
+      >> ${POSTGRES_INIT_CONFIG_FILE}
+
+    echo "export POSTGRES_MASTER_NODE=${IS_HEAD_NODE}" \
+      >> ${POSTGRES_INIT_CONFIG_FILE}
 
     if [ "${POSTGRES_CLUSTER_MODE}" == "replication" ]; then
         echo "export POSTGRES_PRIMARY_HOST=${HEAD_HOST_ADDRESS}" \
@@ -129,8 +134,7 @@ configure_postgres() {
     POSTGRES_CONFIG_FILE=${POSTGRES_CONFIG_DIR}/postgresql.conf
     cp -r ${config_template_file} ${POSTGRES_CONFIG_FILE}
 
-    # This is needed for postgres-init.sh to decide whether need to do user db setup
-    # or do a base backup through the primary server.
+    # Set variables for export to postgres-init.sh
     configure_service_init
 }
 
