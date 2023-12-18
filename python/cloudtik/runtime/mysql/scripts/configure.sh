@@ -55,19 +55,23 @@ update_server_id() {
     update_in_file "${config_template_file}" "{%server.id%}" "${CLOUDTIK_NODE_SEQ_ID}"
 }
 
-configure_service_init() {
-    MYSQL_INIT_CONFIG_FILE=${MYSQL_CONFIG_DIR}/mysql
-    echo "export MYSQL_CONF_FILE=${MYSQL_CONFIG_FILE}" > ${MYSQL_INIT_CONFIG_FILE}
+configure_variable() {
+    local -r variable_name="${1:?variable name is required}"
+    local -r variable_value="${2:?variable value is required}"
+    echo "export ${variable_name}=\"${variable_value}\"" \
+      >> ${MYSQL_CONFIG_DIR}/mysql
+}
 
-    echo "export MYSQL_MASTER_NODE=${IS_HEAD_NODE}" \
-      >> ${MYSQL_INIT_CONFIG_FILE}
+configure_service_init() {
+    echo "# MySQL init variables" > ${MYSQL_CONFIG_DIR}/mysql
+
+    configure_variable MYSQL_CONF_FILE "${MYSQL_CONFIG_FILE}"
+    configure_variable MYSQL_MASTER_NODE ${IS_HEAD_NODE}
 
     if [ "${MYSQL_CLUSTER_MODE}" == "replication" ]; then
-        echo "export MYSQL_REPLICATION_SOURCE_HOST=${HEAD_HOST_ADDRESS}" \
-          >> ${MYSQL_INIT_CONFIG_FILE}
+        configure_variable MYSQL_REPLICATION_SOURCE_HOST "${HEAD_HOST_ADDRESS}"
     elif [ "${MYSQL_CLUSTER_MODE}" == "group_replication" ]; then
-        echo "export MYSQL_INIT_DATADIR_CONF=${MYSQL_CONFIG_DIR}/my-init.cnf" \
-          >> ${MYSQL_INIT_CONFIG_FILE}
+        configure_variable MYSQL_INIT_DATADIR_CONF "${MYSQL_CONFIG_DIR}/my-init.cnf"
     fi
 }
 

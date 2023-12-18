@@ -23,10 +23,15 @@ case "$SERVICE_COMMAND" in
 start)
     if [ "${IS_HEAD_NODE}" == "true" ] \
         || [ "${REDIS_CLUSTER_MODE}" != "none" ]; then
-        REDIS_CONFIG_FILE=${REDIS_HOME}/etc/redis.conf
+        # set the variables needed by postgres-init
+        . $REDIS_HOME/etc/redis
+
+        # check and initialize redis if needed
+        bash $BIN_DIR/redis-init.sh >${REDIS_HOME}/logs/redis-init.log 2>&1
+
         REDIS_PID_FILE=${REDIS_HOME}/redis-server.pid
         ${REDIS_HOME}/bin/redis-server \
-            ${REDIS_CONFIG_FILE} \
+            ${REDIS_CONF_FILE} \
             --pidfile ${REDIS_PID_FILE} \
             --daemonize yes >${REDIS_HOME}/logs/redis-server-start.log 2>&1
     fi

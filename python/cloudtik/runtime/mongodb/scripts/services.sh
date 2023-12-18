@@ -47,6 +47,17 @@ case "$SERVICE_COMMAND" in
 start)
     if [ "${IS_HEAD_NODE}" == "true" ] \
         || [ "${MONGODB_CLUSTER_MODE}" != "none" ]; then
+        # set the variables needed by mongodb-init
+        . $MONGODB_HOME/conf/mongodb
+
+        if [ "${MONGODB_CLUSTER_MODE}" == "sharding" ]; then
+            # check and initialize the database if needed
+            bash $BIN_DIR/mongodb-sharding-init.sh >${MONGODB_HOME}/logs/mongodb-init.log 2>&1
+        else
+            # check and initialize the database if needed
+            bash $BIN_DIR/mongodb-init.sh >${MONGODB_HOME}/logs/mongodb-init.log 2>&1
+        fi
+
         if [ "${MONGODB_CLUSTER_MODE}" == "sharding" ]; then
             if [ "${MONGODB_SHARDING_CLUSTER_ROLE}" == "configsvr" ]; then
                 # start config server before mongos

@@ -78,64 +78,73 @@ configure_replica_set() {
           "{%replication.set.name%}" "${MONGODB_REPLICATION_SET_NAME}"
 }
 
+configure_variable() {
+    local -r variable_name="${1:?variable name is required}"
+    local -r variable_value="${2:?variable value is required}"
+    echo "export ${variable_name}=\"${variable_value}\"" \
+      >> ${MONGODB_CONFIG_DIR}/mongodb
+}
+
 set_env_for_init() {
-    export MONGODB_BIN_DIR="$( dirname -- "$(which mongod)" )"
-    export MONGODB_CONF_DIR="${MONGODB_CONFIG_DIR}"
-    export MONGODB_CONF_FILE="${MONGODB_CONFIG_FILE}"
-    export MONGODB_DATA_DIR="${DATA_DIR}"
-    export MONGODB_PID_FILE="${MONGODB_HOME}/mongod.pid"
-    export MONGODB_VOLUME_DIR="${VOLUME_DIR}"
-    export MONGODB_PORT=${MONGODB_SERVICE_PORT}
+    local mongod_dir="$( dirname -- "$(which mongod)" )"
+    configure_variable MONGODB_BIN_DIR "$mongod_dir"
+    configure_variable MONGODB_CONF_DIR "${MONGODB_CONFIG_DIR}"
+    configure_variable MONGODB_CONF_FILE "${MONGODB_CONFIG_FILE}"
+    configure_variable MONGODB_DATA_DIR "${DATA_DIR}"
+    configure_variable MONGODB_PID_FILE "${MONGODB_HOME}/mongod.pid"
+    configure_variable MONGODB_VOLUME_DIR "${VOLUME_DIR}"
+    configure_variable MONGODB_PORT ${MONGODB_SERVICE_PORT}
 
     if [ -z "${MONGODB_ROOT_PASSWORD}" ]; then
-        export MONGODB_ALLOW_EMPTY_PASSWORD=true
+        configure_variable MONGODB_ALLOW_EMPTY_PASSWORD true
     fi
 }
 
 set_env_for_replica_set() {
-    export MONGODB_REPLICA_SET_NAME=${MONGODB_REPLICATION_SET_NAME}
+    configure_variable MONGODB_REPLICA_SET_NAME ${MONGODB_REPLICATION_SET_NAME}
     if [ "${IS_HEAD_NODE}" == "true" ]; then
         # Head act as primary for the first time initialization
-        export MONGODB_REPLICA_SET_MODE="primary"
+        configure_variable MONGODB_REPLICA_SET_MODE "primary"
     else
-        export MONGODB_REPLICA_SET_MODE="secondary"
-        export MONGODB_INITIAL_PRIMARY_ROOT_USER="${MONGODB_ROOT_USER}"
-        export MONGODB_INITIAL_PRIMARY_ROOT_PASSWORD="${MONGODB_ROOT_PASSWORD}"
-        export MONGODB_INITIAL_PRIMARY_HOST=${HEAD_HOST_ADDRESS}
-        export MONGODB_INITIAL_PRIMARY_PORT=${MONGODB_PORT}
+        configure_variable MONGODB_REPLICA_SET_MODE "secondary"
+        configure_variable MONGODB_INITIAL_PRIMARY_ROOT_USER "${MONGODB_ROOT_USER}"
+        configure_variable MONGODB_INITIAL_PRIMARY_ROOT_PASSWORD "${MONGODB_ROOT_PASSWORD}"
+        configure_variable MONGODB_INITIAL_PRIMARY_HOST "${HEAD_HOST_ADDRESS}"
+        configure_variable MONGODB_INITIAL_PRIMARY_PORT ${MONGODB_PORT}
     fi
 
     if [[ -n "$MONGODB_REPLICATION_SET_KEY" ]]; then
-        export MONGODB_REPLICA_SET_KEY=$MONGODB_REPLICATION_SET_KEY
-        export MONGODB_KEY_FILE="$MONGODB_CONF_DIR/keyfile"
+        configure_variable MONGODB_REPLICA_SET_KEY "$MONGODB_REPLICATION_SET_KEY"
+        configure_variable MONGODB_KEY_FILE "$MONGODB_CONF_DIR/keyfile"
     fi
 }
 
 set_env_for_config_server() {
     set_env_for_replica_set
-    export MONGODB_SHARDING_MODE="configsvr"
+    configure_variable MONGODB_SHARDING_MODE "configsvr"
 }
 
 set_env_for_mongos_common() {
-    export MONGODB_MONGOS_CONF_FILE="${MONGODB_MONGOS_CONFIG_FILE}"
-    export MONGODB_MONGOS_PORT=${MONGODB_MONGOS_SERVICE_PORT}
-    export MONGODB_MONGOS_PID_FILE="${MONGODB_HOME}/mongos.pid"
+    configure_variable MONGODB_MONGOS_CONF_FILE "${MONGODB_MONGOS_CONFIG_FILE}"
+    configure_variable MONGODB_MONGOS_PORT ${MONGODB_MONGOS_SERVICE_PORT}
+    configure_variable MONGODB_MONGOS_PID_FILE "${MONGODB_HOME}/mongos.pid"
     if [[ -n "$MONGODB_REPLICATION_SET_KEY" ]]; then
-        export MONGODB_REPLICA_SET_KEY="${MONGODB_REPLICATION_SET_KEY}"
-        export MONGODB_KEY_FILE="$MONGODB_CONF_DIR/keyfile"
+        configure_variable MONGODB_REPLICA_SET_KEY "${MONGODB_REPLICATION_SET_KEY}"
+        configure_variable MONGODB_KEY_FILE "$MONGODB_CONF_DIR/keyfile"
     fi
 }
 
 set_env_for_mongos_config() {
     # TODO: support list of config server hosts instead of the primary
-    export MONGODB_CFG_REPLICA_SET_NAME=${MONGODB_CONFIG_SERVER_REPLICATION_SET_NAME}
-    export MONGODB_CFG_PRIMARY_HOST=${MONGODB_CONFIG_SERVER_HOST}
-    export MONGODB_CFG_PRIMARY_PORT="${MONGODB_CONFIG_SERVER_PORT:-${MONGODB_SERVICE_PORT}}"
+    configure_variable MONGODB_CFG_REPLICA_SET_NAME "${MONGODB_CONFIG_SERVER_REPLICATION_SET_NAME}"
+    configure_variable MONGODB_CFG_PRIMARY_HOST ${MONGODB_CONFIG_SERVER_HOST}
+    local cfg_server_port="${MONGODB_CONFIG_SERVER_PORT:-${MONGODB_SERVICE_PORT}}"
+    configure_variable MONGODB_CFG_PRIMARY_PORT $cfg_server_port
 }
 
 set_env_for_mongos() {
     set_env_for_mongos_common
-    export MONGODB_SHARDING_MODE="mongos"
+    configure_variable MONGODB_SHARDING_MODE "mongos"
     set_env_for_mongos_config
 }
 
@@ -147,18 +156,42 @@ set_env_for_mongos_on_shard_server() {
 set_env_for_mongos_on_config_server() {
     set_env_for_mongos_common
     # The mongos is in the same node of config server
-    export MONGODB_CFG_REPLICA_SET_NAME=${MONGODB_REPLICATION_SET_NAME}
-    export MONGODB_CFG_PRIMARY_HOST=${HEAD_HOST_ADDRESS}
-    export MONGODB_CFG_PRIMARY_PORT=${MONGODB_SERVICE_PORT}
+    configure_variable MONGODB_CFG_REPLICA_SET_NAME "${MONGODB_REPLICATION_SET_NAME}"
+    configure_variable MONGODB_CFG_PRIMARY_HOST "${HEAD_HOST_ADDRESS}"
+    configure_variable MONGODB_CFG_PRIMARY_PORT ${MONGODB_SERVICE_PORT}
 }
 
 set_env_for_shard() {
     set_env_for_replica_set
-    export MONGODB_SHARDING_MODE="shardsvr"
+    configure_variable MONGODB_SHARDING_MODE "shardsvr"
 
     # Use mongos on cluster head ( or on the same node)
-    export MONGODB_MONGOS_HOST=${HEAD_HOST_ADDRESS}
-    export MONGODB_MONGOS_HOST_PORT=${MONGODB_MONGOS_SERVICE_PORT}
+    configure_variable MONGODB_MONGOS_HOST "${HEAD_HOST_ADDRESS}"
+    configure_variable MONGODB_MONGOS_HOST_PORT ${MONGODB_MONGOS_SERVICE_PORT}
+}
+
+configure_service_init() {
+    # The following environment variables are needed for mongodb-init.sh
+    echo "# MongoDB init variables" > ${MONGODB_CONFIG_DIR}/mongodb
+    set_env_for_init
+
+    # For replication set, either both MONGODB_ROOT_PASSWORD and MONGODB_REPLICA_SET_KEY
+    # are set or leave both empty.
+    if [ "${MONGODB_CLUSTER_MODE}" == "replication" ]; then
+        set_env_for_replica_set
+    elif [ "${MONGODB_CLUSTER_MODE}" == "sharding" ]; then
+        if [ "${MONGODB_CLUSTER_MODE}" == "sharding" ]; then
+            if [ "${MONGODB_SHARDING_CLUSTER_ROLE}" == "configsvr" ]; then
+                set_env_for_config_server
+                set_env_for_mongos_on_config_server
+            elif [ "${MONGODB_SHARDING_CLUSTER_ROLE}" == "mongos" ]; then
+                set_env_for_mongos
+            else
+                set_env_for_shard
+                set_env_for_mongos_on_shard_server
+            fi
+        fi
+    fi
 }
 
 configure_mongodb() {
@@ -201,34 +234,8 @@ configure_mongodb() {
         cp ${config_template_file} ${MONGODB_CONFIG_FILE}
     fi
 
-    # The following environment variables are needed for mongodb-init.sh
-    set_env_for_init
-
-    # For replication set, either both MONGODB_ROOT_PASSWORD and MONGODB_REPLICA_SET_KEY
-    # are set or leave both empty.
-    if [ "${MONGODB_CLUSTER_MODE}" == "replication" ]; then
-        set_env_for_replica_set
-    elif [ "${MONGODB_CLUSTER_MODE}" == "sharding" ]; then
-        if [ "${MONGODB_CLUSTER_MODE}" == "sharding" ]; then
-            if [ "${MONGODB_SHARDING_CLUSTER_ROLE}" == "configsvr" ]; then
-                set_env_for_config_server
-                set_env_for_mongos_on_config_server
-            elif [ "${MONGODB_SHARDING_CLUSTER_ROLE}" == "mongos" ]; then
-                set_env_for_mongos
-            else
-                set_env_for_shard
-                set_env_for_mongos_on_shard_server
-            fi
-        fi
-    fi
-
-    if [ "${MONGODB_CLUSTER_MODE}" == "sharding" ]; then
-        # check and initialize the database if needed
-        bash $BIN_DIR/mongodb-sharding-init.sh >${MONGODB_HOME}/logs/mongodb-init.log 2>&1
-    else
-        # check and initialize the database if needed
-        bash $BIN_DIR/mongodb-init.sh >${MONGODB_HOME}/logs/mongodb-init.log 2>&1
-    fi
+    # Set variables for export to mongodb-init.sh
+    configure_service_init()
 }
 
 check_mongodb_installed

@@ -50,6 +50,24 @@ update_server_id() {
     update_in_file "${config_template_file}" "{%server.id%}" "${CLOUDTIK_NODE_SEQ_ID}"
 }
 
+configure_variable() {
+    local -r variable_name="${1:?variable name is required}"
+    local -r variable_value="${2:?variable value is required}"
+    echo "export ${variable_name}=\"${variable_value}\"" \
+      >> ${REDIS_CONFIG_DIR}/redis
+}
+
+configure_service_init() {
+    echo "# Redis init variables" > ${REDIS_CONFIG_DIR}/redis
+    configure_variable REDIS_CONF_FILE "${REDIS_CONFIG_FILE}"
+    configure_variable REDIS_BASE_DIR "${REDIS_HOME}"
+    configure_variable REDIS_MASTER_NODE ${IS_HEAD_NODE}
+
+    if [ "${REDIS_CLUSTER_MODE}" == "replication" ]; then
+        configure_variable REDIS_MASTER_HOST "${HEAD_HOST_ADDRESS}"
+    fi
+}
+
 configure_redis() {
     if [ "${IS_HEAD_NODE}" != "true" ] \
         && [ "${REDIS_CLUSTER_MODE}" == "none" ]; then
@@ -85,20 +103,8 @@ configure_redis() {
     REDIS_CONFIG_FILE=${REDIS_CONFIG_DIR}/redis.conf
     cp ${config_template_file} ${REDIS_CONFIG_FILE}
 
-    # This is needed for redis-init.sh to decide whether need to do user db setup
-    export REDIS_BASE_DIR=${REDIS_HOME}
-    if [ "${IS_HEAD_NODE}" == "true" ]; then
-        export REDIS_MASTER_NODE=true
-    else
-        export REDIS_MASTER_NODE=false
-    fi
-
-    if [ "${REDIS_CLUSTER_MODE}" == "replication" ]; then
-        export REDIS_MASTER_HOST=${HEAD_HOST_ADDRESS}
-    fi
-
-    # check and initialize redis if needed
-    bash $BIN_DIR/redis-init.sh >${REDIS_HOME}/logs/redis-init.log 2>&1
+    # Set variables for export to redis-init.sh
+    configure_service_init
 }
 
 check_redis_installed
