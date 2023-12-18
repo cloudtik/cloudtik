@@ -69,23 +69,25 @@ configure_restore_command() {
     update_in_file "${config_template_file}" "restore_command = ''" "restore_command = '${restore_command}'"
 }
 
+configure_variable() {
+    local -r variable_name="${1:?variable name is required}"
+    local -r variable_value="${2:?variable value is required}"
+    echo "export ${variable_name}=\"${variable_value}\"" \
+      >> ${POSTGRES_CONFIG_DIR}/postgres
+}
+
 configure_service_init() {
-    POSTGRES_INIT_CONFIG_FILE=${POSTGRES_CONFIG_DIR}/postgres
-    echo "export POSTGRES_CONF_FILE=${POSTGRES_CONFIG_FILE}" > ${POSTGRES_INIT_CONFIG_FILE}
+    echo "# Postgres init variables" > ${POSTGRES_CONFIG_DIR}/postgres
 
+    configure_variable POSTGRES_CONF_FILE "${POSTGRES_CONFIG_FILE}"
     # the init script used PGDATA environment
-    echo "export PGDATA=\"${POSTGRES_DATA_DIR}\"" \
-      >> ${POSTGRES_INIT_CONFIG_FILE}
-
-    echo "export POSTGRES_MASTER_NODE=${IS_HEAD_NODE}" \
-      >> ${POSTGRES_INIT_CONFIG_FILE}
+    configure_variable PGDATA "${POSTGRES_DATA_DIR}"
+    configure_variable POSTGRES_MASTER_NODE "${IS_HEAD_NODE}"
 
     if [ "${POSTGRES_CLUSTER_MODE}" == "replication" ]; then
-        echo "export POSTGRES_PRIMARY_HOST=${HEAD_HOST_ADDRESS}" \
-          >> ${POSTGRES_INIT_CONFIG_FILE}
+        configure_variable POSTGRES_PRIMARY_HOST "${HEAD_HOST_ADDRESS}"
         if [ "${POSTGRES_REPLICATION_SLOT}" == "true" ]; then
-            echo "export POSTGRES_REPLICATION_SLOT_NAME=postgres_${CLOUDTIK_NODE_SEQ_ID}" \
-              >> ${POSTGRES_INIT_CONFIG_FILE}
+            configure_variable POSTGRES_REPLICATION_SLOT_NAME "postgres_${CLOUDTIK_NODE_SEQ_ID}"
         fi
     fi
 }

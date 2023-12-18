@@ -21,7 +21,11 @@ install_mysql() {
     if ! command -v mysqld &> /dev/null
     then
         # download the signing key
-        key='859BE8D7C586F538430B19C2467B942D3A79BD29'; \
+        # pub   rsa4096 2023-10-23 [SC] [expires: 2025-10-22]
+        #       BCA4 3417 C3B4 85DD 128E  C6D4 B7B3 B788 A8D3 785C
+        # uid           [ unknown] MySQL Release Engineering <mysql-build@oss.oracle.com>
+        # sub   rsa4096 2023-10-23 [E] [expires: 2025-10-22]
+        key='BCA4 3417 C3B4 85DD 128E C6D4 B7B3 B788 A8D3 785C'; \
         export GNUPGHOME="$(mktemp -d)"; \
         sudo gpg --batch --keyserver keyserver.ubuntu.com --recv-keys "$key" >/dev/null 2>&1; \
         sudo mkdir -p /etc/apt/keyrings; \
