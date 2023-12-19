@@ -1,12 +1,11 @@
 import os
 from typing import Dict, Any, Union, List, Optional
 
-from cloudtik.core._private.constants import CLOUDTIK_RUNTIME_ENV_HEAD_HOST
 from cloudtik.core._private.core_utils import get_config_for_update, get_env_string_value
 from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_HDFS, BUILT_IN_RUNTIME_METASTORE, \
     BUILT_IN_RUNTIME_CONSUL, BUILT_IN_RUNTIME_ZOOKEEPER, BUILT_IN_RUNTIME_MYSQL, BUILT_IN_RUNTIME_POSTGRES, \
     BUILT_IN_RUNTIME_ETCD, BUILT_IN_RUNTIME_MINIO
-from cloudtik.core._private.runtime_utils import get_runtime_value
+from cloudtik.core._private.runtime_utils import get_runtime_head_host
 from cloudtik.core._private.service_discovery.naming import get_cluster_node_address_type
 from cloudtik.core._private.service_discovery.utils import get_service_selector_for_update, \
     include_runtime_for_selector, include_feature_for_selector, include_service_type_for_selector, ServiceAddressType
@@ -653,7 +652,7 @@ def export_database_runtime_environment_variables(
     runtime_type_config = runtime_config.get(runtime_type, {})
     engine = get_database_engine_for_runtime(
         runtime_type)
-    head_host = get_runtime_value(CLOUDTIK_RUNTIME_ENV_HEAD_HOST)
+    head_host = get_runtime_head_host()
     port = runtime_type_config.get(DATABASE_SERVICE_PORT_CONFIG_KEY)
     if not port:
         port = get_database_default_port(engine)
