@@ -261,9 +261,7 @@ def subscribe_cluster_variable(cluster_variable_name):
 
 
 def get_cluster_redis_address():
-    if CLOUDTIK_RUNTIME_ENV_HEAD_HOST not in os.environ:
-        raise RuntimeError("Not able to connect to cluster kv store in lack of head host.")
-    redis_host = os.environ[CLOUDTIK_RUNTIME_ENV_HEAD_HOST]
+    redis_host = get_runtime_head_host()
     redis_address = "{}:{}".format(redis_host, CLOUDTIK_DEFAULT_PORT)
     redis_password = CLOUDTIK_REDIS_DEFAULT_PASSWORD
     return redis_address, redis_password
