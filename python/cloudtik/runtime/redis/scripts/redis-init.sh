@@ -173,7 +173,7 @@ redis_configure_replication() {
 }
 
 _main() {
-		# Init script for Redis Server started.
+    # Init script for Redis Server started.
     redis_configure_default
     if [ "${REDIS_CLUSTER_MODE}" == "replication" ]; then
         redis_configure_replication
