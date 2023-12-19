@@ -41,13 +41,13 @@ update_data_dir() {
     update_in_file "${config_template_file}" "{%data.dir%}" "${data_dir}"
 }
 
-update_server_id() {
+update_node_name() {
     if [ ! -n "${CLOUDTIK_NODE_SEQ_ID}" ]; then
-        echo "Replication needs unique server id. No node sequence id allocated for current node!"
+        echo "No node sequence id allocated for current node."
         exit 1
     fi
-
-    update_in_file "${config_template_file}" "{%server.id%}" "${CLOUDTIK_NODE_SEQ_ID}"
+    local -r node_name="${CLOUDTIK_CLUSTER}-${CLOUDTIK_NODE_SEQ_ID}"
+    update_in_file "${config_template_file}" "{%cluster.nodename%}" "${node_name}"
 }
 
 configure_variable() {
@@ -94,6 +94,7 @@ configure_redis() {
 
     if [ "${REDIS_CLUSTER_MODE}" == "sharding" ]; then
         update_in_file "${config_template_file}" "{%cluster.port%}" "${REDIS_CLUSTER_PORT}"
+        update_node_name
     fi
 
     REDIS_CONFIG_DIR=${REDIS_HOME}/etc
