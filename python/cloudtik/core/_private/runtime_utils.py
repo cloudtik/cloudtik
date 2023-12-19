@@ -240,12 +240,13 @@ def run_func_with_retry(
         try:
             func()
             return
-        except Exception:
+        except Exception as e:
             if i >= num_retries - 1:
-                break
+                raise RuntimeError(
+                    "Function failed with {} reties.".format(num_retries)) from e
+
             # error retry
             time.sleep(retry_interval)
-    raise RuntimeError("Function failed with {} reties.".format(num_retries))
 
 
 def publish_cluster_variable(cluster_variable_name, cluster_variable_value):
