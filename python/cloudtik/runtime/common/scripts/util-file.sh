@@ -109,3 +109,26 @@ update_in_file() {
         sed -i "s${del}${match_regex}${del}${substitute_regex}${del}g" "$filename"
     fi
 }
+
+########################
+# Set the variable export in file
+# Arguments:
+#   $1 - filename
+#   $2 - variable name
+#   $3 - variable value
+# Returns:
+#   None
+#########################
+set_variable_in_file() {
+    local filename="${1:?filename is required}"
+    local -r variable_name="${2:?variable name is required}"
+    local -r variable_value="${3:-}"
+
+    if grep -qE "^export ${variable_name}=" "$filename" >/dev/null; then
+        replace_in_file "$filename" \
+          "^export ${property}=.*" "export ${variable_name}=\"${variable_value}\"" false
+    else
+        echo "export ${variable_name}=\"${variable_value}\"" \
+          >>"$filename"
+    fi
+}

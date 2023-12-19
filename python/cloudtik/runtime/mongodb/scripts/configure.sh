@@ -79,10 +79,7 @@ configure_replica_set() {
 }
 
 configure_variable() {
-    local -r variable_name="${1:?variable name is required}"
-    local -r variable_value="${2:?variable value is required}"
-    echo "export ${variable_name}=\"${variable_value}\"" \
-      >> ${MONGODB_CONFIG_DIR}/mongodb
+    set_variable_in_file "${MONGODB_CONFIG_DIR}/mongodb" "$@"
 }
 
 set_env_for_init() {
@@ -110,12 +107,12 @@ set_env_for_replica_set() {
         configure_variable MONGODB_INITIAL_PRIMARY_ROOT_USER "${MONGODB_ROOT_USER}"
         configure_variable MONGODB_INITIAL_PRIMARY_ROOT_PASSWORD "${MONGODB_ROOT_PASSWORD}"
         configure_variable MONGODB_INITIAL_PRIMARY_HOST "${HEAD_HOST_ADDRESS}"
-        configure_variable MONGODB_INITIAL_PRIMARY_PORT ${MONGODB_PORT}
+        configure_variable MONGODB_INITIAL_PRIMARY_PORT ${MONGODB_SERVICE_PORT}
     fi
 
     if [[ -n "$MONGODB_REPLICATION_SET_KEY" ]]; then
         configure_variable MONGODB_REPLICA_SET_KEY "$MONGODB_REPLICATION_SET_KEY"
-        configure_variable MONGODB_KEY_FILE "$MONGODB_CONF_DIR/keyfile"
+        configure_variable MONGODB_KEY_FILE "$MONGODB_CONFIG_DIR/keyfile"
     fi
 }
 
@@ -128,10 +125,6 @@ set_env_for_mongos_common() {
     configure_variable MONGODB_MONGOS_CONF_FILE "${MONGODB_MONGOS_CONFIG_FILE}"
     configure_variable MONGODB_MONGOS_PORT ${MONGODB_MONGOS_SERVICE_PORT}
     configure_variable MONGODB_MONGOS_PID_FILE "${MONGODB_HOME}/mongos.pid"
-    if [[ -n "$MONGODB_REPLICATION_SET_KEY" ]]; then
-        configure_variable MONGODB_REPLICA_SET_KEY "${MONGODB_REPLICATION_SET_KEY}"
-        configure_variable MONGODB_KEY_FILE "$MONGODB_CONF_DIR/keyfile"
-    fi
 }
 
 set_env_for_mongos_config() {
@@ -145,6 +138,10 @@ set_env_for_mongos_config() {
 set_env_for_mongos() {
     set_env_for_mongos_common
     configure_variable MONGODB_SHARDING_MODE "mongos"
+    if [[ -n "$MONGODB_REPLICATION_SET_KEY" ]]; then
+        configure_variable MONGODB_REPLICA_SET_KEY "${MONGODB_REPLICATION_SET_KEY}"
+        configure_variable MONGODB_KEY_FILE "$MONGODB_CONFIG_DIR/keyfile"
+    fi
     set_env_for_mongos_config
 }
 
@@ -235,7 +232,7 @@ configure_mongodb() {
     fi
 
     # Set variables for export to mongodb-init.sh
-    configure_service_init()
+    configure_service_init
 }
 
 check_mongodb_installed

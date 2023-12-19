@@ -51,10 +51,7 @@ update_server_id() {
 }
 
 configure_variable() {
-    local -r variable_name="${1:?variable name is required}"
-    local -r variable_value="${2:?variable value is required}"
-    echo "export ${variable_name}=\"${variable_value}\"" \
-      >> ${REDIS_CONFIG_DIR}/redis
+    set_variable_in_file "${REDIS_CONFIG_DIR}/redis" "$@"
 }
 
 configure_service_init() {
