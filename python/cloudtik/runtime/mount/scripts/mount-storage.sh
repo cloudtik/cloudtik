@@ -240,8 +240,9 @@ install_hdfs_fuse() {
     fi
 
     # nfs mount may needed
-    which mount.nfs > /dev/null || (sudo  apt-get -qq update -y > /dev/null; \
-      sudo DEBIAN_FRONTEND=noninteractive apt-get -qq install nfs-common -y > /dev/null)
+    which mount.nfs > /dev/null \
+      || (sudo  apt-get -qq update -y > /dev/null; \
+        sudo DEBIAN_FRONTEND=noninteractive apt-get -qq install nfs-common -y > /dev/null)
 
     local HDFS_NFS_JAR=hadoop-hdfs-nfs-${HADOOP_VERSION}.jar
     local HDFS_NFS_JAR_FIX=${HADOOP_HOME}/fix/${HDFS_NFS_JAR}
@@ -249,10 +250,8 @@ install_hdfs_fuse() {
       && [ -d "${HADOOP_HOME}/share/hadoop/hdfs" ]; then
         # install HDFS NFS fix if not installed
         mkdir -p ${HADOOP_HOME}/fix && \
-        wget -q ${CLOUDTIK_DOWNLOADS}/hadoop/${HDFS_NFS_JAR} \
-          -O ${HDFS_NFS_JAR_FIX} && \
-        cp ${HDFS_NFS_JAR_FIX} \
-          ${HADOOP_HOME}/share/hadoop/hdfs/${HDFS_NFS_JAR}
+          wget -q ${CLOUDTIK_DOWNLOADS}/hadoop/${HDFS_NFS_JAR} -O ${HDFS_NFS_JAR_FIX} && \
+          cp ${HDFS_NFS_JAR_FIX} ${HADOOP_HOME}/share/hadoop/hdfs/${HDFS_NFS_JAR}
     fi
 }
 
