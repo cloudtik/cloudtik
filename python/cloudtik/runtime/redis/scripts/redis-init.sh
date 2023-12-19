@@ -143,12 +143,12 @@ _is_sourced() {
 }
 
 redis_configure_default() {
-    if [[ "$CLUDTIK_NODE_IP" != "$CLUDTIK_NODE_HOST" ]]; then
-        redis_conf_set "cluster-announce-hostname" "$CLUDTIK_NODE_HOST"
-        redis_conf_set "cluster-preferred-endpoint-type" "hostname"
+    if [[ -n "$REDIS_PASSWORD" ]]; then
+        redis_conf_set requirepass "$REDIS_PASSWORD"
     else
-        redis_conf_unset "cluster-announce-hostname"
-        redis_conf_set "cluster-preferred-endpoint-type" "ip"
+        redis_conf_unset requirepass
+        # Allow remote connections without password
+        redis_conf_set protected-mode no
     fi
 }
 
@@ -162,13 +162,13 @@ redis_configure_replication() {
     fi
 }
 
-redis_configure_sharding() {
-    if [[ -n "$REDIS_PASSWORD" ]]; then
-        redis_conf_set masterauth "$REDIS_PASSWORD"
-    fi
-    # Configuring replication mode
-    if [ "${REDIS_MASTER_NODE}" != "true" ]; then
-        redis_conf_set "replicaof" "$REDIS_MASTER_HOST $REDIS_SERVICE_PORT"
+redis_configure_replication() {
+    if [[ "$CLUDTIK_NODE_IP" != "$CLUDTIK_NODE_HOST" ]]; then
+        redis_conf_set "cluster-announce-hostname" "$CLUDTIK_NODE_HOST"
+        redis_conf_set "cluster-preferred-endpoint-type" "hostname"
+    else
+        redis_conf_unset "cluster-announce-hostname"
+        redis_conf_set "cluster-preferred-endpoint-type" "ip"
     fi
 }
 
