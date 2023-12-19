@@ -56,10 +56,7 @@ update_server_id() {
 }
 
 configure_variable() {
-    local -r variable_name="${1:?variable name is required}"
-    local -r variable_value="${2:?variable value is required}"
-    echo "export ${variable_name}=\"${variable_value}\"" \
-      >> ${MYSQL_CONFIG_DIR}/mysql
+    set_variable_in_file "${MYSQL_CONFIG_DIR}/mysql" "$@"
 }
 
 configure_service_init() {

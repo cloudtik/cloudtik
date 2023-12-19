@@ -70,10 +70,7 @@ configure_restore_command() {
 }
 
 configure_variable() {
-    local -r variable_name="${1:?variable name is required}"
-    local -r variable_value="${2:?variable value is required}"
-    echo "export ${variable_name}=\"${variable_value}\"" \
-      >> ${POSTGRES_CONFIG_DIR}/postgres
+    set_variable_in_file "${POSTGRES_CONFIG_DIR}/postgres" "$@"
 }
 
 configure_service_init() {
