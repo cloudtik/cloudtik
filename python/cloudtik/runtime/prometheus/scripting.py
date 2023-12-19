@@ -5,7 +5,7 @@ from cloudtik.core._private import constants
 from cloudtik.core._private.core_utils import exec_with_output, get_list_for_update, get_address_string
 from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_PROMETHEUS
 from cloudtik.core._private.runtime_utils import load_and_save_yaml, \
-    get_runtime_config_from_node, save_yaml, get_runtime_head_ip, get_runtime_value
+    get_runtime_config_from_node, save_yaml, get_runtime_value, get_runtime_head_host
 from cloudtik.core._private.service_discovery.utils import \
     SERVICE_DISCOVERY_PORT, \
     SERVICE_SELECTOR_SERVICES, SERVICE_SELECTOR_TAGS, SERVICE_SELECTOR_LABELS, SERVICE_SELECTOR_EXCLUDE_LABELS, \
@@ -196,8 +196,8 @@ def start_pull_server(head):
 
     pull_identifier = _get_pull_identifier()
 
-    redis_ip = get_runtime_head_ip(head)
-    redis_address = get_address_string(redis_ip, constants.CLOUDTIK_DEFAULT_PORT)
+    redis_host = get_runtime_head_host(head)
+    redis_address = get_address_string(redis_host, constants.CLOUDTIK_DEFAULT_PORT)
 
     cmd = ["cloudtik", "node", "pull", pull_identifier, "start"]
     cmd += ["--pull-class=cloudtik.runtime.prometheus.discovery.DiscoverLocalTargets"]

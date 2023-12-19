@@ -4,10 +4,10 @@ import subprocess
 from shlex import quote
 from typing import Any, Dict, List
 
-from cloudtik.core._private.constants import CLOUDTIK_RUNTIME_ENV_NODE_IP, CLOUDTIK_RUNTIME_ENV_NODE_SEQ_ID
+from cloudtik.core._private.constants import CLOUDTIK_RUNTIME_ENV_NODE_SEQ_ID
 from cloudtik.core._private.core_utils import get_address_string
 from cloudtik.core._private.runtime_utils import subscribe_runtime_config, RUNTIME_NODE_SEQ_ID, RUNTIME_NODE_IP, \
-    sort_nodes_by_seq_id
+    sort_nodes_by_seq_id, get_runtime_node_ip
 from cloudtik.core._private.utils import \
     load_properties_file, save_properties_file
 from cloudtik.runtime.zookeeper.utils import _get_home_dir, _get_server_config, ZOOKEEPER_SERVICE_PORT
@@ -79,10 +79,7 @@ def request_to_join_cluster(nodes_info: Dict[str, Any]):
         raise RuntimeError("Missing nodes info for join to the cluster.")
 
     initial_cluster = sort_nodes_by_seq_id(nodes_info)
-
-    node_ip = os.environ.get(CLOUDTIK_RUNTIME_ENV_NODE_IP)
-    if not node_ip:
-        raise RuntimeError("Missing node ip environment variable for this node.")
+    node_ip = get_runtime_node_ip()
 
     # exclude my own address from the initial cluster as endpoints
     endpoints = [node for node in initial_cluster if node[RUNTIME_NODE_IP] != node_ip]

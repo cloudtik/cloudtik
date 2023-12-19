@@ -70,6 +70,7 @@ SERVICE_SELECTOR_CLUSTERS = "clusters"
 class ServiceAddressType(Enum):
     NODE_IP = auto()
     NODE_FQDN = auto()
+    NODE_SDN = auto()
     SERVICE_FQDN = auto()
 
 

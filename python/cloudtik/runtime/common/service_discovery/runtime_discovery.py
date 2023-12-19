@@ -1,14 +1,14 @@
 import os
 from typing import Dict, Any, Union, List, Optional
 
-from cloudtik.core._private.constants import CLOUDTIK_RUNTIME_ENV_HEAD_IP
 from cloudtik.core._private.core_utils import get_config_for_update, get_env_string_value
 from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_HDFS, BUILT_IN_RUNTIME_METASTORE, \
     BUILT_IN_RUNTIME_CONSUL, BUILT_IN_RUNTIME_ZOOKEEPER, BUILT_IN_RUNTIME_MYSQL, BUILT_IN_RUNTIME_POSTGRES, \
     BUILT_IN_RUNTIME_ETCD, BUILT_IN_RUNTIME_MINIO
-from cloudtik.core._private.runtime_utils import get_runtime_value
+from cloudtik.core._private.runtime_utils import get_runtime_head_host
+from cloudtik.core._private.service_discovery.naming import get_cluster_node_address_type
 from cloudtik.core._private.service_discovery.utils import get_service_selector_for_update, \
-    include_runtime_for_selector, include_feature_for_selector, include_service_type_for_selector
+    include_runtime_for_selector, include_feature_for_selector, include_service_type_for_selector, ServiceAddressType
 from cloudtik.core._private.util.database_utils import is_database_configured, set_database_config, \
     DATABASE_ENV_ENABLED, DATABASE_ENV_ENGINE, DATABASE_ENV_HOST, DATABASE_ENV_PORT, DATABASE_ENV_USERNAME, \
     DATABASE_ENV_PASSWORD, get_database_default_port, get_database_default_username, get_database_default_password, \
@@ -69,6 +69,8 @@ def discover_runtime_service(
         cluster_config: Dict[str, Any],
         discovery_type: DiscoveryType,
         service_type: Optional[Union[str, List[str]]] = None):
+    # decide address type based on cluster configuration
+    address_type = get_cluster_node_address_type(config)
     service_selector = get_service_selector_for_update(
         config, service_selector_key)
     # if user provide runtimes in the selector, we don't override it
@@ -80,7 +82,8 @@ def discover_runtime_service(
             service_selector, service_type)
     service_instance = query_one_service(
         cluster_config, service_selector,
-        discovery_type=discovery_type)
+        discovery_type=discovery_type,
+        address_type=address_type)
     return service_instance
 
 
@@ -105,7 +108,8 @@ def discover_runtime_service_addresses_by_feature(
         service_selector_key: str,
         feature: str,
         cluster_config: Dict[str, Any],
-        discovery_type: DiscoveryType,):
+        discovery_type: DiscoveryType,
+        address_type: ServiceAddressType = ServiceAddressType.NODE_IP):
     service_selector = get_service_selector_for_update(
         config, service_selector_key)
     # WARNING: feature selecting doesn't work for workspace service registry
@@ -113,7 +117,8 @@ def discover_runtime_service_addresses_by_feature(
         service_selector, feature)
     service_instance = query_one_service(
         cluster_config, service_selector,
-        discovery_type=discovery_type)
+        discovery_type=discovery_type,
+        address_type=address_type)
     if not service_instance:
         return None
     return service_instance.service_addresses
@@ -642,12 +647,12 @@ def export_database_runtime_environment_variables(
         runtime_config, runtime_type):
     # WARNING: This is helper function to get database parameters from a runtime configuration
     # if there are changes in the runtime configuration side, this needs to be changed too.
-    # if it is called at the node configure context, the head ip will be set as host
+    # if it is called at the node configure context, the head host will be set as host
 
     runtime_type_config = runtime_config.get(runtime_type, {})
     engine = get_database_engine_for_runtime(
         runtime_type)
-    head_ip = get_runtime_value(CLOUDTIK_RUNTIME_ENV_HEAD_IP)
+    head_host = get_runtime_head_host()
     port = runtime_type_config.get(DATABASE_SERVICE_PORT_CONFIG_KEY)
     if not port:
         port = get_database_default_port(engine)
@@ -668,7 +673,7 @@ def export_database_runtime_environment_variables(
 
     os.environ[DATABASE_ENV_ENABLED] = get_env_string_value(True)
     os.environ[DATABASE_ENV_ENGINE] = engine
-    os.environ[DATABASE_ENV_HOST] = head_ip
+    os.environ[DATABASE_ENV_HOST] = head_host
     os.environ[DATABASE_ENV_PORT] = str(port)
 
     # The defaults apply to built-in Database runtime.

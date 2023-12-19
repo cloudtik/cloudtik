@@ -8,7 +8,8 @@ import yaml
 from cloudtik.core._private import services
 from cloudtik.core._private.constants import CLOUDTIK_RUNTIME_ENV_NODE_TYPE, CLOUDTIK_RUNTIME_ENV_NODE_IP, \
     CLOUDTIK_RUNTIME_ENV_SECRETS, CLOUDTIK_RUNTIME_ENV_HEAD_IP, env_bool, CLOUDTIK_DATA_DISK_MOUNT_POINT, \
-    CLOUDTIK_DATA_DISK_MOUNT_NAME_PREFIX, CLOUDTIK_DEFAULT_PORT, CLOUDTIK_REDIS_DEFAULT_PASSWORD
+    CLOUDTIK_DATA_DISK_MOUNT_NAME_PREFIX, CLOUDTIK_DEFAULT_PORT, CLOUDTIK_REDIS_DEFAULT_PASSWORD, \
+    CLOUDTIK_RUNTIME_ENV_HEAD_HOST, CLOUDTIK_RUNTIME_ENV_NODE_HOST
 from cloudtik.core._private.crypto import AESCipher
 from cloudtik.core._private.provider_factory import _get_node_provider
 from cloudtik.core._private.utils import load_head_cluster_config, _get_node_type_specific_runtime_config, \
@@ -35,7 +36,7 @@ def get_runtime_bool(name, default=False):
 
 
 def get_runtime_node_type():
-    # Node type should always be set as env
+    # Node ip should always be set as env
     node_type = get_runtime_value(CLOUDTIK_RUNTIME_ENV_NODE_TYPE)
     if not node_type:
         raise RuntimeError(
@@ -66,6 +67,30 @@ def get_runtime_head_ip(head):
                 "Environment variable {} is not set.".format(
                     CLOUDTIK_RUNTIME_ENV_HEAD_IP))
         return head_ip
+
+
+def get_runtime_node_host():
+    # Node host should always be set as env
+    node_host = get_runtime_value(CLOUDTIK_RUNTIME_ENV_NODE_HOST)
+    if not node_host:
+        raise RuntimeError(
+            "Environment variable {} is not set.".format(
+                CLOUDTIK_RUNTIME_ENV_NODE_HOST))
+    return node_host
+
+
+def get_runtime_head_host(head=False):
+    # We should always get head host set
+    head_host = \
+        get_runtime_value(CLOUDTIK_RUNTIME_ENV_HEAD_HOST)
+    if head_host:
+        return head_host
+    if head:
+        return get_runtime_node_host()
+    else:
+        raise RuntimeError(
+            "Environment variable {} is not set.".format(
+                CLOUDTIK_RUNTIME_ENV_HEAD_HOST))
 
 
 def retrieve_runtime_config(node_type: str = None):
@@ -236,10 +261,8 @@ def subscribe_cluster_variable(cluster_variable_name):
 
 
 def get_cluster_redis_address():
-    if CLOUDTIK_RUNTIME_ENV_HEAD_IP not in os.environ:
-        raise RuntimeError("Not able to connect to cluster kv store in lack of head ip.")
-    head_ip = os.environ[CLOUDTIK_RUNTIME_ENV_HEAD_IP]
-    redis_address = "{}:{}".format(head_ip, CLOUDTIK_DEFAULT_PORT)
+    redis_host = get_runtime_head_host()
+    redis_address = "{}:{}".format(redis_host, CLOUDTIK_DEFAULT_PORT)
     redis_password = CLOUDTIK_REDIS_DEFAULT_PASSWORD
     return redis_address, redis_password
 

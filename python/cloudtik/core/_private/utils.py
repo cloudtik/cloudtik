@@ -1283,7 +1283,7 @@ def get_cloudtik_head_start_clustering_command(config) -> str:
 
 
 def get_cloudtik_worker_start_command(config) -> str:
-    # ulimit -n 65536; cloudtik node start --node-ip-address=$CLOUDTIK_NODE_IP --address=$CLOUDTIK_HEAD_IP:6789
+    # ulimit -n 65536; cloudtik node start --node-ip-address=$CLOUDTIK_NODE_IP --address=$CLOUDTIK_HEAD_HOST:6789
     # --runtimes=$CLOUDTIK_RUNTIMES
     start_command = "ulimit -n 65536; cloudtik node start --node-ip-address=$CLOUDTIK_NODE_IP"
     # CLOUDTIK_HEAD_HOST will be IP if hostname is not proper

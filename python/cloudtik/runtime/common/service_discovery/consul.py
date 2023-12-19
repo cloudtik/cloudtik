@@ -1,7 +1,7 @@
 from typing import Optional, Tuple
 from urllib.parse import quote
 
-from cloudtik.core._private.service_discovery.naming import get_cluster_node_fqdn
+from cloudtik.core._private.service_discovery.naming import get_cluster_node_fqdn, get_cluster_node_sdn
 from cloudtik.core._private.service_discovery.utils import SERVICE_SELECTOR_SERVICES, SERVICE_SELECTOR_TAGS, \
     SERVICE_SELECTOR_LABELS, SERVICE_SELECTOR_EXCLUDE_LABELS, SERVICE_DISCOVERY_LABEL_CLUSTER, \
     SERVICE_SELECTOR_RUNTIMES, SERVICE_SELECTOR_CLUSTERS, SERVICE_SELECTOR_EXCLUDE_JOINED_LABELS, \
@@ -170,6 +170,10 @@ def get_service_address_of_node(
         service_host = service_node.get("ServiceAddress")
         if not service_host:
             service_host = service_node.get("Address")
+    elif address_type == ServiceAddressType.NODE_SDN:
+        # short domain name
+        node_name = service_node.get("Node")
+        service_host = get_cluster_node_sdn(node_name)
     else:
         # use the node DNS FQDN: <node>.node[.<datacenter>.dc].<domain>
         node_name = service_node.get("Node")
