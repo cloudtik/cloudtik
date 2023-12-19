@@ -204,7 +204,7 @@ def _get_runtime_services(
     def define_redis_service(define_fn, service_type=None):
         if not service_type:
             service_type = REDIS_SERVICE_TYPE
-        define_fn(
+        return define_fn(
             service_type,
             service_discovery_config, service_port,
             features=[SERVICE_DISCOVERY_FEATURE_KEY_VALUE])

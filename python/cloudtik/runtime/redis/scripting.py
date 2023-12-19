@@ -11,7 +11,8 @@ from cloudtik.core._private.constants import \
 from cloudtik.core._private.core_utils import exec_with_call
 from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_REDIS
 from cloudtik.core._private.runtime_utils import get_first_data_disk_dir, get_worker_ips_ready_from_head, \
-    get_runtime_config_from_node, get_runtime_value, run_func_with_retry, get_runtime_head_host, get_runtime_node_host
+    get_runtime_config_from_node, get_runtime_value, run_func_with_retry, get_runtime_head_host, get_runtime_node_host, \
+    get_runtime_node_ip
 from cloudtik.runtime.common.lock.runtime_lock import get_runtime_lock
 from cloudtik.runtime.redis.utils import _get_home_dir, _get_master_size, _get_config, _get_reshard_delay
 
@@ -181,6 +182,7 @@ def _get_myid(startup_nodes, node_host, port, password):
 
 
 def _meet_with_cluster(runtime_config, cluster_nodes):
+    node_ip = get_runtime_node_ip()
     node_host = get_runtime_node_host()
     port = get_runtime_value("REDIS_SERVICE_PORT")
     password = get_runtime_value("REDIS_PASSWORD")
@@ -191,9 +193,11 @@ def _meet_with_cluster(runtime_config, cluster_nodes):
 
     def cluster_meet():
         # retrying
+        # https://github.com/redis/redis/issues/10433
+        # CLUSTER MEET supports only IP. It doesn't support hostname.
         redis_cluster = RedisCluster(
             startup_nodes=startup_nodes, password=password)
-        redis_cluster.cluster_meet(node_host, port)
+        redis_cluster.cluster_meet(node_ip, port)
     run_func_with_retry(cluster_meet)
 
     # wait a few seconds for a better chance that other new masters join
