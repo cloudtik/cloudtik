@@ -55,18 +55,19 @@ def get_runtime_node_ip():
     return node_ip
 
 
-def get_runtime_head_ip(head):
+def get_runtime_head_ip(head=False):
+    # worker node should always get head ip set
+    head_ip = \
+        get_runtime_value(CLOUDTIK_RUNTIME_ENV_HEAD_IP)
+    if head_ip:
+        return head_ip
+
     if head:
         return get_runtime_node_ip()
     else:
-        # worker node should always get head ip set
-        head_ip = \
-            get_runtime_value(CLOUDTIK_RUNTIME_ENV_HEAD_IP)
-        if not head_ip:
-            raise RuntimeError(
-                "Environment variable {} is not set.".format(
-                    CLOUDTIK_RUNTIME_ENV_HEAD_IP))
-        return head_ip
+        raise RuntimeError(
+            "Environment variable {} is not set.".format(
+                CLOUDTIK_RUNTIME_ENV_HEAD_IP))
 
 
 def get_runtime_node_host():
@@ -261,7 +262,8 @@ def subscribe_cluster_variable(cluster_variable_name):
 
 
 def get_cluster_redis_address():
-    redis_host = get_runtime_head_host()
+    # TODO: DNS naming service may not available at configuration stage.
+    redis_host = get_runtime_head_ip()
     redis_address = "{}:{}".format(redis_host, CLOUDTIK_DEFAULT_PORT)
     redis_password = CLOUDTIK_REDIS_DEFAULT_PASSWORD
     return redis_address, redis_password

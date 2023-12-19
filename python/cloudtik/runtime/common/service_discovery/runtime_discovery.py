@@ -70,7 +70,7 @@ def discover_runtime_service(
         discovery_type: DiscoveryType,
         service_type: Optional[Union[str, List[str]]] = None):
     # decide address type based on cluster configuration
-    address_type = get_cluster_node_address_type(config)
+    address_type = get_cluster_node_address_type(cluster_config)
     service_selector = get_service_selector_for_update(
         config, service_selector_key)
     # if user provide runtimes in the selector, we don't override it

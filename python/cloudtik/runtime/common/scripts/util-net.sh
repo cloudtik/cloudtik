@@ -126,3 +126,4 @@ wait_for_port() {
     [[ -n "$host" ]] && args+=("--host" "$host")
     [[ -n "$timeout" ]] && args+=("--timeout" "$timeout")
     cloudtik node wait-for-port $port "${args[@]}"
+}
