@@ -162,11 +162,23 @@ redis_configure_replication() {
     fi
 }
 
+redis_configure_sharding() {
+    if [[ "$CLUDTIK_NODE_IP" != "$CLUDTIK_NODE_HOST" ]]; then
+        redis_conf_set "cluster-announce-hostname" "$CLUDTIK_NODE_HOST"
+        redis_conf_set "cluster-preferred-endpoint-type" "hostname"
+    else
+        redis_conf_unset "cluster-announce-hostname"
+        redis_conf_set "cluster-preferred-endpoint-type" "ip"
+    fi
+}
+
 _main() {
-		# Init script for Redis Server started.
+    # Init script for Redis Server started.
     redis_configure_default
     if [ "${REDIS_CLUSTER_MODE}" == "replication" ]; then
         redis_configure_replication
+    elif [ "${REDIS_CLUSTER_MODE}" == "sharding" ]; then
+        redis_configure_sharding
     fi
 }
 
