@@ -20,4 +20,4 @@ install_bind() {
 
 set_head_option "$@"
 install_bind
-clean_install_cache
+clean_install

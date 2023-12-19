@@ -33,4 +33,4 @@ install_apisix() {
 
 set_head_option "$@"
 install_apisix
-clean_install_cache
+clean_install

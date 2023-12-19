@@ -18,7 +18,8 @@ export MONGODB_HOME=$RUNTIME_PATH/mongodb
 . "$ROOT_DIR"/common/scripts/util-functions.sh
 
 install_tools() {
-    which curl > /dev/null || (sudo apt-get -qq update -y > /dev/null; \
+    which curl > /dev/null \
+      || (sudo apt-get -qq update -y > /dev/null; \
         sudo DEBIAN_FRONTEND=noninteractive apt-get -qq install curl -y > /dev/null)
 }
 

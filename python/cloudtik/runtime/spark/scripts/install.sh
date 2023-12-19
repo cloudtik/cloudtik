@@ -78,8 +78,12 @@ install_jupyter_for_spark() {
 }
 
 install_tools() {
-    which jq > /dev/null || (sudo  apt-get -qq update -y > /dev/null; sudo DEBIAN_FRONTEND=noninteractive apt-get -qq install jq -y > /dev/null)
-    which vim > /dev/null || (sudo apt-get -qq update -y > /dev/null; sudo DEBIAN_FRONTEND=noninteractive apt-get -qq install vim -y > /dev/null)
+    which jq > /dev/null || \
+      (sudo  apt-get -qq update -y > /dev/null; \
+        sudo DEBIAN_FRONTEND=noninteractive apt-get -qq install jq -y > /dev/null)
+    which vim > /dev/null || \
+      (sudo apt-get -qq update -y > /dev/null; \
+        sudo DEBIAN_FRONTEND=noninteractive apt-get -qq install vim -y > /dev/null)
 }
 
 install_yarn_with_spark_jars() {
@@ -134,4 +138,4 @@ install_spark
 install_jupyter_for_spark
 install_yarn_with_spark_jars
 install_spark_with_cloud_jars
-clean_install_cache
+clean_install

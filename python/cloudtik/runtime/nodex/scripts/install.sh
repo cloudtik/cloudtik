@@ -33,4 +33,4 @@ install_nodex() {
 
 set_head_option "$@"
 install_nodex
-clean_install_cache
+clean_install

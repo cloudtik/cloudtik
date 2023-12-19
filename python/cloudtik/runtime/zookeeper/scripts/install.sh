@@ -24,7 +24,8 @@ install_zookeeper() {
 
     if [ ! -d "${ZOOKEEPER_HOME}" ]; then
         mkdir -p $RUNTIME_PATH
-        (cd $RUNTIME_PATH && wget -q --show-progress https://downloads.apache.org/zookeeper/zookeeper-${ZOOKEEPER_VERSION}/apache-zookeeper-${ZOOKEEPER_VERSION}-bin.tar.gz -O zookeeper.tar.gz && \
+        (cd $RUNTIME_PATH && \
+          wget -q --show-progress https://downloads.apache.org/zookeeper/zookeeper-${ZOOKEEPER_VERSION}/apache-zookeeper-${ZOOKEEPER_VERSION}-bin.tar.gz -O zookeeper.tar.gz && \
           mkdir -p "$ZOOKEEPER_HOME" && \
           tar --extract --file zookeeper.tar.gz --directory "$ZOOKEEPER_HOME" --strip-components 1 --no-same-owner && \
           rm zookeeper.tar.gz)
@@ -36,4 +37,4 @@ install_zookeeper() {
 set_head_option "$@"
 install_jdk
 install_zookeeper
-clean_install_cache
+clean_install

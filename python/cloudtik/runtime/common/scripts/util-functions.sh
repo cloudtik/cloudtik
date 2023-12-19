@@ -10,7 +10,7 @@ COMMON_SCRIPTS_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" &> /dev/null && pwd)
 # global variables
 CLOUDTIK_DOWNLOADS="https://d30257nes7d4fq.cloudfront.net/downloads"
 
-clean_install_cache() {
+clean_install() {
     (sudo rm -rf /var/lib/apt/lists/* \
         && sudo apt-get clean \
         && which conda > /dev/null && conda clean -itqy)

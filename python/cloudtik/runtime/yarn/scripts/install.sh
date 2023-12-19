@@ -30,4 +30,4 @@ set_head_option "$@"
 install_tools
 install_jdk
 install_hadoop
-clean_install_cache
+clean_install
