@@ -6,6 +6,7 @@ from cloudtik.core._private.core_utils import is_valid_dns_name
 from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_DNSMASQ, BUILT_IN_RUNTIME_BIND, \
     BUILT_IN_RUNTIME_COREDNS
 from cloudtik.core._private.service_discovery.runtime_services import get_service_discovery_runtime
+from cloudtik.core._private.service_discovery.utils import ServiceAddressType
 from cloudtik.core._private.utils import is_config_use_hostname, get_runtime_config, \
     get_workspace_name, get_cluster_name, is_node_seq_id_enabled, is_runtime_enabled, is_config_use_fqdn
 from cloudtik.core.tags import CLOUDTIK_TAG_HEAD_NODE_SEQ_ID
@@ -143,3 +144,14 @@ def with_head_host_environment_variables(
     head_host = get_cluster_node_host(config, HEAD_NODE_SEQ_ID, head_ip)
     node_envs[CLOUDTIK_RUNTIME_ENV_HEAD_HOST] = head_host
     return node_envs
+
+
+def get_cluster_node_address_type(
+        config: Dict[str, Any]) -> ServiceAddressType:
+    if (is_cluster_hostname_available(config) and
+            is_config_use_hostname(config)):
+        if is_config_use_fqdn(config):
+            return ServiceAddressType.NODE_FQDN
+        else:
+            return ServiceAddressType.NODE_SDN
+    return ServiceAddressType.NODE_IP

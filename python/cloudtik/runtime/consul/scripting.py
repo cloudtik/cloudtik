@@ -2,15 +2,15 @@ import json
 import logging
 import os
 
-from cloudtik.core._private.constants import CLOUDTIK_RUNTIME_ENV_NODE_IP, CLOUDTIK_RUNTIME_ENV_QUORUM_JOIN, \
+from cloudtik.core._private.constants import CLOUDTIK_RUNTIME_ENV_QUORUM_JOIN, \
     CLOUDTIK_RUNTIME_ENV_HEAD_IP, CLOUDTIK_RUNTIME_ENV_CLUSTER, CLOUDTIK_RUNTIME_ENV_NODE_SEQ_ID
 from cloudtik.core._private.core_utils import get_config_for_update, is_valid_dns_name
 from cloudtik.core._private.runtime_utils import get_runtime_node_type, get_runtime_node_ip, \
     get_runtime_config_from_node, RUNTIME_NODE_IP, subscribe_nodes_info, sort_nodes_by_seq_id, \
     load_and_save_json, get_runtime_value
 from cloudtik.core._private.service_discovery.utils import SERVICE_DISCOVERY_PORT, \
-    SERVICE_DISCOVERY_TAGS, SERVICE_DISCOVERY_LABELS, SERVICE_DISCOVERY_CHECK_INTERVAL, SERVICE_DISCOVERY_CHECK_TIMEOUT, \
-    SERVICE_DISCOVERY_LABEL_CLUSTER
+    SERVICE_DISCOVERY_TAGS, SERVICE_DISCOVERY_LABELS, SERVICE_DISCOVERY_CHECK_INTERVAL, \
+    SERVICE_DISCOVERY_CHECK_TIMEOUT, SERVICE_DISCOVERY_LABEL_CLUSTER
 from cloudtik.core._private.service_discovery.naming import get_cluster_node_name
 from cloudtik.core.tags import QUORUM_JOIN_STATUS_INIT
 from cloudtik.runtime.consul.utils import _get_home_dir, _is_disable_cluster_node_name, _get_config, \
@@ -56,9 +56,7 @@ def _configure_agent(runtime_config, server_mode, head):
         # join list for servers
         if head:
             # for head, use its own address
-            node_ip = get_runtime_value(CLOUDTIK_RUNTIME_ENV_NODE_IP)
-            if not node_ip:
-                raise RuntimeError("Missing node ip environment variable for the running node.")
+            node_ip = get_runtime_node_ip()
             join_list = [node_ip]
         else:
             # getting from the quorum nodes info

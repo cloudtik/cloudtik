@@ -6,12 +6,12 @@ import time
 from redis.cluster import RedisCluster
 from redis.cluster import ClusterNode
 
-from cloudtik.core._private.constants import CLOUDTIK_RUNTIME_ENV_HEAD_IP, CLOUDTIK_RUNTIME_ENV_NODE_IP, \
+from cloudtik.core._private.constants import \
     CLOUDTIK_RUNTIME_ENV_WORKSPACE, CLOUDTIK_RUNTIME_ENV_CLUSTER
 from cloudtik.core._private.core_utils import exec_with_call
 from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_REDIS
 from cloudtik.core._private.runtime_utils import get_first_data_disk_dir, get_worker_ips_ready_from_head, \
-    get_runtime_config_from_node, get_runtime_value, run_func_with_retry
+    get_runtime_config_from_node, get_runtime_value, run_func_with_retry, get_runtime_head_host, get_runtime_node_host
 from cloudtik.runtime.common.lock.runtime_lock import get_runtime_lock
 from cloudtik.runtime.redis.utils import _get_home_dir, _get_master_size, _get_config, _get_reshard_delay
 
@@ -160,13 +160,8 @@ def _join_cluster_with_workers(runtime_config, worker_hosts):
 
 def _join_cluster_with_head(runtime_config):
     # Join a new worker with head
-
-    # TODO: to support host names
-    head_node_ip = get_runtime_value(CLOUDTIK_RUNTIME_ENV_HEAD_IP)
-    if not head_node_ip:
-        raise RuntimeError("Missing head node ip environment variable for the running node.")
-
-    cluster_nodes = [head_node_ip]
+    head_host = get_runtime_head_host()
+    cluster_nodes = [head_host]
     node_id, node_host, port, password = _meet_with_cluster(
         runtime_config, cluster_nodes)
     _assign_cluster_role_with_lock(
@@ -186,11 +181,7 @@ def _get_myid(startup_nodes, node_host, port, password):
 
 
 def _meet_with_cluster(runtime_config, cluster_nodes):
-    node_ip = get_runtime_value(CLOUDTIK_RUNTIME_ENV_NODE_IP)
-    if not node_ip:
-        raise RuntimeError("Missing node ip environment variable for the running node.")
-
-    node_host = node_ip
+    node_host = get_runtime_node_host()
     port = get_runtime_value("REDIS_SERVICE_PORT")
     password = get_runtime_value("REDIS_PASSWORD")
     startup_nodes = [ClusterNode(cluster_node, port) for cluster_node in cluster_nodes]

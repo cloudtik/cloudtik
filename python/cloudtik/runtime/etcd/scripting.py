@@ -2,10 +2,10 @@ import logging
 import os
 from typing import Any, Dict
 
-from cloudtik.core._private.constants import CLOUDTIK_RUNTIME_ENV_NODE_IP, CLOUDTIK_RUNTIME_ENV_NODE_SEQ_ID
+from cloudtik.core._private.constants import CLOUDTIK_RUNTIME_ENV_NODE_SEQ_ID
 from cloudtik.core._private.core_utils import exec_with_output, strip_quote
 from cloudtik.core._private.runtime_utils import RUNTIME_NODE_SEQ_ID, RUNTIME_NODE_IP, sort_nodes_by_seq_id, \
-    load_and_save_yaml, get_runtime_value
+    load_and_save_yaml, get_runtime_value, get_runtime_node_ip
 from cloudtik.runtime.etcd.utils import ETCD_PEER_PORT, ETCD_SERVICE_PORT, _get_home_dir
 
 logger = logging.getLogger(__name__)
@@ -47,10 +47,7 @@ def request_to_join_cluster(nodes_info: Dict[str, Any]):
         raise RuntimeError("Missing nodes info for join to the cluster.")
 
     initial_cluster = sort_nodes_by_seq_id(nodes_info)
-
-    node_ip = get_runtime_value(CLOUDTIK_RUNTIME_ENV_NODE_IP)
-    if not node_ip:
-        raise RuntimeError("Missing node ip environment variable for this node.")
+    node_ip = get_runtime_node_ip()
 
     # exclude my own address from the initial cluster as endpoints
     endpoints = [node for node in initial_cluster if node[RUNTIME_NODE_IP] != node_ip]
