@@ -24,4 +24,4 @@ install_mount() {
 
 set_head_option "$@"
 install_mount
-clean_install_cache
+clean_install

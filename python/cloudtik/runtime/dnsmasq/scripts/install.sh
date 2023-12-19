@@ -20,4 +20,4 @@ install_dnsmasq() {
 
 set_head_option "$@"
 install_dnsmasq
-clean_install_cache
+clean_install

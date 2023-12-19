@@ -24,4 +24,4 @@ install_haproxy() {
 
 set_head_option "$@"
 install_haproxy
-clean_install_cache
+clean_install

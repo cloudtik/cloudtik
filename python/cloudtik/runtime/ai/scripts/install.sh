@@ -96,4 +96,4 @@ install_ai() {
 set_head_option "$@"
 install_tools
 install_ai
-clean_install_cache
+clean_install

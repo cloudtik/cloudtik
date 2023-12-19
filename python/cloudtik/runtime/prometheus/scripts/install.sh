@@ -20,7 +20,8 @@ install_prometheus() {
     if [ ! -f "${PROMETHEUS_HOME}/prometheus" ]; then
         deb_arch=$(get_deb_arch)
         mkdir -p $RUNTIME_PATH
-        (cd $RUNTIME_PATH && wget -q --show-progress https://github.com/prometheus/prometheus/releases/download/v${PROMETHEUS_VERSION}/prometheus-${PROMETHEUS_VERSION}.linux-${deb_arch}.tar.gz -O prometheus.tar.gz && \
+        (cd $RUNTIME_PATH && \
+          wget -q --show-progress https://github.com/prometheus/prometheus/releases/download/v${PROMETHEUS_VERSION}/prometheus-${PROMETHEUS_VERSION}.linux-${deb_arch}.tar.gz -O prometheus.tar.gz && \
           mkdir -p "$PROMETHEUS_HOME" && \
           tar --extract --file prometheus.tar.gz --directory "$PROMETHEUS_HOME" --strip-components 1 --no-same-owner && \
           rm prometheus.tar.gz)
@@ -30,4 +31,4 @@ install_prometheus() {
 
 set_head_option "$@"
 install_prometheus
-clean_install_cache
+clean_install

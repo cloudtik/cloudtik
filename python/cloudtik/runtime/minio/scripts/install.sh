@@ -21,7 +21,8 @@ install_minio() {
     if [ ! -f "${MINIO_HOME}/bin/minio" ]; then
         deb_arch=$(get_deb_arch)
         mkdir -p $RUNTIME_PATH
-        (cd $RUNTIME_PATH && wget -q --show-progress \
+        (cd $RUNTIME_PATH && \
+          wget -q --show-progress \
             https://dl.min.io/server/minio/release/linux-${deb_arch}/archive/minio.RELEASE.${MINIO_VERSION} -O minio.bin && \
           mkdir -p "$MINIO_HOME/bin" && \
           chmod +x minio.bin && \
@@ -30,10 +31,11 @@ install_minio() {
 
         if [ $IS_HEAD_NODE == "true" ]; then
             # Download mc cli on head
-            (cd $RUNTIME_PATH && wget -q --show-progress \
+            (cd $RUNTIME_PATH && \
+              wget -q --show-progress \
                 https://dl.min.io/client/mc/release/linux-${deb_arch}/archive/mc.RELEASE.${MINIO_CLIENT_VERSION} -O mc.bin && \
-            chmod +x mc.bin && \
-            mv mc.bin $MINIO_HOME/bin/mc)
+              chmod +x mc.bin && \
+              mv mc.bin $MINIO_HOME/bin/mc)
             echo "export PATH=\$MINIO_HOME/bin:\$PATH" >> ${USER_HOME}/.bashrc
         fi
     fi

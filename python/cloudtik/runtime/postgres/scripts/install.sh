@@ -57,4 +57,4 @@ install_postgres() {
 
 set_head_option "$@"
 install_postgres
-clean_install_cache
+clean_install

@@ -20,4 +20,4 @@ install_ray() {
 
 set_head_option "$@"
 install_ray
-clean_install_cache
+clean_install

@@ -21,7 +21,8 @@ install_consul() {
     then
         deb_arch=$(get_deb_arch)
         wget -O - -q https://apt.releases.hashicorp.com/gpg | sudo apt-key add -
-        echo "deb [arch=${deb_arch}] https://apt.releases.hashicorp.com $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/hashicorp.list > /dev/null
+        echo "deb [arch=${deb_arch}] https://apt.releases.hashicorp.com $(lsb_release -cs) main" \
+          | sudo tee /etc/apt/sources.list.d/hashicorp.list > /dev/null
         sudo apt-get -qq update -y > /dev/null
         sudo DEBIAN_FRONTEND=noninteractive apt-get install -qq consul=${CONSUL_VERSION}-* -y > /dev/null
         sudo rm -f /etc/apt/sources.list.d/hashicorp.list
@@ -30,4 +31,4 @@ install_consul() {
 
 set_head_option "$@"
 install_consul
-clean_install_cache
+clean_install
