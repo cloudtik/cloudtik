@@ -14,6 +14,7 @@ ROOT_DIR="$(dirname "$(dirname "$BIN_DIR")")"
 . "$ROOT_DIR"/common/scripts/util-value.sh
 . "$ROOT_DIR"/common/scripts/util-os.sh
 . "$ROOT_DIR"/common/scripts/util-fs.sh
+. "$ROOT_DIR"/common/scripts/util-net.sh
 
 ########################
 # Return field separator to use in lists. One of comma or semi-colon, comma
@@ -215,11 +216,16 @@ Available options are 'primary/secondary/arbiter/hidden'"
 # Arguments:
 #   None
 # Returns:
-#   The value of get_machine_ip, $MONGODB_ADVERTISED_HOSTNAME or the current host address
+#   The value of $MONGODB_ADVERTISED_IP, get_machine_ip, $MONGODB_ADVERTISED_HOSTNAME
+#   or the current host address
 ########################
 get_mongo_hostname() {
     if is_boolean_yes "$MONGODB_ADVERTISE_IP"; then
-        get_machine_ip
+        if [[ -n "$MONGODB_ADVERTISED_IP" ]]; then
+            echo "$MONGODB_ADVERTISED_IP"
+        else
+            get_machine_ip
+        fi
     elif [[ -n "$MONGODB_ADVERTISED_HOSTNAME" ]]; then
         echo "$MONGODB_ADVERTISED_HOSTNAME"
     else

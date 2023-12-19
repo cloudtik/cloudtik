@@ -179,9 +179,11 @@ mongodb_sharded_set_sharding_conf() {
 #   None
 #########################
 mongodb_sharded_join_shard_cluster() {
+    node=$(get_mongo_hostname)
+    port=$(get_mongo_port)
     mongodb_start_bg
     info "Joining the shard cluster"
-    if ! retry_while "mongodb_sharded_is_join_shard_pending $MONGODB_REPLICA_SET_NAME/$MONGODB_ADVERTISED_HOSTNAME:$MONGODB_PORT $MONGODB_MONGOS_HOST $MONGODB_MONGOS_HOST_PORT root $MONGODB_ROOT_PASSWORD" "$MONGODB_MAX_TIMEOUT"; then
+    if ! retry_while "mongodb_sharded_is_join_shard_pending $MONGODB_REPLICA_SET_NAME/$node:$port $MONGODB_MONGOS_HOST $MONGODB_MONGOS_HOST_PORT root $MONGODB_ROOT_PASSWORD" "$MONGODB_MAX_TIMEOUT"; then
         error "Unable to join the sharded cluster"
         exit 1
     fi

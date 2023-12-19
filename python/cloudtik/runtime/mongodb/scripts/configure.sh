@@ -92,6 +92,16 @@ set_env_for_init() {
     configure_variable MONGODB_VOLUME_DIR "${VOLUME_DIR}"
     configure_variable MONGODB_PORT ${MONGODB_SERVICE_PORT}
 
+    # configure ip or hostname
+    if [ "${NODE_IP_ADDRESS}" != "${NODE_HOST_ADDRESS}" ]; then
+        # there is hostname available
+        configure_variable MONGODB_ADVERTISE_IP false
+        configure_variable MONGODB_ADVERTISED_HOSTNAME "${NODE_HOST_ADDRESS}"
+    else
+        configure_variable MONGODB_ADVERTISE_IP true
+        configure_variable MONGODB_ADVERTISED_IP "${NODE_IP_ADDRESS}"
+    fi
+
     if [ -z "${MONGODB_ROOT_PASSWORD}" ]; then
         configure_variable MONGODB_ALLOW_EMPTY_PASSWORD true
     fi
@@ -212,7 +222,7 @@ configure_mongodb() {
         cp ${config_template_file} ${MONGODB_CONFIG_FILE}
     elif [ "${MONGODB_CLUSTER_MODE}" == "sharding" ]; then
         if [ "${MONGODB_SHARDING_CLUSTER_ROLE}" == "mongos" ]; then
-            config_template_file=${output_dir}/mongod-sharding-mongos.conf
+            config_template_file=${output_dir}/mongos.conf
             configure_mongos
             cp ${config_template_file} ${MONGODB_MONGOS_CONFIG_FILE}
         else
@@ -222,8 +232,8 @@ configure_mongodb() {
             cp ${config_template_file} ${MONGODB_CONFIG_FILE}
 
             # The mongos need on a different port number
-            configure_mongos ${output_dir}/mongod-sharding-mongos.conf
-            cp ${output_dir}/mongod-sharding-mongos.conf ${MONGODB_MONGOS_CONFIG_FILE}
+            configure_mongos ${output_dir}/mongos.conf
+            cp ${output_dir}/mongos.conf ${MONGODB_MONGOS_CONFIG_FILE}
         fi
     else
         config_template_file=${output_dir}/mongod.conf
