@@ -162,7 +162,7 @@ redis_configure_replication() {
     fi
 }
 
-redis_configure_replication() {
+redis_configure_sharding() {
     if [[ "$CLUDTIK_NODE_IP" != "$CLUDTIK_NODE_HOST" ]]; then
         redis_conf_set "cluster-announce-hostname" "$CLUDTIK_NODE_HOST"
         redis_conf_set "cluster-preferred-endpoint-type" "hostname"
