@@ -38,11 +38,26 @@ logger = logging.getLogger(__name__)
 
 
 def _register_runtime_commands():
+    try:
+        _search_and_register_runtime_commands()
+    except Exception:
+        # Ignore the errors.
+        # This may cause by import some unexpected module
+        pass
+
+
+def _search_and_register_runtime_commands():
     from cloudtik import runtime
 
+    def ingore_error(name):
+        pass
+
     base_dir = os.path.dirname(runtime.__file__)
-    for loader, module_name, is_pkg in pkgutil.walk_packages(runtime.__path__):
-        if not is_pkg:
+    for loader, module_name, is_pkg in pkgutil.walk_packages(
+            runtime.__path__, onerror=ingore_error):
+        # walk packages will return global packages not in the current path
+        # if the name is also package in the global namespace
+        if not is_pkg or "." in module_name:
             continue
         scripts_file = os.path.join(base_dir, module_name, "scripts.py")
         if not os.path.exists(scripts_file):

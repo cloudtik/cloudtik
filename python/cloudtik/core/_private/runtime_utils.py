@@ -278,7 +278,8 @@ def get_redis_client(redis_address=None, redis_password=None):
 
 
 def _get_key_from_kv(key):
-    from cloudtik.core._private.state.kv_store import kv_get, kv_initialized, kv_initialize_with_address
+    from cloudtik.core._private.state.kv_store import \
+        kv_get, kv_initialized, kv_initialize_with_address
     if not kv_initialized():
         redis_address, redis_password = get_cluster_redis_address()
         kv_initialize_with_address(redis_address, redis_password)
@@ -287,7 +288,8 @@ def _get_key_from_kv(key):
 
 
 def _put_key_to_kv(key, value):
-    from cloudtik.core._private.state.kv_store import kv_put, kv_initialized, kv_initialize_with_address
+    from cloudtik.core._private.state.kv_store import \
+        kv_put, kv_initialized, kv_initialize_with_address
     if not kv_initialized():
         redis_address, redis_password = get_cluster_redis_address()
         kv_initialize_with_address(redis_address, redis_password)
