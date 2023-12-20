@@ -9,9 +9,13 @@ from cloudtik.core._private import services
 from cloudtik.core._private.constants import CLOUDTIK_RUNTIME_ENV_NODE_TYPE, CLOUDTIK_RUNTIME_ENV_NODE_IP, \
     CLOUDTIK_RUNTIME_ENV_SECRETS, CLOUDTIK_RUNTIME_ENV_HEAD_IP, env_bool, CLOUDTIK_DATA_DISK_MOUNT_POINT, \
     CLOUDTIK_DATA_DISK_MOUNT_NAME_PREFIX, CLOUDTIK_DEFAULT_PORT, CLOUDTIK_REDIS_DEFAULT_PASSWORD, \
-    CLOUDTIK_RUNTIME_ENV_HEAD_HOST, CLOUDTIK_RUNTIME_ENV_NODE_HOST
+    CLOUDTIK_RUNTIME_ENV_HEAD_HOST, CLOUDTIK_RUNTIME_ENV_NODE_HOST, CLOUDTIK_RUNTIME_ENV_WORKSPACE, \
+    CLOUDTIK_RUNTIME_ENV_CLUSTER
 from cloudtik.core._private.crypto import AESCipher
 from cloudtik.core._private.provider_factory import _get_node_provider
+from cloudtik.core._private.service_discovery.naming import _get_cluster_node_fqdn_of, _get_cluster_node_sdn_of, \
+    get_address_type_of_hostname
+from cloudtik.core._private.service_discovery.utils import ServiceAddressType
 from cloudtik.core._private.utils import load_head_cluster_config, _get_node_type_specific_runtime_config, \
     get_runtime_config_key, decode_cluster_secrets, CLOUDTIK_CLUSTER_NODES_INFO_NODE_TYPE, \
     _get_workers_ready, _get_worker_node_ips, CLOUDTIK_CLUSTER_VARIABLE
@@ -295,3 +299,30 @@ def _put_key_to_kv(key, value):
         kv_initialize_with_address(redis_address, redis_password)
 
     return kv_put(key, value)
+
+
+def get_runtime_node_address_type():
+    node_ip = get_runtime_node_ip()
+    node_host = get_runtime_node_host()
+    if node_ip == node_host:
+        return ServiceAddressType.NODE_IP
+    else:
+        return get_address_type_of_hostname(node_host)
+
+
+def get_node_address_from_node_info(node_info, address_type):
+    if (address_type == ServiceAddressType.NODE_FQDN
+            or address_type == ServiceAddressType.NODE_SDN):
+        cluster_name = get_runtime_value(CLOUDTIK_RUNTIME_ENV_CLUSTER)
+        node_seq_id = node_info.get(RUNTIME_NODE_SEQ_ID)
+        if not node_seq_id:
+            raise RuntimeError("Node seq id is not available in node info.")
+        if address_type == ServiceAddressType.NODE_FQDN:
+            workspace_name = get_runtime_value(CLOUDTIK_RUNTIME_ENV_WORKSPACE)
+            return _get_cluster_node_fqdn_of(
+                workspace_name, cluster_name, node_seq_id)
+        else:
+            return _get_cluster_node_sdn_of(
+                cluster_name, node_seq_id)
+    else:
+        return node_info[RUNTIME_NODE_IP]
