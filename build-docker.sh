@@ -250,7 +250,6 @@ do
                   -t ${DOCKER_REGISTRY}cloudtik/${image_name}:$IMAGE_TAG \
                   docker/${DOCKER_FILE_PATH}runtime
             done
-
         fi
     fi
 

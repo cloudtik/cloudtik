@@ -46,7 +46,6 @@ install_mysql() {
         && sudo DEBIAN_FRONTEND=noninteractive apt-get install -qq -y \
           mysql-community-client="${MYSQL_VERSION}" \
           mysql-community-server-core="${MYSQL_VERSION}" >/dev/null
-
         sudo rm -f /etc/apt/sources.list.d/mysql.list
     fi
 }

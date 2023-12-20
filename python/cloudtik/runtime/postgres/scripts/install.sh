@@ -51,7 +51,6 @@ install_postgres() {
           && sudo DEBIAN_FRONTEND=noninteractive apt-get install -qq -y \
               --no-install-recommends "postgresql-$PG_MAJOR" "postgresql-client-$PG_MAJOR" libpq-dev >/dev/null \
           && echo "export PATH=/usr/lib/postgresql/$PG_MAJOR/bin:\$PATH" >> ${USER_HOME}/.bashrc
-
         sudo rm -f /etc/apt/sources.list.d/postgres.list
     fi
 }
