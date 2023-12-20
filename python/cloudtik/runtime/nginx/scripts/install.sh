@@ -17,8 +17,8 @@ install_nginx() {
         (wget -O - -q http://nginx.org/keys/nginx_signing.key | sudo apt-key add - && \
           echo "deb [arch=${deb_arch}] http://nginx.org/packages/mainline/ubuntu/ $(lsb_release -cs) nginx" | sudo tee /etc/apt/sources.list.d/nginx.list > /dev/null && \
           sudo apt-get update -qq -y > /dev/null && \
-          sudo DEBIAN_FRONTEND=noninteractive apt-get install -qq nginx -y > /dev/null && \
-          sudo rm -f /etc/apt/sources.list.d/nginx.list)
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -qq nginx -y > /dev/null)
+        sudo rm -f /etc/apt/sources.list.d/nginx.list
     fi
 }
 

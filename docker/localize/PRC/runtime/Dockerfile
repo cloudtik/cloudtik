@@ -1,5 +1,6 @@
+ARG RUNTIME_IMAGE="universe"
 ARG BASE_TAG="nightly"
-FROM cloudtik/trino-runtime:$BASE_TAG
+FROM cloudtik/$RUNTIME_IMAGE:$BASE_TAG
 
 RUN sudo sed -i 's/archive.ubuntu.com/mirrors.aliyun.com/' /etc/apt/sources.list \
     && sudo sed -i 's/security.ubuntu.com/mirrors.aliyun.com/' /etc/apt/sources.list \

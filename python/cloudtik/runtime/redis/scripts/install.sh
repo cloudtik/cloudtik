@@ -26,7 +26,7 @@ install_redis() {
         #   | sudo tee /etc/apt/sources.list.d/redis.list >/dev/null
         # sudo apt-get -qq update -y > /dev/null && \
         # sudo DEBIAN_FRONTEND=noninteractive apt-get install -qq -y \
-        #   redis=${REDIS_VERSION} > /dev/null && \
+        #   redis=${REDIS_VERSION} > /dev/null
         # sudo rm -f /etc/apt/sources.list.d/redis.list
 
         local deb_arch=$(get_deb_arch)

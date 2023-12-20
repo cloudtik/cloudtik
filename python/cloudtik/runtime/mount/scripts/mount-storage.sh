@@ -17,6 +17,108 @@
 #   b. If there is no remote cluster storage
 #      Any cluster local storage mounts to DEFAULT_FS_MOUNT_PATH
 
+# Installing functions
+install_hdfs_fuse() {
+    if ! type fuse_dfs >/dev/null 2>&1; then
+        arch=$(uname -m)
+        sudo wget -q ${CLOUDTIK_DOWNLOADS}/hadoop/fuse_dfs-${HADOOP_VERSION}-${arch} \
+          -O /usr/bin/fuse_dfs
+        sudo wget -q ${CLOUDTIK_DOWNLOADS}/hadoop/fuse_dfs_wrapper-${HADOOP_VERSION}.sh \
+          -O /usr/bin/fuse_dfs_wrapper.sh
+        sudo chmod +x /usr/bin/fuse_dfs
+        sudo chmod +x /usr/bin/fuse_dfs_wrapper.sh
+    fi
+
+    # nfs mount may needed
+    which mount.nfs > /dev/null \
+      || (sudo  apt-get -qq update -y > /dev/null; \
+        sudo DEBIAN_FRONTEND=noninteractive apt-get -qq install nfs-common -y > /dev/null)
+
+    local HDFS_NFS_JAR=hadoop-hdfs-nfs-${HADOOP_VERSION}.jar
+    local HDFS_NFS_JAR_FIX=${HADOOP_HOME}/fix/${HDFS_NFS_JAR}
+    if [ ! -f "${HDFS_NFS_JAR_FIX}" ] \
+      && [ -d "${HADOOP_HOME}/share/hadoop/hdfs" ]; then
+        # install HDFS NFS fix if not installed
+        mkdir -p ${HADOOP_HOME}/fix \
+          && wget -q ${CLOUDTIK_DOWNLOADS}/hadoop/${HDFS_NFS_JAR} -O ${HDFS_NFS_JAR_FIX} \
+          && cp ${HDFS_NFS_JAR_FIX} ${HADOOP_HOME}/share/hadoop/hdfs/${HDFS_NFS_JAR}
+    fi
+}
+
+install_s3_fuse() {
+    if ! type s3fs >/dev/null 2>&1; then
+        echo "Installing S3 Fuse..."
+        sudo apt-get -qq update -y > /dev/null \
+          && sudo DEBIAN_FRONTEND=noninteractive apt-get install -qq s3fs -y > /dev/null
+    fi
+}
+
+install_azure_blob_fuse() {
+    if ! type blobfuse2 >/dev/null 2>&1; then
+        echo "Installing Azure Blob Fuse..."
+        wget -q -N https://packages.microsoft.com/config/ubuntu/20.04/packages-microsoft-prod.deb \
+          && sudo dpkg -i packages-microsoft-prod.deb > /dev/null \
+          && sudo apt-get -qq update -y > /dev/null \
+          && sudo DEBIAN_FRONTEND=noninteractive apt-get install -qq libfuse3-dev fuse3 -y > /dev/null \
+          && sudo DEBIAN_FRONTEND=noninteractive apt-get install -qq blobfuse2 -y > /dev/null
+    fi
+}
+
+install_gcs_fuse() {
+    if ! type gcsfuse >/dev/null 2>&1; then
+        echo "Installing GCS Fuse..."
+        curl -fsSL https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo tee /usr/share/keyrings/cloud.google.asc >/dev/null \
+          && echo "deb [signed-by=/usr/share/keyrings/cloud.google.asc] https://packages.cloud.google.com/apt gcsfuse-$(lsb_release -c -s) main" \
+            | sudo tee /etc/apt/sources.list.d/gcsfuse.list >/dev/null \
+          && sudo apt-get -qq update -y > /dev/null \
+          && sudo DEBIAN_FRONTEND=noninteractive apt-get install -qq gcsfuse -y > /dev/null \
+          && sudo rm -f /etc/apt/sources.list.d/gcsfuse.list
+    fi
+}
+
+install_aliyun_oss_fuse() {
+    if ! type ossfs >/dev/null 2>&1; then
+        echo "Installing Aliyun OSS Fuse..."
+        OSS_PACKAGE="ossfs_1.80.7_ubuntu20.04_amd64.deb"
+        wget -q -N https://gosspublic.alicdn.com/ossfs/${OSS_PACKAGE} \
+          && sudo apt-get -qq update -y > /dev/null \
+          && sudo DEBIAN_FRONTEND=noninteractive apt-get install -qq gdebi-core -y > /dev/null \
+          && sudo gdebi --q --n ${OSS_PACKAGE} > /dev/null
+        rm -f ${OSS_PACKAGE}
+    fi
+}
+
+install_cloud_storage_fs() {
+    if [ "$CLOUDTIK_INSTALL_ALL" == "true" ]; then
+        install_s3_fuse
+        install_azure_blob_fuse
+        install_gcs_fuse
+        install_aliyun_oss_fuse
+    else
+        # cloud storage from provider
+        if [ "$AWS_CLOUD_STORAGE" == "true" ]; then
+            install_s3_fuse
+        elif [ "$AZURE_CLOUD_STORAGE" == "true" ]; then
+            install_azure_blob_fuse
+        elif [ "$GCP_CLOUD_STORAGE" == "true" ]; then
+            install_gcs_fuse
+        elif [ "$ALIYUN_CLOUD_STORAGE" == "true" ]; then
+            install_aliyun_oss_fuse
+        fi
+    fi
+}
+
+install_local_storage_fs() {
+    # always install local storage fs
+    install_hdfs_fuse
+    install_s3_fuse
+}
+
+install_storage_fs() {
+    install_cloud_storage_fs
+    install_local_storage_fs
+}
+
 # Configuring functions
 configure_fuse_options() {
     FUSE_CONF_FILE="/etc/fuse.conf"
@@ -225,100 +327,6 @@ configure_storage_fs() {
     CONFIGURED_FOR_DEFAULT_FS=false
     configure_cloud_storage_fs
     configure_local_storage_fs
-}
-
-# Installing functions
-install_hdfs_fuse() {
-    if ! type fuse_dfs >/dev/null 2>&1; then
-        arch=$(uname -m)
-        sudo wget -q ${CLOUDTIK_DOWNLOADS}/hadoop/fuse_dfs-${HADOOP_VERSION}-${arch} \
-          -O /usr/bin/fuse_dfs
-        sudo wget -q ${CLOUDTIK_DOWNLOADS}/hadoop/fuse_dfs_wrapper-${HADOOP_VERSION}.sh \
-          -O /usr/bin/fuse_dfs_wrapper.sh
-        sudo chmod +x /usr/bin/fuse_dfs
-        sudo chmod +x /usr/bin/fuse_dfs_wrapper.sh
-    fi
-
-    # nfs mount may needed
-    which mount.nfs > /dev/null \
-      || (sudo  apt-get -qq update -y > /dev/null; \
-        sudo DEBIAN_FRONTEND=noninteractive apt-get -qq install nfs-common -y > /dev/null)
-
-    local HDFS_NFS_JAR=hadoop-hdfs-nfs-${HADOOP_VERSION}.jar
-    local HDFS_NFS_JAR_FIX=${HADOOP_HOME}/fix/${HDFS_NFS_JAR}
-    if [ ! -f "${HDFS_NFS_JAR_FIX}" ] \
-      && [ -d "${HADOOP_HOME}/share/hadoop/hdfs" ]; then
-        # install HDFS NFS fix if not installed
-        mkdir -p ${HADOOP_HOME}/fix && \
-          wget -q ${CLOUDTIK_DOWNLOADS}/hadoop/${HDFS_NFS_JAR} -O ${HDFS_NFS_JAR_FIX} && \
-          cp ${HDFS_NFS_JAR_FIX} ${HADOOP_HOME}/share/hadoop/hdfs/${HDFS_NFS_JAR}
-    fi
-}
-
-install_s3_fuse() {
-    if ! type s3fs >/dev/null 2>&1; then
-        echo "Installing S3 Fuse..."
-        sudo apt-get -qq update -y > /dev/null
-        sudo apt-get install -qq s3fs -y > /dev/null
-    fi
-}
-
-install_azure_blob_fuse() {
-    if ! type blobfuse2 >/dev/null 2>&1; then
-        echo "Installing Azure Blob Fuse..."
-        wget -q -N https://packages.microsoft.com/config/ubuntu/20.04/packages-microsoft-prod.deb
-        sudo dpkg -i packages-microsoft-prod.deb > /dev/null
-        sudo apt-get -qq update -y > /dev/null
-        sudo DEBIAN_FRONTEND=noninteractive apt-get install -qq libfuse3-dev fuse3 -y > /dev/null
-        sudo DEBIAN_FRONTEND=noninteractive apt-get install -qq blobfuse2 -y > /dev/null
-    fi
-}
-
-install_gcs_fuse() {
-    if ! type gcsfuse >/dev/null 2>&1; then
-        echo "Installing GCS Fuse..."
-        curl -fsSL https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo tee /usr/share/keyrings/cloud.google.asc >/dev/null \
-          && echo "deb [signed-by=/usr/share/keyrings/cloud.google.asc] https://packages.cloud.google.com/apt gcsfuse-$(lsb_release -c -s) main" | sudo tee /etc/apt/sources.list.d/gcsfuse.list >/dev/null \
-          && sudo apt-get -qq update -y > /dev/null \
-          && sudo DEBIAN_FRONTEND=noninteractive apt-get install -qq gcsfuse -y > /dev/null \
-          && sudo rm -f /etc/apt/sources.list.d/gcsfuse.list
-    fi
-}
-
-install_aliyun_oss_fuse() {
-    if ! type ossfs >/dev/null 2>&1; then
-        echo "Installing Aliyun OSS Fuse..."
-        OSS_PACKAGE="ossfs_1.80.7_ubuntu20.04_amd64.deb"
-        wget -q -N https://gosspublic.alicdn.com/ossfs/${OSS_PACKAGE}
-        sudo apt-get -qq update -y > /dev/null
-        sudo apt-get install -qq gdebi-core -y > /dev/null
-        sudo gdebi --q --n ${OSS_PACKAGE} > /dev/null
-        rm ${OSS_PACKAGE}
-    fi
-}
-
-install_cloud_storage_fs() {
-    # cloud storage from provider
-    if [ "$AWS_CLOUD_STORAGE" == "true" ]; then
-        install_s3_fuse
-    elif [ "$AZURE_CLOUD_STORAGE" == "true" ]; then
-        install_azure_blob_fuse
-    elif [ "$GCP_CLOUD_STORAGE" == "true" ]; then
-        install_gcs_fuse
-    elif [ "$ALIYUN_CLOUD_STORAGE" == "true" ]; then
-        install_aliyun_oss_fuse
-    fi
-}
-
-install_local_storage_fs() {
-    # always install local storage fs
-    install_hdfs_fuse
-    install_s3_fuse
-}
-
-install_storage_fs() {
-    install_cloud_storage_fs
-    install_local_storage_fs
 }
 
 # Service functions
