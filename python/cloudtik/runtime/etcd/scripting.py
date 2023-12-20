@@ -5,7 +5,8 @@ from typing import Any, Dict
 from cloudtik.core._private.constants import CLOUDTIK_RUNTIME_ENV_NODE_SEQ_ID
 from cloudtik.core._private.core_utils import exec_with_output, strip_quote
 from cloudtik.core._private.runtime_utils import RUNTIME_NODE_SEQ_ID, RUNTIME_NODE_IP, sort_nodes_by_seq_id, \
-    load_and_save_yaml, get_runtime_value, get_runtime_node_ip
+    load_and_save_yaml, get_runtime_value, get_runtime_node_ip, get_runtime_node_address_type, \
+    get_node_address_from_node_info, get_runtime_node_host
 from cloudtik.runtime.etcd.utils import ETCD_PEER_PORT, ETCD_SERVICE_PORT, _get_home_dir
 
 logger = logging.getLogger(__name__)
@@ -17,9 +18,11 @@ logger = logging.getLogger(__name__)
 
 
 def _get_initial_cluster_from_nodes_info(initial_cluster):
+    address_type = get_runtime_node_address_type()
     return ",".join(
         ["server{}=http://{}:{}".format(
-            node[RUNTIME_NODE_SEQ_ID], node[RUNTIME_NODE_IP], ETCD_PEER_PORT) for node in initial_cluster])
+            node_info[RUNTIME_NODE_SEQ_ID], get_node_address_from_node_info(
+                node_info, address_type), ETCD_PEER_PORT) for node_info in initial_cluster])
 
 
 def configure_initial_cluster(nodes_info: Dict[str, Any]):
@@ -48,9 +51,11 @@ def request_to_join_cluster(nodes_info: Dict[str, Any]):
 
     initial_cluster = sort_nodes_by_seq_id(nodes_info)
     node_ip = get_runtime_node_ip()
+    address_type = get_runtime_node_address_type()
 
     # exclude my own address from the initial cluster as endpoints
-    endpoints = [node for node in initial_cluster if node[RUNTIME_NODE_IP] != node_ip]
+    endpoints = [get_node_address_from_node_info(
+        node_info, address_type) for node_info in initial_cluster if node_info[RUNTIME_NODE_IP] != node_ip]
     if not endpoints:
         raise RuntimeError("No exiting nodes found for contacting to join the cluster.")
 
@@ -58,7 +63,8 @@ def request_to_join_cluster(nodes_info: Dict[str, Any]):
     if not seq_id:
         raise RuntimeError("Missing sequence ip environment variable for this node.")
 
-    _request_member_add(endpoints, node_ip, seq_id)
+    node_host = get_runtime_node_host()
+    _request_member_add(endpoints, node_host, seq_id)
 
 
 def _get_initial_cluster_from_output(output):
@@ -69,17 +75,17 @@ def _get_initial_cluster_from_output(output):
             return strip_quote(output_line[len(initial_cluster_mark):])
 
 
-def _request_member_add(endpoints, node_ip, seq_id):
-    # etcdctl --endpoints=http://existing_node_ip:2379 member add server --peer-urls=http://node_ip:2380
+def _request_member_add(endpoints, node_host, seq_id):
+    # etcdctl --endpoints=http://existing_node_host:2379 member add server --peer-urls=http://node_host:2380
     cmd = ["etcdctl"]
     endpoints_str = ",".join(
         ["http://{}:{}".format(
-            node[RUNTIME_NODE_IP], ETCD_SERVICE_PORT) for node in endpoints])
+            endpoint, ETCD_SERVICE_PORT) for endpoint in endpoints])
     cmd += ["--endpoints=" + endpoints_str]
     cmd += ["member", "add"]
     node_name = "server{}".format(seq_id)
     cmd += [node_name]
-    peer_urls = "--peer-urls=http://{}:{}".format(node_ip, ETCD_PEER_PORT)
+    peer_urls = "--peer-urls=http://{}:{}".format(node_host, ETCD_PEER_PORT)
     cmd += [peer_urls]
 
     cmd_str = " ".join(cmd)
