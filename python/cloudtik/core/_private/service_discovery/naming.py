@@ -23,6 +23,8 @@ HEAD_NODE_SEQ_ID = CLOUDTIK_TAG_HEAD_NODE_SEQ_ID
 
 
 def get_cluster_node_name(cluster_name, seq_id):
+    if not cluster_name:
+        raise RuntimeError("Invalid cluster name: should not be empty.")
     return "{}-{}".format(cluster_name, seq_id)
 
 
@@ -32,7 +34,19 @@ def get_cluster_node_sdn(node_name):
 
 
 def get_cluster_node_fqdn(node_name, workspace_name):
+    if not workspace_name:
+        raise RuntimeError("Invalid workspace name: should not be empty.")
     return "{}.node.{}.cloudtik".format(node_name, workspace_name)
+
+
+def get_address_type_of_hostname(hostname):
+    if not hostname:
+        raise RuntimeError("Invalid hostname: hostname is empty.")
+    components = hostname.split('.')
+    if len(components) <= 3:
+        return ServiceAddressType.NODE_SDN
+    else:
+        return ServiceAddressType.NODE_FQDN
 
 
 def get_dns_naming_runtime(runtime_config):
@@ -115,6 +129,10 @@ def _get_cluster_node_hostname(config: Dict[str, Any], node_seq_id) -> str:
 
 def get_cluster_node_sdn_of(config, node_seq_id):
     cluster_name = get_cluster_name(config)
+    return _get_cluster_node_sdn_of(cluster_name, node_seq_id)
+
+
+def _get_cluster_node_sdn_of(cluster_name, node_seq_id):
     node_name = get_cluster_node_name(cluster_name, node_seq_id)
     return get_cluster_node_sdn(node_name)
 
@@ -122,6 +140,12 @@ def get_cluster_node_sdn_of(config, node_seq_id):
 def get_cluster_node_fqdn_of(config, node_seq_id):
     workspace_name = get_workspace_name(config)
     cluster_name = get_cluster_name(config)
+    return _get_cluster_node_fqdn_of(
+        workspace_name, cluster_name, node_seq_id)
+
+
+def _get_cluster_node_fqdn_of(
+        workspace_name, cluster_name, node_seq_id):
     node_name = get_cluster_node_name(cluster_name, node_seq_id)
     return get_cluster_node_fqdn(node_name, workspace_name)
 

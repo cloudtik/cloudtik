@@ -3,8 +3,8 @@ import os
 from typing import Any, Dict
 
 from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_ZOOKEEPER
-from cloudtik.core._private.runtime_utils import RUNTIME_NODE_IP, \
-    sort_nodes_by_seq_id
+from cloudtik.core._private.runtime_utils import sort_nodes_by_seq_id, get_node_address_from_node_info
+from cloudtik.core._private.service_discovery.naming import get_cluster_node_address_type
 from cloudtik.core._private.service_discovery.utils import get_canonical_service_name, define_runtime_service_on_worker, \
     get_service_discovery_config, ServiceRegisterException, SERVICE_DISCOVERY_FEATURE_KEY_VALUE
 from cloudtik.core._private.utils import \
@@ -68,7 +68,9 @@ def _handle_node_constraints_reached(
         node_type: str, head_info: Dict[str, Any], nodes_info: Dict[str, Any]):
     # We know this is called in the cluster scaler context
     server_ensemble = sort_nodes_by_seq_id(nodes_info)
-    endpoints = [(node_info[RUNTIME_NODE_IP], ZOOKEEPER_SERVICE_PORT
+    address_type = get_cluster_node_address_type(cluster_config)
+    endpoints = [(get_node_address_from_node_info(node_info, address_type),
+                  ZOOKEEPER_SERVICE_PORT
                   ) for node_info in server_ensemble]
 
     try:
