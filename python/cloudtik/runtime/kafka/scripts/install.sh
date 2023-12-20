@@ -25,11 +25,12 @@ install_kafka() {
 
     if [ ! -d "${KAFKA_HOME}" ]; then
         mkdir -p $RUNTIME_PATH
-        (cd $RUNTIME_PATH && \
-          wget -q --show-progress https://downloads.apache.org/kafka/${KAFKA_VERSION}/kafka_${KAFKA_SCALA_VERSION}-${KAFKA_VERSION}.tgz -O kafka.tgz && \
-          mkdir -p "$KAFKA_HOME" && \
-          tar --extract --file kafka.tgz --directory "$KAFKA_HOME" --strip-components 1 --no-same-owner && \
-          rm kafka.tgz)
+        (cd $RUNTIME_PATH \
+          && wget -q --show-progress \
+            https://downloads.apache.org/kafka/${KAFKA_VERSION}/kafka_${KAFKA_SCALA_VERSION}-${KAFKA_VERSION}.tgz -O kafka.tgz \
+          && mkdir -p "$KAFKA_HOME" \
+          && tar --extract --file kafka.tgz --directory "$KAFKA_HOME" --strip-components 1 --no-same-owner \
+          && rm kafka.tgz)
         echo "export KAFKA_HOME=$KAFKA_HOME">> ${USER_HOME}/.bashrc
         echo "export PATH=\$KAFKA_HOME/bin:\$PATH" >> ${USER_HOME}/.bashrc
     fi

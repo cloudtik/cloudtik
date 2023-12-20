@@ -24,11 +24,13 @@ install_spark() {
 
     if [ ! -d "${SPARK_HOME}" ]; then
         mkdir -p $RUNTIME_PATH
-        (cd $RUNTIME_PATH && wget -q --show-progress https://archive.apache.org/dist/spark/spark-${SPARK_VERSION}/spark-${SPARK_VERSION}-bin-hadoop3.2.tgz -O spark.tgz && \
-        mkdir -p "$SPARK_HOME" && \
-        tar --extract --file spark.tgz --directory "$SPARK_HOME" --strip-components 1 --no-same-owner && \
-        ln -rs $SPARK_HOME/examples/jars/spark-examples_*.jar $SPARK_HOME/examples/jars/spark-examples.jar && \
-        rm spark.tgz)
+        (cd $RUNTIME_PATH \
+          && wget -q --show-progress \
+            https://archive.apache.org/dist/spark/spark-${SPARK_VERSION}/spark-${SPARK_VERSION}-bin-hadoop3.2.tgz -O spark.tgz \
+          && mkdir -p "$SPARK_HOME" \
+          && tar --extract --file spark.tgz --directory "$SPARK_HOME" --strip-components 1 --no-same-owner \
+          && ln -rs $SPARK_HOME/examples/jars/spark-examples_*.jar $SPARK_HOME/examples/jars/spark-examples.jar \
+          && rm spark.tgz)
         echo "export SPARK_HOME=$SPARK_HOME">> ${USER_HOME}/.bashrc
         echo "export PATH=\$SPARK_HOME/bin:\$PATH" >> ${USER_HOME}/.bashrc
         # Config for PySpark when Spark installed
@@ -48,10 +50,12 @@ install_spark() {
         export HIVE_VERSION=3.1.2
         if [ ! -d "${HIVE_HOME}" ]; then
             mkdir -p $RUNTIME_PATH
-            (cd $RUNTIME_PATH && wget -q --show-progress https://downloads.apache.org/hive/hive-${HIVE_VERSION}/apache-hive-${HIVE_VERSION}-bin.tar.gz -O hive.tar.gz && \
-            mkdir -p "$HIVE_HOME" && \
-            tar --extract --file hive.tar.gz --directory "$HIVE_HOME" --strip-components 1 --no-same-owner && \
-            rm hive.tar.gz)
+            (cd $RUNTIME_PATH \
+              && wget -q --show-progress \
+                https://downloads.apache.org/hive/hive-${HIVE_VERSION}/apache-hive-${HIVE_VERSION}-bin.tar.gz -O hive.tar.gz \
+              && mkdir -p "$HIVE_HOME" \
+              && tar --extract --file hive.tar.gz --directory "$HIVE_HOME" --strip-components 1 --no-same-owner \
+              && rm hive.tar.gz)
             echo "export HIVE_HOME=$HIVE_HOME">> ${USER_HOME}/.bashrc
         fi
     fi
@@ -78,12 +82,12 @@ install_jupyter_for_spark() {
 }
 
 install_tools() {
-    which jq > /dev/null || \
-      (sudo  apt-get -qq update -y > /dev/null; \
-        sudo DEBIAN_FRONTEND=noninteractive apt-get -qq install jq -y > /dev/null)
-    which vim > /dev/null || \
-      (sudo apt-get -qq update -y > /dev/null; \
-        sudo DEBIAN_FRONTEND=noninteractive apt-get -qq install vim -y > /dev/null)
+    which jq > /dev/null \
+      || (sudo  apt-get -qq update -y > /dev/null; \
+          sudo DEBIAN_FRONTEND=noninteractive apt-get -qq install jq -y > /dev/null)
+    which vim > /dev/null \
+      || (sudo apt-get -qq update -y > /dev/null; \
+          sudo DEBIAN_FRONTEND=noninteractive apt-get -qq install vim -y > /dev/null)
 }
 
 install_yarn_with_spark_jars() {

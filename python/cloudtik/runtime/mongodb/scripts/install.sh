@@ -35,14 +35,14 @@ install_mongodb() {
           | sudo gpg --yes --dearmor -o /usr/share/keyrings/mongodb-server-7.0.gpg
         echo "deb [ arch=${deb_arch} signed-by=/usr/share/keyrings/mongodb-server-7.0.gpg] https://repo.mongodb.org/apt/ubuntu $(lsb_release -cs)/mongodb-org/7.0 multiverse" \
           | sudo tee /etc/apt/sources.list.d/mongodb-org-7.0.list >/dev/null
-        sudo apt-get -qq update -y > /dev/null && \
-        sudo DEBIAN_FRONTEND=noninteractive apt-get install -qq -y \
+        sudo apt-get -qq update -y > /dev/null \
+        && sudo DEBIAN_FRONTEND=noninteractive apt-get install -qq -y \
           mongodb-org=${MONGODB_VERSION} \
           mongodb-org-database=${MONGODB_VERSION} \
           mongodb-org-server=${MONGODB_VERSION} \
           mongodb-mongosh \
           mongodb-org-mongos \
-          mongodb-org-tools > /dev/null && \
+          mongodb-org-tools > /dev/null
         sudo rm -f /etc/apt/sources.list.d/mongodb-org-7.0.list
         clean_apt
     fi

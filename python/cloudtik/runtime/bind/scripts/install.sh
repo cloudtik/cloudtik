@@ -13,8 +13,8 @@ eval set -- "${args}"
 install_bind() {
     if ! command -v named &> /dev/null
     then
-        sudo apt-get -qq update -y > /dev/null; \
-        sudo DEBIAN_FRONTEND=noninteractive apt-get install -qq -y bind9 > /dev/null
+        sudo apt-get -qq update -y > /dev/null \
+          && sudo DEBIAN_FRONTEND=noninteractive apt-get install -qq -y bind9 > /dev/null
     fi
 }
 

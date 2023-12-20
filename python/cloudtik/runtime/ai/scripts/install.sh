@@ -18,25 +18,30 @@ export RUNTIME_PATH=$USER_HOME/runtime
 
 install_tools() {
     # Install necessary tools
-    which numactl > /dev/null || (sudo apt-get -qq update -y > /dev/null; \
-      sudo DEBIAN_FRONTEND=noninteractive apt-get -qq install numactl -y > /dev/null)
-    which cmake > /dev/null || (sudo apt-get -qq update -y > /dev/null; \
-      sudo DEBIAN_FRONTEND=noninteractive apt-get -qq install cmake -y > /dev/null)
-    which g++-9 > /dev/null || (sudo apt-get -qq update -y > /dev/null; \
-      sudo DEBIAN_FRONTEND=noninteractive apt-get -qq install g++-9 -y > /dev/null)
+    which numactl > /dev/null \
+      || (sudo apt-get -qq update -y > /dev/null; \
+          sudo DEBIAN_FRONTEND=noninteractive apt-get -qq install numactl -y > /dev/null)
+    which cmake > /dev/null \
+      || (sudo apt-get -qq update -y > /dev/null; \
+          sudo DEBIAN_FRONTEND=noninteractive apt-get -qq install cmake -y > /dev/null)
+    which g++-9 > /dev/null \
+      || (sudo apt-get -qq update -y > /dev/null; \
+          sudo DEBIAN_FRONTEND=noninteractive apt-get -qq install g++-9 -y > /dev/null)
 
     # SQL client tools
-    which mysql > /dev/null || (sudo apt-get -qq update -y > /dev/null; \
-      sudo DEBIAN_FRONTEND=noninteractive apt-get -qq install mysql-client -y > /dev/null)
+    which mysql > /dev/null \
+      || (sudo apt-get -qq update -y > /dev/null; \
+          sudo DEBIAN_FRONTEND=noninteractive apt-get -qq install mysql-client -y > /dev/null)
 
     POSTGRES_DRIVER=$(pip freeze | grep psycopg2)
     if [ "${POSTGRES_DRIVER}" == "" ]; then
-        sudo apt-get -qq update -y > /dev/null; \
-          sudo DEBIAN_FRONTEND=noninteractive apt-get -qq install libpq-dev -y > /dev/null
+        sudo apt-get -qq update -y > /dev/null \
+          && sudo DEBIAN_FRONTEND=noninteractive apt-get -qq install libpq-dev -y > /dev/null
     fi
 
-    which psql > /dev/null || (sudo apt-get -qq update -y > /dev/null; \
-      sudo DEBIAN_FRONTEND=noninteractive apt-get -qq install postgresql-client -y > /dev/null)
+    which psql > /dev/null \
+      || (sudo apt-get -qq update -y > /dev/null; \
+          sudo DEBIAN_FRONTEND=noninteractive apt-get -qq install postgresql-client -y > /dev/null)
 }
 
 install_ai() {
@@ -88,9 +93,10 @@ install_ai() {
     fi
 
     echo "Installing Horovod..."
-    export CXX=/usr/bin/g++-9 && HOROVOD_WITH_TENSORFLOW=1 HOROVOD_WITH_PYTORCH=1 \
-      HOROVOD_WITHOUT_MXNET=1 HOROVOD_WITH_GLOO=1 HOROVOD_WITH_MPI=1 \
-      pip --no-cache-dir -qq install horovod[tensorflow,keras,pytorch,spark,pytorch-spark]==0.27.0
+    export CXX=/usr/bin/g++-9 \
+      && HOROVOD_WITH_TENSORFLOW=1 HOROVOD_WITH_PYTORCH=1 \
+        HOROVOD_WITHOUT_MXNET=1 HOROVOD_WITH_GLOO=1 HOROVOD_WITH_MPI=1 \
+        pip --no-cache-dir -qq install horovod[tensorflow,keras,pytorch,spark,pytorch-spark]==0.27.0
 }
 
 set_head_option "$@"
