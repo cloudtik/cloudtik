@@ -43,7 +43,7 @@ def get_address_type_of_hostname(hostname):
     if not hostname:
         raise RuntimeError("Invalid hostname: hostname is empty.")
     components = hostname.split('.')
-    if len(components) == 3:
+    if len(components) <= 3:
         return ServiceAddressType.NODE_SDN
     else:
         return ServiceAddressType.NODE_FQDN
