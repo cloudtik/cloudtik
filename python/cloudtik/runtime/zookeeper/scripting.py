@@ -27,11 +27,12 @@ class NoQuorumError(RuntimeError):
     pass
 
 
-def _format_server_line(node_ip, seq_id):
+def _format_server_line(node_host, seq_id):
     # below two lines are equivalent
-    # server.id=node_ip:2888:3888;2181
-    # server.id=node_ip:2888:3888:participant;0.0.0.0:2181
-    return "server.{}={}:2888:3888;{}".format(seq_id, node_ip, ZOOKEEPER_SERVICE_PORT)
+    # server.id=node_host:2888:3888;2181
+    # server.id=node_host:2888:3888:participant;0.0.0.0:2181
+    return "server.{}={}:2888:3888;{}".format(
+        seq_id, node_host, ZOOKEEPER_SERVICE_PORT)
 
 
 def update_configurations():
