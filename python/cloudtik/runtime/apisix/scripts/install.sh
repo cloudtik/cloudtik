@@ -23,10 +23,10 @@ install_apisix() {
         echo "deb http://repos.apiseven.com/packages/debian bullseye main" \
           | sudo tee /etc/apt/sources.list.d/apisix.list >/dev/null
 
-        sudo apt-get -qq update -y > /dev/null && \
-        sudo DEBIAN_FRONTEND=noninteractive apt-get install -qq -y \
-          apisix=${APISIX_VERSION}.\* > /dev/null && \
-        sudo rm -f /etc/apt/sources.list.d/openresty.list && \
+        sudo apt-get -qq update -y > /dev/null \
+          && sudo DEBIAN_FRONTEND=noninteractive apt-get install -qq -y \
+            apisix=${APISIX_VERSION}.\* > /dev/null
+        sudo rm -f /etc/apt/sources.list.d/openresty.list
         sudo rm -f /etc/apt/sources.list.d/apisix.list
     fi
 }

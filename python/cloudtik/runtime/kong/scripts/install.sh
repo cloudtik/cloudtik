@@ -27,7 +27,7 @@ install_kong() {
 
         sudo apt-get -qq update -y > /dev/null && \
         sudo DEBIAN_FRONTEND=noninteractive apt-get install -qq -y \
-          kong=${KONG_VERSION}.\* > /dev/null && \
+          kong=${KONG_VERSION}.\* > /dev/null
         sudo rm -f /etc/apt/sources.list.d/kong.list
     fi
 }

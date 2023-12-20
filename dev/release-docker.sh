@@ -215,7 +215,7 @@ if [ ! $NO_BUILD ]; then
     if [ $RELEASE_SPARK_AI_ONEAPI ] || [ $RELEASE_ALL ]; then
         BUILD_FLAGS="${BUILD_FLAGS} --build-spark-ai-oneapi"
     fi
-    sudo bash ./build-docker.sh  --image-tag $IMAGE_TAG --region ${CLOUDTIK_REGION} --python-version ${PYTHON_VERSION} \
+    sudo bash ./build-docker.sh --image-tag $IMAGE_TAG --region ${CLOUDTIK_REGION} --python-version ${PYTHON_VERSION} \
         ${BUILD_FLAGS}
 fi
 

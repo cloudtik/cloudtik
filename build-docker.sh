@@ -17,6 +17,13 @@ BASE_IMAGE="ubuntu:focal"
 IMAGE_TAG="nightly"
 CLOUDTIK_REGION="GLOBAL"
 
+# We can define a image to runtimes map.
+# The universe image is for tests. It include all the runtimes except
+# apisix (cannot coexist with kong) and metastore (log4j shell2 vulnerability)
+declare -A IMAGE_RUNTIME_MAP=(\
+    ["universe"]="ai, bind, consul, coredns, dnsmasq, etcd, flink, grafana, hadoop, haproxy, hdfs, kafka, kong, minio, mongodb, mount, mysql, nginx, nodex, postgres, presto, prometheus, ray, redis, spark, sshserver, trino, yarn, zookeeper" \
+)
+
 while [[ $# -gt 0 ]]
 do
     key="$1"
@@ -48,8 +55,8 @@ do
         ;;
     --wheel-to-use)
         # Which wheel to use. This defaults to the latest nightly on minimum supported python version of CloudTik
-        echo "not implemented, just hardcode me :'("
-        exit 1
+        shift
+        WHEEL_TO_USE="$1"
         ;;
     --python-version)
         # Python version
@@ -105,14 +112,10 @@ do
     --build-spark-ai-benchmark)
         BUILD_SPARK_AI_BENCHMARK=YES
         ;;
-    --build-presto)
-        BUILD_PRESTO=YES
-        ;;
-    --build-trino)
-        BUILD_TRINO=YES
-        ;;
-    --build-universe)
-        BUILD_UNIVERSE=YES
+    --build-runtime-images)
+        shift
+        BUILD_RUNTIME_IMAGES=YES
+        RUNTIME_IMAGES_TO_BUILD=$1
         ;;
     *)
         echo "Usage: build-docker.sh [ --gpu ] [ --base-image ] [ --region ] [ --no-cache-build ] [ --shas-only ] [ --wheel-to-use ] [ --python-version ] [ --image-tag ]"
@@ -121,22 +124,36 @@ do
         echo "[ --build-spark-benchmark ] [ --build-spark-optimized-benchmark ]"
         echo "[ --build-ai-base ] [ --build-ai ] [ --build-ai-oneapi ] [ --build-ai-benchmark ]"
         echo "[ --build-spark-ai-base ] [ --build-spark-ai ] [ --build-spark-ai-oneapi ] [ --build-spark-ai-benchmark ]"
-        echo "[ --build-presto ] [ --build-trino ] [ --build-universe ]"
+        echo "[ --build-runtime-images runtime-images ]"
         exit 1
     esac
     shift
 done
 
 PYTHON_TAG=${PYTHON_VERSION//./}
+arch=$(uname -m)
+WHEEL_DIR=$(mktemp -d)
 
-if [ "$IMAGE_TAG" == "nightly" ]; then
-    WHEEL_URL="https://d30257nes7d4fq.cloudfront.net/downloads/cloudtik/cloudtik-${CLOUDTIK_VERSION}-cp${PYTHON_TAG}-cp${PYTHON_TAG}-manylinux2014_x86_64.nightly.whl"
+if [ -z "$WHEEL_TO_USE" ]; then
+    if [ "$IMAGE_TAG" == "nightly" ]; then
+        WHEEL_URL="https://d30257nes7d4fq.cloudfront.net/downloads/cloudtik/cloudtik-${CLOUDTIK_VERSION}-cp${PYTHON_TAG}-cp${PYTHON_TAG}-manylinux2014_x86_64.nightly.whl"
+    else
+        WHEEL_URL="https://d30257nes7d4fq.cloudfront.net/downloads/cloudtik/cloudtik-${CLOUDTIK_VERSION}-cp${PYTHON_TAG}-cp${PYTHON_TAG}-manylinux2014_x86_64.whl"
+    fi
 else
-    WHEEL_URL="https://d30257nes7d4fq.cloudfront.net/downloads/cloudtik/cloudtik-${CLOUDTIK_VERSION}-cp${PYTHON_TAG}-cp${PYTHON_TAG}-manylinux2014_x86_64.whl"
+    if [ "$WHEEL_TO_USE" == "local" ]; then
+        WHEEL_URL=python/dist/cloudtik-${CLOUDTIK_VERSION}-cp${PYTHON_TAG}-cp${PYTHON_TAG}-manylinux2014_${arch}.whl
+    else
+        WHEEL_URL="$WHEEL_TO_USE"
+    fi
 fi
 
-WHEEL_DIR=$(mktemp -d)
-wget --quiet "$WHEEL_URL" -P "$WHEEL_DIR"
+if [[ "$WHEEL_URL" =~ ^http.* ]]; then
+    wget --quiet "$WHEEL_URL" -P "$WHEEL_DIR"
+else
+    cp "$WHEEL_URL" "$WHEEL_DIR"
+fi
+
 WHEEL="$WHEEL_DIR/$(basename "$WHEEL_DIR"/*.whl)"
 
 if [ $BUILD_CLOUDTIK ] || [ $BUILD_ALL ]; then
@@ -218,22 +235,22 @@ do
               docker/${DOCKER_FILE_PATH}runtime/spark/optimized
         fi
 
-        if [ -d "docker/${DOCKER_FILE_PATH}runtime/universe" ] && ([ $BUILD_UNIVERSE ] || [ $BUILD_ALL ]); then
-            docker build $NO_CACHE --build-arg BASE_TAG=$IMAGE_TAG \
-              -t ${DOCKER_REGISTRY}cloudtik/universe-runtime:$IMAGE_TAG \
-              docker/${DOCKER_FILE_PATH}runtime/universe
-        fi
+        if [ -d "docker/${DOCKER_FILE_PATH}runtime" ] && ([ $BUILD_RUNTIME_IMAGES ] || [ $BUILD_ALL ]); then
+            IFS=', ' read -r -a image_names <<< "$RUNTIME_IMAGES_TO_BUILD"
+            for image_name in ${image_names[@]}
+            do
+                image_runtimes=${IMAGE_RUNTIME_MAP[${image_name}]}
+                if [ -z "$image_runtimes" ]; then
+                    # Use the image name as runtime name if there is no map
+                    image_runtimes="${image_name}"
+                fi
+                docker build $NO_CACHE --build-arg RUNTIME_IMAGE_NAME=${image_name} \
+                  --build-arg BASE_TAG=$IMAGE_TAG \
+                  --build-arg IMAGE_RUNTIMES="$image_runtimes" \
+                  -t ${DOCKER_REGISTRY}cloudtik/${image_name}:$IMAGE_TAG \
+                  docker/${DOCKER_FILE_PATH}runtime
+            done
 
-        if [ -d "docker/${DOCKER_FILE_PATH}runtime/presto" ] && ([ $BUILD_PRESTO ] || [ $BUILD_ALL ]); then
-            docker build $NO_CACHE --build-arg BASE_TAG=$IMAGE_TAG \
-              -t ${DOCKER_REGISTRY}cloudtik/presto-runtime:$IMAGE_TAG \
-              docker/${DOCKER_FILE_PATH}runtime/presto
-        fi
-
-        if [ -d "docker/${DOCKER_FILE_PATH}runtime/trino" ] && ([ $BUILD_TRINO ] || [ $BUILD_ALL ]); then
-            docker build $NO_CACHE --build-arg BASE_TAG=$IMAGE_TAG \
-              -t ${DOCKER_REGISTRY}cloudtik/trino-runtime:$IMAGE_TAG \
-              docker/${DOCKER_FILE_PATH}runtime/trino
         fi
     fi
 
