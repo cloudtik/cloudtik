@@ -24,11 +24,11 @@ install_zookeeper() {
 
     if [ ! -d "${ZOOKEEPER_HOME}" ]; then
         mkdir -p $RUNTIME_PATH
-        (cd $RUNTIME_PATH && \
-          wget -q --show-progress https://downloads.apache.org/zookeeper/zookeeper-${ZOOKEEPER_VERSION}/apache-zookeeper-${ZOOKEEPER_VERSION}-bin.tar.gz -O zookeeper.tar.gz && \
-          mkdir -p "$ZOOKEEPER_HOME" && \
-          tar --extract --file zookeeper.tar.gz --directory "$ZOOKEEPER_HOME" --strip-components 1 --no-same-owner && \
-          rm zookeeper.tar.gz)
+        (cd $RUNTIME_PATH \
+          && wget -q --show-progress https://downloads.apache.org/zookeeper/zookeeper-${ZOOKEEPER_VERSION}/apache-zookeeper-${ZOOKEEPER_VERSION}-bin.tar.gz -O zookeeper.tar.gz \
+          && mkdir -p "$ZOOKEEPER_HOME" \
+          && tar --extract --file zookeeper.tar.gz --directory "$ZOOKEEPER_HOME" --strip-components 1 --no-same-owner \
+          && rm zookeeper.tar.gz)
         echo "export ZOOKEEPER_HOME=$ZOOKEEPER_HOME">> ${USER_HOME}/.bashrc
         echo "export PATH=\$ZOOKEEPER_HOME/bin:\$PATH" >> ${USER_HOME}/.bashrc
     fi

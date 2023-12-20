@@ -21,12 +21,12 @@ install_grafana() {
     then
         deb_arch=$(get_deb_arch)
         mkdir -p $RUNTIME_PATH
-        (cd $RUNTIME_PATH && \
-          wget -q --show-progress \
-            https://dl.grafana.com/oss/release/grafana-${GRAFANA_VERSION}.linux-${deb_arch}.tar.gz -O grafana.tar.gz && \
-          mkdir -p "$GRAFANA_HOME" && \
-          tar --extract --file grafana.tar.gz --directory "$GRAFANA_HOME" --strip-components 1 --no-same-owner && \
-          rm grafana.tar.gz)
+        (cd $RUNTIME_PATH \
+          && wget -q --show-progress \
+            https://dl.grafana.com/oss/release/grafana-${GRAFANA_VERSION}.linux-${deb_arch}.tar.gz -O grafana.tar.gz \
+          && mkdir -p "$GRAFANA_HOME" \
+          && tar --extract --file grafana.tar.gz --directory "$GRAFANA_HOME" --strip-components 1 --no-same-owner \
+          && rm grafana.tar.gz)
         echo "export GRAFANA_HOME=$GRAFANA_HOME">> ${USER_HOME}/.bashrc
         echo "export PATH=\$GRAFANA_HOME/bin:\$PATH" >> ${USER_HOME}/.bashrc
     fi

@@ -15,10 +15,10 @@ HAPROXY_VERSION=2.8
 install_haproxy() {
     if ! command -v haproxy &> /dev/null
     then
-        sudo apt-get -qq update -y > /dev/null
-        sudo DEBIAN_FRONTEND=noninteractive apt-get install -qq --no-install-recommends software-properties-common -y > /dev/null
-        sudo add-apt-repository ppa:vbernat/haproxy-${HAPROXY_VERSION} -y > /dev/null
-        sudo DEBIAN_FRONTEND=noninteractive apt-get install -qq haproxy=${HAPROXY_VERSION}.\* -y > /dev/null
+        sudo apt-get -qq update -y > /dev/null \
+          && sudo DEBIAN_FRONTEND=noninteractive apt-get install -qq --no-install-recommends software-properties-common -y > /dev/null \
+          && sudo add-apt-repository ppa:vbernat/haproxy-${HAPROXY_VERSION} -y > /dev/null \
+          && sudo DEBIAN_FRONTEND=noninteractive apt-get install -qq haproxy=${HAPROXY_VERSION}.\* -y > /dev/null
     fi
 }
 

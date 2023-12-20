@@ -6,11 +6,15 @@ FROM cloudtik/cloudtik-deps:nightly
 COPY cloudtik.tar /tmp/cloudtik.tar
 
 # Install dependencies needed to build
-RUN sudo apt-get update && sudo apt-get install -y curl unzip cmake gcc g++ && sudo apt-get clean
+RUN sudo apt-get update \
+    && sudo apt-get install -y curl unzip cmake gcc g++ \
+    && sudo apt-get clean
 
 WORKDIR /cloudtik/
 COPY git-rev ./git-rev
-RUN tar -xf /tmp/cloudtik.tar && sudo chown -R cloudtik:users /cloudtik && git init \
+RUN tar -xf /tmp/cloudtik.tar \
+    && sudo chown -R cloudtik:users /cloudtik \
+    && git init \
     && bash build.sh
 WORKDIR /cloudtik/python/
 RUN export PATH="$CONDA_ROOT/envs/$CLOUDTIK_ENV/bin:$PATH" \

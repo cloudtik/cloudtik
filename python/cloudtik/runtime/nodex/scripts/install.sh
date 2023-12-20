@@ -20,13 +20,13 @@ install_nodex() {
     if [ ! -f "${NODEX_HOME}/nodex" ]; then
         deb_arch=$(get_deb_arch)
         mkdir -p $RUNTIME_PATH
-        (cd $RUNTIME_PATH &&
-          wget -q --show-progress \
-            https://github.com/prometheus/node_exporter/releases/download/v${NODEX_VERSION}/node_exporter-${NODEX_VERSION}.linux-${deb_arch}.tar.gz -O nodex.tar.gz && \
-          mkdir -p "$NODEX_HOME" && \
-          tar --extract --file nodex.tar.gz --directory "$NODEX_HOME" --strip-components 1 --no-same-owner && \
-          mv $NODEX_HOME/node_exporter $NODEX_HOME/nodex && \
-          rm nodex.tar.gz)
+        (cd $RUNTIME_PATH \
+          && wget -q --show-progress \
+            https://github.com/prometheus/node_exporter/releases/download/v${NODEX_VERSION}/node_exporter-${NODEX_VERSION}.linux-${deb_arch}.tar.gz -O nodex.tar.gz \
+          && mkdir -p "$NODEX_HOME" \
+          && tar --extract --file nodex.tar.gz --directory "$NODEX_HOME" --strip-components 1 --no-same-owner \
+          && mv $NODEX_HOME/node_exporter $NODEX_HOME/nodex \
+          && rm nodex.tar.gz)
         echo "export NODEX_HOME=$NODEX_HOME">> ${USER_HOME}/.bashrc
     fi
 }

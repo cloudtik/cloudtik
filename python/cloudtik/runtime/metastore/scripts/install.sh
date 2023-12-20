@@ -29,7 +29,7 @@ install_database_tools() {
 
     which psql > /dev/null \
       || (sudo apt-get -qq update -y > /dev/null; \
-        sudo DEBIAN_FRONTEND=noninteractive apt-get -qq install postgresql-client -y > /dev/null)
+          sudo DEBIAN_FRONTEND=noninteractive apt-get -qq install postgresql-client -y > /dev/null)
 }
 
 install_hive_metastore() {
@@ -37,13 +37,13 @@ install_hive_metastore() {
     export METASTORE_HOME=$RUNTIME_PATH/hive-metastore
 
     if [ ! -d "${METASTORE_HOME}" ]; then
-      mkdir -p $RUNTIME_PATH
-      (cd $RUNTIME_PATH && \
-        wget -q --show-progress \
-          https://repo1.maven.org/maven2/org/apache/hive/hive-standalone-metastore/${HIVE_VERSION}/hive-standalone-metastore-${HIVE_VERSION}-bin.tar.gz -O hive-standalone-metastore.tar.gz && \
-        mkdir -p "$METASTORE_HOME" && \
-        tar --extract --file hive-standalone-metastore.tar.gz --directory "$METASTORE_HOME" --strip-components 1 --no-same-owner && \
-        rm hive-standalone-metastore.tar.gz)
+        mkdir -p $RUNTIME_PATH
+        (cd $RUNTIME_PATH \
+          && wget -q --show-progress \
+            https://repo1.maven.org/maven2/org/apache/hive/hive-standalone-metastore/${HIVE_VERSION}/hive-standalone-metastore-${HIVE_VERSION}-bin.tar.gz -O hive-standalone-metastore.tar.gz \
+          && mkdir -p "$METASTORE_HOME" \
+          && tar --extract --file hive-standalone-metastore.tar.gz --directory "$METASTORE_HOME" --strip-components 1 --no-same-owner \
+          && rm hive-standalone-metastore.tar.gz)
         # TODO: download only the driver needed
         wget -q https://repo1.maven.org/maven2/mysql/mysql-connector-java/8.0.30/mysql-connector-java-8.0.30.jar -P $METASTORE_HOME/lib/
         wget -q https://jdbc.postgresql.org/download/postgresql-42.6.0.jar -P $METASTORE_HOME/lib/

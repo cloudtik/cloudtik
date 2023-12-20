@@ -24,11 +24,12 @@ install_flink() {
 
     if [ ! -d "${FLINK_HOME}" ]; then
         mkdir -p $RUNTIME_PATH
-        (cd $RUNTIME_PATH && \
-          wget -q --show-progress https://dlcdn.apache.org/flink/flink-${FLINK_VERSION}/flink-${FLINK_VERSION}-bin-scala_2.12.tgz -O flink.tgz && \
-          mkdir -p "$FLINK_HOME" && \
-          tar --extract --file flink.tgz --directory "$FLINK_HOME" --strip-components 1 --no-same-owner && \
-          rm flink.tgz)
+        (cd $RUNTIME_PATH \
+          && wget -q --show-progress \
+            https://dlcdn.apache.org/flink/flink-${FLINK_VERSION}/flink-${FLINK_VERSION}-bin-scala_2.12.tgz -O flink.tgz \
+          && mkdir -p "$FLINK_HOME" \
+          && tar --extract --file flink.tgz --directory "$FLINK_HOME" --strip-components 1 --no-same-owner \
+          && rm flink.tgz)
         # Flink need HADOOP_CLASSPATH defined
         echo "export HADOOP_CLASSPATH=\`hadoop classpath\`">> ${USER_HOME}/.bashrc
         echo "export FLINK_HOME=$FLINK_HOME">> ${USER_HOME}/.bashrc
@@ -46,12 +47,12 @@ install_flink() {
         export HIVE_VERSION=3.1.2
         if [ ! -d "${HIVE_HOME}" ]; then
             mkdir -p $RUNTIME_PATH
-            (cd $RUNTIME_PATH && \
-              wget -q --show-progress \
-                https://downloads.apache.org/hive/hive-${HIVE_VERSION}/apache-hive-${HIVE_VERSION}-bin.tar.gz -O hive.tar.gz && \
-              mkdir -p "$HIVE_HOME" && \
-              tar --extract --file hive.tar.gz --directory "$HIVE_HOME" --strip-components 1 --no-same-owner && \
-              rm hive.tar.gz)
+            (cd $RUNTIME_PATH \
+              && wget -q --show-progress \
+                https://downloads.apache.org/hive/hive-${HIVE_VERSION}/apache-hive-${HIVE_VERSION}-bin.tar.gz -O hive.tar.gz \
+              && mkdir -p "$HIVE_HOME" \
+              && tar --extract --file hive.tar.gz --directory "$HIVE_HOME" --strip-components 1 --no-same-owner \
+              && rm hive.tar.gz)
             echo "export HIVE_HOME=$HIVE_HOME">> ${USER_HOME}/.bashrc
         fi
     fi
@@ -80,17 +81,18 @@ install_jupyter_for_flink() {
 install_tools() {
     which jq > /dev/null \
       || (sudo apt-get -qq update -y > /dev/null; \
-        sudo DEBIAN_FRONTEND=noninteractive apt-get -qq install jq -y > /dev/null)
+          sudo DEBIAN_FRONTEND=noninteractive apt-get -qq install jq -y > /dev/null)
     which vim > /dev/null \
       || (sudo apt-get -qq update -y > /dev/null; \
-        sudo DEBIAN_FRONTEND=noninteractive apt-get -qq install vim -y > /dev/null)
+          sudo DEBIAN_FRONTEND=noninteractive apt-get -qq install vim -y > /dev/null)
 }
 
 download_flink_cloud_jars() {
     FLINK_JARS=${FLINK_HOME}/jars
     FLINK_HADOOP_CLOUD_JAR="flink-hadoop-cloud_2.12-${FLINK_VERSION}.jar"
     if [ ! -f "${FLINK_JARS}/${FLINK_HADOOP_CLOUD_JAR}" ]; then
-        wget -q -nc -P "${FLINK_JARS}"  https://repo1.maven.org/maven2/org/apache/flink/flink-hadoop-cloud_2.12/${FLINK_VERSION}/${FLINK_HADOOP_CLOUD_JAR}
+        wget -q -nc -P "${FLINK_JARS}" \
+          https://repo1.maven.org/maven2/org/apache/flink/flink-hadoop-cloud_2.12/${FLINK_VERSION}/${FLINK_HADOOP_CLOUD_JAR}
     fi
 }
 

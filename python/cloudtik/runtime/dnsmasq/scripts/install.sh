@@ -13,8 +13,8 @@ eval set -- "${args}"
 install_dnsmasq() {
     if ! command -v dnsmasq &> /dev/null
     then
-        sudo apt-get -qq update -y > /dev/null; \
-        sudo DEBIAN_FRONTEND=noninteractive apt-get install -qq -y dnsmasq > /dev/null
+        sudo apt-get -qq update -y > /dev/null \
+          && sudo DEBIAN_FRONTEND=noninteractive apt-get install -qq -y dnsmasq > /dev/null
     fi
 }
 
