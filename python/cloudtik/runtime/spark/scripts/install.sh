@@ -22,11 +22,17 @@ install_spark() {
     # install Spark
     export SPARK_HOME=$RUNTIME_PATH/spark
 
+    # We hadoop installed and HADOOP_HOME to be set
+    export HADOOP_HOME=$RUNTIME_PATH/hadoop
+
     if [ ! -d "${SPARK_HOME}" ]; then
         mkdir -p $RUNTIME_PATH
+        if [ -z "${SPARK_DOWNLOAD_URL}" ]; then
+            SPARK_DOWNLOAD_URL="https://archive.apache.org/dist/spark/spark-${SPARK_VERSION}/spark-${SPARK_VERSION}-bin-hadoop3.2.tgz"
+        fi
         (cd $RUNTIME_PATH \
           && wget -q --show-progress \
-            https://archive.apache.org/dist/spark/spark-${SPARK_VERSION}/spark-${SPARK_VERSION}-bin-hadoop3.2.tgz -O spark.tgz \
+            ${SPARK_DOWNLOAD_URL} -O spark.tgz \
           && mkdir -p "$SPARK_HOME" \
           && tar --extract --file spark.tgz --directory "$SPARK_HOME" --strip-components 1 --no-same-owner \
           && ln -rs $SPARK_HOME/examples/jars/spark-examples_*.jar $SPARK_HOME/examples/jars/spark-examples.jar \
