@@ -25,7 +25,11 @@ install_coredns() {
             https://github.com/coredns/coredns/releases/download/v${COREDNS_VERSION}/coredns_${COREDNS_VERSION}_linux_${deb_arch}.tgz -O coredns.tgz \
           && mkdir -p "${COREDNS_HOME}" \
           && tar --extract --file coredns.tgz --directory "${COREDNS_HOME}" --no-same-owner \
-          && rm coredns.tgz)
+          && rm -f coredns.tgz)
+        if [ $? -ne 0 ]; then
+            echo "CoreDNS installation failed."
+            exit 1
+        fi
     fi
 }
 

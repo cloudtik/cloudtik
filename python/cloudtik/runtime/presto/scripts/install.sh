@@ -35,8 +35,12 @@ install_presto() {
             https://repo1.maven.org/maven2/com/facebook/presto/presto-server/${PRESTO_VERSION}/presto-server-${PRESTO_VERSION}.tar.gz -O presto-server.tar.gz \
           && mkdir -p "$PRESTO_HOME" \
           && tar --extract --file presto-server.tar.gz --directory "$PRESTO_HOME" --strip-components 1 --no-same-owner \
-          && rm presto-server.tar.gz)
-
+          && rm -f presto-server.tar.gz)
+        if [ $? -ne 0 ]; then
+            echo "Presto installation failed."
+            exit 1
+        fi
+        echo "export PRESTO_HOME=$PRESTO_HOME">> ${USER_HOME}/.bashrc
         if [ $IS_HEAD_NODE == "true" ]; then
             # Download presto cli on head
             (cd $RUNTIME_PATH \
@@ -44,11 +48,7 @@ install_presto() {
                 https://repo1.maven.org/maven2/com/facebook/presto/presto-cli/${PRESTO_VERSION}/presto-cli-${PRESTO_VERSION}-executable.jar \
               && mv presto-cli-${PRESTO_VERSION}-executable.jar $PRESTO_HOME/bin/presto \
               && chmod +x $PRESTO_HOME/bin/presto)
-
-            echo "export PRESTO_HOME=$PRESTO_HOME">> ${USER_HOME}/.bashrc
             echo "export PATH=\$PRESTO_HOME/bin:\$PATH" >> ${USER_HOME}/.bashrc
-        else
-            echo "export PRESTO_HOME=$PRESTO_HOME">> ${USER_HOME}/.bashrc
         fi
     fi
 }

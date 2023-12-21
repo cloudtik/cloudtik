@@ -30,7 +30,11 @@ install_spark() {
           && mkdir -p "$SPARK_HOME" \
           && tar --extract --file spark.tgz --directory "$SPARK_HOME" --strip-components 1 --no-same-owner \
           && ln -rs $SPARK_HOME/examples/jars/spark-examples_*.jar $SPARK_HOME/examples/jars/spark-examples.jar \
-          && rm spark.tgz)
+          && rm -f spark.tgz)
+        if [ $? -ne 0 ]; then
+            echo "Spark installation failed."
+            exit 1
+        fi
         echo "export SPARK_HOME=$SPARK_HOME">> ${USER_HOME}/.bashrc
         echo "export PATH=\$SPARK_HOME/bin:\$PATH" >> ${USER_HOME}/.bashrc
         # Config for PySpark when Spark installed
@@ -39,7 +43,9 @@ install_spark() {
         echo "export PYSPARK_DRIVER_PYTHON=\${CONDA_ROOT}/envs/\${CLOUDTIK_ENV}/bin/python" >> ~/.bashrc
     fi
 
-    if [ "$METASTORE_ENABLED" == "true" ] && [ "$HIVE_FOR_METASTORE_JARS" == "true" ] && [ $IS_HEAD_NODE == "true" ]; then
+    if [ "$METASTORE_ENABLED" == "true" ] \
+          && [ "$HIVE_FOR_METASTORE_JARS" == "true" ] \
+          && [ $IS_HEAD_NODE == "true" ]; then
         # To be improved: we may need to install Hive anyway
         # Spark Hive Metastore nees quit some Hive dependencies
         # "hive-metastore", "hive-exec", "hive-common", "hive-serde"

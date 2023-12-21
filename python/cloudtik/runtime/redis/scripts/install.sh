@@ -40,9 +40,13 @@ install_redis() {
           && sha256sum -c "${REDIS_COMPONENT}.tar.gz.sha256" \
           && mkdir -p "$REDIS_HOME" \
           && tar --extract --file "${REDIS_COMPONENT}".tar.gz --directory "$REDIS_HOME" --strip-components 3 --no-same-owner \
-          && rm -rf "${REDIS_COMPONENT}".tar.gz{,.sha256} \
-          && echo "export REDIS_HOME=$REDIS_HOME" >> ${USER_HOME}/.bashrc \
-          && echo "export PATH=\$REDIS_HOME/bin:\$PATH" >> ${USER_HOME}/.bashrc)
+          && rm -rf "${REDIS_COMPONENT}".tar.gz{,.sha256})
+        if [ $? -ne 0 ]; then
+            echo "Redis installation failed."
+            exit 1
+        fi
+        echo "export REDIS_HOME=$REDIS_HOME" >> ${USER_HOME}/.bashrc
+        echo "export PATH=\$REDIS_HOME/bin:\$PATH" >> ${USER_HOME}/.bashrc
     fi
 }
 

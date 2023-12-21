@@ -30,7 +30,11 @@ install_kafka() {
             https://downloads.apache.org/kafka/${KAFKA_VERSION}/kafka_${KAFKA_SCALA_VERSION}-${KAFKA_VERSION}.tgz -O kafka.tgz \
           && mkdir -p "$KAFKA_HOME" \
           && tar --extract --file kafka.tgz --directory "$KAFKA_HOME" --strip-components 1 --no-same-owner \
-          && rm kafka.tgz)
+          && rm -f kafka.tgz)
+        if [ $? -ne 0 ]; then
+            echo "Kafka installation failed."
+            exit 1
+        fi
         echo "export KAFKA_HOME=$KAFKA_HOME">> ${USER_HOME}/.bashrc
         echo "export PATH=\$KAFKA_HOME/bin:\$PATH" >> ${USER_HOME}/.bashrc
     fi

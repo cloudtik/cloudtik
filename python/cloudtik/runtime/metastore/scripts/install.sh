@@ -43,11 +43,15 @@ install_hive_metastore() {
             https://repo1.maven.org/maven2/org/apache/hive/hive-standalone-metastore/${HIVE_VERSION}/hive-standalone-metastore-${HIVE_VERSION}-bin.tar.gz -O hive-standalone-metastore.tar.gz \
           && mkdir -p "$METASTORE_HOME" \
           && tar --extract --file hive-standalone-metastore.tar.gz --directory "$METASTORE_HOME" --strip-components 1 --no-same-owner \
-          && rm hive-standalone-metastore.tar.gz)
+          && rm -f hive-standalone-metastore.tar.gz)
+        if [ $? -ne 0 ]; then
+            echo "Metastore installation failed."
+            exit 1
+        fi
+        echo "export METASTORE_HOME=$METASTORE_HOME">> ${USER_HOME}/.bashrc
         # TODO: download only the driver needed
         wget -q https://repo1.maven.org/maven2/mysql/mysql-connector-java/8.0.30/mysql-connector-java-8.0.30.jar -P $METASTORE_HOME/lib/
         wget -q https://jdbc.postgresql.org/download/postgresql-42.6.0.jar -P $METASTORE_HOME/lib/
-        echo "export METASTORE_HOME=$METASTORE_HOME">> ${USER_HOME}/.bashrc
     fi
 }
 

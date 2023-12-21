@@ -29,14 +29,20 @@ install_flink() {
             https://dlcdn.apache.org/flink/flink-${FLINK_VERSION}/flink-${FLINK_VERSION}-bin-scala_2.12.tgz -O flink.tgz \
           && mkdir -p "$FLINK_HOME" \
           && tar --extract --file flink.tgz --directory "$FLINK_HOME" --strip-components 1 --no-same-owner \
-          && rm flink.tgz)
+          && rm -f flink.tgz)
+        if [ $? -ne 0 ]; then
+            echo "Flink installation failed."
+            exit 1
+        fi
         # Flink need HADOOP_CLASSPATH defined
         echo "export HADOOP_CLASSPATH=\`hadoop classpath\`">> ${USER_HOME}/.bashrc
         echo "export FLINK_HOME=$FLINK_HOME">> ${USER_HOME}/.bashrc
         echo "export PATH=\$FLINK_HOME/bin:\$PATH" >> ${USER_HOME}/.bashrc
     fi
 
-    if [ "$METASTORE_ENABLED" == "true" ] && [ "$HIVE_FOR_METASTORE_JARS" == "true" ] && [ $IS_HEAD_NODE == "true" ]; then
+    if [ "$METASTORE_ENABLED" == "true" ] \
+          && [ "$HIVE_FOR_METASTORE_JARS" == "true" ] \
+          && [ $IS_HEAD_NODE == "true" ]; then
         # To be improved: we may need to install Hive anyway
         # Flink Hive Metastore nees quit some Hive dependencies
         # "hive-metastore", "hive-exec", "hive-common", "hive-serde"

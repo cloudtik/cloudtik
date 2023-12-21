@@ -26,7 +26,11 @@ install_grafana() {
             https://dl.grafana.com/oss/release/grafana-${GRAFANA_VERSION}.linux-${deb_arch}.tar.gz -O grafana.tar.gz \
           && mkdir -p "$GRAFANA_HOME" \
           && tar --extract --file grafana.tar.gz --directory "$GRAFANA_HOME" --strip-components 1 --no-same-owner \
-          && rm grafana.tar.gz)
+          && rm -f grafana.tar.gz)
+        if [ $? -ne 0 ]; then
+            echo "Grafana installation failed."
+            exit 1
+        fi
         echo "export GRAFANA_HOME=$GRAFANA_HOME">> ${USER_HOME}/.bashrc
         echo "export PATH=\$GRAFANA_HOME/bin:\$PATH" >> ${USER_HOME}/.bashrc
     fi

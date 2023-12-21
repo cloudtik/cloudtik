@@ -24,7 +24,11 @@ install_jdk() {
           wget -q --show-progress ${jdk_download_url} -O openjdk.tar.gz && \
           mkdir -p "$JAVA_HOME" && \
           tar --extract --file openjdk.tar.gz --directory "$JAVA_HOME" --strip-components 1 --no-same-owner && \
-          rm openjdk.tar.gz)
+          rm -f openjdk.tar.gz)
+        if [ $? -ne 0 ]; then
+            echo "JDK installation failed."
+            exit 1
+        fi
         echo "export JAVA_HOME=$JAVA_HOME">> ${USER_HOME}/.bashrc
         echo "export PATH=\$JAVA_HOME/bin:\$PATH" >> ${USER_HOME}/.bashrc
     fi
