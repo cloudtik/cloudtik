@@ -9,9 +9,9 @@ RUN mkdir -p $RUNTIME_PATH
 WORKDIR /home/cloudtik/runtime
 
 SHELL ["/bin/bash", "-c"]
-RUN IFS=', ' read -r -a runtime_names <<< "$IMAGE_RUNTIMES" \
-    && export PATH="$CONDA_ROOT/envs/$CLOUDTIK_ENV/bin:$PATH" \
+RUN export PATH="$CONDA_ROOT/envs/$CLOUDTIK_ENV/bin:$PATH" \
     && export CLOUDTIK_INSTALL_ALL=true \
+    && IFS=', ' read -r -a runtime_names <<< "$IMAGE_RUNTIMES" \
     && (for runtime_name in ${runtime_names[@]}; do \
             echo "Installing ${runtime_name}"; \
             cloudtik runtime install ${runtime_name} --head; \

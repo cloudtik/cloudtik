@@ -8,10 +8,10 @@ RUN mkdir -p $RUNTIME_PATH
 WORKDIR /home/cloudtik/runtime
 
 SHELL ["/bin/bash", "-c"]
-RUN IFS=', ' read -r -a runtime_names <<< "nodex, hadoop, mount, yarn, spark" \
-    && export PATH="$CONDA_ROOT/envs/$CLOUDTIK_ENV/bin:$PATH" \
+RUN export PATH="$CONDA_ROOT/envs/$CLOUDTIK_ENV/bin:$PATH" \
     && export CLOUDTIK_INSTALL_ALL=true \
-    && export SPARK_DOWNLOAD_URL=${CLOUDTIK_DOWNLOADS}/spark/spark-${SPARK_VERSION}-bin-hadoop3.tgz
+    && export SPARK_DOWNLOAD_URL=${CLOUDTIK_DOWNLOADS}/spark/spark-${SPARK_VERSION}-bin-hadoop3.tgz \
+    && IFS=', ' read -r -a runtime_names <<< "nodex, hadoop, mount, yarn, spark" \
     && (for runtime_name in ${runtime_names[@]}; do \
             echo "Installing ${runtime_name}"; \
             cloudtik runtime install ${runtime_name} --head; \
