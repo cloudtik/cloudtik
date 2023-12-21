@@ -1,30 +1,26 @@
-ARG BASE_PREFIX=""
+ARG BASE_PREFIX="cloudtik"
 ARG BASE_TAG="nightly"
-FROM cloudtik/${BASE_PREFIX}ai-base:$BASE_TAG
+FROM cloudtik/${BASE_PREFIX}:$BASE_TAG
+ARG WHEEL_PATH
 
-WORKDIR /home/cloudtik/
-COPY requirements.txt /tmp/requirements.txt
-RUN export PATH="$CONDA_ROOT/envs/$CLOUDTIK_ENV/bin:$PATH" \
-    # Install deep learning libraries (Tensorflow, Keras)
-    && pip --no-cache-dir install -r /tmp/requirements.txt \
-    && sudo rm /tmp/requirements.txt \
-    # Install deep learning libraries (PyTorch and torch tools)
-    && pip --no-cache-dir install torch==1.13.1+cu117 torchvision==0.14.1+cu117 \
-        --extra-index-url https://download.pytorch.org/whl/cu117 \
-    # Install OpenMPI
-    && mkdir /tmp/openmpi \
-    && PREV_CUR_DIR=$(pwd) \
-    && cd /tmp/openmpi \
-    && wget https://www.open-mpi.org/software/ompi/v4.1/downloads/openmpi-4.1.4.tar.gz -O openmpi.tar.gz  \
-    && tar --extract --file openmpi.tar.gz --directory /tmp/openmpi --strip-components 1 --no-same-owner \
-    && sudo ./configure --enable-orterun-prefix-by-default CC=gcc-9 CXX=g++-9 \
-    && sudo make -j $(nproc) all \
-    && sudo make install \
-    && sudo ldconfig \
-    && cd ${PREV_CUR_DIR} \
-    && sudo rm -rf /tmp/openmpi \
-    # Install Horovod
-    && export CXX=/usr/bin/g++-9 \
-    && HOROVOD_GPU_OPERATIONS=NCCL HOROVOD_WITH_TENSORFLOW=1 HOROVOD_WITH_PYTORCH=1 HOROVOD_WITHOUT_MXNET=1 HOROVOD_WITH_GLOO=1 HOROVOD_WITH_MPI=1 pip --no-cache-dir install horovod[tensorflow,keras,pytorch,spark,pytorch-spark]==0.27.0
+ENV RUNTIME_PATH /home/cloudtik/runtime
+RUN mkdir -p $RUNTIME_PATH
+WORKDIR /home/cloudtik/runtime
 
 ENV AI_WITH_GPU true
+
+COPY $WHEEL_PATH .
+SHELL ["/bin/bash", "-c"]
+RUN export PATH="$CONDA_ROOT/envs/$CLOUDTIK_ENV/bin:$PATH" \
+    && pip --no-cache-dir install `basename $WHEEL_PATH`[all] \
+    && sudo rm `basename $WHEEL_PATH` \
+    && export CLOUDTIK_INSTALL_ALL=true \
+    && IFS=', ' read -r -a runtime_names <<< "ai" \
+    && (for runtime_name in ${runtime_names[@]}; do \
+            echo "Installing ${runtime_name}"; \
+            cloudtik runtime install ${runtime_name} --head; \
+        done; \
+        ) \
+    && pip uninstall cloudtik -y
+
+WORKDIR /home/cloudtik/

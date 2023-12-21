@@ -65,6 +65,7 @@ install_ipex() {
 }
 
 install_ai_oneapi() {
+    echo "Installing oneAPI libraries..."
     setup_oneapi_repository
 
     install_oneapi_mpi
