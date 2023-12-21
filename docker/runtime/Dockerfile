@@ -16,6 +16,7 @@ RUN IFS=', ' read -r -a runtime_names <<< "$IMAGE_RUNTIMES" \
             echo "Installing ${runtime_name}"; \
             cloudtik runtime install ${runtime_name} --head; \
         done; \
-        )
+        ) \
+    && pip uninstall cloudtik -y
 
 WORKDIR /home/cloudtik/
