@@ -25,7 +25,11 @@ install_prometheus() {
             https://github.com/prometheus/prometheus/releases/download/v${PROMETHEUS_VERSION}/prometheus-${PROMETHEUS_VERSION}.linux-${deb_arch}.tar.gz -O prometheus.tar.gz \
           && mkdir -p "$PROMETHEUS_HOME" \
           && tar --extract --file prometheus.tar.gz --directory "$PROMETHEUS_HOME" --strip-components 1 --no-same-owner \
-          && rm prometheus.tar.gz)
+          && rm -f prometheus.tar.gz)
+        if [ $? -ne 0 ]; then
+            echo "Prometheus installation failed."
+            exit 1
+        fi
         echo "export PROMETHEUS_HOME=$PROMETHEUS_HOME">> ${USER_HOME}/.bashrc
     fi
 }

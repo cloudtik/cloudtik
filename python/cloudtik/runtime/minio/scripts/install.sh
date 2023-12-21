@@ -27,6 +27,10 @@ install_minio() {
           && mkdir -p "$MINIO_HOME/bin" \
           && chmod +x minio.bin \
           && mv minio.bin $MINIO_HOME/bin/minio)
+        if [ $? -ne 0 ]; then
+            echo "Minio installation failed."
+            exit 1
+        fi
         echo "export MINIO_HOME=$MINIO_HOME">> ${USER_HOME}/.bashrc
 
         if [ $IS_HEAD_NODE == "true" ]; then

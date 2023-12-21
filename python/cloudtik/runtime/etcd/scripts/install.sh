@@ -32,7 +32,11 @@ install_etcd() {
           && tar --extract --file etcd.tar.gz --directory "$ETCD_HOME" --strip-components 1 --no-same-owner \
           && mkdir -p "$ETCD_HOME/bin" \
           && mv "$ETCD_HOME/etcd" "$ETCD_HOME/etcdctl" "$ETCD_HOME/etcdutl" "$ETCD_HOME/bin/" \
-          && rm etcd.tar.gz)
+          && rm -f etcd.tar.gz)
+        if [ $? -ne 0 ]; then
+            echo "ETCD installation failed."
+            exit 1
+        fi
         echo "export ETCD_HOME=$ETCD_HOME">> ${USER_HOME}/.bashrc
         echo "export PATH=\$ETCD_HOME/bin:\$PATH" >> ${USER_HOME}/.bashrc
     fi

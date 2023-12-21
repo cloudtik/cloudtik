@@ -34,10 +34,16 @@ install_trino() {
     if [ ! -d "${TRINO_HOME}" ]; then
         mkdir -p $RUNTIME_PATH
         (cd $RUNTIME_PATH \
-          && wget -q --show-progress https://repo1.maven.org/maven2/io/trino/trino-server/${TRINO_VERSION}/trino-server-${TRINO_VERSION}.tar.gz -O trino-server.tar.gz \
+          && wget -q --show-progress \
+            https://repo1.maven.org/maven2/io/trino/trino-server/${TRINO_VERSION}/trino-server-${TRINO_VERSION}.tar.gz -O trino-server.tar.gz \
           && mkdir -p "$TRINO_HOME" \
           && tar --extract --file trino-server.tar.gz --directory "$TRINO_HOME" --strip-components 1 --no-same-owner \
-          && rm trino-server.tar.gz)
+          && rm -f trino-server.tar.gz)
+        if [ $? -ne 0 ]; then
+            echo "Trino installation failed."
+            exit 1
+        fi
+        echo "export TRINO_HOME=$TRINO_HOME">> ${USER_HOME}/.bashrc
 
         if [ $IS_HEAD_NODE == "true" ]; then
             # Download trino cli on head
@@ -46,11 +52,7 @@ install_trino() {
                 https://repo1.maven.org/maven2/io/trino/trino-cli/${TRINO_VERSION}/trino-cli-${TRINO_VERSION}-executable.jar \
               && mv trino-cli-${TRINO_VERSION}-executable.jar $TRINO_HOME/bin/trino \
               && chmod +x $TRINO_HOME/bin/trino)
-
-            echo "export TRINO_HOME=$TRINO_HOME">> ${USER_HOME}/.bashrc
             echo "export PATH=\$TRINO_HOME/bin:\$PATH" >> ${USER_HOME}/.bashrc
-        else
-            echo "export TRINO_HOME=$TRINO_HOME">> ${USER_HOME}/.bashrc
         fi
     fi
 }

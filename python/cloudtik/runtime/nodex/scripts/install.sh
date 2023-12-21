@@ -26,7 +26,11 @@ install_nodex() {
           && mkdir -p "$NODEX_HOME" \
           && tar --extract --file nodex.tar.gz --directory "$NODEX_HOME" --strip-components 1 --no-same-owner \
           && mv $NODEX_HOME/node_exporter $NODEX_HOME/nodex \
-          && rm nodex.tar.gz)
+          && rm -f nodex.tar.gz)
+        if [ $? -ne 0 ]; then
+            echo "Nodex installation failed."
+            exit 1
+        fi
         echo "export NODEX_HOME=$NODEX_HOME">> ${USER_HOME}/.bashrc
     fi
 }

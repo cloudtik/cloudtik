@@ -27,18 +27,22 @@ install_hadoop() {
           wget -q --show-progress ${hadoop_download_url} -O hadoop.tar.gz && \
           mkdir -p "$HADOOP_HOME" && \
           tar --extract --file hadoop.tar.gz --directory "$HADOOP_HOME" --strip-components 1 --no-same-owner && \
-          rm hadoop.tar.gz && \
-          wget -q -nc -P "${HADOOP_HOME}/share/hadoop/tools/lib" https://storage.googleapis.com/hadoop-lib/gcs/gcs-connector-hadoop3-latest.jar && \
-          wget -q ${CLOUDTIK_DOWNLOADS}/hadoop/hadoop-azure-${HADOOP_VERSION}.jar -O $HADOOP_HOME/share/hadoop/tools/lib/hadoop-azure-${HADOOP_VERSION}.jar && \
-          wget -q ${CLOUDTIK_DOWNLOADS}/hadoop/hadoop-aliyun-${HADOOP_VERSION}.jar -O $HADOOP_HOME/share/hadoop/tools/lib/hadoop-aliyun-${HADOOP_VERSION}.jar && \
-          wget -q ${CLOUDTIK_DOWNLOADS}/hadoop/hadoop-huaweicloud-${HADOOP_VERSION}.jar -O $HADOOP_HOME/share/hadoop/tools/lib/hadoop-huaweicloud-${HADOOP_VERSION}.jar && \
-          wget -q ${CLOUDTIK_DOWNLOADS}/hadoop/hadoop-hdfs-nfs-${HADOOP_VERSION}.jar -O ${HADOOP_HOME}/share/hadoop/hdfs/hadoop-hdfs-nfs-${HADOOP_VERSION}.jar \
-          )
+          rm -f hadoop.tar.gz)
+        if [ $? -ne 0 ]; then
+            echo "Hadoop installation failed."
+            exit 1
+        fi
         echo "export HADOOP_HOME=$HADOOP_HOME">> ${USER_HOME}/.bashrc
         echo "export HADOOP_CONF_DIR=$HADOOP_HOME/etc/hadoop">> ${USER_HOME}/.bashrc
         echo "export PATH=\$HADOOP_HOME/bin:\$PATH" >> ${USER_HOME}/.bashrc
         echo "export JAVA_HOME=$JAVA_HOME" >> ${HADOOP_HOME}/etc/hadoop/hadoop-env.sh
         #Add share/hadoop/tools/lib/* into classpath
         echo "export HADOOP_CLASSPATH=\$HADOOP_CLASSPATH:\$HADOOP_HOME/share/hadoop/tools/lib/*" >> ${HADOOP_HOME}/etc/hadoop/hadoop-env.sh
+
+        wget -q -nc -P "${HADOOP_HOME}/share/hadoop/tools/lib" https://storage.googleapis.com/hadoop-lib/gcs/gcs-connector-hadoop3-latest.jar
+        wget -q ${CLOUDTIK_DOWNLOADS}/hadoop/hadoop-azure-${HADOOP_VERSION}.jar -O $HADOOP_HOME/share/hadoop/tools/lib/hadoop-azure-${HADOOP_VERSION}.jar
+        wget -q ${CLOUDTIK_DOWNLOADS}/hadoop/hadoop-aliyun-${HADOOP_VERSION}.jar -O $HADOOP_HOME/share/hadoop/tools/lib/hadoop-aliyun-${HADOOP_VERSION}.jar
+        wget -q ${CLOUDTIK_DOWNLOADS}/hadoop/hadoop-huaweicloud-${HADOOP_VERSION}.jar -O $HADOOP_HOME/share/hadoop/tools/lib/hadoop-huaweicloud-${HADOOP_VERSION}.jar
+        wget -q ${CLOUDTIK_DOWNLOADS}/hadoop/hadoop-hdfs-nfs-${HADOOP_VERSION}.jar -O ${HADOOP_HOME}/share/hadoop/hdfs/hadoop-hdfs-nfs-${HADOOP_VERSION}.jar
     fi
 }
