@@ -26,12 +26,12 @@ prepare_base_conf() {
 
 check_trino_installed() {
     if [ ! -n "${HADOOP_HOME}" ]; then
-        echo "HADOOP_HOME environment variable is not set."
+        echo "Hadoop is not installed."
         exit 1
     fi
 
     if [ ! -n "${TRINO_HOME}" ]; then
-        echo "Trino is not installed for TRINO_HOME environment variable is not set."
+        echo "Trino is not installed."
         exit 1
     fi
 }

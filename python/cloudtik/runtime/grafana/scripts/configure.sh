@@ -25,7 +25,7 @@ prepare_base_conf() {
 check_grafana_installed() {
     if ! command -v grafana &> /dev/null
     then
-        echo "Grafana is not installed for grafana command is not available."
+        echo "Grafana is not installed."
         exit 1
     fi
 }

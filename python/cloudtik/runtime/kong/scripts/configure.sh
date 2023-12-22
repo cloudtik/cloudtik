@@ -25,7 +25,7 @@ prepare_base_conf() {
 check_kong_installed() {
     if ! command -v kong &> /dev/null
     then
-        echo "Kong is not installed for kong command is not available."
+        echo "Kong is not installed."
         exit 1
     fi
 }

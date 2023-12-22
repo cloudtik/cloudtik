@@ -24,7 +24,7 @@ prepare_base_conf() {
 
 check_coredns_installed() {
     if [ ! -f "${COREDNS_HOME}/coredns" ]; then
-        echo "CoreDNS is not installed for coredns command is not available."
+        echo "CoreDNS is not installed."
         exit 1
     fi
 }

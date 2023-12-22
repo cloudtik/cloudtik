@@ -12,7 +12,7 @@ eval set -- "${args}"
 
 if ! command -v consul &> /dev/null
 then
-    echo "Consul is not installed for consul command is not available."
+    echo "Consul is not installed."
     exit 1
 fi
 

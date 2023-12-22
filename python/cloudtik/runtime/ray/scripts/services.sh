@@ -12,7 +12,7 @@ eval set -- "${args}"
 
 if ! command -v ray &> /dev/null
 then
-    echo "Ray is not installed for ray command is not available."
+    echo "Ray is not installed."
     exit 1
 fi
 

@@ -11,12 +11,12 @@ eval set -- "${args}"
 . "$ROOT_DIR"/common/scripts/util-functions.sh
 
 if [ ! -n "${HADOOP_HOME}" ]; then
-    echo "Hadoop is not installed for HADOOP_HOME environment variable is not set."
+    echo "Hadoop is not installed."
     exit 1
 fi
 
 if [ ! -n "${FLINK_HOME}" ]; then
-    echo "Flink is not installed for FLINK_HOME environment variable is not set."
+    echo "Flink is not installed."
     exit 1
 fi
 

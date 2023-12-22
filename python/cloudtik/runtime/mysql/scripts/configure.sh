@@ -25,7 +25,7 @@ prepare_base_conf() {
 check_mysql_installed() {
     if ! command -v mysqld &> /dev/null
     then
-        echo "MySQL is not installed for mysqld command is not available."
+        echo "MySQL is not installed."
         exit 1
     fi
 }

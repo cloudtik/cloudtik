@@ -19,6 +19,11 @@ install_haproxy() {
           && sudo DEBIAN_FRONTEND=noninteractive apt-get install -qq --no-install-recommends software-properties-common -y > /dev/null \
           && sudo add-apt-repository ppa:vbernat/haproxy-${HAPROXY_VERSION} -y > /dev/null \
           && sudo DEBIAN_FRONTEND=noninteractive apt-get install -qq haproxy=${HAPROXY_VERSION}.\* -y > /dev/null
+        result=$?
+        if [ $result -ne 0 ]; then
+            echo "HAProxy installation failed."
+            exit 1
+        fi
     fi
 }
 

@@ -41,7 +41,7 @@ prepare_base_conf() {
 
 check_kafka_installed() {
     if [ ! -n "${KAFKA_HOME}" ]; then
-        echo "KAFKA_HOME environment variable is not set."
+        echo "Kafka is not installed."
         exit 1
     fi
 }

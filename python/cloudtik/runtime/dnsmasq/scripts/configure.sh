@@ -25,7 +25,7 @@ prepare_base_conf() {
 check_dnsmasq_installed() {
     if ! command -v dnsmasq &> /dev/null
     then
-        echo "dnsmasq is not installed for dnsmasq command is not available."
+        echo "Dnsmasq is not installed."
         exit 1
     fi
 }

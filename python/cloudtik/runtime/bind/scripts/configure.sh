@@ -25,7 +25,7 @@ prepare_base_conf() {
 check_bind_installed() {
     if ! command -v named &> /dev/null
     then
-        echo "Bind is not installed for named command is not available."
+        echo "Bind is not installed."
         exit 1
     fi
 }

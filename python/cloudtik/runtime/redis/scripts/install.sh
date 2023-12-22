@@ -29,7 +29,6 @@ install_redis() {
             redis=6:${REDIS_MAJOR_VERSION} > /dev/null
         result=$?
         sudo rm -f /etc/apt/sources.list.d/redis.list
-
         if [ $result -ne 0 ]; then
             echo "Redis installation failed."
             exit 1
