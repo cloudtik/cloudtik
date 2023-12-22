@@ -30,7 +30,7 @@ start)
         bash $BIN_DIR/redis-init.sh >${REDIS_HOME}/logs/redis-init.log 2>&1
 
         REDIS_PID_FILE=${REDIS_HOME}/redis-server.pid
-        ${REDIS_HOME}/bin/redis-server \
+        redis-server \
             ${REDIS_CONF_FILE} \
             --pidfile ${REDIS_PID_FILE} \
             --daemonize yes >${REDIS_HOME}/logs/redis-server-start.log 2>&1
