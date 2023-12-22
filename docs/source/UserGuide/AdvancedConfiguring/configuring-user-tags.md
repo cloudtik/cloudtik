@@ -43,7 +43,7 @@ Use labels field to specify a mapping of label name and value.
 For example,
 ```
 available_node_types:
-    worker-default:
+    worker.default:
         node_config:
             labels:
                 my-label-name: my-label-value
@@ -56,7 +56,7 @@ Use tags field to specify a mapping of tag name and value.
 For example,
 ```
 available_node_types:
-    worker-default:
+    worker.default:
         node_config:
             tags:
                 my-tag-name: my-tag-value
@@ -69,7 +69,7 @@ User can use the pod metadata labels field to specify the labels.
 For example,
 ```
 available_node_types:
-    worker-default:
+    worker.default:
         node_config:
             pod:
                 metadata:

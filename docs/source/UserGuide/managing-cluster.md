@@ -65,8 +65,8 @@ $ cloudtik debug-status /path/to/your-cluster-config.yaml
 Node status
 -------------------------------------------------------------------
 Healthy:
- 1 head-default
- 1 worker-default
+ 1 head.default
+ 1 worker.default
 Pending:
  (no pending nodes)
 Recent failures:

@@ -6,7 +6,8 @@ from cloudtik.providers._private.gcp.config import create_gcp_workspace, \
     get_workspace_head_nodes, list_gcp_clusters, bootstrap_gcp_workspace, check_gcp_workspace_existence, \
     get_gcp_workspace_info, update_gcp_workspace, list_gcp_storages, list_gcp_databases
 from cloudtik.core._private.provider_factory import _get_node_provider
-from cloudtik.core._private.utils import string_to_hex_string, string_from_hex_string, get_running_head_node, check_workspace_name_format
+from cloudtik.core._private.utils import get_running_head_node, check_workspace_name_format
+from cloudtik.core._private.core_utils import string_to_hex_string, string_from_hex_string
 from cloudtik.core.tags import CLOUDTIK_GLOBAL_VARIABLE_KEY_PREFIX, CLOUDTIK_GLOBAL_VARIABLE_KEY
 from cloudtik.core.workspace_provider import WorkspaceProvider
 

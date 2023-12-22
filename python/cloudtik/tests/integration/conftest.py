@@ -83,8 +83,6 @@ def usability_cluster_fixture(request, worker_nodes_fixture):
     conf_file = os.path.join(ROOT_PATH, param)
     conf = yaml.safe_load(open(conf_file).read())
     worker_node_type = "worker.default"
-    if conf["provider"]["type"] == "gcp":
-        worker_node_type = "worker-default"
     conf["available_node_types"][worker_node_type]["min_workers"] = worker_nodes_fixture
     yield from cluster_up_down_opt(conf)
 

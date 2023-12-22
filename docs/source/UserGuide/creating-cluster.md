@@ -39,7 +39,7 @@ available_node_types:
 On GCP:
 ```
 available_node_types:
-    worker-default:
+    worker.default:
         min_workers: 3
 ```
 

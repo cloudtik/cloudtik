@@ -4,7 +4,7 @@ provider:
 
 # The instance configuration for a very large instance type
 available_node_types:
-    head-default:
+    head.default:
         node_config:
             machineType: n2-standard-16
             disks:
@@ -14,7 +14,7 @@ available_node_types:
                   initializeParams:
                       diskSizeGb: 100
                       diskType: pd-balanced
-    worker-default:
+    worker.default:
         node_config:
             machineType: n2-standard-128
             disks:

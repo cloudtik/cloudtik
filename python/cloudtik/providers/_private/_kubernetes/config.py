@@ -11,10 +11,11 @@ from kubernetes import client
 from kubernetes.client.rest import ApiException
 
 from cloudtik.core._private.cli_logger import cli_logger, cf
-from cloudtik.core._private.core_utils import parse_memory_resource, generate_public_key
+from cloudtik.core._private.core_utils import parse_memory_resource, \
+    generate_public_key, string_to_hex_string, string_from_hex_string
 from cloudtik.core._private.docker import get_versioned_image
 from cloudtik.core._private.provider_factory import _get_node_provider
-from cloudtik.core._private.utils import is_use_internal_ip, get_running_head_node, string_to_hex_string, string_from_hex_string, \
+from cloudtik.core._private.utils import is_use_internal_ip, get_running_head_node, \
     get_head_service_ports, _is_use_managed_cloud_storage, _is_use_internal_ip, is_gpu_runtime, \
     PROVIDER_DATABASE_CONFIG_KEY, PROVIDER_STORAGE_CONFIG_KEY, _is_permanent_data_volumes
 from cloudtik.core.tags import CLOUDTIK_TAG_CLUSTER_NAME, CLOUDTIK_TAG_NODE_KIND, NODE_KIND_HEAD, \
@@ -327,7 +328,6 @@ def check_kubernetes_workspace_existence(config):
     workspace_name = config["workspace_name"]
     existing_resources = 0
     target_resources = KUBERNETES_WORKSPACE_TARGET_RESOURCES
-    cloud_existence = Existence.NOT_EXIST
     """
          Do the work - order of operation
          1.) Check namespace
@@ -1041,23 +1041,29 @@ def _create_configurations_for_cloud_provider(config, namespace):
     provider_config = config["provider"]
     cloud_provider = _get_cloud_provider_config(provider_config)
     if cloud_provider is None:
-        cli_logger.print("No cloud provider configured. Skipped cloud provider configurations.")
+        cli_logger.print(
+            "No cloud provider configured. Skipped cloud provider configurations.")
         return
 
     cloud_provider_type = cloud_provider["type"]
 
-    cli_logger.print("Configuring {} cloud provider for Kubernetes.", cloud_provider_type)
+    cli_logger.print(
+        "Configuring {} cloud provider for Kubernetes.", cloud_provider_type)
     if cloud_provider_type == "aws":
-        from cloudtik.providers._private._kubernetes.aws_eks.config import create_configurations_for_aws
+        from cloudtik.providers._private._kubernetes.aws_eks.config import \
+            create_configurations_for_aws
         create_configurations_for_aws(config, namespace, cloud_provider)
     elif cloud_provider_type == "gcp":
-        from cloudtik.providers._private._kubernetes.gcp_gke.config import create_configurations_for_gcp
+        from cloudtik.providers._private._kubernetes.gcp_gke.config import \
+            create_configurations_for_gcp
         create_configurations_for_gcp(config, namespace, cloud_provider)
     elif cloud_provider_type == "azure":
-        from cloudtik.providers._private._kubernetes.azure_aks.config import create_configurations_for_azure
+        from cloudtik.providers._private._kubernetes.azure_aks.config import \
+            create_configurations_for_azure
         create_configurations_for_azure(config, namespace, cloud_provider)
     else:
-        cli_logger.print("No integration for {} cloud provider. Configuration skipped.", cloud_provider_type)
+        cli_logger.print(
+            "No integration for {} cloud provider. Configuration skipped.", cloud_provider_type)
 
 
 def _delete_configurations_for_cloud_provider(config, namespace,
@@ -1066,28 +1072,34 @@ def _delete_configurations_for_cloud_provider(config, namespace,
     provider_config = config["provider"]
     cloud_provider = _get_cloud_provider_config(provider_config)
     if cloud_provider is None:
-        cli_logger.print("No cloud provider configured. Skipped cloud provider configurations.")
+        cli_logger.print(
+            "No cloud provider configured. Skipped cloud provider configurations.")
         return
     cloud_provider_type = cloud_provider["type"]
 
-    cli_logger.print("Configuring {} cloud provider for Kubernetes.", cloud_provider_type)
+    cli_logger.print(
+        "Configuring {} cloud provider for Kubernetes.", cloud_provider_type)
     if cloud_provider_type == "aws":
-        from cloudtik.providers._private._kubernetes.aws_eks.config import delete_configurations_for_aws
+        from cloudtik.providers._private._kubernetes.aws_eks.config import \
+            delete_configurations_for_aws
         delete_configurations_for_aws(
             config, namespace, cloud_provider,
             delete_managed_storage, delete_managed_database)
     elif cloud_provider_type == "gcp":
-        from cloudtik.providers._private._kubernetes.gcp_gke.config import delete_configurations_for_gcp
+        from cloudtik.providers._private._kubernetes.gcp_gke.config import \
+            delete_configurations_for_gcp
         delete_configurations_for_gcp(
             config, namespace, cloud_provider,
             delete_managed_storage, delete_managed_database)
     elif cloud_provider_type == "azure":
-        from cloudtik.providers._private._kubernetes.azure_aks.config import delete_configurations_for_azure
+        from cloudtik.providers._private._kubernetes.azure_aks.config import \
+            delete_configurations_for_azure
         delete_configurations_for_azure(
             config, namespace, cloud_provider,
             delete_managed_storage, delete_managed_database)
     else:
-        cli_logger.print("No integration for {} cloud provider. Configuration skipped.", cloud_provider_type)
+        cli_logger.print(
+            "No integration for {} cloud provider. Configuration skipped.", cloud_provider_type)
 
 
 def _update_configurations_for_cloud_provider(config, namespace,
@@ -1096,28 +1108,34 @@ def _update_configurations_for_cloud_provider(config, namespace,
     provider_config = config["provider"]
     cloud_provider = _get_cloud_provider_config(provider_config)
     if cloud_provider is None:
-        cli_logger.print("No cloud provider configured. Skipped cloud provider configurations.")
+        cli_logger.print(
+            "No cloud provider configured. Skipped cloud provider configurations.")
         return
     cloud_provider_type = cloud_provider["type"]
 
-    cli_logger.print("Configuring {} cloud provider for Kubernetes.", cloud_provider_type)
+    cli_logger.print(
+        "Configuring {} cloud provider for Kubernetes.", cloud_provider_type)
     if cloud_provider_type == "aws":
-        from cloudtik.providers._private._kubernetes.aws_eks.config import update_configurations_for_aws
+        from cloudtik.providers._private._kubernetes.aws_eks.config import \
+            update_configurations_for_aws
         update_configurations_for_aws(
             config, namespace, cloud_provider,
             delete_managed_storage, delete_managed_database)
     elif cloud_provider_type == "gcp":
-        from cloudtik.providers._private._kubernetes.gcp_gke.config import update_configurations_for_gcp
+        from cloudtik.providers._private._kubernetes.gcp_gke.config import \
+            update_configurations_for_gcp
         update_configurations_for_gcp(
             config, namespace, cloud_provider,
             delete_managed_storage, delete_managed_database)
     elif cloud_provider_type == "azure":
-        from cloudtik.providers._private._kubernetes.azure_aks.config import update_configurations_for_azure
+        from cloudtik.providers._private._kubernetes.azure_aks.config import \
+            update_configurations_for_azure
         update_configurations_for_azure(
             config, namespace, cloud_provider,
             delete_managed_storage, delete_managed_database)
     else:
-        cli_logger.print("No integration for {} cloud provider. Configuration skipped.", cloud_provider_type)
+        cli_logger.print(
+            "No integration for {} cloud provider. Configuration skipped.", cloud_provider_type)
 
 
 def _check_existence_for_cloud_provider(config: Dict[str, Any], namespace):
@@ -1128,21 +1146,26 @@ def _check_existence_for_cloud_provider(config: Dict[str, Any], namespace):
         return None
     cloud_provider_type = cloud_provider["type"]
 
-    cli_logger.verbose("Getting existence for {} cloud provider for Kubernetes.", cloud_provider_type)
+    cli_logger.verbose(
+        "Getting existence for {} cloud provider for Kubernetes.", cloud_provider_type)
     if cloud_provider_type == "aws":
-        from cloudtik.providers._private._kubernetes.aws_eks.config import check_existence_for_aws
+        from cloudtik.providers._private._kubernetes.aws_eks.config import \
+            check_existence_for_aws
         existence = check_existence_for_aws(config, namespace, cloud_provider)
     elif cloud_provider_type == "gcp":
-        from cloudtik.providers._private._kubernetes.gcp_gke.config import check_existence_for_gcp
+        from cloudtik.providers._private._kubernetes.gcp_gke.config import \
+            check_existence_for_gcp
         existence = check_existence_for_gcp(config, namespace, cloud_provider)
     elif cloud_provider_type == "azure":
-        from cloudtik.providers._private._kubernetes.azure_aks.config import check_existence_for_azure
+        from cloudtik.providers._private._kubernetes.azure_aks.config import \
+            check_existence_for_azure
         existence = check_existence_for_azure(config, namespace, cloud_provider)
     else:
         cli_logger.verbose("No integration for {} cloud provider.", cloud_provider_type)
         return None
 
-    cli_logger.verbose("The existence status for {} cloud provider: {}.", cloud_provider_type, existence)
+    cli_logger.verbose(
+        "The existence status for {} cloud provider: {}.", cloud_provider_type, existence)
     return existence
 
 
@@ -1375,10 +1398,12 @@ def get_default_kubernetes_cloud_storage(provider_config):
     storage_config = provider_config.get(PROVIDER_STORAGE_CONFIG_KEY, {})
 
     if "aws_s3_storage" in storage_config:
-        from cloudtik.providers._private._kubernetes.aws_eks.config import get_default_kubernetes_cloud_storage_for_aws
+        from cloudtik.providers._private._kubernetes.aws_eks.config import \
+            get_default_kubernetes_cloud_storage_for_aws
         return get_default_kubernetes_cloud_storage_for_aws(provider_config)
     elif "gcp_cloud_storage" in storage_config:
-        from cloudtik.providers._private._kubernetes.gcp_gke.config import get_default_kubernetes_cloud_storage_for_gcp
+        from cloudtik.providers._private._kubernetes.gcp_gke.config import \
+            get_default_kubernetes_cloud_storage_for_gcp
         return get_default_kubernetes_cloud_storage_for_gcp(provider_config)
     elif "azure_cloud_storage" in storage_config:
         from cloudtik.providers._private._kubernetes.azure_aks.config import \
@@ -1407,24 +1432,29 @@ def get_default_kubernetes_cloud_database(provider_config):
         return None
 
 
-def with_kubernetes_environment_variables(provider_config, node_type_config: Dict[str, Any], node_id: str):
+def with_kubernetes_environment_variables(
+        provider_config, node_type_config: Dict[str, Any], node_id: str):
     config_dict = {}
 
     storage_config = provider_config.get(PROVIDER_STORAGE_CONFIG_KEY, {})
 
     if "aws_s3_storage" in storage_config:
-        from cloudtik.providers._private._kubernetes.aws_eks.config import with_aws_environment_variables
+        from cloudtik.providers._private._kubernetes.aws_eks.config import \
+            with_aws_environment_variables
         with_aws_environment_variables(provider_config, config_dict)
 
     if "gcp_cloud_storage" in storage_config:
-        from cloudtik.providers._private._kubernetes.gcp_gke.config import with_gcp_environment_variables
+        from cloudtik.providers._private._kubernetes.gcp_gke.config import \
+            with_gcp_environment_variables
         with_gcp_environment_variables(provider_config, config_dict)
 
     if "azure_cloud_storage" in storage_config:
-        from cloudtik.providers._private._kubernetes.azure_aks.config import with_azure_environment_variables
+        from cloudtik.providers._private._kubernetes.azure_aks.config import \
+            with_azure_environment_variables
         with_azure_environment_variables(provider_config, config_dict)
 
     return config_dict
+
 
 def _configure_pods(config):
     # Update the node config with image

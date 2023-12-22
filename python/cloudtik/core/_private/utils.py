@@ -2,6 +2,7 @@ import collections
 import collections.abc
 import copy
 import subprocess
+import uuid
 from datetime import datetime
 import logging
 import hashlib
@@ -9,8 +10,6 @@ import json
 import os
 from typing import Any, Dict, Optional, Tuple, List, Union
 import sys
-import binascii
-import uuid
 import time
 import math
 from functools import partial
@@ -34,7 +33,7 @@ from cloudtik.core._private.constants import CLOUDTIK_WHEELS, \
     CLOUDTIK_DEFAULT_PORT, PRIVACY_REPLACEMENT_TEMPLATE, PRIVACY_REPLACEMENT, CLOUDTIK_CONFIG_SECRET, \
     CLOUDTIK_ENCRYPTION_PREFIX, CLOUDTIK_RUNTIME_ENV_SECRETS
 from cloudtik.core._private.core_utils import load_class, double_quote, check_process_exists, get_cloudtik_temp_dir, \
-    get_config_for_update, get_json_object_md5
+    get_config_for_update, get_json_object_md5, to_hex_string, from_hex_string
 from cloudtik.core._private.crypto import AESCipher
 from cloudtik.core._private.debug import log_once
 from cloudtik.core._private.runtime_factory import _get_runtime, _get_runtime_cls, DEFAULT_RUNTIMES, \
@@ -169,30 +168,6 @@ def run_bash_scripts(script_path: str, command: str, script_args):
     final_cmd = " ".join(cmds)
 
     run_system_command(final_cmd)
-
-
-def string_to_hex_string(s):
-    return to_hex_string(s.encode('utf-8'))
-
-
-def string_from_hex_string(s):
-    return from_hex_string(s).decode('utf-8')
-
-
-def to_hex_string(b):
-    return binascii.hexlify(b).decode('utf-8')
-
-
-def from_hex_string(s):
-    return binascii.unhexlify(s)
-
-
-def _random_string():
-    id_hash = hashlib.shake_128()
-    id_hash.update(uuid.uuid4().bytes)
-    id_bytes = id_hash.digest(constants.ID_SIZE)
-    assert len(id_bytes) == constants.ID_SIZE
-    return id_bytes
 
 
 def load_yaml_config(config_file):
@@ -3641,3 +3616,11 @@ def get_cluster_name(config):
 
 def get_workspace_name(config):
     return config["workspace_name"]
+
+
+def _random_string():
+    id_hash = hashlib.shake_128()
+    id_hash.update(uuid.uuid4().bytes)
+    id_bytes = id_hash.digest(constants.ID_SIZE)
+    assert len(id_bytes) == constants.ID_SIZE
+    return id_bytes

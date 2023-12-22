@@ -1,4 +1,5 @@
 import base64
+import binascii
 import collections
 import errno
 import hashlib
@@ -1000,3 +1001,19 @@ def wait_for_port(
                 raise TimeoutError(
                     'Waited too long for the port {}{} to be {} '.format(
                         port, on_host, state))
+
+
+def string_to_hex_string(s):
+    return to_hex_string(s.encode('utf-8'))
+
+
+def string_from_hex_string(s):
+    return from_hex_string(s).decode('utf-8')
+
+
+def to_hex_string(b):
+    return binascii.hexlify(b).decode('utf-8')
+
+
+def from_hex_string(s):
+    return binascii.unhexlify(s)

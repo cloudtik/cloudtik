@@ -7,7 +7,7 @@ provider:
 # 2 * T4
 # The instance configuration for a small instance type
 available_node_types:
-    worker-default:
+    worker.default:
         node_config:
             machineType: n1-standard-32
             guestAccelerators:
