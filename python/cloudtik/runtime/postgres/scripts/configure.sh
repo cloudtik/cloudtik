@@ -25,7 +25,7 @@ prepare_base_conf() {
 check_postgres_installed() {
     if ! command -v postgres &> /dev/null
     then
-        echo "Postgres is not installed for postgres command is not available."
+        echo "Postgres is not installed."
         exit 1
     fi
 }

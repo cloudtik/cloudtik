@@ -11,7 +11,7 @@ eval set -- "${args}"
 . "$ROOT_DIR"/common/scripts/util-functions.sh
 
 if [ ! -n "${HADOOP_HOME}" ]; then
-    echo "Hadoop is not installed for HADOOP_HOME environment variable is not set."
+    echo "Hadoop is not installed."
     exit 1
 fi
 

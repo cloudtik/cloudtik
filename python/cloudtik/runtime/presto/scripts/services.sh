@@ -11,7 +11,7 @@ eval set -- "${args}"
 . "$ROOT_DIR"/common/scripts/util-functions.sh
 
 if [ ! -n "${PRESTO_HOME}" ]; then
-    echo "Presto is not installed for PRESTO_HOME environment variable is not set."
+    echo "Presto is not installed."
     exit 1
 fi
 

@@ -25,8 +25,13 @@ install_apisix() {
           && sudo apt-get -qq update -y > /dev/null \
           && sudo DEBIAN_FRONTEND=noninteractive apt-get install -qq -y \
             apisix=${APISIX_VERSION}.\* > /dev/null
+        result=$?
         sudo rm -f /etc/apt/sources.list.d/openresty.list
         sudo rm -f /etc/apt/sources.list.d/apisix.list
+        if [ $result -ne 0 ]; then
+            echo "APISIX installation failed."
+            exit 1
+        fi
     fi
 }
 

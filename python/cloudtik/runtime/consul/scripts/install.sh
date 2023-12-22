@@ -25,7 +25,12 @@ install_consul() {
             | sudo tee /etc/apt/sources.list.d/hashicorp.list > /dev/null \
           && sudo apt-get -qq update -y > /dev/null \
           && sudo DEBIAN_FRONTEND=noninteractive apt-get install -qq consul=${CONSUL_VERSION}-* -y > /dev/null
+        result=$?
         sudo rm -f /etc/apt/sources.list.d/hashicorp.list
+        if [ $result -ne 0 ]; then
+            echo "Consul installation failed."
+            exit 1
+        fi
     fi
 }
 

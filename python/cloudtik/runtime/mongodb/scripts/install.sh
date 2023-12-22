@@ -43,8 +43,13 @@ install_mongodb() {
           mongodb-mongosh \
           mongodb-org-mongos \
           mongodb-org-tools > /dev/null
+        result=$?
         sudo rm -f /etc/apt/sources.list.d/mongodb-org-7.0.list
         clean_apt
+        if [ $result -ne 0 ]; then
+            echo "MongoDB installation failed."
+            exit 1
+        fi
     fi
 }
 

@@ -25,7 +25,7 @@ prepare_base_conf() {
 check_apisix_installed() {
     if ! command -v apisix &> /dev/null
     then
-        echo "APISIX is not installed for apisix command is not available."
+        echo "APISIX is not installed."
         exit 1
     fi
 }

@@ -15,6 +15,11 @@ install_dnsmasq() {
     then
         sudo apt-get -qq update -y > /dev/null \
           && sudo DEBIAN_FRONTEND=noninteractive apt-get install -qq -y dnsmasq > /dev/null
+        result=$?
+        if [ $result -ne 0 ]; then
+            echo "Dnsmasq installation failed."
+            exit 1
+        fi
     fi
 }
 

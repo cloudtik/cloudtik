@@ -46,7 +46,12 @@ install_mysql() {
         && sudo DEBIAN_FRONTEND=noninteractive apt-get install -qq -y \
           mysql-community-client="${MYSQL_VERSION}" \
           mysql-community-server-core="${MYSQL_VERSION}" >/dev/null
+        result=$?
         sudo rm -f /etc/apt/sources.list.d/mysql.list
+        if [ $result -ne 0 ]; then
+            echo "MySQL installation failed."
+            exit 1
+        fi
     fi
 }
 

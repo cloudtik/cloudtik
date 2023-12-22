@@ -23,7 +23,7 @@ prepare_base_conf() {
 
 check_zookeeper_installed() {
     if [ ! -n "${ZOOKEEPER_HOME}" ]; then
-        echo "ZOOKEEPER_HOME environment variable is not set."
+        echo "ZooKeeper is not installed."
         exit 1
     fi
 }

@@ -28,7 +28,12 @@ install_kong() {
         sudo apt-get -qq update -y > /dev/null \
           && sudo DEBIAN_FRONTEND=noninteractive apt-get install -qq -y \
             kong=${KONG_VERSION}.\* > /dev/null
+        result=$?
         sudo rm -f /etc/apt/sources.list.d/kong.list
+        if [ $result -ne 0 ]; then
+            echo "Kong installation failed."
+            exit 1
+        fi
     fi
 }
 

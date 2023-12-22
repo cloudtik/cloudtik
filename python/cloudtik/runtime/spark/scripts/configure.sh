@@ -23,12 +23,12 @@ prepare_base_conf() {
 
 check_spark_installed() {
     if [ ! -n "${HADOOP_HOME}" ]; then
-        echo "Hadoop is not installed for HADOOP_HOME environment variable is not set."
+        echo "Hadoop is not installed."
         exit 1
     fi
 
     if [ ! -n "${SPARK_HOME}" ]; then
-        echo "Spark is not installed for SPARK_HOME environment variable is not set."
+        echo "Spark is not installed."
         exit 1
     fi
 }

@@ -25,7 +25,7 @@ prepare_base_conf() {
 check_redis_installed() {
     if ! command -v redis-server &> /dev/null
     then
-        echo "ERROR: Redis is not installed."
+        echo "Redis is not installed."
         exit 1
     fi
 }

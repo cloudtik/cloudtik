@@ -11,7 +11,7 @@ eval set -- "${args}"
 . "$ROOT_DIR"/common/scripts/util-functions.sh
 
 if [ ! -n "${TRINO_HOME}" ]; then
-    echo "Trino is not installed for TRINO_HOME environment variable is not set."
+    echo "Trino is not installed."
     exit 1
 fi
 

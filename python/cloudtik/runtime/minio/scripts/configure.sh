@@ -16,7 +16,7 @@ MINIO_HOME=$RUNTIME_PATH/minio
 
 check_minio_installed() {
     if [ ! -f "${MINIO_HOME}/bin/minio" ]; then
-        echo "MinIO is not installed for minio command is not available."
+        echo "MinIO is not installed."
         exit 1
     fi
 }

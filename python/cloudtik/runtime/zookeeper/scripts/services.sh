@@ -11,7 +11,7 @@ eval set -- "${args}"
 . "$ROOT_DIR"/common/scripts/util-functions.sh
 
 if [ ! -n "${ZOOKEEPER_HOME}" ]; then
-    echo "ZOOKEEPER_HOME environment variable is not set."
+    echo "ZooKeeper is not installed."
     exit 1
 fi
 

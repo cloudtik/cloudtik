@@ -141,6 +141,13 @@ def node():
     hidden=True,
     help="The node type for this node.")
 @click.option(
+    "--node-seq-id",
+    required=False,
+    type=str,
+    default=None,
+    hidden=True,
+    help="The node seq id for this node.")
+@click.option(
     "--no-controller",
     is_flag=True,
     hidden=True,

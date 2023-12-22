@@ -25,7 +25,7 @@ prepare_base_conf() {
 check_mongodb_installed() {
     if ! command -v mongod &> /dev/null
     then
-        echo "MongoDB is not installed for mongod command is not available."
+        echo "MongoDB is not installed."
         exit 1
     fi
 }

@@ -19,7 +19,12 @@ install_nginx() {
             | sudo tee /etc/apt/sources.list.d/nginx.list > /dev/null \
           && sudo apt-get update -qq -y > /dev/null \
           && sudo DEBIAN_FRONTEND=noninteractive apt-get install -qq nginx -y > /dev/null)
+        result=$?
         sudo rm -f /etc/apt/sources.list.d/nginx.list
+        if [ $result -ne 0 ]; then
+            echo "NGINX installation failed."
+            exit 1
+        fi
     fi
 }
 

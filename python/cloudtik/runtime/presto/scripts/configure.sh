@@ -23,7 +23,7 @@ prepare_base_conf() {
 
 check_presto_installed() {
     if [ ! -n "${PRESTO_HOME}" ]; then
-        echo "Presto is not installed for PRESTO_HOME environment variable is not set."
+        echo "Presto is not installed."
         exit 1
     fi
 }

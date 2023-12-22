@@ -25,7 +25,7 @@ prepare_base_conf() {
 check_nginx_installed() {
     if ! command -v nginx &> /dev/null
     then
-        echo "NGINX is not installed for nginx command is not available."
+        echo "NGINX is not installed."
         exit 1
     fi
 }

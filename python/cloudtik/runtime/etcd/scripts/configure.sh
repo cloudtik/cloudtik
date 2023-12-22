@@ -25,7 +25,7 @@ prepare_base_conf() {
 check_etcd_installed() {
     if ! command -v etcd &> /dev/null
     then
-        echo "ETCD is not installed for etcd command is not available."
+        echo "ETCD is not installed."
         exit 1
     fi
 }

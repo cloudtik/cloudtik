@@ -25,7 +25,7 @@ prepare_base_conf() {
 check_haproxy_installed() {
     if ! command -v haproxy &> /dev/null
     then
-        echo "HAProxy is not installed for haproxy command is not available."
+        echo "HAProxy is not installed."
         exit 1
     fi
 }

@@ -24,7 +24,7 @@ prepare_base_conf() {
 
 check_prometheus_installed() {
     if [ ! -f "${PROMETHEUS_HOME}/prometheus" ]; then
-        echo "Prometheus is not installed for prometheus command is not available."
+        echo "Prometheus is not installed."
         exit 1
     fi
 }
