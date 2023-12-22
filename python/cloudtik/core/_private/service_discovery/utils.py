@@ -257,22 +257,38 @@ def get_service_selector_for_update(config, config_key):
     return service_selector
 
 
-def include_runtime_for_selector(
-        service_selector, runtime: Union[str, List[str]], override=False):
-    runtimes = get_list_for_update(
-        service_selector, SERVICE_SELECTOR_RUNTIMES)
-    if runtimes:
+def include_label_for_selector(
+        service_selector, label_name,
+        label_value: Union[str, List[str]], override=False):
+    label_values = get_list_for_update(
+        service_selector, label_name)
+    if label_values:
         if not override:
             return service_selector
-        runtimes.clear()
+        label_values.clear()
 
-    if isinstance(runtime, str):
-        runtimes.append(runtime)
+    if isinstance(label_value, str):
+        label_values.append(label_value)
     else:
         # list of runtime types
-        for runtime_type in runtime:
-            runtimes.append(runtime_type)
+        for list_item in label_value:
+            label_values.append(list_item)
     return service_selector
+
+
+def include_cluster_for_selector(
+        service_selector,
+        cluster_name: Union[str, List[str]], override=False):
+    return include_label_for_selector(
+        service_selector, SERVICE_SELECTOR_CLUSTERS,
+        cluster_name, override)
+
+
+def include_runtime_for_selector(
+        service_selector, runtime: Union[str, List[str]], override=False):
+    return include_label_for_selector(
+        service_selector, SERVICE_SELECTOR_RUNTIMES,
+        runtime, override)
 
 
 def include_service_type_for_selector(

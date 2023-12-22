@@ -596,6 +596,7 @@ class NodeServicesStarter:
             monitor_ip=self._node_ip_address,
             runtimes=self._start_params.runtimes,
             node_type=self._start_params.node_type,
+            node_seq_id=self._start_params.node_seq_id,
         )
         assert constants.PROCESS_TYPE_NODE_MONITOR not in self.all_processes
         self.all_processes[constants.PROCESS_TYPE_NODE_MONITOR] = [process_info]

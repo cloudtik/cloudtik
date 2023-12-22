@@ -1,21 +1,25 @@
 import os
 from typing import Dict, Any, Union, List, Optional
 
+from cloudtik.core._private.constants import CLOUDTIK_RUNTIME_ENV_CLUSTER
 from cloudtik.core._private.core_utils import get_config_for_update, get_env_string_value
 from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_HDFS, BUILT_IN_RUNTIME_METASTORE, \
     BUILT_IN_RUNTIME_CONSUL, BUILT_IN_RUNTIME_ZOOKEEPER, BUILT_IN_RUNTIME_MYSQL, BUILT_IN_RUNTIME_POSTGRES, \
     BUILT_IN_RUNTIME_ETCD, BUILT_IN_RUNTIME_MINIO
-from cloudtik.core._private.runtime_utils import get_runtime_head_host
+from cloudtik.core._private.runtime_utils import get_runtime_head_host, subscribe_cluster_runtime_config, \
+    get_runtime_node_address_type, get_runtime_value
 from cloudtik.core._private.service_discovery.naming import get_cluster_node_address_type
 from cloudtik.core._private.service_discovery.utils import get_service_selector_for_update, \
-    include_runtime_for_selector, include_feature_for_selector, include_service_type_for_selector, ServiceAddressType
+    include_runtime_for_selector, include_feature_for_selector, include_service_type_for_selector, ServiceAddressType, \
+    include_cluster_for_selector
 from cloudtik.core._private.util.database_utils import is_database_configured, set_database_config, \
     DATABASE_ENV_ENABLED, DATABASE_ENV_ENGINE, DATABASE_ENV_HOST, DATABASE_ENV_PORT, DATABASE_ENV_USERNAME, \
     DATABASE_ENV_PASSWORD, get_database_default_port, get_database_default_username, get_database_default_password, \
     DATABASE_ENGINE_MYSQL
 from cloudtik.core._private.utils import get_runtime_config
 from cloudtik.runtime.common.service_discovery.cluster import has_runtime_in_cluster
-from cloudtik.runtime.common.service_discovery.discovery import query_one_service, DiscoveryType
+from cloudtik.runtime.common.service_discovery.discovery import query_service, DiscoveryType, \
+    query_service_with_discovery_service
 from cloudtik.runtime.common.service_discovery.utils import get_service_addresses_string
 
 BUILT_IN_DATABASE_RUNTIMES = [BUILT_IN_RUNTIME_MYSQL, BUILT_IN_RUNTIME_POSTGRES]
@@ -62,6 +66,22 @@ def get_database_engine_for_runtime(runtime_type):
     return runtime_type
 
 
+def get_service_selector_for_runtime_service(
+        service_selector,
+        runtime_type: Union[str, List[str]],
+        service_type: Optional[Union[str, List[str]]] = None):
+    if service_selector is None:
+        service_selector = {}
+    # if user provide runtimes in the selector, we don't override it
+    # because any runtimes in the list will be selected
+    service_selector = include_runtime_for_selector(
+        service_selector, runtime_type)
+    if service_type:
+        service_selector = include_service_type_for_selector(
+            service_selector, service_type)
+    return service_selector
+
+
 def discover_runtime_service(
         config: Dict[str, Any],
         service_selector_key: str,
@@ -73,14 +93,9 @@ def discover_runtime_service(
     address_type = get_cluster_node_address_type(cluster_config)
     service_selector = get_service_selector_for_update(
         config, service_selector_key)
-    # if user provide runtimes in the selector, we don't override it
-    # because any runtimes in the list will be selected
-    service_selector = include_runtime_for_selector(
-        service_selector, runtime_type)
-    if service_type:
-        service_selector = include_service_type_for_selector(
-            service_selector, service_type)
-    service_instance = query_one_service(
+    service_selector = get_service_selector_for_runtime_service(
+        service_selector, runtime_type, service_type)
+    service_instance = query_service(
         cluster_config, service_selector,
         discovery_type=discovery_type,
         address_type=address_type)
@@ -115,7 +130,7 @@ def discover_runtime_service_addresses_by_feature(
     # WARNING: feature selecting doesn't work for workspace service registry
     service_selector = include_feature_for_selector(
         service_selector, feature)
-    service_instance = query_one_service(
+    service_instance = query_service(
         cluster_config, service_selector,
         discovery_type=discovery_type,
         address_type=address_type)
@@ -679,3 +694,50 @@ def export_database_runtime_environment_variables(
     # The defaults apply to built-in Database runtime.
     os.environ[DATABASE_ENV_USERNAME] = username
     os.environ[DATABASE_ENV_PASSWORD] = password
+
+
+def discover_service_from_node(
+        cluster_name: Optional[Union[str, List[str]]] = None,
+        runtime_type: Optional[Union[str, List[str]]] = None,
+        service_type: Optional[Union[str, List[str]]] = None,
+        discovery_type: DiscoveryType = DiscoveryType.ANY,
+        address_type: ServiceAddressType = None):
+    service_selector = {}
+    if cluster_name:
+        service_selector = include_cluster_for_selector(
+            service_selector, cluster_name)
+    if runtime_type:
+        service_selector = get_service_selector_for_runtime_service(
+            service_selector, runtime_type, service_type)
+    return _discover_service_from_node(
+        service_selector,
+        discovery_type=discovery_type,
+        address_type=address_type)
+
+
+def _discover_service_from_node(
+        service_selector,
+        runtime_config: Dict[str, Any] = None,
+        discovery_type: DiscoveryType = DiscoveryType.ANY,
+        address_type: ServiceAddressType = None):
+    if runtime_config is None:
+        # the global runtime config
+        runtime_config = subscribe_cluster_runtime_config()
+    if address_type is None:
+        # auto address type
+        address_type = get_runtime_node_address_type()
+    return query_service_with_discovery_service(
+        runtime_config, service_selector,
+        discovery_type=discovery_type,
+        address_type=address_type)
+
+
+def discover_in_cluster_service(
+        runtime_type: Optional[Union[str, List[str]]] = None,
+        service_type: Optional[Union[str, List[str]]] = None,
+        discovery_type: DiscoveryType = DiscoveryType.ANY,
+        address_type: ServiceAddressType = None):
+    cluster_name = get_runtime_value(CLOUDTIK_RUNTIME_ENV_CLUSTER)
+    return discover_service_from_node(
+        cluster_name, runtime_type, service_type,
+        discovery_type=discovery_type,address_type=address_type)

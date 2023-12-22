@@ -19,7 +19,7 @@ from cloudtik.core._private.logging_utils import setup_component_logger
 from cloudtik.core._private.metrics.metrics_collector import MetricsCollector
 from cloudtik.core._private.state.control_state import ControlState
 from cloudtik.core._private.state.state_utils import NODE_STATE_NODE_IP, NODE_STATE_NODE_ID, NODE_STATE_NODE_KIND, \
-    NODE_STATE_HEARTBEAT_TIME, NODE_STATE_NODE_TYPE, NODE_STATE_TIME
+    NODE_STATE_HEARTBEAT_TIME, NODE_STATE_NODE_TYPE, NODE_STATE_TIME, NODE_STATE_NODE_SEQ_ID
 from cloudtik.core._private.utils import get_runtime_processes, make_node_id
 
 logger = logging.getLogger(__name__)
@@ -34,6 +34,7 @@ class NodeMonitor:
                  node_ip,
                  node_kind,
                  node_type,
+                 node_seq_id,
                  redis_address,
                  redis_password=None,
                  static_resource_list=None,
@@ -49,6 +50,7 @@ class NodeMonitor:
         self.node_ip = node_ip
         self.node_kind = node_kind
         self.node_type = node_type
+        self.node_seq_id = node_seq_id
         self.static_resource_list = static_resource_list
         # node_info store the basic aliveness of the current node
         self.node_info = {
@@ -58,6 +60,8 @@ class NodeMonitor:
         }
         if node_type:
             self.node_info[NODE_STATE_NODE_TYPE] = node_type
+        if node_seq_id:
+            self.node_info[NODE_STATE_NODE_SEQ_ID] = node_seq_id
 
         self.node_metrics = {
             NODE_STATE_NODE_ID: node_id,
@@ -225,6 +229,12 @@ if __name__ == "__main__":
         default=None,
         help="the node type of the this node")
     parser.add_argument(
+        "--node-seq-id",
+        required=False,
+        type=str,
+        default=None,
+        help="the node seq id of the this node")
+    parser.add_argument(
         "--redis-address",
         required=True,
         type=str,
@@ -320,6 +330,7 @@ if __name__ == "__main__":
         args.monitor_ip,
         args.node_kind,
         args.node_type,
+        args.node_seq_id,
         args.redis_address,
         redis_password=args.redis_password,
         static_resource_list=args.static_resource_list,

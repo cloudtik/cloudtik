@@ -19,7 +19,7 @@ CLOUDTIK_REGION="GLOBAL"
 
 # We can define a image to runtimes map.
 # The universe image is for tests. It include all the runtimes except
-# apisix (cannot coexist with kong) and metastore (log4j shell2 vulnerability)
+# apisix (cannot coexist with kong) and metastore (log4j vulnerability)
 declare -A IMAGE_RUNTIME_MAP=(\
     ["universe"]="ai, bind, consul, coredns, dnsmasq, etcd, flink, grafana, hadoop, haproxy, hdfs, kafka, kong, minio, mongodb, mount, mysql, nginx, nodex, postgres, presto, prometheus, ray, redis, spark, sshserver, trino, yarn, zookeeper" \
 )
@@ -191,6 +191,24 @@ if [ $BUILD_DEV ] || [ $BUILD_ALL ]; then
     rm ./docker/cloudtik-dev/cloudtik.tar ./docker/cloudtik-dev/git-rev
 fi
 
+build_image_for(){
+    local -r docker_file_dir="${1:?docker file dir is required}"
+    local -r image_name="${2:?image name is required}"
+    local -r image_tag="${3:?image tag is required}"
+    local -r base_prefix="${4:-}"
+    local build_flags=""
+    if [ ! -z "$base_prefix" ]; then
+        build_flags="--build-arg BASE_PREFIX=$base_prefix"
+    fi
+    cp "$WHEEL" "$docker_file_dir/$WHEEL_NAME"
+    docker build $NO_CACHE $build_flags \
+      --build-arg BASE_TAG=$image_tag \
+      --build-arg WHEEL_PATH="$WHEEL_NAME" \
+      -t ${DOCKER_REGISTRY}cloudtik/${image_name}:$image_tag \
+      $docker_file_dir
+    rm "$docker_file_dir/$WHEEL_NAME"
+}
+
 registry_regions=('GLOBAL')
 if [ "${CLOUDTIK_REGION}" == "PRC" ]; then
     registry_regions[1]='PRC'
@@ -228,7 +246,7 @@ do
               docker/${DOCKER_FILE_PATH}runtime/spark/optimized
         fi
 
-        if [ -d "docker/${DOCKER_FILE_PATH}runtime" ] && ([ $BUILD_RUNTIME_IMAGES ] || [ $BUILD_ALL ]); then
+        if [ -d "docker/${DOCKER_FILE_PATH}runtime" ] && [ $BUILD_RUNTIME_IMAGES ]; then
             IFS=', ' read -r -a image_names <<< "$RUNTIME_IMAGES_TO_BUILD"
             for image_name in ${image_names[@]}
             do
@@ -248,60 +266,33 @@ do
 
     if [ "$DEVICE_TYPE" == "" ]; then
         if [ -d "docker/${DOCKER_FILE_PATH}runtime/ai/cpu" ] && ([ $BUILD_AI ] || [ $BUILD_ALL ]); then
-            cp "$WHEEL" "docker/${DOCKER_FILE_PATH}runtime/ai/cpu/$WHEEL_NAME"
-            docker build $NO_CACHE --build-arg BASE_TAG=$IMAGE_TAG \
-              --build-arg WHEEL_PATH="$WHEEL_NAME" \
-              -t ${DOCKER_REGISTRY}cloudtik/ai-runtime:$IMAGE_TAG \
-              docker/${DOCKER_FILE_PATH}runtime/ai/cpu
-            rm "docker/${DOCKER_FILE_PATH}runtime/ai/cpu/$WHEEL_NAME"
+            build_image_for "docker/${DOCKER_FILE_PATH}runtime/ai/cpu" \
+              "ai-runtime" "$IMAGE_TAG"
         fi
 
         if [ -d "docker/${DOCKER_FILE_PATH}runtime/ai/oneapi" ] && ([ $BUILD_AI_ONEAPI ] || [ $BUILD_ALL ]); then
-            cp "$WHEEL" "docker/${DOCKER_FILE_PATH}runtime/ai/oneapi/$WHEEL_NAME"
-            docker build $NO_CACHE --build-arg BASE_TAG=$IMAGE_TAG \
-              --build-arg WHEEL_PATH="$WHEEL_NAME" \
-              -t ${DOCKER_REGISTRY}cloudtik/ai-oneapi:$IMAGE_TAG \
-              docker/${DOCKER_FILE_PATH}runtime/ai/oneapi
-            rm "docker/${DOCKER_FILE_PATH}runtime/ai/oneapi/$WHEEL_NAME"
+            build_image_for "docker/${DOCKER_FILE_PATH}runtime/ai/oneapi" \
+              "ai-oneapi" "$IMAGE_TAG"
         fi
 
         if [ -d "docker/${DOCKER_FILE_PATH}runtime/ai/cpu" ] && ([ $BUILD_SPARK_AI ] || [ $BUILD_ALL ]); then
-            cp "$WHEEL" "docker/${DOCKER_FILE_PATH}runtime/ai/cpu/$WHEEL_NAME"
-            docker build $NO_CACHE --build-arg BASE_PREFIX=spark-runtime \
-              --build-arg BASE_TAG=$IMAGE_TAG \
-              --build-arg WHEEL_PATH="$WHEEL_NAME" \
-              -t ${DOCKER_REGISTRY}cloudtik/spark-ai-runtime:$IMAGE_TAG \
-              docker/${DOCKER_FILE_PATH}runtime/ai/cpu
-            rm "docker/${DOCKER_FILE_PATH}runtime/ai/cpu/$WHEEL_NAME"
+            build_image_for "docker/${DOCKER_FILE_PATH}runtime/ai/cpu" \
+              "spark-ai-runtime" "$IMAGE_TAG" "spark-runtime"
         fi
 
         if [ -d "docker/${DOCKER_FILE_PATH}runtime/ai/oneapi" ] && ([ $BUILD_SPARK_AI_ONEAPI ] || [ $BUILD_ALL ]); then
-            cp "$WHEEL" "docker/${DOCKER_FILE_PATH}runtime/ai/oneapi/$WHEEL_NAME"
-            docker build $NO_CACHE --build-arg BASE_PREFIX=spark-runtime \
-              --build-arg BASE_TAG=$IMAGE_TAG \
-              --build-arg WHEEL_PATH="$WHEEL_NAME" \
-              -t ${DOCKER_REGISTRY}cloudtik/spark-ai-oneapi:$IMAGE_TAG \
-              docker/${DOCKER_FILE_PATH}runtime/ai/oneapi
-            rm "docker/${DOCKER_FILE_PATH}runtime/ai/oneapi/$WHEEL_NAME"
+            build_image_for "docker/${DOCKER_FILE_PATH}runtime/ai/oneapi" \
+              "spark-ai-oneapi" "$IMAGE_TAG" "spark-runtime"
         fi
     else
         if [ -d "docker/${DOCKER_FILE_PATH}runtime/ai/$DEVICE_TYPE" ] && ([ $BUILD_AI ] || [ $BUILD_ALL ]); then
-            cp "$WHEEL" "docker/${DOCKER_FILE_PATH}runtime/ai/$DEVICE_TYPE/$WHEEL_NAME"
-            docker build $NO_CACHE --build-arg BASE_TAG=$IMAGE_TAG$DEVICE_TAG \
-              --build-arg WHEEL_PATH="$WHEEL_NAME" \
-              -t ${DOCKER_REGISTRY}cloudtik/ai-runtime:$IMAGE_TAG$DEVICE_TAG \
-              docker/${DOCKER_FILE_PATH}runtime/ai/$DEVICE_TYPE
-            rm "docker/${DOCKER_FILE_PATH}runtime/ai/$DEVICE_TYPE/$WHEEL_NAME"
+            build_image_for "docker/${DOCKER_FILE_PATH}runtime/ai/$DEVICE_TYPE" \
+              "ai-runtime" "$IMAGE_TAG$DEVICE_TAG"
         fi
 
         if [ -d "docker/${DOCKER_FILE_PATH}runtime/ai/$DEVICE_TYPE" ] && ([ $BUILD_SPARK_AI ] || [ $BUILD_ALL ]); then
-            cp "$WHEEL" "docker/${DOCKER_FILE_PATH}runtime/ai/$DEVICE_TYPE/$WHEEL_NAME"
-            docker build $NO_CACHE --build-arg BASE_PREFIX=spark-runtime \
-              --build-arg BASE_TAG=$IMAGE_TAG$DEVICE_TAG \
-              --build-arg WHEEL_PATH="$WHEEL_NAME" \
-              -t ${DOCKER_REGISTRY}cloudtik/spark-ai-runtime:$IMAGE_TAG$DEVICE_TAG \
-              docker/${DOCKER_FILE_PATH}runtime/ai/$DEVICE_TYPE
-            rm "docker/${DOCKER_FILE_PATH}runtime/ai/$DEVICE_TYPE/$WHEEL_NAME"
+            build_image_for "docker/${DOCKER_FILE_PATH}runtime/ai/$DEVICE_TYPE" \
+              "spark-ai-runtime" "$IMAGE_TAG$DEVICE_TAG" "spark-runtime"
         fi
     fi
 

@@ -15,11 +15,13 @@ from cloudtik.core._private.cluster.cluster_operator import (
     dump_local)
 from cloudtik.core._private.constants import CLOUDTIK_PROCESSES, \
     CLOUDTIK_REDIS_DEFAULT_PASSWORD, \
-    CLOUDTIK_DEFAULT_PORT
+    CLOUDTIK_DEFAULT_PORT, CLOUDTIK_RUNTIME_ENV_RUNTIMES, CLOUDTIK_RUNTIME_ENV_NODE_TYPE, \
+    CLOUDTIK_RUNTIME_ENV_NODE_SEQ_ID
 from cloudtik.core._private.core_utils import get_cloudtik_temp_dir, wait_for_port as _wait_for_port
 from cloudtik.core._private.node.node_services import NodeServicesStarter
 from cloudtik.core._private.parameter import StartParams
 from cloudtik.core._private.resource_spec import ResourceSpec
+from cloudtik.core._private.runtime_utils import get_runtime_value
 from cloudtik.core._private.util.pull.pull_server import pull_server
 from cloudtik.core._private.utils import parse_resources_json, run_script
 from cloudtik.scripts.utils import NaturalOrderGroup
@@ -166,7 +168,7 @@ def start(node_ip_address, address, port, head,
           redis_password, redis_shard_ports, redis_max_memory,
           memory, num_cpus, num_gpus, resources,
           cluster_config, temp_dir, metrics_export_port,
-          no_redirect_output, runtimes, node_type,
+          no_redirect_output, runtimes, node_type, node_seq_id,
           no_controller, no_redis, no_clustering):
     """Start the main daemon processes on the local machine."""
     # Convert hostnames to numerical IP address.
@@ -175,6 +177,14 @@ def start(node_ip_address, address, port, head,
     redirect_output = None if not no_redirect_output else True
 
     resources = parse_resources_json(resources)
+
+    # Try get from runtime environment variables if not given in arguments
+    if not runtimes:
+        runtimes = get_runtime_value(CLOUDTIK_RUNTIME_ENV_RUNTIMES)
+    if not node_type:
+        node_type = get_runtime_value(CLOUDTIK_RUNTIME_ENV_NODE_TYPE)
+    if not node_seq_id:
+        node_seq_id = get_runtime_value(CLOUDTIK_RUNTIME_ENV_NODE_SEQ_ID)
 
     start_params = StartParams(
         node_ip_address=node_ip_address,
@@ -187,6 +197,7 @@ def start(node_ip_address, address, port, head,
         redirect_output=redirect_output,
         runtimes=runtimes,
         node_type=node_type,
+        node_seq_id=node_seq_id,
         no_controller=no_controller,
         no_redis=no_redis,
         no_clustering=no_clustering,

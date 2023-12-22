@@ -129,6 +129,10 @@ def subscribe_runtime_config():
         if runtime_config is not None:
             return runtime_config
 
+    return subscribe_cluster_runtime_config()
+
+
+def subscribe_cluster_runtime_config():
     return retrieve_runtime_config()
 
 

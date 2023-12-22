@@ -17,11 +17,42 @@ class DiscoveryType(Enum):
     ANY = auto()
 
 
-def query_one_service(
+def query_service(
         cluster_config: Dict[str, Any], service_selector,
         discovery_type: DiscoveryType = DiscoveryType.ANY,
         address_type: ServiceAddressType = ServiceAddressType.NODE_IP):
     runtime_config = cluster_config.get(RUNTIME_CONFIG_KEY)
+    if (discovery_type == DiscoveryType.ANY or
+            discovery_type == DiscoveryType.LOCAL or
+            discovery_type == DiscoveryType.CLUSTER):
+        service = query_service_with_discovery_service(
+            runtime_config, service_selector,
+            discovery_type=discovery_type, address_type=address_type)
+        if service:
+            return service
+        if (discovery_type == DiscoveryType.LOCAL or
+                discovery_type == DiscoveryType.CLUSTER):
+            return None
+
+    if (discovery_type == DiscoveryType.ANY or
+            discovery_type == DiscoveryType.WORKSPACE):
+        # try workspace discovery
+        service = query_one_service_from_workspace(
+            cluster_config, service_selector)
+        if service:
+            return service
+        if discovery_type == DiscoveryType.WORKSPACE:
+            return None
+
+    return None
+
+
+def query_service_with_discovery_service(
+        runtime_config: Dict[str, Any], service_selector,
+        discovery_type: DiscoveryType = DiscoveryType.ANY,
+        address_type: ServiceAddressType = ServiceAddressType.NODE_IP):
+    # Note: the runtime config should be global runtime config.
+    # If a node type override the list of runtimes, we may not get the service discovery runtime
     if (discovery_type == DiscoveryType.ANY or
             discovery_type == DiscoveryType.LOCAL):
         if get_service_discovery_runtime(runtime_config):
@@ -49,15 +80,4 @@ def query_one_service(
                     return service
         if discovery_type == DiscoveryType.CLUSTER:
             return None
-
-    if (discovery_type == DiscoveryType.ANY or
-            discovery_type == DiscoveryType.WORKSPACE):
-        # try workspace discovery
-        service = query_one_service_from_workspace(
-            cluster_config, service_selector)
-        if service:
-            return service
-        if discovery_type == DiscoveryType.WORKSPACE:
-            return None
-
     return None

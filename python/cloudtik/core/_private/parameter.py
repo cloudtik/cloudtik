@@ -34,9 +34,6 @@ class StartParams:
             maxclients number.
         redis_password (str): Prevents external clients without the password
             from connecting to Redis if provided.
-        logging_level: Logging level, default will be logging.INFO.
-        logging_format: Logging format, default contains a timestamp,
-            filename, line number, and message. See constants.py.
         temp_dir (str): If provided, it will specify the root temporary
             directory.
         runtime_dir_name (str): If provided, specifies the directory that
@@ -57,6 +54,7 @@ class StartParams:
             processes should be redirected to files and false otherwise.
         runtimes: Runtimes enabled on this node.
         node_type: The node type of this node.
+        node_seq_id: The node SEQ ID of this node.
         no_controller: No controller to start on the head.
         no_redis: Don't start redis
         no_clustering: Don't start clustering services
@@ -72,8 +70,6 @@ class StartParams:
                  num_redis_shards=None,
                  redis_max_clients=None,
                  redis_password=constants.CLOUDTIK_REDIS_DEFAULT_PASSWORD,
-                 logging_level=logging.INFO,
-                 logging_format=constants.LOGGER_FORMAT,
                  temp_dir=None,
                  runtime_dir_name=None,
                  include_log_monitor=None,
@@ -87,6 +83,7 @@ class StartParams:
                  redirect_output=None,
                  runtimes=None,
                  node_type=None,
+                 node_seq_id=None,
                  no_controller=False,
                  no_redis=False,
                  no_clustering=False,
@@ -114,6 +111,7 @@ class StartParams:
         self.resources = resources
         self.runtimes = runtimes
         self.node_type = node_type
+        self.node_seq_id = node_seq_id
         self.no_controller = no_controller
         self.no_redis = no_redis
         self.no_clustering = no_clustering
