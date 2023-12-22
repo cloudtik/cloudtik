@@ -84,7 +84,7 @@ redis_conf_unset() {
 #   Redis versoon
 #########################
 redis_version() {
-    "${REDIS_BASE_DIR}/bin/redis-cli" --version | grep -E -o "[0-9]+.[0-9]+.[0-9]+"
+    redis-cli --version | grep -E -o "[0-9]+.[0-9]+.[0-9]+"
 }
 
 ########################
