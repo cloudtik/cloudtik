@@ -6,13 +6,11 @@ import time
 from redis.cluster import RedisCluster
 from redis.cluster import ClusterNode
 
-from cloudtik.core._private.constants import \
-    CLOUDTIK_RUNTIME_ENV_WORKSPACE, CLOUDTIK_RUNTIME_ENV_CLUSTER
 from cloudtik.core._private.core_utils import exec_with_call
 from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_REDIS
 from cloudtik.core._private.runtime_utils import get_first_data_disk_dir, get_worker_ips_ready_from_head, \
     get_runtime_config_from_node, get_runtime_value, run_func_with_retry, get_runtime_head_host, get_runtime_node_host, \
-    get_runtime_node_ip
+    get_runtime_node_ip, get_runtime_workspace_name, get_runtime_cluster_name
 from cloudtik.runtime.common.lock.runtime_lock import get_runtime_lock
 from cloudtik.runtime.redis.utils import _get_home_dir, _get_master_size, _get_config, _get_reshard_delay
 
@@ -225,8 +223,8 @@ def _check_node_show(redis_cluster, node_id):
 
 
 def _get_task_lock(runtime_config, task_name):
-    workspace_name = get_runtime_value(CLOUDTIK_RUNTIME_ENV_WORKSPACE)
-    cluster_name = get_runtime_value(CLOUDTIK_RUNTIME_ENV_CLUSTER)
+    workspace_name = get_runtime_workspace_name()
+    cluster_name = get_runtime_cluster_name()
     lock_name = f"{workspace_name}.{cluster_name}.redis.{task_name}"
     return get_runtime_lock(runtime_config, lock_name)
 

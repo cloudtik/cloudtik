@@ -2,10 +2,10 @@ import os
 import shutil
 from shlex import quote
 
-from cloudtik.core._private.constants import CLOUDTIK_RUNTIME_ENV_CLUSTER
 from cloudtik.core._private.core_utils import exec_with_output, exec_with_call, JSONSerializableObject
 from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_HAPROXY
-from cloudtik.core._private.runtime_utils import get_runtime_config_from_node, get_runtime_value, get_runtime_node_ip
+from cloudtik.core._private.runtime_utils import get_runtime_config_from_node, get_runtime_value, get_runtime_node_ip, \
+    get_runtime_cluster_name
 from cloudtik.core._private.service_discovery.utils import serialize_service_selector, exclude_runtime_of_cluster
 from cloudtik.runtime.haproxy.utils import _get_config, HAPROXY_APP_MODE_LOAD_BALANCER, HAPROXY_CONFIG_MODE_STATIC, \
     HAPROXY_BACKEND_SERVERS_CONFIG_KEY, _get_home_dir, _get_backend_config, get_default_server_name, \
@@ -62,7 +62,7 @@ def start_pull_server(head):
 
     service_selector = haproxy_config.get(
             HAPROXY_BACKEND_SELECTOR_CONFIG_KEY, {})
-    cluster_name = get_runtime_value(CLOUDTIK_RUNTIME_ENV_CLUSTER)
+    cluster_name = get_runtime_cluster_name()
     exclude_runtime_of_cluster(
         service_selector, BUILT_IN_RUNTIME_HAPROXY, cluster_name)
 

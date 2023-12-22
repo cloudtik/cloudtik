@@ -1,11 +1,11 @@
 import os
 from shlex import quote
 
-from cloudtik.core._private.constants import CLOUDTIK_RUNTIME_ENV_CLUSTER
 from cloudtik.core._private.core_utils import get_config_for_update, get_list_for_update, get_address_string, \
     exec_with_output
 from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_APISIX
-from cloudtik.core._private.runtime_utils import get_runtime_config_from_node, load_and_save_yaml, get_runtime_value
+from cloudtik.core._private.runtime_utils import get_runtime_config_from_node, load_and_save_yaml, get_runtime_value, \
+    get_runtime_cluster_name
 from cloudtik.core._private.service_discovery.utils import \
     exclude_runtime_of_cluster, serialize_service_selector
 from cloudtik.core._private.utils import encrypt_string, string_to_hex_string
@@ -38,7 +38,7 @@ def update_configurations(head):
             for service_address in service_addresses:
                 hosts.append("http://{}".format(
                     get_address_string(service_address[0], service_address[1])))
-            cluster_name = get_runtime_value(CLOUDTIK_RUNTIME_ENV_CLUSTER)
+            cluster_name = get_runtime_cluster_name()
             if cluster_name:
                 prefix = "apisix" + string_to_hex_string(cluster_name)
                 etcd["prefix"] = prefix
@@ -94,7 +94,7 @@ def start_pull_server(head):
     config_mode = _get_config_mode(backend_config)
     service_selector = backend_config.get(
             APISIX_BACKEND_SELECTOR_CONFIG_KEY, {})
-    cluster_name = get_runtime_value(CLOUDTIK_RUNTIME_ENV_CLUSTER)
+    cluster_name = get_runtime_cluster_name()
     exclude_runtime_of_cluster(
         service_selector, BUILT_IN_RUNTIME_APISIX, cluster_name)
     service_selector_str = serialize_service_selector(service_selector)

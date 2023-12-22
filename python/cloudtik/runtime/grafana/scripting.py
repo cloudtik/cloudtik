@@ -1,11 +1,10 @@
 import os
 from shlex import quote
 
-from cloudtik.core._private.constants import CLOUDTIK_RUNTIME_ENV_CLUSTER
 from cloudtik.core._private.core_utils import exec_with_output
 from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_PROMETHEUS, BUILT_IN_RUNTIME_GRAFANA
 from cloudtik.core._private.runtime_utils import get_runtime_config_from_node, get_runtime_value, \
-    save_yaml, get_runtime_node_ip, get_runtime_head_host
+    save_yaml, get_runtime_node_ip, get_runtime_head_host, get_runtime_cluster_name
 from cloudtik.core._private.service_discovery.utils import \
     serialize_service_selector
 from cloudtik.runtime.grafana.utils import _get_config, GRAFANA_DATA_SOURCES_CONFIG_KEY, \
@@ -35,7 +34,7 @@ def configure_data_sources(head):
         # use cluster_name + service_name as the data source name
         name = get_data_source_name(
             BUILT_IN_RUNTIME_PROMETHEUS,
-            get_runtime_value(CLOUDTIK_RUNTIME_ENV_CLUSTER))
+            get_runtime_cluster_name())
         head_host = get_runtime_head_host(head)
         url = "http://{}:{}".format(head_host, prometheus_port)
         prometheus_data_source = get_prometheus_data_source(

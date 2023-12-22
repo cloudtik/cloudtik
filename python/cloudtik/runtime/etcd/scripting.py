@@ -6,7 +6,7 @@ from cloudtik.core._private.constants import CLOUDTIK_RUNTIME_ENV_NODE_SEQ_ID
 from cloudtik.core._private.core_utils import exec_with_output, strip_quote
 from cloudtik.core._private.runtime_utils import RUNTIME_NODE_SEQ_ID, RUNTIME_NODE_IP, sort_nodes_by_seq_id, \
     load_and_save_yaml, get_runtime_value, get_runtime_node_ip, get_runtime_node_address_type, \
-    get_node_address_from_node_info, get_runtime_node_host
+    get_node_host_from_node_info, get_runtime_node_host
 from cloudtik.runtime.etcd.utils import ETCD_PEER_PORT, ETCD_SERVICE_PORT, _get_home_dir
 
 logger = logging.getLogger(__name__)
@@ -21,7 +21,7 @@ def _get_initial_cluster_from_nodes_info(initial_cluster):
     address_type = get_runtime_node_address_type()
     return ",".join(
         ["server{}=http://{}:{}".format(
-            node_info[RUNTIME_NODE_SEQ_ID], get_node_address_from_node_info(
+            node_info[RUNTIME_NODE_SEQ_ID], get_node_host_from_node_info(
                 node_info, address_type), ETCD_PEER_PORT) for node_info in initial_cluster])
 
 
@@ -54,7 +54,7 @@ def request_to_join_cluster(nodes_info: Dict[str, Any]):
     address_type = get_runtime_node_address_type()
 
     # exclude my own address from the initial cluster as endpoints
-    endpoints = [get_node_address_from_node_info(
+    endpoints = [get_node_host_from_node_info(
         node_info, address_type) for node_info in initial_cluster if node_info[RUNTIME_NODE_IP] != node_ip]
     if not endpoints:
         raise RuntimeError("No exiting nodes found for contacting to join the cluster.")

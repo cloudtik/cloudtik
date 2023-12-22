@@ -16,6 +16,7 @@ from cloudtik.core._private.provider_factory import _get_node_provider
 from cloudtik.core._private.service_discovery.naming import _get_cluster_node_fqdn_of, _get_cluster_node_sdn_of, \
     get_address_type_of_hostname
 from cloudtik.core._private.service_discovery.utils import ServiceAddressType
+from cloudtik.core._private.state.state_utils import NODE_STATE_NODE_IP, NODE_STATE_NODE_SEQ_ID
 from cloudtik.core._private.utils import load_head_cluster_config, _get_node_type_specific_runtime_config, \
     get_runtime_config_key, decode_cluster_secrets, CLOUDTIK_CLUSTER_NODES_INFO_NODE_TYPE, \
     _get_workers_ready, _get_worker_node_ips, CLOUDTIK_CLUSTER_VARIABLE
@@ -39,24 +40,21 @@ def get_runtime_bool(name, default=False):
     return env_bool(name, default)
 
 
+def get_runtime_value_checked(name):
+    value = get_runtime_value(name)
+    if not value:
+        raise RuntimeError(
+            "Environment variable {} is not set.".format(name))
+    return value
+
+
 def get_runtime_node_type():
     # Node ip should always be set as env
-    node_type = get_runtime_value(CLOUDTIK_RUNTIME_ENV_NODE_TYPE)
-    if not node_type:
-        raise RuntimeError(
-            "Environment variable {} is not set.".format(CLOUDTIK_RUNTIME_ENV_NODE_TYPE))
-
-    return node_type
+    return get_runtime_value_checked(CLOUDTIK_RUNTIME_ENV_NODE_TYPE)
 
 
 def get_runtime_node_ip():
-    # Node type should always be set as env
-    node_ip = get_runtime_value(CLOUDTIK_RUNTIME_ENV_NODE_IP)
-    if not node_ip:
-        raise RuntimeError(
-            "Environment variable {} is not set.".format(
-                CLOUDTIK_RUNTIME_ENV_NODE_IP))
-    return node_ip
+    return get_runtime_value_checked(CLOUDTIK_RUNTIME_ENV_NODE_IP)
 
 
 def get_runtime_head_ip(head=False):
@@ -76,12 +74,7 @@ def get_runtime_head_ip(head=False):
 
 def get_runtime_node_host():
     # Node host should always be set as env
-    node_host = get_runtime_value(CLOUDTIK_RUNTIME_ENV_NODE_HOST)
-    if not node_host:
-        raise RuntimeError(
-            "Environment variable {} is not set.".format(
-                CLOUDTIK_RUNTIME_ENV_NODE_HOST))
-    return node_host
+    return get_runtime_value_checked(CLOUDTIK_RUNTIME_ENV_NODE_HOST)
 
 
 def get_runtime_head_host(head=False):
@@ -96,6 +89,16 @@ def get_runtime_head_host(head=False):
         raise RuntimeError(
             "Environment variable {} is not set.".format(
                 CLOUDTIK_RUNTIME_ENV_HEAD_HOST))
+
+
+def get_runtime_cluster_name():
+    # cluster name should always be set as env
+    return get_runtime_value_checked(CLOUDTIK_RUNTIME_ENV_CLUSTER)
+
+
+def get_runtime_workspace_name():
+    # cluster name should always be set as env
+    return get_runtime_value_checked(CLOUDTIK_RUNTIME_ENV_WORKSPACE)
 
 
 def retrieve_runtime_config(node_type: str = None):
@@ -129,6 +132,10 @@ def subscribe_runtime_config():
         if runtime_config is not None:
             return runtime_config
 
+    return subscribe_cluster_runtime_config()
+
+
+def subscribe_cluster_runtime_config():
     return retrieve_runtime_config()
 
 
@@ -310,19 +317,53 @@ def get_runtime_node_address_type():
         return get_address_type_of_hostname(node_host)
 
 
-def get_node_address_from_node_info(node_info, address_type):
+def get_node_host_from(
+        node, address_type, get_node_seq_id, get_node_ip,
+        workspace_name=None, cluster_name=None):
     if (address_type == ServiceAddressType.NODE_FQDN
             or address_type == ServiceAddressType.NODE_SDN):
-        cluster_name = get_runtime_value(CLOUDTIK_RUNTIME_ENV_CLUSTER)
-        node_seq_id = node_info.get(RUNTIME_NODE_SEQ_ID)
+        if not cluster_name:
+            cluster_name = get_runtime_cluster_name()
+        node_seq_id = get_node_seq_id(node)
         if not node_seq_id:
-            raise RuntimeError("Node seq id is not available in node info.")
+            raise RuntimeError("Node seq id is not available in node data.")
         if address_type == ServiceAddressType.NODE_FQDN:
-            workspace_name = get_runtime_value(CLOUDTIK_RUNTIME_ENV_WORKSPACE)
+            if not workspace_name:
+                workspace_name = get_runtime_workspace_name()
             return _get_cluster_node_fqdn_of(
                 workspace_name, cluster_name, node_seq_id)
         else:
             return _get_cluster_node_sdn_of(
                 cluster_name, node_seq_id)
     else:
-        return node_info[RUNTIME_NODE_IP]
+        return get_node_ip(node)
+
+
+def get_node_host_from_node_info(
+        node_info, address_type,
+        workspace_name=None, cluster_name=None):
+    def get_node_seq_id(node):
+        return node.get(RUNTIME_NODE_SEQ_ID)
+
+    def get_node_ip(node):
+        return node[RUNTIME_NODE_IP]
+
+    return get_node_host_from(
+        node_info, address_type,
+        get_node_seq_id, get_node_ip,
+        workspace_name=workspace_name, cluster_name=cluster_name)
+
+
+def get_node_host_from_node_state(
+        node_state, address_type,
+        workspace_name=None, cluster_name=None):
+    def get_node_seq_id(node):
+        return node.get(NODE_STATE_NODE_SEQ_ID)
+
+    def get_node_ip(node):
+        return node[NODE_STATE_NODE_IP]
+
+    return get_node_host_from(
+        node_state, address_type,
+        get_node_seq_id, get_node_ip,
+        workspace_name=workspace_name, cluster_name=cluster_name)

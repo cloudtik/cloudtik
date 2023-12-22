@@ -95,7 +95,7 @@ def propagate_jemalloc_env_var(*, jemalloc_path: str, jemalloc_conf: str,
     assert isinstance(jemalloc_comps, list)
     assert process_type is not None
     process_type = process_type.lower()
-    if (not jemalloc_path or process_type not in jemalloc_comps):
+    if not jemalloc_path or process_type not in jemalloc_comps:
         return {}
 
     env_vars = {
@@ -1207,7 +1207,8 @@ def start_node_monitor(
         backup_count=0,
         monitor_ip=None,
         runtimes=None,
-        node_type=None):
+        node_type=None,
+        node_seq_id=None):
     """Run a process to controller the other processes.
 
     Args:
@@ -1228,8 +1229,9 @@ def start_node_monitor(
             RotatingFileHandler's backupCount.
         monitor_ip (str): IP address of the machine that the monitor will be
             run on. Can be excluded, but required for scaler metrics.
-        runtimes (str): List of runtimes to pass to Node Monitor
-        node_type (str): The node type to pass to Node Monitor
+        runtimes (str): List of runtimes of the current node
+        node_type (str): The node type of the current node
+        node_seq_id (str): The node SEQ ID of the current node
     Returns:
         ProcessInfo for the process that was started.
     """
@@ -1266,6 +1268,9 @@ def start_node_monitor(
 
     if node_type:
         command.append("--node-type=" + node_type)
+
+    if node_seq_id:
+        command.append("--node-seq-id=" + node_seq_id)
 
     process_info = start_cloudtik_process(
         command,

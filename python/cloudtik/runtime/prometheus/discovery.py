@@ -1,19 +1,13 @@
-import json
-import logging
 import os
-import time
 from typing import Dict, Any
 
-from cloudtik.core._private.constants import CLOUDTIK_HEARTBEAT_TIMEOUT_S
 from cloudtik.core._private.core_utils import get_json_object_hash, get_address_string
-from cloudtik.core._private.runtime_utils import save_yaml
-from cloudtik.core._private.state.control_state import ControlState
-from cloudtik.core._private.state.state_utils import NODE_STATE_NODE_IP, \
-    NODE_STATE_HEARTBEAT_TIME, NODE_STATE_NODE_TYPE
+from cloudtik.core._private.runtime_utils import save_yaml, get_node_host_from_node_state
+from cloudtik.core._private.service_discovery.utils import ServiceAddressType
+from cloudtik.core._private.state.state_utils import NODE_STATE_NODE_TYPE
 from cloudtik.core._private.util.pull.pull_job import PullJob
+from cloudtik.runtime.common.service_discovery.cluster_nodes import ClusterNodes
 from cloudtik.runtime.prometheus.utils import _get_home_dir
-
-logger = logging.getLogger(__name__)
 
 
 def _parse_services(service_list_str) -> Dict[str, Any]:
@@ -71,21 +65,19 @@ class DiscoverLocalTargets(PullJob):
     def __init__(self,
                  services=None,
                  redis_address=None,
-                 redis_password=None):
-        if not redis_address:
-            raise RuntimeError("Redis address is needed for pulling local targets.")
-
-        (redis_ip, redis_port) = redis_address.split(":")
-
+                 redis_password=None,
+                 workspace_name=None,
+                 cluster_name=None,
+                 address_type=None):
         self.pull_services = _parse_services(services)
-        self.redis_address = redis_address
-        self.redis_password = redis_password
-
-        self.control_state = ControlState()
-        self.control_state.initialize_control_state(
-            redis_ip, redis_port, redis_password)
-        self.node_table = self.control_state.get_node_table()
-
+        self.cluster_nodes = ClusterNodes(redis_address, redis_password)
+        self.workspace_name = workspace_name
+        self.cluster_name = cluster_name
+        if address_type:
+            address_type = ServiceAddressType.from_str(address_type)
+        else:
+            address_type = ServiceAddressType.NODE_IP
+        self.address_type = address_type
         home_dir = _get_home_dir()
         self.config_file = os.path.join(home_dir, "conf", "local-targets.yaml")
         self.last_local_targets_hash = None
@@ -110,16 +102,16 @@ class DiscoverLocalTargets(PullJob):
 
     def _get_live_nodes(self):
         live_nodes_by_node_type = {}
-        now = time.time()
-        nodes_state_as_json = self.node_table.get_all().values()
-        for node_state_as_json in nodes_state_as_json:
-            node_state = json.loads(node_state_as_json)
-            # Filter out the stale record in the node table
-            delta = now - node_state.get(NODE_STATE_HEARTBEAT_TIME, 0)
-            if delta < CLOUDTIK_HEARTBEAT_TIMEOUT_S:
-                node_type = node_state[NODE_STATE_NODE_TYPE]
-                if node_type not in live_nodes_by_node_type:
-                    live_nodes_by_node_type[node_type] = []
-                nodes_of_node_type = live_nodes_by_node_type[node_type]
-                nodes_of_node_type.append(node_state[NODE_STATE_NODE_IP])
+        live_nodes = self.cluster_nodes.get_live_nodes()
+        for node in live_nodes:
+            node_type = node[NODE_STATE_NODE_TYPE]
+            if node_type not in live_nodes_by_node_type:
+                live_nodes_by_node_type[node_type] = []
+            nodes_of_node_type = live_nodes_by_node_type[node_type]
+            # We need only IP or hostname
+            node_host = get_node_host_from_node_state(
+                node, self.address_type,
+                workspace_name=self.workspace_name,
+                cluster_name=self.cluster_name)
+            nodes_of_node_type.append(node_host)
         return live_nodes_by_node_type

@@ -23,11 +23,12 @@ install_hadoop() {
         hadoop_download_url="http://archive.apache.org/dist/hadoop/common/hadoop-${HADOOP_VERSION}/hadoop-${HADOOP_VERSION}${arch_hadoop}.tar.gz"
 
         mkdir -p $RUNTIME_PATH
-        (cd $RUNTIME_PATH && \
-          wget -q --show-progress ${hadoop_download_url} -O hadoop.tar.gz && \
-          mkdir -p "$HADOOP_HOME" && \
-          tar --extract --file hadoop.tar.gz --directory "$HADOOP_HOME" --strip-components 1 --no-same-owner && \
-          rm -f hadoop.tar.gz)
+        (cd $RUNTIME_PATH \
+          && wget -q --show-progress \
+            ${hadoop_download_url} -O hadoop.tar.gz \
+          && mkdir -p "$HADOOP_HOME" \
+          && tar --extract --file hadoop.tar.gz --directory "$HADOOP_HOME" --strip-components 1 --no-same-owner \
+          && rm -f hadoop.tar.gz)
         if [ $? -ne 0 ]; then
             echo "Hadoop installation failed."
             exit 1
