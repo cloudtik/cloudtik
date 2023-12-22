@@ -6,7 +6,7 @@ provider:
 
 # The instance configuration for a small instance type
 available_node_types:
-    worker-default:
+    worker.default:
         node_config:
             disks:
                 - boot: true

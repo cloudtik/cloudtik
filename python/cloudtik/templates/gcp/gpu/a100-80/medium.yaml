@@ -7,6 +7,6 @@ provider:
 # 2 * A100-80GB
 # The instance configuration for a small instance type
 available_node_types:
-    worker-default:
+    worker.default:
         node_config:
             machineType: a2-ultragpu-2g

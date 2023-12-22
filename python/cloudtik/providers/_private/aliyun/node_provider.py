@@ -136,7 +136,7 @@ class AliyunNodeProvider(NodeProvider):
                 ):
                     if len(instance.public_ip_address.ip_address) > 0:
                         return instance.public_ip_address.ip_address[0]
-            cli_logger.error("PublicIpAddress attribute is not exist. %s" % instance)
+                cli_logger.error("PublicIpAddress attribute is not exist. %s" % instance)
             time.sleep(STOPPING_NODE_DELAY)
 
     def internal_ip(self, node_id: str) -> str:
@@ -148,12 +148,10 @@ class AliyunNodeProvider(NodeProvider):
                 if (
                     instance.vpc_attributes is not None
                     and instance.vpc_attributes.private_ip_address is not None
-                    and len(instance.vpc_attributes.private_ip_address.ip_address) > 0
                 ):
-                    return (
-                        instance.vpc_attributes.private_ip_address.ip_address[0]
-                    )
-            cli_logger.error("InnerIpAddress attribute is not exist. %s" % instance)
+                    if len(instance.vpc_attributes.private_ip_address.ip_address) > 0:
+                        return instance.vpc_attributes.private_ip_address.ip_address[0]
+                cli_logger.error("InnerIpAddress attribute is not exist. %s" % instance)
             time.sleep(STOPPING_NODE_DELAY)
 
     def set_node_tags(self, node_id: str, tags: Dict[str, str]) -> None:
@@ -314,7 +312,7 @@ class AliyunNodeProvider(NodeProvider):
                     if e.code == "InvalidDiskCategory.NotSupported":
                         cli_logger.warning("Create instances attempt failed: the specified disk category"
                                            " is not supported. Retrying...")
-                    elif e.code =="InvalidResourceType.NotSupported":
+                    elif e.code == "InvalidResourceType.NotSupported":
                         cli_logger.warning("Create instances attempt failed: {}. Retrying...", e.message)
                     else:
                         cli_logger.warning("Create instances attempt failed. Retrying...", str(e))
@@ -338,8 +336,8 @@ class AliyunNodeProvider(NodeProvider):
             logger.info(
                 "Stopping instance {} (to terminate instead, "
                 "set `cache_stopped_nodes: False` "
-                "under `provider` in the cluster configuration)"
-            ).format(node_id)
+                "under `provider` in the cluster configuration)".format(node_id)
+            )
             self.ecs.stop_instance(node_id)
         else:
             self.ecs.delete_instance(node_id)

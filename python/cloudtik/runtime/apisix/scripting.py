@@ -2,13 +2,13 @@ import os
 from shlex import quote
 
 from cloudtik.core._private.core_utils import get_config_for_update, get_list_for_update, get_address_string, \
-    exec_with_output
+    exec_with_output, string_to_hex_string
 from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_APISIX
 from cloudtik.core._private.runtime_utils import get_runtime_config_from_node, load_and_save_yaml, get_runtime_value, \
     get_runtime_cluster_name
 from cloudtik.core._private.service_discovery.utils import \
     exclude_runtime_of_cluster, serialize_service_selector
-from cloudtik.core._private.utils import encrypt_string, string_to_hex_string
+from cloudtik.core._private.utils import encrypt_string
 from cloudtik.runtime.apisix.utils import _get_config, _get_admin_port, _get_admin_key, _get_backend_config, \
     _get_config_mode, APISIX_BACKEND_SELECTOR_CONFIG_KEY, APISIX_CONFIG_MODE_DNS, APISIX_CONFIG_MODE_CONSUL, \
     _get_home_dir

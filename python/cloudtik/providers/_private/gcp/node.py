@@ -37,7 +37,8 @@ from functools import wraps
 from googleapiclient.discovery import Resource
 from googleapiclient.errors import HttpError
 
-from cloudtik.core.tags import CLOUDTIK_TAG_CLUSTER_NAME, CLOUDTIK_TAG_NODE_NAME
+from cloudtik.core._private.core_utils import string_to_hex_string, string_from_hex_string
+from cloudtik.core.tags import CLOUDTIK_TAG_CLUSTER_NAME, CLOUDTIK_TAG_NODE_NAME, CLOUDTIK_TAG_USER_NODE_TYPE
 
 logger = logging.getLogger(__name__)
 
@@ -100,6 +101,40 @@ def _generate_node_name(labels: dict, node_suffix: str) -> str:
     return f"{name_label}-{uuid4().hex[:INSTANCE_NAME_UUID_LEN]}-{node_suffix}"
 
 
+def encode_labels(labels):
+    if not labels:
+        return labels
+    node_type = labels.get(CLOUDTIK_TAG_USER_NODE_TYPE)
+    if node_type is None:
+        return labels
+    # we need to encode, make a shallow copy of the dict
+    new_labels = dict(labels)
+    new_labels[CLOUDTIK_TAG_USER_NODE_TYPE] = string_to_hex_string(node_type)
+    return new_labels
+
+
+def _encode_labels(labels):
+    # To keep all provider consistency, we use head.default and worker.default node types.
+    # GCP doesn't support label values with ".", we convert at the place to Cloud API
+    if not labels:
+        return
+    node_type = labels.get(CLOUDTIK_TAG_USER_NODE_TYPE)
+    if node_type is None:
+        return
+    # update in place
+    labels[CLOUDTIK_TAG_USER_NODE_TYPE] = string_to_hex_string(node_type)
+
+
+def _decode_labels(labels):
+    if not labels:
+        return
+    node_type = labels.get(CLOUDTIK_TAG_USER_NODE_TYPE)
+    if node_type is None:
+        return
+    # update in place
+    labels[CLOUDTIK_TAG_USER_NODE_TYPE] = string_from_hex_string(node_type)
+
+
 class GCPNodeType(Enum):
     """Enum for GCP node types (compute & tpu)"""
 
@@ -135,6 +170,7 @@ class GCPNode(UserDict, metaclass=abc.ABCMeta):
     def __init__(self, base_dict: dict, resource: "GCPResource",
                  **kwargs) -> None:
         super().__init__(base_dict, **kwargs)
+        _decode_labels(self.get("labels"))
         self.resource = resource
         assert isinstance(self.resource, GCPResource)
 
@@ -320,6 +356,7 @@ class GCPCompute(GCPResource):
     def list_instances(self, label_filters: Optional[dict] = None
                        ) -> List[GCPComputeNode]:
         label_filters = label_filters or {}
+        label_filters = encode_labels(label_filters)
 
         if label_filters:
             label_filter_expr = "(" + " AND ".join([
@@ -371,8 +408,10 @@ class GCPCompute(GCPResource):
                    node: GCPComputeNode,
                    labels: dict,
                    wait_for_operation: bool = True) -> dict:
+        labels = dict(node["labels"], **labels)
+        _encode_labels(labels)
         body = {
-            "labels": dict(node["labels"], **labels),
+            "labels": labels,
             "labelFingerprint": node["labelFingerprint"]
         }
         node_id = node["name"]
@@ -435,6 +474,7 @@ class GCPCompute(GCPResource):
         name = _generate_node_name(labels, GCPNodeType.COMPUTE.value)
 
         labels = dict(config.get("labels", {}), **labels)
+        _encode_labels(labels)
 
         config.update({
             "labels": dict(labels,
@@ -568,8 +608,10 @@ class GCPTPU(GCPResource):
                    node: GCPTPUNode,
                    labels: dict,
                    wait_for_operation: bool = True) -> dict:
+        labels = dict(node["labels"], **labels)
+        _encode_labels(labels)
         body = {
-            "labels": dict(node["labels"], **labels),
+            "labels": labels,
         }
         update_mask = "labels"
 
@@ -596,6 +638,7 @@ class GCPTPU(GCPResource):
         name = _generate_node_name(labels, GCPNodeType.TPU.value)
 
         labels = dict(config.get("labels", {}), **labels)
+        _encode_labels(labels)
 
         config.update({
             "labels": dict(labels,

@@ -1,7 +1,8 @@
 import logging
 from typing import Any, Dict, Optional
 
-from cloudtik.core._private.utils import string_to_hex_string, string_from_hex_string, get_running_head_node, check_workspace_name_format
+from cloudtik.core._private.utils import get_running_head_node, check_workspace_name_format
+from cloudtik.core._private.core_utils import string_to_hex_string, string_from_hex_string
 from cloudtik.providers._private.aliyun.config import create_aliyun_workspace, \
     delete_aliyun_workspace, check_aliyun_workspace_integrity, \
     list_aliyun_clusters, _get_workspace_head_nodes, bootstrap_aliyun_workspace, \
