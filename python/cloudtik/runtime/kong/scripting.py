@@ -1,9 +1,9 @@
 from shlex import quote
 
-from cloudtik.core._private.constants import CLOUDTIK_RUNTIME_ENV_CLUSTER
 from cloudtik.core._private.core_utils import exec_with_output
 from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_KONG
-from cloudtik.core._private.runtime_utils import get_runtime_value, get_runtime_config_from_node
+from cloudtik.core._private.runtime_utils import get_runtime_value, get_runtime_config_from_node, \
+    get_runtime_cluster_name
 from cloudtik.core._private.service_discovery.utils import \
     exclude_runtime_of_cluster, serialize_service_selector
 from cloudtik.runtime.common.utils import stop_pull_server_by_identifier
@@ -37,7 +37,7 @@ def start_pull_server(head):
     config_mode = _get_config_mode(backend_config)
     service_selector = backend_config.get(
             KONG_BACKEND_SELECTOR_CONFIG_KEY, {})
-    cluster_name = get_runtime_value(CLOUDTIK_RUNTIME_ENV_CLUSTER)
+    cluster_name = get_runtime_cluster_name()
     exclude_runtime_of_cluster(
         service_selector, BUILT_IN_RUNTIME_KONG, cluster_name)
     service_selector_str = serialize_service_selector(service_selector)

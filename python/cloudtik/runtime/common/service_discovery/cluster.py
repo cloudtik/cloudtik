@@ -44,4 +44,3 @@ def query_service_from_cluster(
 
 def has_runtime_in_cluster(runtime_config, runtime_type):
     return is_runtime_enabled(runtime_config, runtime_type)
-

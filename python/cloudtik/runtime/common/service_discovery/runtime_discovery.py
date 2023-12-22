@@ -1,13 +1,12 @@
 import os
 from typing import Dict, Any, Union, List, Optional
 
-from cloudtik.core._private.constants import CLOUDTIK_RUNTIME_ENV_CLUSTER
 from cloudtik.core._private.core_utils import get_config_for_update, get_env_string_value
 from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_HDFS, BUILT_IN_RUNTIME_METASTORE, \
     BUILT_IN_RUNTIME_CONSUL, BUILT_IN_RUNTIME_ZOOKEEPER, BUILT_IN_RUNTIME_MYSQL, BUILT_IN_RUNTIME_POSTGRES, \
     BUILT_IN_RUNTIME_ETCD, BUILT_IN_RUNTIME_MINIO
 from cloudtik.core._private.runtime_utils import get_runtime_head_host, subscribe_cluster_runtime_config, \
-    get_runtime_node_address_type, get_runtime_value
+    get_runtime_node_address_type, get_runtime_cluster_name
 from cloudtik.core._private.service_discovery.naming import get_cluster_node_address_type
 from cloudtik.core._private.service_discovery.utils import get_service_selector_for_update, \
     include_runtime_for_selector, include_feature_for_selector, include_service_type_for_selector, ServiceAddressType, \
@@ -737,7 +736,7 @@ def discover_in_cluster_service(
         service_type: Optional[Union[str, List[str]]] = None,
         discovery_type: DiscoveryType = DiscoveryType.ANY,
         address_type: ServiceAddressType = None):
-    cluster_name = get_runtime_value(CLOUDTIK_RUNTIME_ENV_CLUSTER)
+    cluster_name = get_runtime_cluster_name()
     return discover_service_from_node(
         cluster_name, runtime_type, service_type,
         discovery_type=discovery_type,address_type=address_type)

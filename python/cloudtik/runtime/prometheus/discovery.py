@@ -2,9 +2,9 @@ import os
 from typing import Dict, Any
 
 from cloudtik.core._private.core_utils import get_json_object_hash, get_address_string
-from cloudtik.core._private.runtime_utils import save_yaml
-from cloudtik.core._private.state.state_utils import NODE_STATE_NODE_IP, \
-    NODE_STATE_NODE_TYPE
+from cloudtik.core._private.runtime_utils import save_yaml, get_node_host_from_node_state
+from cloudtik.core._private.service_discovery.utils import ServiceAddressType
+from cloudtik.core._private.state.state_utils import NODE_STATE_NODE_TYPE
 from cloudtik.core._private.util.pull.pull_job import PullJob
 from cloudtik.runtime.common.service_discovery.cluster_nodes import ClusterNodes
 from cloudtik.runtime.prometheus.utils import _get_home_dir
@@ -65,9 +65,19 @@ class DiscoverLocalTargets(PullJob):
     def __init__(self,
                  services=None,
                  redis_address=None,
-                 redis_password=None):
+                 redis_password=None,
+                 workspace_name=None,
+                 cluster_name=None,
+                 address_type=None):
         self.pull_services = _parse_services(services)
         self.cluster_nodes = ClusterNodes(redis_address, redis_password)
+        self.workspace_name = workspace_name
+        self.cluster_name = cluster_name
+        if address_type:
+            address_type = ServiceAddressType.from_str(address_type)
+        else:
+            address_type = ServiceAddressType.NODE_IP
+        self.address_type = address_type
         home_dir = _get_home_dir()
         self.config_file = os.path.join(home_dir, "conf", "local-targets.yaml")
         self.last_local_targets_hash = None
@@ -98,6 +108,10 @@ class DiscoverLocalTargets(PullJob):
             if node_type not in live_nodes_by_node_type:
                 live_nodes_by_node_type[node_type] = []
             nodes_of_node_type = live_nodes_by_node_type[node_type]
-            # We need only IP (hostname?)
-            nodes_of_node_type.append(node[NODE_STATE_NODE_IP])
+            # We need only IP or hostname
+            node_host = get_node_host_from_node_state(
+                node, self.address_type,
+                workspace_name=self.workspace_name,
+                cluster_name=self.cluster_name)
+            nodes_of_node_type.append(node_host)
         return live_nodes_by_node_type

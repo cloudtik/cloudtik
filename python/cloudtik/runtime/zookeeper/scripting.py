@@ -7,7 +7,7 @@ from typing import Any, Dict, List
 from cloudtik.core._private.constants import CLOUDTIK_RUNTIME_ENV_NODE_SEQ_ID
 from cloudtik.core._private.core_utils import get_address_string
 from cloudtik.core._private.runtime_utils import subscribe_runtime_config, RUNTIME_NODE_SEQ_ID, RUNTIME_NODE_IP, \
-    sort_nodes_by_seq_id, get_runtime_node_ip, get_runtime_node_host, get_node_address_from_node_info, \
+    sort_nodes_by_seq_id, get_runtime_node_ip, get_runtime_node_host, get_node_host_from_node_info, \
     get_runtime_node_address_type
 from cloudtik.core._private.utils import \
     load_properties_file, save_properties_file
@@ -73,7 +73,7 @@ def _write_server_ensemble(server_ensemble: List[Dict[str, Any]]):
     with open(zoo_cfg_file, mode) as f:
         for node_info in server_ensemble:
             server_line = _format_server_line(
-                get_node_address_from_node_info(
+                get_node_host_from_node_info(
                     node_info, address_type), node_info[RUNTIME_NODE_SEQ_ID])
             f.write("{}\n".format(server_line))
 
@@ -87,7 +87,7 @@ def request_to_join_cluster(nodes_info: Dict[str, Any]):
     address_type = get_runtime_node_address_type()
 
     # exclude my own address from the initial cluster as endpoints
-    endpoints = [get_node_address_from_node_info(node_info, address_type)
+    endpoints = [get_node_host_from_node_info(node_info, address_type)
                  for node_info in initial_cluster if node_info[RUNTIME_NODE_IP] != node_ip]
     if not endpoints:
         raise RuntimeError("No exiting nodes found for contacting to join the cluster.")

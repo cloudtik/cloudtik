@@ -1,11 +1,12 @@
 import os
 from typing import Any, Dict
 
-from cloudtik.core._private.constants import CLOUDTIK_RUNTIME_ENV_WORKSPACE, CLOUDTIK_RUNTIME_ENV_CLUSTER, \
+from cloudtik.core._private.constants import \
     CLOUDTIK_DATA_DISK_MOUNT_POINT, CLOUDTIK_DATA_DISK_MOUNT_NAME_PREFIX
 from cloudtik.core._private.core_utils import get_config_for_update
 from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_MINIO
-from cloudtik.core._private.runtime_utils import get_runtime_value, get_data_disk_dirs
+from cloudtik.core._private.runtime_utils import get_data_disk_dirs, get_runtime_cluster_name, \
+    get_runtime_workspace_name
 from cloudtik.core._private.service_discovery.runtime_services import get_service_discovery_runtime
 from cloudtik.core._private.service_discovery.utils import \
     get_canonical_service_name, define_runtime_service, \
@@ -237,8 +238,8 @@ def _configure(runtime_config, head: bool):
 
 def _get_minio_volumes(
         minio_config, server_pools, server_pool_size):
-    workspace_name = get_runtime_value(CLOUDTIK_RUNTIME_ENV_WORKSPACE)
-    cluster_name = get_runtime_value(CLOUDTIK_RUNTIME_ENV_CLUSTER)
+    workspace_name = get_runtime_workspace_name()
+    cluster_name = get_runtime_cluster_name()
     data_dir_spec = _get_data_dir_spec()
 
     server_pool_specs = []

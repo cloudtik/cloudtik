@@ -3,7 +3,7 @@ import os
 from typing import Any, Dict
 
 from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_ETCD
-from cloudtik.core._private.runtime_utils import RUNTIME_NODE_IP, sort_nodes_by_seq_id, get_node_address_from_node_info
+from cloudtik.core._private.runtime_utils import sort_nodes_by_seq_id, get_node_host_from_node_info
 from cloudtik.core._private.service_discovery.naming import get_cluster_node_address_type
 from cloudtik.core._private.service_discovery.utils import get_canonical_service_name, define_runtime_service_on_worker, \
     get_service_discovery_config, ServiceRegisterException, SERVICE_DISCOVERY_FEATURE_KEY_VALUE
@@ -59,7 +59,7 @@ def _with_runtime_environment_variables(
 
 
 def _get_endpoints(nodes, address_type):
-    return [(get_node_address_from_node_info(node_info, address_type),
+    return [(get_node_host_from_node_info(node_info, address_type),
              ETCD_PEER_PORT) for node_info in nodes]
 
 

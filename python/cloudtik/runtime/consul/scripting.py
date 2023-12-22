@@ -3,11 +3,11 @@ import logging
 import os
 
 from cloudtik.core._private.constants import CLOUDTIK_RUNTIME_ENV_QUORUM_JOIN, \
-    CLOUDTIK_RUNTIME_ENV_HEAD_IP, CLOUDTIK_RUNTIME_ENV_CLUSTER, CLOUDTIK_RUNTIME_ENV_NODE_SEQ_ID
+    CLOUDTIK_RUNTIME_ENV_HEAD_IP, CLOUDTIK_RUNTIME_ENV_NODE_SEQ_ID
 from cloudtik.core._private.core_utils import get_config_for_update, is_valid_dns_name
 from cloudtik.core._private.runtime_utils import get_runtime_node_type, get_runtime_node_ip, \
     get_runtime_config_from_node, RUNTIME_NODE_IP, subscribe_nodes_info, sort_nodes_by_seq_id, \
-    load_and_save_json, get_runtime_value
+    load_and_save_json, get_runtime_value, get_runtime_cluster_name
 from cloudtik.core._private.service_discovery.utils import SERVICE_DISCOVERY_PORT, \
     SERVICE_DISCOVERY_TAGS, SERVICE_DISCOVERY_LABELS, SERVICE_DISCOVERY_CHECK_INTERVAL, \
     SERVICE_DISCOVERY_CHECK_TIMEOUT, SERVICE_DISCOVERY_LABEL_CLUSTER
@@ -68,7 +68,7 @@ def _configure_agent(runtime_config, server_mode, head):
             raise RuntimeError("Missing join list environment variable for the running node.")
         join_list = join_list_str.split(',')
 
-    cluster_name = get_runtime_value(CLOUDTIK_RUNTIME_ENV_CLUSTER)
+    cluster_name = get_runtime_cluster_name()
     _update_agent_config(consul_config, join_list, cluster_name)
 
 

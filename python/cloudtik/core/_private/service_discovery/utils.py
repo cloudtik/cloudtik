@@ -73,6 +73,24 @@ class ServiceAddressType(Enum):
     NODE_SDN = auto()
     SERVICE_FQDN = auto()
 
+    def __str__(self):
+        return self.name
+
+    @staticmethod
+    def from_str(address_type_str):
+        if address_type_str == "NODE_IP":
+            return ServiceAddressType.NODE_IP
+        elif address_type_str == "NODE_FQDN":
+            return ServiceAddressType.NODE_FQDN
+        elif address_type_str == "NODE_SDN":
+            return ServiceAddressType.NODE_SDN
+        elif address_type_str == "SERVICE_FQDN":
+            return ServiceAddressType.SERVICE_FQDN
+        else:
+            options = [e.name for e in ServiceAddressType]
+            raise ValueError("Unsupported address type: {} (Select from: {})".format(
+                address_type_str, options))
+
 
 class ServiceScope(Enum):
     """The service scope decide how the canonical service name is formed.
@@ -271,8 +289,8 @@ def include_label_for_selector(
         label_values.append(label_value)
     else:
         # list of runtime types
-        for list_item in label_value:
-            label_values.append(list_item)
+        for item in label_value:
+            label_values.append(item)
     return service_selector
 
 
