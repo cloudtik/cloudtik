@@ -218,11 +218,15 @@ def _with_runtime_environment_variables(
         cluster_port = _get_cluster_port(sharding_config, service_port)
         runtime_envs["REDIS_CLUSTER_PORT"] = cluster_port
 
-        master_size = _get_master_size(sharding_config)
-        if not master_size:
-            # This just for safety, master size will be checked at bootstrap
-            master_size = 1
-        runtime_envs["REDIS_MASTER_SIZE"] = master_size
+        master_node_type = _get_master_node_type(sharding_config)
+        if master_node_type:
+            runtime_envs["REDIS_MASTER_NODE_TYPE"] = master_node_type
+        else:
+            master_size = _get_master_size(sharding_config)
+            if not master_size:
+                # This just for safety, master size will be checked at bootstrap
+                master_size = 1
+            runtime_envs["REDIS_MASTER_SIZE"] = master_size
 
     password = redis_config.get(
         REDIS_PASSWORD_CONFIG_KEY, REDIS_PASSWORD_DEFAULT)
