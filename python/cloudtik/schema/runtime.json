@@ -1130,18 +1130,33 @@
                     "default": "cloudtik",
                     "description": "Specify the password for Redis instance."
                 },
-                "cluster_port": {
-                    "type": "integer",
-                    "default": 16379,
-                    "description": "Specify the internal cluster communication port to be used for a shared cluster."
-                },
-                "master_size": {
-                    "type": "integer",
-                    "description": "The number of masters. The remaining workers will be replicas. Default to half of the static nodes at starting cluster."
-                },
-                "reshard_delay": {
-                    "type": "integer",
-                    "description": "The number of seconds to delay for a new master nodes to do resharding after meet the cluster."
+                "sharding": {
+                    "type": "object",
+                    "description": "Sharding configurations",
+                    "properties": {
+                        "cluster_port": {
+                            "type": "integer",
+                            "default": 16379,
+                            "description": "Specify the internal cluster communication port to be used for a shared cluster."
+                        },
+                        "master_size": {
+                            "type": "integer",
+                            "description": "The number of masters. The remaining workers will be replicas. Default to half of the static nodes at starting cluster."
+                        },
+                        "role_by_node_type": {
+                            "type": "boolean",
+                            "default": true,
+                            "description": "When this sets to true and if there are multiple node types defined. None default worker types will be replica"
+                        },
+                        "master_node_type": {
+                            "type": "string",
+                            "description": "You can specify your own node type as master if it is not the default worker type."
+                        },
+                        "reshard_delay": {
+                            "type": "integer",
+                            "description": "The number of seconds to delay for a new master nodes to do resharding after meet the cluster."
+                        }
+                    }
                 }
             }
         },
@@ -1198,7 +1213,7 @@
                 },
                 "sharding": {
                     "type": "object",
-                    "description": "Database configurations",
+                    "description": "Sharding configurations",
                     "properties": {
                         "cluster_role": {
                             "type": "string",

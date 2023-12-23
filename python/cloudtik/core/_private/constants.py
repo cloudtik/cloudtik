@@ -281,3 +281,6 @@ CLOUDTIK_JOB_WAITER_TIMEOUT_MAX = sys.maxsize
 
 CLOUDTIK_DEFAULT_CLOUD_STORAGE_URI = "default.cloud.storage.uri"
 CLOUDTIK_DEFAULT_STORAGE_URI = "default.storage.uri"
+
+CLOUDTIK_NODE_TYPE_HEAD_DEFAULT = "head.default"
+CLOUDTIK_NODE_TYPE_WORKER_DEFAULT = "worker.default"

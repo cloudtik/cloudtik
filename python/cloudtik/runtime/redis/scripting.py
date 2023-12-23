@@ -10,9 +10,10 @@ from cloudtik.core._private.core_utils import exec_with_call
 from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_REDIS
 from cloudtik.core._private.runtime_utils import get_first_data_disk_dir, get_worker_ips_ready_from_head, \
     get_runtime_config_from_node, get_runtime_value, run_func_with_retry, get_runtime_head_host, get_runtime_node_host, \
-    get_runtime_node_ip, get_runtime_workspace_name, get_runtime_cluster_name
+    get_runtime_node_ip, get_runtime_workspace_name, get_runtime_cluster_name, get_runtime_node_type
 from cloudtik.runtime.common.lock.runtime_lock import get_runtime_lock
-from cloudtik.runtime.redis.utils import _get_home_dir, _get_master_size, _get_config, _get_reshard_delay
+from cloudtik.runtime.redis.utils import _get_home_dir, _get_master_size, _get_config, _get_reshard_delay, \
+    _get_sharding_config, _get_master_node_type
 
 logger = logging.getLogger(__name__)
 
@@ -201,7 +202,8 @@ def _meet_with_cluster(runtime_config, cluster_nodes):
     # wait a few seconds for a better chance that other new masters join
     # so that the reshard is more efficiently which avoid move around repeatedly
     redis_config = _get_config(runtime_config)
-    reshard_delay = _get_reshard_delay(redis_config)
+    sharding_config = _get_sharding_config(redis_config)
+    reshard_delay = _get_reshard_delay(sharding_config)
     if reshard_delay:
         time.sleep(reshard_delay)
 
@@ -327,6 +329,20 @@ def _get_nodes_with_slots(nodes_info):
             if _get_num_slots_of(node_info["slots"]) > 0}
 
 
+def _get_current_node_role(sharding_config, num_master_with_slots):
+    # return True for master, False for replica
+    master_node_type = _get_master_node_type(sharding_config)
+    if master_node_type:
+        node_type = get_runtime_node_type()
+        if node_type != master_node_type:
+            return False
+    else:
+        master_size = _get_master_size(sharding_config)
+        if num_master_with_slots >= master_size:
+            return False
+    return True
+
+
 def _assign_cluster_role(
         runtime_config, node_id, node_host, port, password, cluster_nodes):
     # assign master role to add slots or act as replica of master
@@ -348,8 +364,10 @@ def _assign_cluster_role(
     master_nodes_with_slots = _get_nodes_with_slots(master_nodes)
     num_master_with_slots = len(master_nodes_with_slots)
     redis_config = _get_config(runtime_config)
-    master_size = _get_master_size(redis_config)
-    if num_master_with_slots >= master_size:
+    sharding_config = _get_sharding_config(redis_config)
+    master_role = _get_current_node_role(
+        sharding_config, num_master_with_slots)
+    if not master_role:
         # this node will be a replica, choose a master
         slave_nodes = _get_nodes_of_type(
             nodes_info, REDIS_NODE_TYPE_SLAVE)
