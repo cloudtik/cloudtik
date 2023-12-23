@@ -3078,6 +3078,12 @@ def is_config_use_fqdn(config):
     return get_config_option(config, "use_fqdn", False)
 
 
+def set_terminate_idle(config, value: bool):
+    if get_config_option(config, "terminate_idle", True) != value:
+        config_options = get_config_options_for_update(config)
+        config_options["terminate_idle"] = value
+
+
 def check_workspace_name_format(workspace_name):
     return bool(re.match("^[a-z0-9-]*$", workspace_name))
 
