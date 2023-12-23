@@ -25,6 +25,7 @@ from cloudtik.core.tags import STATUS_UP_TO_DATE
 RUNTIME_NODE_ID = "node_id"
 RUNTIME_NODE_IP = "node_ip"
 RUNTIME_NODE_SEQ_ID = "node_seq_id"
+RUNTIME_NODE_STATUS = "node_status"
 RUNTIME_NODE_QUORUM_ID = "quorum_id"
 RUNTIME_NODE_QUORUM_JOIN = "quorum_join"
 

@@ -4,13 +4,14 @@ from typing import Optional, List
 
 from cloudtik.core._private.core_utils import get_string_hash
 from cloudtik.core._private.runtime_utils import RUNTIME_NODE_SEQ_ID, RUNTIME_NODE_IP, RUNTIME_NODE_ID, \
-    RUNTIME_NODE_QUORUM_JOIN, RUNTIME_NODE_QUORUM_ID
+    RUNTIME_NODE_QUORUM_JOIN, RUNTIME_NODE_QUORUM_ID, RUNTIME_NODE_STATUS
 from cloudtik.core._private.state.kv_store import kv_put
 from cloudtik.core._private.utils import _get_node_constraints_for_node_type, CLOUDTIK_CLUSTER_NODES_INFO_NODE_TYPE, \
-    _notify_node_constraints_reached
+    _notify_node_constraints_reached, get_config_option
 from cloudtik.core.tags import (
     CLOUDTIK_TAG_USER_NODE_TYPE, CLOUDTIK_TAG_NODE_SEQ_ID, CLOUDTIK_TAG_HEAD_NODE_SEQ_ID,
-    CLOUDTIK_TAG_QUORUM_ID, CLOUDTIK_TAG_QUORUM_JOIN, QUORUM_JOIN_STATUS_INIT)
+    CLOUDTIK_TAG_QUORUM_ID, CLOUDTIK_TAG_QUORUM_JOIN, QUORUM_JOIN_STATUS_INIT, CLOUDTIK_TAG_NODE_STATUS,
+    STATUS_UP_TO_DATE)
 
 logger = logging.getLogger(__name__)
 
@@ -52,10 +53,20 @@ class QuorumManager:
         # Refresh at each wait for update
         self.nodes_info_by_node_type = None
 
+        # launch with strong priority
+        self.launch_with_strong_priority = False
+        self.launch_priority_by_node_type = {}
+
     def reset(self, config, provider):
         self.config = config
         self.provider = provider
         self.available_node_types = self.config["available_node_types"]
+
+        self.launch_with_strong_priority = get_config_option(
+            config, "launch_with_strong_priority", False)
+        if (self.launch_with_strong_priority
+                and not self._is_strong_priority_check_needed()):
+            self.launch_with_strong_priority = False
 
         # Collect the nodes constraints
         self._collect_node_constraints()
@@ -64,20 +75,34 @@ class QuorumManager:
         self.non_terminated_nodes = non_terminated_nodes
         self.pending_launches = pending_launches
 
-        if not self.node_constraints_by_node_type:
-            # No need
-            return
-        self._collect_quorum_nodes()
+        if self.node_constraints_by_node_type:
+            self._collect_quorum_nodes()
 
     def remove_terminating_nodes(self, terminating_nodes: List[str]):
         # called when there are nodes removed for termination
-        if not self.node_constraints_by_node_type:
-            # No need
-            return
-
-        # update the collected quorum nodes and nodes info
-        self._update_quorum_nodes(terminating_nodes)
+        if self.node_constraints_by_node_type:
+            # update the collected quorum nodes and nodes info
+            self._update_quorum_nodes(terminating_nodes)
         self._update_nodes_info(terminating_nodes)
+
+    def _is_strong_priority_check_needed(self):
+        # Return True if there are multiple worker node types
+        # and there are different in launch priorities.
+        head_node_type = self.config["head_node_type"]
+        node_type_with_priority = {}
+        launch_priorities = set()
+        for node_type, node_type_config in self.available_node_types.items():
+            if node_type != head_node_type:
+                # worker type
+                launch_priority = node_type_config.get(
+                    "launch_priority", 0)
+                node_type_with_priority[node_type] = launch_priority
+                launch_priorities.add(launch_priority)
+        if (len(node_type_with_priority) > 1
+                and len(launch_priorities) > 1):
+            self.launch_priority_by_node_type = node_type_with_priority
+            return True
+        return False
 
     def _collect_node_constraints(self):
         # Push global runtime config
@@ -92,14 +117,16 @@ class QuorumManager:
         self.node_constraints_by_node_type = node_constraints_by_type
 
     def _collect_nodes_info(self):
-        # We only collect nodes of related node types
         nodes_info_of_node_type = {}
         for node_id in self.non_terminated_nodes.worker_ids:
             tags = self.provider.node_tags(node_id)
             node_type = tags.get(CLOUDTIK_TAG_USER_NODE_TYPE)
             if not node_type:
                 continue
-            if node_type not in self.node_constraints_by_node_type:
+
+            # We only collect nodes of related node types
+            if (not self.launch_with_strong_priority
+                    and node_type not in self.node_constraints_by_node_type):
                 continue
 
             if node_type not in nodes_info_of_node_type:
@@ -109,6 +136,8 @@ class QuorumManager:
             node_info = {RUNTIME_NODE_IP: self.provider.internal_ip(node_id)}
             if CLOUDTIK_TAG_NODE_SEQ_ID in tags:
                 node_info[RUNTIME_NODE_SEQ_ID] = int(tags[CLOUDTIK_TAG_NODE_SEQ_ID])
+            if CLOUDTIK_TAG_NODE_STATUS in tags:
+                node_info[RUNTIME_NODE_STATUS] = tags[CLOUDTIK_TAG_NODE_STATUS]
             if CLOUDTIK_TAG_QUORUM_ID in tags:
                 node_info[RUNTIME_NODE_QUORUM_ID] = tags[CLOUDTIK_TAG_QUORUM_ID]
             if CLOUDTIK_TAG_QUORUM_JOIN in tags:
@@ -126,13 +155,19 @@ class QuorumManager:
                 nodes_info.pop(node_id, None)
 
     def wait_for_update(self):
-        if not self.node_constraints_by_node_type:
+        if (not self.node_constraints_by_node_type
+                and not self.launch_with_strong_priority):
             # No need to wait for most cases, fast return
             return False
 
         # Make sure only minimal requirement > 0 will appear in self.node_constraints_by_node_type
         self._collect_nodes_info()
 
+        if self.node_constraints_by_node_type:
+            return self._wait_for_node_constraints_update()
+        return False
+
+    def _wait_for_node_constraints_update(self):
         for node_type in self.node_constraints_by_node_type:
             node_constraints = self.node_constraints_by_node_type[node_type]
             if node_type not in self.nodes_info_by_node_type:
@@ -275,23 +310,56 @@ class QuorumManager:
     def is_launch_allowed(self, node_type: str):
         if self._has_node_constraints(node_type) and (
                 self._is_quorum_node_constraints(node_type)):
-            running_quorum = self._get_running_quorum(node_type)
-            if running_quorum:
-                # if there is a running quorum
-                if self._is_quorum_scalable(node_type):
-                    # check the pending launches and in progress quorum joins
-                    if (self.pending_launches and self.pending_launches.get(
-                            node_type, 0) > 0) or self._is_quorum_join_in_progress(node_type):
-                        logger.info(
-                            "Cluster Controller: Node in progress of quorum join. "
-                            "Pause launching new nodes for type: {}.".format(
-                                node_type))
-                        return False, None
-                    else:
-                        return True, running_quorum
+            return self._is_launch_allowed_for_quorum(node_type)
+        elif self.launch_with_strong_priority:
+            return self._is_launch_allowed_for_strong_priority(node_type)
+        return True, None
+
+    def _is_launch_allowed_for_quorum(self, node_type: str):
+        running_quorum = self._get_running_quorum(node_type)
+        if running_quorum:
+            # if there is a running quorum
+            if self._is_quorum_scalable(node_type):
+                # check the pending launches and in progress quorum joins
+                if (self.pending_launches and self.pending_launches.get(
+                        node_type, 0) > 0) or self._is_quorum_join_in_progress(node_type):
+                    logger.info(
+                        "Cluster Controller: Node in progress of quorum join. "
+                        "Pause launching new nodes for type: {}.".format(
+                            node_type))
+                    return False, None
                 else:
+                    return True, running_quorum
+            else:
+                return False, None
+        return True, None
+
+    def _is_launch_allowed_for_strong_priority(self, node_type: str):
+        # By using the collected node info and the pending launches,
+        # we check whether launch the node type
+        node_type_launch_priority = self.launch_priority_by_node_type.get(
+            node_type, 0)
+        if node_type_launch_priority > 0:
+            for worker_node_type, launch_priority in self.launch_priority_by_node_type.items():
+                if (launch_priority < node_type_launch_priority
+                        and not self._all_nodes_up_to_date(worker_node_type)):
                     return False, None
         return True, None
+
+    def _all_nodes_up_to_date(self, node_type: str):
+        # Check nodes that appear in nodes info
+        nodes_info = self.nodes_info_by_node_type.get(node_type)
+        if nodes_info:
+            for node_id, node_info in nodes_info.items():
+                node_status = node_info.get(RUNTIME_NODE_STATUS)
+                if node_status != STATUS_UP_TO_DATE:
+                    return False
+
+        # Check launching node which may not appear
+        if (self.pending_launches and self.pending_launches.get(
+                node_type, 0) > 0):
+            return False
+        return True
 
     def _has_node_constraints(self, node_type: str):
         if not self.node_constraints_by_node_type:

@@ -74,6 +74,11 @@
                     "type": "number",
                     "minimum": 0
                 },
+                "launch_with_strong_priority": {
+                    "description": "When this sets to true, the lower priority worker types will not launch until higher priority worker types is up to date.",
+                    "type": "boolean",
+                    "default": false
+                },
                 "stable_node_seq_id": {
                     "type": "boolean",
                     "description": "Whether the node sequence id assigned to each node is stable. If a node is dead, a new node will be launched with the seq id of this node.",
@@ -555,6 +560,11 @@
                         },
                         "min_workers": {"type": "integer"},
                         "max_workers": {"type": "integer"},
+                        "launch_priority": {
+                            "description": "Priority order for launching. 0 is the highest priority.",
+                            "type": "integer",
+                            "default": 0
+                        },
                         "resources": {
                             "type": "object",
                             "patternProperties": {
