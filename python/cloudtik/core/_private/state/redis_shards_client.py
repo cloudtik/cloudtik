@@ -112,9 +112,8 @@ class RedisShardsClient:
 
     def connect(self):
         self._primary_shard = RedisShard()
-        self._primary_shard.connect(self._redis_address,
-                                    self._redis_port,
-                                    self._redis_password)
+        self._primary_shard.connect(
+            self._redis_address, self._redis_port, self._redis_password)
         self._redis_shards[0] = self._primary_shard
         # get redis shards and connect redis shards
         shard_addresses, shard_ports = get_redis_shards_addresses(

@@ -30,6 +30,3 @@ class StoreClient:
         match_pattern = generate_match_pattern(table_name)
         scanner = RedisShardsScanner(self._redis_shards_client, table_name)
         return scanner.scan_keys_and_values(match_pattern)
-
-
-

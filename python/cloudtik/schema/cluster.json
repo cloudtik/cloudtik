@@ -54,7 +54,7 @@
             "type": "string",
             "description": "The 32 bytes hex encoded encryption key for data sharing among the cluster. Will not do encryption if not specified."
         },
-        "cluster_options": {
+        "options": {
             "type": "object",
             "description": "Cluster options.",
             "additionalProperties": true,
