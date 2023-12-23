@@ -629,6 +629,13 @@ class ClusterScaler:
     def launch_required_nodes(self, to_launch: Dict[NodeType, int]) -> None:
         if not to_launch:
             return
+
+        # Priority based launching: if there is higher priority node types to launch
+        # lower priority node types will not be launched. The effect is the launching
+        # of lower priority node types will be delayed a little.
+        # The launch with strong priority control is done at quorum manager.
+        to_launch = self._prioritize_launch(to_launch)
+
         for node_type, count in to_launch.items():
             launch_allowed, quorum_id = self.quorum_manager.is_launch_allowed(node_type)
             if not launch_allowed:
@@ -641,6 +648,28 @@ class ClusterScaler:
                 launch_args[LAUNCH_ARGS_QUORUM_ID] = quorum_id
             self.launch_new_node(
                 count, node_type=node_type, launch_args=launch_args)
+
+    def _get_node_type_launch_priority(self, node_type):
+        node_type_config = self.available_node_types.get(node_type)
+        if node_type_config is not None:
+            return node_type_config.get("launch_priority", 0)
+        return 0
+
+    def _prioritize_launch(self, to_launch: Dict[NodeType, int]):
+        if len(to_launch) <= 1:
+            return to_launch
+
+        # figure out the highest priority
+        highest_priority = 999999
+        for node_type in to_launch:
+            launch_priority = self._get_node_type_launch_priority(node_type)
+            if launch_priority < highest_priority:
+                highest_priority = launch_priority
+        # keep only the highest priority node types
+        return {
+            node_type: count for node_type, count in to_launch.items()
+            if self._get_node_type_launch_priority(node_type) == highest_priority
+        }
 
     def update_nodes(self):
         """Run NodeUpdaterThreads to run setup commands, sync files,
