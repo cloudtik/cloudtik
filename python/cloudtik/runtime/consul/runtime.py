@@ -50,7 +50,8 @@ class ConsulRuntime(RuntimeBase):
             self.server_mode, self.runtime_config)
 
     def get_node_constraints(
-            self, cluster_config: Dict[str, Any]) -> Tuple[bool, bool, bool]:
+            self, cluster_config: Dict[str, Any],
+            node_type: str) -> Tuple[bool, bool, bool]:
         """Whether the runtime nodes need minimal nodes launch before going to setup.
         Usually this is because the setup of the nodes need to know each other.
         """

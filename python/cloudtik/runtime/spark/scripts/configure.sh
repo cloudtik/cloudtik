@@ -126,9 +126,9 @@ update_metastore_config() {
 configure_spark_shuffle() {
     # We assume other modifications to this list follow the same pattern:
     # Always add its value before the mapreduce_shuffle value.
-    (! grep -Fq 'spark_shuffle,' ${HADOOP_HOME}/etc/hadoop/yarn-site.xml) && \
-    sed -i "s#mapreduce_shuffle</value>#spark_shuffle,mapreduce_shuffle</value>#g" \
-      ${HADOOP_HOME}/etc/hadoop/yarn-site.xml
+    (! grep -Fq 'spark_shuffle,' ${HADOOP_HOME}/etc/hadoop/yarn-site.xml) \
+      && sed -i "s#mapreduce_shuffle</value>#spark_shuffle,mapreduce_shuffle</value>#g" \
+        ${HADOOP_HOME}/etc/hadoop/yarn-site.xml
 }
 
 configure_spark() {
@@ -153,7 +153,8 @@ configure_jupyter_for_spark() {
 
       echo Y | jupyter lab --generate-config;
       # Set default password(cloudtik) for JupyterLab
-      sed -i  "1 ic.NotebookApp.password = 'argon2:\$argon2id\$v=19\$m=10240,t=10,p=8\$Y+sBd6UhAyKNsI+/mHsy9g\$WzJsUujSzmotUkblSTpMwCFoOBVSwm7S5oOPzpC+tz8'" ~/.jupyter/jupyter_lab_config.py
+      sed -i  "1 ic.NotebookApp.password = 'argon2:\$argon2id\$v=19\$m=10240,t=10,p=8\$Y+sBd6UhAyKNsI+/mHsy9g\$WzJsUujSzmotUkblSTpMwCFoOBVSwm7S5oOPzpC+tz8'" \
+        ~/.jupyter/jupyter_lab_config.py
 
       # Set default notebook_dir for JupyterLab
       export JUPYTER_WORKSPACE=${RUNTIME_PATH}/jupyter/notebooks
