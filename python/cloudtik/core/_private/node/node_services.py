@@ -20,6 +20,7 @@ from collections import defaultdict
 import cloudtik
 import cloudtik.core._private.constants as constants
 import cloudtik.core._private.services as services
+from cloudtik.core._private.runtime_utils import get_first_data_disk_dir
 from cloudtik.core._private.state.control_state import StateClient
 from cloudtik.core._private import core_utils
 from cloudtik.core._private.state import kv_store
@@ -127,6 +128,7 @@ class NodeServicesStarter:
             self.get_state_client()
 
         self._init_temp()
+        self._init_data_dir()
 
         self._metrics_export_port = self._get_cached_port(
             "metrics_export_port", default_port=start_params.metrics_export_port)
@@ -207,6 +209,16 @@ class NodeServicesStarter:
         self._runtime_env_dir = os.path.join(
             self._session_dir, self._start_params.runtime_dir_name)
         try_to_create_directory(self._runtime_env_dir)
+
+    def _init_data_dir(self):
+        data_disk_dir = get_first_data_disk_dir()
+        if data_disk_dir:
+            data_base_dir = os.path.join(
+                data_disk_dir, constants.CLOUDTIK_RUNTIME_NAME)
+        else:
+            data_base_dir = self.get_session_dir_path()
+        self._data_dir = os.path.join(data_base_dir, "data")
+        os.makedirs(self._data_dir, exist_ok=True)
 
     def get_resource_spec(self):
         """Resolve and return the current resource spec for the node."""
@@ -340,6 +352,10 @@ class NodeServicesStarter:
     def get_session_dir_path(self):
         """Get the path of the session directory."""
         return self._session_dir
+
+    def get_data_dir(self):
+        """Get the path of the data directory."""
+        return self._data_dir
 
     def get_logs_dir_path(self):
         """Get the path of the log files directory."""
@@ -530,19 +546,20 @@ class NodeServicesStarter:
 
         (self._redis_address, redis_shards,
          processes) = services.start_redis(
-             self._node_ip_address,
-             redis_log_files,
-             self.get_resource_spec(),
-             self.get_session_dir_path(),
-             port=self._start_params.redis_port,
-             redis_shard_ports=self._start_params.redis_shard_ports,
-             num_redis_shards=self._start_params.num_redis_shards,
-             redis_max_clients=self._start_params.redis_max_clients,
-             redirect_worker_output=True,
-             password=self._start_params.redis_password,
-             fate_share=self.kernel_fate_share,
-             external_addresses=self._start_params.external_addresses,
-             port_denylist=self._start_params.reserved_ports)
+            self._node_ip_address,
+            redis_log_files,
+            self.get_resource_spec(),
+            self.get_session_dir_path(),
+            self.get_data_dir(),
+            port=self._start_params.redis_port,
+            redis_shard_ports=self._start_params.redis_shard_ports,
+            num_redis_shards=self._start_params.num_redis_shards,
+            redis_max_clients=self._start_params.redis_max_clients,
+            redirect_worker_output=True,
+            password=self._start_params.redis_password,
+            fate_share=self.kernel_fate_share,
+            external_addresses=self._start_params.external_addresses,
+            port_denylist=self._start_params.reserved_ports)
         assert (
             constants.PROCESS_TYPE_REDIS_SERVER not in self.all_processes)
         self.all_processes[constants.PROCESS_TYPE_REDIS_SERVER] = (
@@ -850,10 +867,11 @@ class NodeServicesStarter:
         """
         return not any(self.dead_processes())
 
-    def _kv_get_with_retry(self,
-                                    key,
-                                    namespace,
-                                    num_retries=NUM_REDIS_GET_RETRIES):
+    def _kv_get_with_retry(
+            self,
+            key,
+            namespace,
+            num_retries=NUM_REDIS_GET_RETRIES):
         result = None
         if isinstance(key, str):
             key = key.encode()

@@ -39,9 +39,10 @@ def kv_initialized():
     return global_state_client is not None
 
 
-def kv_get(key: Union[str, bytes],
-                     *,
-                     namespace: Optional[str] = None) -> bytes:
+def kv_get(
+        key: Union[str, bytes],
+        *,
+        namespace: Optional[str] = None) -> bytes:
     """Fetch the value of a binary key."""
 
     if isinstance(key, str):
@@ -50,9 +51,10 @@ def kv_get(key: Union[str, bytes],
     return global_state_client.kv_get(key, namespace)
 
 
-def kv_exists(key: Union[str, bytes],
-                        *,
-                        namespace: Optional[str] = None) -> bool:
+def kv_exists(
+        key: Union[str, bytes],
+        *,
+        namespace: Optional[str] = None) -> bool:
     """Check key exists or not."""
 
     if isinstance(key, str):
@@ -61,11 +63,12 @@ def kv_exists(key: Union[str, bytes],
     return global_state_client.kv_exists(key, namespace)
 
 
-def kv_put(key: Union[str, bytes],
-                     value: Union[str, bytes],
-                     overwrite: bool = True,
-                     *,
-                     namespace: Optional[str] = None) -> bool:
+def kv_put(
+        key: Union[str, bytes],
+        value: Union[str, bytes],
+        overwrite: bool = True,
+        *,
+        namespace: Optional[str] = None) -> bool:
     """Globally associates a value with a given binary key.
 
     This only has an effect if the key does not already have a value.
@@ -80,24 +83,30 @@ def kv_put(key: Union[str, bytes],
         value = value.encode()
     assert isinstance(key, bytes) and isinstance(value, bytes) and isinstance(
         overwrite, bool)
-    return global_state_client.kv_put(key, value, overwrite,
-                                             namespace) == 0
+    return global_state_client.kv_put(
+        key, value, overwrite, namespace) == 0
 
 
-def kv_del(key: Union[str, bytes],
-                     *,
-                     namespace: Optional[str] = None):
+def kv_del(
+        key: Union[str, bytes],
+        *,
+        namespace: Optional[str] = None):
     if isinstance(key, str):
         key = key.encode()
     assert isinstance(key, bytes)
     return global_state_client.kv_del(key, namespace)
 
 
-def kv_list(prefix: Union[str, bytes],
-                      *,
-                      namespace: Optional[str] = None) -> List[bytes]:
+def kv_list(
+        prefix: Union[str, bytes],
+        *,
+        namespace: Optional[str] = None) -> List[bytes]:
     """List all keys in the internal KV store that start with the prefix.
     """
     if isinstance(prefix, str):
         prefix = prefix.encode()
     return global_state_client.kv_keys(prefix, namespace)
+
+
+def kv_save():
+    global_state_client.save()

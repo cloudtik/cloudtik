@@ -757,19 +757,21 @@ def start_reaper(fate_share=None):
     return process_info
 
 
-def start_redis(node_ip_address,
-                redirect_files,
-                resource_spec,
-                session_dir_path,
-                port=None,
-                redis_shard_ports=None,
-                num_redis_shards=1,
-                redis_max_clients=None,
-                redirect_worker_output=False,
-                password=None,
-                fate_share=None,
-                external_addresses=None,
-                port_denylist=None):
+def start_redis(
+        node_ip_address,
+        redirect_files,
+        resource_spec,
+        session_dir_path,
+        data_dir,
+        port=None,
+        redis_shard_ports=None,
+        num_redis_shards=1,
+        redis_max_clients=None,
+        redirect_worker_output=False,
+        password=None,
+        fate_share=None,
+        external_addresses=None,
+        port_denylist=None):
     """Start the Redis global state store.
 
     Args:
@@ -779,6 +781,7 @@ def start_redis(node_ip_address,
         resource_spec (ResourceSpec): Resources for the node.
         session_dir_path (str): Path to the session directory of
             this cluster.
+        data_dir (str): The path to the data dir.
         port (int): If provided, the primary Redis shard will be started on
             this port.
         redis_shard_ports: A list of the ports to use for the non-primary Redis
@@ -836,6 +839,8 @@ def start_redis(node_ip_address,
         port, p = _start_redis_instance(
             redis_executable,
             session_dir_path,
+            data_dir,
+            instance_id=0,
             bind_address=node_ip_address,
             port=port,
             password=password,
@@ -884,10 +889,11 @@ def start_redis(node_ip_address,
     # other Redis shards at a high, random port.
     last_shard_port = new_port(denylist=port_denylist) - 1
     for i in range(num_redis_shards):
+        shard_instance_id = i + 1
         if external_addresses is not None:
-            shard_address = external_addresses[i + 1]
+            shard_address = external_addresses[shard_instance_id]
         else:
-            redis_stdout_file, redis_stderr_file = redirect_files[i + 1]
+            redis_stdout_file, redis_stderr_file = redirect_files[shard_instance_id]
             redis_executable = CLOUDTIK_REDIS_EXECUTABLE
             redis_shard_port = redis_shard_ports[i]
             # If no shard port is given, try to start this shard's Redis
@@ -901,6 +907,8 @@ def start_redis(node_ip_address,
             redis_shard_port, p = _start_redis_instance(
                 redis_executable,
                 session_dir_path,
+                data_dir,
+                instance_id=shard_instance_id,
                 bind_address=node_ip_address,
                 port=redis_shard_port,
                 password=password,
@@ -924,19 +932,22 @@ def start_redis(node_ip_address,
     return redis_address, redis_shards, processes
 
 
-def _start_redis_instance(executable,
-                          session_dir_path,
-                          bind_address,
-                          port,
-                          redis_max_clients=None,
-                          num_retries=20,
-                          stdout_file=None,
-                          stderr_file=None,
-                          password=None,
-                          redis_max_memory=None,
-                          fate_share=None,
-                          port_denylist=None,
-                          listen_to_localhost_only=False):
+def _start_redis_instance(
+        executable,
+        session_dir_path,
+        data_dir,
+        instance_id,
+        bind_address,
+        port,
+        redis_max_clients=None,
+        num_retries=20,
+        stdout_file=None,
+        stderr_file=None,
+        password=None,
+        redis_max_memory=None,
+        fate_share=None,
+        port_denylist=None,
+        listen_to_localhost_only=False):
     """Start a single Redis server.
 
     Notes:
@@ -948,6 +959,8 @@ def _start_redis_instance(executable,
         executable (str): Full path of the redis-server executable.
         session_dir_path (str): Path to the session directory of
             this cluster.
+        data_dir (str): Path to the data directory.
+        instance_id (int): The id of this instance. The primary instance id is 0.
         bind_address: The address to bind. None to bind all
         port (int): Try to start a Redis server at this port.
         redis_max_clients: If this is provided, we will attempt to configure
@@ -980,6 +993,10 @@ def _start_redis_instance(executable,
     assert os.path.isfile(executable)
     counter = 0
     process_info = None
+    if not data_dir:
+        data_dir = session_dir_path
+    instance_data_dir = os.path.join(data_dir, str(instance_id))
+    os.makedirs(instance_data_dir, exist_ok=True)
 
     while counter < num_retries:
         # Construct the command to start the Redis server.
@@ -989,7 +1006,7 @@ def _start_redis_instance(executable,
                 raise ValueError("Spaces not permitted in redis password.")
             command += ["--requirepass", password]
         command += (["--port", str(port), "--loglevel", "warning"])
-        command += (["--dir", session_dir_path])
+        command += (["--dir", instance_data_dir])
         if listen_to_localhost_only:
             command += ["--bind", "127.0.0.1"]
         elif bind_address is not None:
@@ -1085,15 +1102,16 @@ def _start_redis_instance(executable,
     return port, process_info
 
 
-def start_log_monitor(redis_address,
-                      logs_dir,
-                      stdout_file=None,
-                      stderr_file=None,
-                      redis_password=None,
-                      fate_share=None,
-                      logging_level=None,
-                      max_bytes=0,
-                      backup_count=0):
+def start_log_monitor(
+        redis_address,
+        logs_dir,
+        stdout_file=None,
+        stderr_file=None,
+        redis_password=None,
+        fate_share=None,
+        logging_level=None,
+        max_bytes=0,
+        backup_count=0):
     """Start a log monitor process.
 
     Args:

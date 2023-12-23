@@ -45,7 +45,7 @@ from cloudtik.core._private.state.state_utils import NODE_STATE_NODE_IP, NODE_ST
     NODE_STATE_HEARTBEAT_TIME, NODE_STATE_TIME
 from cloudtik.core.job_waiter import JobWaiter
 
-from cloudtik.core._private.state.kv_store import kv_put, kv_initialize_with_address, kv_get
+from cloudtik.core._private.state.kv_store import kv_put, kv_initialize_with_address, kv_get, kv_save
 
 from cloudtik.core.node_provider import NodeProvider
 from cloudtik.core._private.constants import \
@@ -209,6 +209,9 @@ def _request_resources(resources: Optional[List[dict]] = None,
         CLOUDTIK_RESOURCE_REQUESTS,
         json.dumps(resource_requests),
         overwrite=True)
+    # We need the resource requests being able to persist for restarting
+    # Do a Save
+    kv_save()
 
 
 def create_or_update_cluster(
@@ -549,7 +552,7 @@ def teardown_cluster_nodes(config: Dict[str, Any],
 
     # Loop here to check that both the head and worker nodes are actually
     #   really gone
-    head, A = remaining_nodes()
+    head, remaining = remaining_nodes()
 
     current_step = 1
     total_steps = 1
@@ -574,7 +577,7 @@ def teardown_cluster_nodes(config: Dict[str, Any],
                     provider=provider,
                     head_node=head_node,
                     node_head=None,
-                    node_workers=A,
+                    node_workers=remaining,
                     parallel=True
                 )
 
@@ -590,7 +593,7 @@ def teardown_cluster_nodes(config: Dict[str, Any],
                 workers_only=workers_only,
                 on_head=on_head,
                 head=head,
-                nodes=A
+                nodes=remaining
             )
 
     # Step 3
@@ -600,18 +603,19 @@ def teardown_cluster_nodes(config: Dict[str, Any],
             _numbered=("()", current_step, total_steps)):
         current_step += 1
         with LogTimer("teardown_cluster: done."):
-            while A:
-                provider.terminate_nodes(A)
+            while remaining:
+                provider.terminate_nodes(remaining)
 
                 _cli_logger.print(
                     "Requested {} {} to shut down.",
-                    cf.bold(len(A)), node_type,
+                    cf.bold(len(remaining)), node_type,
                     _tags=dict(interval="1s"))
 
                 time.sleep(POLL_INTERVAL)  # todo: interval should be a variable
-                head, A = remaining_nodes()
-                _cli_logger.print("{} {} remaining after {} second(s).",
-                                 cf.bold(len(A)), node_type, POLL_INTERVAL)
+                head, remaining = remaining_nodes()
+                _cli_logger.print(
+                    "{} {} remaining after {} second(s).",
+                    cf.bold(len(remaining)), node_type, POLL_INTERVAL)
             _cli_logger.print(cf.bold("No {} remaining."), node_type)
 
 
@@ -3986,9 +3990,13 @@ def _wait_for_ready(config: Dict[str, Any],
         if workers_ready >= min_workers:
             return
         else:
-            call_context.cli_logger.print("Waiting for workers to be ready: {}/{} ({} seconds)...", workers_ready, min_workers, interval)
+            call_context.cli_logger.print(
+                "Waiting for workers to be ready: {}/{} ({} seconds)...",
+                workers_ready, min_workers, interval)
             time.sleep(interval)
-    raise TimeoutError("Timed out while waiting for workers to be ready: {}/{}".format(workers_ready, min_workers))
+    raise TimeoutError(
+        "Timed out while waiting for workers to be ready: {}/{}".format(
+            workers_ready, min_workers))
 
 
 def _create_job_waiter(

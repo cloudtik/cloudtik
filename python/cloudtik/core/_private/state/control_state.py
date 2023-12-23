@@ -54,8 +54,9 @@ class StateClient:
         except Exception:
             raise RuntimeError(f"Failed to get value for key {key}")
 
-    def kv_put(self, key: bytes, value: bytes, overwrite: bool,
-                        namespace: Optional[str]) -> int:
+    def kv_put(
+            self, key: bytes, value: bytes, overwrite: bool,
+            namespace: Optional[str]) -> int:
         logger.debug(f"internal_kv_put {key} {value} {overwrite} {namespace}")
         key = _make_key(namespace, key)
         try:
@@ -90,14 +91,18 @@ class StateClient:
         except Exception:
             raise RuntimeError(f"Failed to check existence of key {key}")
 
-    def kv_keys(self, prefix: bytes,
-                         namespace: Optional[str]) -> List[bytes]:
+    def kv_keys(
+            self, prefix: bytes,
+            namespace: Optional[str]) -> List[bytes]:
         logger.debug(f"internal_kv_keys {prefix} {namespace}")
         prefix = _make_key(namespace, prefix)
         try:
             return [_get_key(key) for key in self._redis_client.scan_iter(prefix + b"*")]
         except Exception:
             raise RuntimeError(f"Failed to list prefix {prefix}")
+
+    def save(self):
+        self._redis_client.bgsave()
 
     @staticmethod
     def create_from_redis(redis_cli):
