@@ -1,6 +1,7 @@
 import os
 from typing import Any, Dict
 
+from cloudtik.core._private.constants import CLOUDTIK_NODE_TYPE_WORKER_DEFAULT
 from cloudtik.core._private.core_utils import get_config_for_update
 from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_REDIS
 from cloudtik.core._private.service_discovery.naming import get_cluster_head_host
@@ -20,9 +21,6 @@ RUNTIME_PROCESSES = [
     ]
 
 REDIS_SERVICE_PORT_CONFIG_KEY = "port"
-REDIS_CLUSTER_PORT_CONFIG_KEY = "cluster_port"
-REDIS_MASTER_SIZE_CONFIG_KEY = "master_size"
-REDIS_RESHARD_DELAY_CONFIG_KEY = "reshard_delay"
 
 REDIS_CLUSTER_MODE_CONFIG_KEY = "cluster_mode"
 REDIS_CLUSTER_MODE_NONE = "none"
@@ -34,6 +32,13 @@ REDIS_CLUSTER_MODE_REPLICATION = "replication"
 REDIS_CLUSTER_MODE_SHARDING = "sharding"
 
 REDIS_PASSWORD_CONFIG_KEY = "password"
+
+REDIS_SHARDING_CONFIG_KEY = "sharding"
+REDIS_CLUSTER_PORT_CONFIG_KEY = "cluster_port"
+REDIS_MASTER_SIZE_CONFIG_KEY = "master_size"
+REDIS_ROLE_BY_NODE_TYPE_CONFIG_KEY = "role_by_node_type"
+REDIS_RESHARD_DELAY_CONFIG_KEY = "reshard_delay"
+REDIS_MASTER_NODE_TYPE_CONFIG_KEY = "master_node_type"
 
 REDIS_SERVICE_TYPE = BUILT_IN_RUNTIME_REDIS
 REDIS_REPLICA_SERVICE_TYPE = REDIS_SERVICE_TYPE + "-replica"
@@ -52,25 +57,38 @@ def _get_service_port(redis_config: Dict[str, Any]):
         REDIS_SERVICE_PORT_CONFIG_KEY, REDIS_SERVICE_PORT_DEFAULT)
 
 
-def _get_cluster_port(redis_config: Dict[str, Any]):
-    service_port = _get_service_port(redis_config)
-    return redis_config.get(
-        REDIS_CLUSTER_PORT_CONFIG_KEY, service_port + 10000)
-
-
 def _get_cluster_mode(redis_config: Dict[str, Any]):
     return redis_config.get(
         REDIS_CLUSTER_MODE_CONFIG_KEY, REDIS_CLUSTER_MODE_REPLICATION)
 
 
-def _get_master_size(redis_config: Dict[str, Any]):
+def _get_sharding_config(redis_config: Dict[str, Any]):
     return redis_config.get(
+        REDIS_SHARDING_CONFIG_KEY, {})
+
+
+def _get_cluster_port(sharding_config: Dict[str, Any], service_port):
+    return sharding_config.get(
+        REDIS_CLUSTER_PORT_CONFIG_KEY, service_port + 10000)
+
+
+def _get_master_size(sharding_config: Dict[str, Any]):
+    return sharding_config.get(
         REDIS_MASTER_SIZE_CONFIG_KEY)
 
 
-def _get_reshard_delay(redis_config: Dict[str, Any]):
-    return redis_config.get(
+def _is_role_by_node_type(sharding_config: Dict[str, Any]):
+    return sharding_config.get(
+        REDIS_ROLE_BY_NODE_TYPE_CONFIG_KEY, True)
+
+
+def _get_reshard_delay(sharding_config: Dict[str, Any]):
+    return sharding_config.get(
         REDIS_RESHARD_DELAY_CONFIG_KEY, REDIS_RESHARD_DELAY_DEFAULT)
+
+
+def _get_master_node_type(sharding_config):
+    return sharding_config.get(REDIS_MASTER_NODE_TYPE_CONFIG_KEY)
 
 
 def _get_home_dir():
@@ -88,21 +106,56 @@ def _get_runtime_logs():
     return {"redis": logs_dir}
 
 
-def update_config_master_size(cluster_config, master_size):
+def update_master_size(cluster_config, master_size):
     runtime_config_to_update = get_runtime_config_for_update(cluster_config)
     redis_config_to_update = get_config_for_update(
         runtime_config_to_update, BUILT_IN_RUNTIME_REDIS)
-    redis_config_to_update[REDIS_MASTER_SIZE_CONFIG_KEY] = master_size
+    sharding_config_to_update = get_config_for_update(
+        redis_config_to_update, REDIS_SHARDING_CONFIG_KEY)
+    sharding_config_to_update[REDIS_MASTER_SIZE_CONFIG_KEY] = master_size
 
 
-def _configure_master_size(redis_config, cluster_config):
+def update_master_node_type(cluster_config, master_node_type):
+    runtime_config_to_update = get_runtime_config_for_update(cluster_config)
+    redis_config_to_update = get_config_for_update(
+        runtime_config_to_update, BUILT_IN_RUNTIME_REDIS)
+    sharding_config_to_update = get_config_for_update(
+        redis_config_to_update, REDIS_SHARDING_CONFIG_KEY)
+    sharding_config_to_update[REDIS_MASTER_NODE_TYPE_CONFIG_KEY] = master_node_type
+
+
+def _check_master_node_type(cluster_config, master_node_type):
+    available_node_types = cluster_config["available_node_types"]
+    head_node_type = cluster_config["head_node_type"]
+    worker_node_types = set()
+    for node_type in available_node_types:
+        if node_type != head_node_type:
+            worker_node_types.add(node_type)
+
+    if master_node_type:
+        if master_node_type in worker_node_types:
+            return master_node_type
+        else:
+            raise RuntimeError(
+                "Node type {} is not defined.".format(master_node_type))
+
+    # this configuration need extra worker node types
+    if len(worker_node_types) <= 1:
+        return None
+    master_node_type = CLOUDTIK_NODE_TYPE_WORKER_DEFAULT
+    if master_node_type not in worker_node_types:
+        raise RuntimeError(
+            "Node type {} is not defined for role by node type.".format(
+                master_node_type))
+    return master_node_type
+
+
+def _configure_master_size(sharding_config, cluster_config):
     num_static_nodes = _sum_min_workers(cluster_config) + 1
-    if num_static_nodes < 3:
-        raise RuntimeError("Redis Cluster for sharding requires at least 3 master nodes.")
 
     # WARNING: the static nodes when starting the cluster will
     # limit the number of masters.
-    user_master_size = _get_master_size(redis_config)
+    user_master_size = _get_master_size(sharding_config)
     master_size = user_master_size
     if not master_size:
         # for sharding, decide the number of masters if not specified
@@ -111,12 +164,10 @@ def _configure_master_size(redis_config, cluster_config):
         else:
             master_size = num_static_nodes // 2
     else:
-        if master_size < 3:
-            master_size = 3
-        elif master_size > num_static_nodes:
+        if master_size > num_static_nodes:
             master_size = num_static_nodes
     if master_size != user_master_size:
-        update_config_master_size(cluster_config, master_size)
+        update_master_size(cluster_config, master_size)
 
 
 def _bootstrap_runtime_config(
@@ -131,8 +182,18 @@ def _bootstrap_runtime_config(
             enable_node_seq_id(cluster_config)
 
         if cluster_mode == REDIS_CLUSTER_MODE_SHARDING:
-            _configure_master_size(redis_config, cluster_config)
-
+            sharding_config = _get_sharding_config(redis_config)
+            # check whether we need to use role by node type or based on master size
+            if _is_role_by_node_type(sharding_config):
+                master_node_type = _get_master_node_type(sharding_config)
+                master_node_type = _check_master_node_type(
+                    cluster_config, master_node_type)
+                if master_node_type:
+                    update_master_node_type(cluster_config, master_node_type)
+                else:
+                    _configure_master_size(sharding_config, cluster_config)
+            else:
+                _configure_master_size(sharding_config, cluster_config)
     return cluster_config
 
 
@@ -153,10 +214,11 @@ def _with_runtime_environment_variables(
     runtime_envs["REDIS_CLUSTER_MODE"] = cluster_mode
 
     if cluster_mode == REDIS_CLUSTER_MODE_SHARDING:
-        cluster_port = _get_cluster_port(redis_config)
+        sharding_config = _get_sharding_config(redis_config)
+        cluster_port = _get_cluster_port(sharding_config, service_port)
         runtime_envs["REDIS_CLUSTER_PORT"] = cluster_port
 
-        master_size = _get_master_size(redis_config)
+        master_size = _get_master_size(sharding_config)
         if not master_size:
             # This just for safety, master size will be checked at bootstrap
             master_size = 1
