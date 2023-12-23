@@ -366,9 +366,9 @@ set_synchronous_standby_names() {
 }
 
 postgres_setup_synchronous_standby(){
-  if [ "${POSTGRES_MASTER_NODE}" == "true" ] && \
-      [ "${POSTGRES_CLUSTER_MODE}" == "replication" ] && \
-      [ "${POSTGRES_SYNCHRONOUS_MODE}" != "none" ]; then
+  if [ "${POSTGRES_MASTER_NODE}" == "true" ] \
+      && [ "${POSTGRES_CLUSTER_MODE}" == "replication" ] \
+      && [ "${POSTGRES_SYNCHRONOUS_MODE}" != "none" ]; then
       set_synchronous_standby_names
   fi
 }

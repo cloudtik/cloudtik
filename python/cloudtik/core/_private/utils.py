@@ -2862,7 +2862,7 @@ def _get_node_constraints_for_node_type(config: Dict[str, Any], node_type: str):
     for runtime_type in runtime_types:
         runtime = _get_runtime(runtime_type, runtime_config)
         runtime_minimal, runtime_quorum, runtime_scalable = \
-            runtime.get_node_constraints(config)
+            runtime.get_node_constraints(config, node_type)
         if runtime_minimal:
             runtimes_with_node_constraints += [runtime_type]
             if runtime_quorum:
