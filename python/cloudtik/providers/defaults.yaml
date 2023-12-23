@@ -5,7 +5,7 @@ workspace_name: default
 cluster_name: default
 
 # Cluster options
-cluster_options:
+options:
     # The cluster scaler will scale up the cluster faster with higher upscaling speed.
     # E.g., if the task requires adding more nodes then cluster scaler will gradually
     # scale up the cluster in chunks of upscaling_speed*currently_running_nodes.

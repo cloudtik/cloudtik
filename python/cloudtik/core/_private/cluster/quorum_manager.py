@@ -343,6 +343,10 @@ class QuorumManager:
             for worker_node_type, launch_priority in self.launch_priority_by_node_type.items():
                 if (launch_priority < node_type_launch_priority
                         and not self._all_nodes_up_to_date(worker_node_type)):
+                    logger.info(
+                        "Cluster Controller: Higher priority node types are in progress of launching. "
+                        "Pause launching new nodes for type: {}.".format(
+                            node_type))
                     return False, None
         return True, None
 

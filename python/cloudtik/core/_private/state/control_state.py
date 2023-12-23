@@ -210,9 +210,8 @@ class ControlState:
         self.redis_password = redis_password
 
     def _really_init_global_state(self):
-        self.control_state_accessor = ControlStateAccessor(self.redis_address,
-                                                           self.redis_port,
-                                                           self.redis_password)
+        self.control_state_accessor = ControlStateAccessor(
+            self.redis_address, self.redis_port, self.redis_password)
         self.control_state_accessor.connect()
 
     def get_node_table(self):
