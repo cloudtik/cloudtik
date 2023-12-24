@@ -28,13 +28,7 @@ start)
 stop)
     if [ "$IS_HEAD_NODE" == "false" ]; then
         # etcd run only on workers
-        # Stop etcd
-        ETCD_PID=$(pgrep etcd)
-        if [ -n "${ETCD_PID}" ]; then
-          echo "Stopping etcd..."
-          # SIGTERM = 15
-          kill -15 ${ETCD_PID} >/dev/null 2>&1
-        fi
+        stop_process_by_name "etcd"
     fi
     ;;
 -h|--help)

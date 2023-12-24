@@ -45,7 +45,7 @@ stop)
     if [ "${MLFLOW_HIGH_AVAILABILITY}" == "true" ] \
       || [ "${IS_HEAD_NODE}" == "true" ]; then
         # Stop MLflow service
-        ps aux | grep 'mlflow.server:app' | grep -v grep | awk '{print $2}' | xargs -r kill -9
+        stop_process_by_command "mlflow.server:app"
     fi
     ;;
 -h|--help)

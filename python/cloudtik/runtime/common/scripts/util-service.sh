@@ -41,23 +41,21 @@ is_service_running() {
 ########################
 # Stop a service by sending a termination signal to its pid
 # Arguments:
-#   $1 - Pid file
+#   $1 - Pid
 #   $2 - Signal number (optional)
 # Returns:
 #   None
 #########################
-stop_service_using_pid() {
-    local pid_file="${1:?pid file is missing}"
-    local signal="${2:-}"
-    local pid
+stop_service_by_pid() {
+    local pid="${1:?pid is missing}"
+    local signal="${15:-}"
 
-    pid="$(get_pid_from_file "$pid_file")"
-    [[ -z "$pid" ]] || ! is_service_running "$pid" && return
+    ! is_service_running "$pid" && return
 
     if [[ -n "$signal" ]]; then
-        kill "-${signal}" "$pid"
+        kill "-${signal}" "$pid" >/dev/null 2>&1
     else
-        kill "$pid"
+        kill "$pid" >/dev/null 2>&1
     fi
 
     local counter=10
@@ -67,25 +65,46 @@ stop_service_using_pid() {
     done
 }
 
+########################
+# Stop a service by sending a termination signal to its pid
+# Arguments:
+#   $1 - Pid file
+#   $2 - Signal number (optional)
+# Returns:
+#   None
+#########################
+stop_service_by_pid_file() {
+    local pid_file="${1:?pid file is missing}"
+    local signal="${15:-}"
+    local pid
+
+    pid="$(get_pid_from_file "$pid_file")"
+    [[ -z "$pid" ]] && return
+
+    stop_service_by_pid "$pid" "$signal"
+}
+
 stop_process_by_name() {
-    local PROCESS_NAME=$1
-    local MY_PID=$(pgrep ${PROCESS_NAME})
-    if [ -n "${MY_PID}" ]; then
-        echo "Stopping ${PROCESS_NAME}..."
-        # SIGTERM = 15
-        sudo kill -15 ${MY_PID} >/dev/null 2>&1
-    fi
+    local process_name=$1
+    local pid=$(pgrep ${process_name})
+    [[ -z "$pid" ]] && return
+
+    echo "Stopping ${process_name}..."
+    stop_service_by_pid "$pid"
+}
+
+stop_process_by_command() {
+    local process_cmd=$1
+    local pid=$(pgrep -f ${process_cmd})
+    [[ -z "$pid" ]] && return
+    stop_service_by_pid "$pid"
 }
 
 stop_process_by_pid_file() {
-    local PROCESS_PID_FILE=$1
-    if sudo test -f "$PROCESS_PID_FILE"; then
-        local PROCESS_NAME=$(basename "$PROCESS_PID_FILE")
-        local MY_PID=$(sudo pgrep --pidfile ${PROCESS_PID_FILE})
-        if [ -n "${MY_PID}" ]; then
-            echo "Stopping ${PROCESS_NAME}..."
-            # SIGTERM = 15
-            sudo kill -15 ${MY_PID} >/dev/null 2>&1
-        fi
+    local pid_file="${1:?pid file is missing}"
+    if sudo test -f "$pid_file"; then
+        local process_name=$(basename "$pid_file")
+        echo "Stopping ${process_name}..."
+        stop_service_by_pid_file "$pid_file"
     fi
 }

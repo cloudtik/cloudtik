@@ -306,7 +306,10 @@ def start(node_ip_address, address, port, head,
         NodeServicesStarter(
             start_params, head=False, shutdown_at_exit=False, spawn_reaper=False)
 
-    startup_msg = "CloudTik runtime started."
+    if no_clustering:
+        startup_msg = "CloudTik state service started."
+    else:
+        startup_msg = "CloudTik clustering service started."
     cli_logger.success(startup_msg)
     cli_logger.flush()
 

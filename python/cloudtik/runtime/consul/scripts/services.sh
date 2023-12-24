@@ -36,14 +36,7 @@ start)
     ;;
 stop)
     # Stop server or client agent
-    if [ -f "${CONSUL_PID_FILE}" ]; then
-        AGENT_PID=$(cat ${CONSUL_PID_FILE})
-        if [ -n "${AGENT_PID}" ]; then
-          echo "Stopping Consul agent..."
-          # SIGTERM = 15
-          kill -15 ${AGENT_PID} >/dev/null 2>&1
-        fi
-    fi
+    stop_process_by_pid_file "${CONSUL_PID_FILE}"
     ;;
 -h|--help)
     echo "Usage: $0 start|stop --head" >&2

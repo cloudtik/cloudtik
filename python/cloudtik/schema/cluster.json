@@ -64,13 +64,8 @@
                     "type": "number",
                     "minimum": 0
                 },
-                "terminate_idle": {
-                    "description": "Whether to terminate idle nodes. The idle time is decided by idle_timeout_minutes.",
-                    "type": "boolean",
-                    "default": true
-                },
                 "idle_timeout_minutes": {
-                    "description": "If a node is idle for this many minutes, it will be terminated. Default 5 minutes.",
+                    "description": "If a node is idle for this many minutes, it will be terminated. Default 5 minutes. 0 to disable idle termination.",
                     "type": "number",
                     "minimum": 0
                 },

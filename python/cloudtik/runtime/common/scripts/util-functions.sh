@@ -13,11 +13,13 @@ CLOUDTIK_DOWNLOADS="https://d30257nes7d4fq.cloudfront.net/downloads"
 clean_install() {
     (sudo rm -rf /var/lib/apt/lists/* \
         && sudo apt-get clean \
-        && which conda > /dev/null && conda clean -itqy)
+        && which conda > /dev/null \
+        && conda clean -itqy)
 }
 
 clean_apt() {
-    sudo rm -rf /var/lib/apt/lists/* && sudo apt-get clean
+    sudo rm -rf /var/lib/apt/lists/* \
+      && sudo apt-get clean
 }
 
 update_resolv_conf() {
