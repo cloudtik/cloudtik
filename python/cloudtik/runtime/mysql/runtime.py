@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 
 class MySQLRuntime(RuntimeBase):
-    """Implementation for MySQL Runtime for a high available replicated
+    """Implementation of MySQL Runtime for a high available replicated
     MySQL database cluster.
     It supports the following topology:
     1. A standalone server: on head
@@ -28,6 +28,13 @@ class MySQLRuntime(RuntimeBase):
         C. Head node restart with workers are running is not yet supported.
         D. Every node can be possibly become the primary. Client or a middle layer needs
         to handle which primary node to connect for write.
+
+    Hints:
+    1. Checking replication status:
+    mysql -u root -h host --password=password mysql <<< "SHOW REPLICA STATUS"
+    2. Checking group replication status:
+    mysql -u root -h host --password=password mysql <<< "SELECT * FROM performance_schema.replication_group_members"
+
     """
 
     def __init__(self, runtime_config: Dict[str, Any]) -> None:

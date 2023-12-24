@@ -11,19 +11,24 @@ logger = logging.getLogger(__name__)
 
 
 class RedisRuntime(RuntimeBase):
-    """Implementation for Redis Runtime for a standalone instance, a simple cluster
+    """Implementation of Redis Runtime for a standalone instance, a simple cluster
     or replicated Redis Cluster or a sharding Redis Cluster.
     It supports the following topology:
     1. A standalone server: on head
     2. A simple cluster of standalone servers: on head and workers
     3. A replication cluster: primary on head and replicas on workers
-    4. A sharding cluster
+    4. A sharding cluster: with multiple shards and replicas.
 
     Notice of limitations:
     1. For simple cluster, each instance is standalone and user will need to do manual
     sharding by keys if needed.
     2. For replication cluster, we currently don't allow to run primary on workers. All
     the workers are configured to replicate from the head and in read-only mode.
+
+    Hints:
+    1. Checking cluster status:
+    redis-cli -p 6379 -a cloudtik cluster nodes
+
     """
 
     def __init__(self, runtime_config: Dict[str, Any]) -> None:

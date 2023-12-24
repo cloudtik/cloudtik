@@ -13,7 +13,14 @@ logger = logging.getLogger(__name__)
 
 
 class ConsulRuntime(RuntimeBase):
-    """Implementation for Consul Runtime"""
+    """Implementation of Consul Runtime for high available distributed service registration,
+    service discovery and service DNS naming service.
+
+    Hints:
+    1. Checking status:
+    curl http://127.0.0.1:8500/v1/catalog/services
+
+    """
 
     def __init__(self, runtime_config: Dict[str, Any]) -> None:
         super().__init__(runtime_config)

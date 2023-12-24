@@ -11,7 +11,14 @@ logger = logging.getLogger(__name__)
 
 
 class EtcdRuntime(RuntimeBase):
-    """Implementation for etcd runtime for distributed kv store"""
+    """Implementation of ETCD runtime for high available distributed kv store
+    Hints:
+    1. Checking status:
+    etcdctl --endpoints=http://host:2379 member list
+    2. Testing:
+    etcdctl --endpoints=http://host:2379 put foo1 "Hello World!"
+    etcdctl --endpoints=http://host:2379 get foo
+    """
 
     def __init__(self, runtime_config: Dict[str, Any]) -> None:
         super().__init__(runtime_config)
