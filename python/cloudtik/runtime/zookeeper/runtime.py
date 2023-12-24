@@ -11,7 +11,16 @@ logger = logging.getLogger(__name__)
 
 
 class ZooKeeperRuntime(RuntimeBase):
-    """Implementation for ZooKeeper Runtime"""
+    """Implementation of ZooKeeper Runtime for a high available coordinating service.
+
+    Hints:
+    1. Checking status:
+    $ZOOKEEPER_HOME/bin/zkServer.sh status
+    2. Testing:
+    $ZOOKEEPER_HOME/bin/zkCli.sh -server host:2181 create /abc
+    $ZOOKEEPER_HOME/bin/zkCli.sh -server host:2181 ls /
+
+    """
 
     def __init__(self, runtime_config: Dict[str, Any]) -> None:
         super().__init__(runtime_config)
