@@ -409,7 +409,7 @@ mongodb_stop_mongos() {
     ! is_mongos_running && return
     info "Stopping Mongos..."
 
-    stop_service_using_pid "$MONGODB_MONGOS_PID_FILE"
+    stop_service_by_pid_file "$MONGODB_MONGOS_PID_FILE"
     if ! retry_while "is_mongos_not_running" "$MONGODB_MAX_TIMEOUT"; then
         error "Mongos failed to stop"
         exit 1

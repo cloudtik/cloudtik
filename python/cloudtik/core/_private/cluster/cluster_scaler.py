@@ -232,7 +232,6 @@ class ClusterScaler:
         self.cluster_metrics = cluster_metrics
         self.cluster_metrics_updater = cluster_metrics_updater
         self.resource_scaling_policy = resource_scaling_policy
-        self.terminate_idle = True
 
         self.quorum_manager = QuorumManager(
             self.config, self.provider)
@@ -495,8 +494,9 @@ class ClusterScaler:
         is the same as the total resources. (We may need some tolerance when making such comparisons)
         """
         last_used = self.cluster_metrics.last_used_time_by_ip
-        horizon = now - (60 * get_config_option(
-            self.config, "idle_timeout_minutes", 5))
+        idle_timeout_minutes = get_config_option(
+            self.config, "idle_timeout_minutes", 5)
+        horizon = now - (60 * idle_timeout_minutes)
 
         if logger.isEnabledFor(logging.DEBUG):
             logger.debug("Nodes last used (horizon={}): {}".format(horizon, last_used))
@@ -544,7 +544,7 @@ class ClusterScaler:
                 continue
 
             node_ip = self.provider.internal_ip(node_id)
-            if (self.terminate_idle
+            if (idle_timeout_minutes > 0
                     and node_ip in last_used and last_used[node_ip] < horizon):
                 self.schedule_node_termination(node_id, "idle", logger.info)
             elif not self.launch_config_ok(node_id):
@@ -990,8 +990,6 @@ class ClusterScaler:
         self.available_node_types = self.config["available_node_types"]
         self._update_runtime_hashes(self.config)
 
-        self.terminate_idle = get_config_option(
-            self.config, "terminate_idle", True)
         upscaling_speed = get_config_option(self.config, "upscaling_speed")
         target_utilization_fraction = self.config.get(
             "target_utilization_fraction")

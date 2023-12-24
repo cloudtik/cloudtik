@@ -43,12 +43,7 @@ start)
 stop)
     if [ $IS_HEAD_NODE == "true" ]; then
         $SPARK_HOME/sbin/stop-history-server.sh
-        # workaround for stopping jupyter when password being set
-        JUPYTER_PID=$(pgrep jupyter)
-        if [ -n "$JUPYTER_PID" ]; then
-          echo "Stopping Jupyter..."
-          kill $JUPYTER_PID >/dev/null 2>&1
-        fi
+        stop_process_by_name "jupyter"
     fi
     ;;
 -h|--help)

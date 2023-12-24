@@ -399,7 +399,7 @@ mongodb_stop() {
     ! is_mongodb_running && return
     info "Stopping MongoDB..."
 
-    stop_service_using_pid "$MONGODB_PID_FILE"
+    stop_service_by_pid_file "$MONGODB_PID_FILE"
     if ! retry_while "is_mongodb_not_running" "$MONGODB_MAX_TIMEOUT"; then
         error "MongoDB failed to stop"
         exit 1

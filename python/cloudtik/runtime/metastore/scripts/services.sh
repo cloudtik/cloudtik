@@ -50,7 +50,7 @@ stop)
           || [ "$METASTORE_WITH_SQL_DATABASE" == "false" ]; then
             sudo service mysql stop
         fi
-        pkill -f 'HiveMetaStore'
+        stop_process_by_command "HiveMetaStore"
     fi
     ;;
 -h|--help)
