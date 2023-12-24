@@ -139,6 +139,8 @@ class NodeUpdater:
         self.runtime_config = runtime_config
         self.cluster_uri = _get_cluster_uri(self.provider_type, cluster_name)
         self.environment_variables = environment_variables
+        # Node Ip is set during the time for update
+        self.node_ip = None
         self.exitcode = -1
 
     @property
@@ -154,7 +156,8 @@ class NodeUpdater:
             msg = ("Output was redirected for an interactive command. "
                    "Either do not pass `--redirect-command-output` "
                    "or also pass in `--use-normal-shells`.")
-            self.cli_logger.abort(msg)
+            self.cli_logger.abort(
+                self._prefix_message(msg))
 
         try:
             with LogTimer(self.log_prefix +
@@ -167,23 +170,27 @@ class NodeUpdater:
                 tags_to_set[CLOUDTIK_TAG_QUORUM_JOIN] = QUORUM_JOIN_STATUS_FAILED
             self.provider.set_node_tags(
                 self.node_id, tags_to_set)
-            self.cli_logger.error("New status: {}", cf.bold(STATUS_UPDATE_FAILED))
+            self.cli_logger.error(
+                self._prefix_message(
+                    "New status: {}"), cf.bold(STATUS_UPDATE_FAILED))
 
             self.cli_logger.error("!!!")
             if hasattr(e, "cmd"):
                 self.cli_logger.error(
-                    "Setup command `{}` failed with exit code {}. stderr:",
+                    self._prefix_message(
+                        "Setup command `{}` failed with exit code {}. stderr:"),
                     cf.bold(e.cmd), e.returncode)
             else:
                 self.cli_logger.verbose_error("{}", str(vars(e)))
-                # todo: handle this better somehow?
-                self.cli_logger.error("{}", str(e))
-            # todo: print stderr here
+                # TODO: handle this better somehow?
+                self.cli_logger.error(
+                    self._prefix_message("{}"), str(e))
+            # TODO: print stderr here
             self.cli_logger.error("!!!")
             self.cli_logger.newline()
 
             if isinstance(e, click.ClickException):
-                # todo: why do we ignore this here
+                # TODO: why do we ignore this here
                 return
             raise
 
@@ -199,7 +206,9 @@ class NodeUpdater:
                 CLOUDTIK_TAG_FILE_MOUNTS_CONTENTS] = self.file_mounts_contents_hash
 
         self.provider.set_node_tags(self.node_id, tags_to_set)
-        self.cli_logger.labeled_value("New status", STATUS_UP_TO_DATE)
+        self.cli_logger.labeled_value(
+            self._prefix_message(
+                "New status"), STATUS_UP_TO_DATE)
 
         self.update_time = time.time() - update_start_time
         self.exitcode = 0
@@ -216,8 +225,9 @@ class NodeUpdater:
 
         def do_sync(remote_path, local_path, allow_non_existing_paths=False):
             if allow_non_existing_paths and not os.path.exists(local_path):
-                self.cli_logger.print("sync: {} does not exist. Skipping.",
-                                 local_path)
+                self.cli_logger.print(
+                    self._prefix_message(
+                        "sync: {} does not exist. Skipping."), local_path)
                 # Ignore missing source files. In the future we should support
                 # the --delete-missing-args command to delete files that have
                 # been removed
@@ -244,13 +254,15 @@ class NodeUpdater:
                     local_path, remote_path, docker_mount_if_possible=True)
 
                 if remote_path not in nolog_paths:
-                    # todo: timed here?
-                    self.cli_logger.print("{} from {}", cf.bold(remote_path),
-                                     cf.bold(local_path))
+                    # TODO: timed here?
+                    self.cli_logger.print(
+                        self._prefix_message(
+                            "{} from {}"), cf.bold(remote_path), cf.bold(local_path))
 
         # Rsync file mounts
         with self.cli_logger.group(
-                "Processing file mounts",
+                self._prefix_message(
+                    "Processing file mounts"),
                 _numbered=("[]", current_step, total_steps)):
             for remote_path, local_path in self.file_mounts.items():
                 do_sync(remote_path, local_path)
@@ -258,39 +270,50 @@ class NodeUpdater:
 
         if self.cluster_synced_files:
             with self.cli_logger.group(
-                    "Processing worker file mounts",
+                    self._prefix_message(
+                        "Processing worker file mounts"),
                     _numbered=("[]", current_step, total_steps)):
-                self.cli_logger.print("synced files: {}",
-                                 str(self.cluster_synced_files))
+                self.cli_logger.print(
+                    self._prefix_message(
+                        "synced files: {}"), str(self.cluster_synced_files))
                 for path in self.cluster_synced_files:
                     do_sync(path, path, allow_non_existing_paths=True)
                 current_step += 1
         else:
             with self.cli_logger.group(
-                    "No worker file mounts to sync",
+                    self._prefix_message(
+                        "No worker file mounts to sync"),
                     _numbered=("[]", current_step, total_steps)):
                 pass
 
     def wait_ready(self, deadline):
         with self.cli_logger.group(
-                "Waiting for SSH to become available",
+                self._prefix_message(
+                    "Waiting for SSH to become available"),
                 _numbered=("[]", 1, NUM_SETUP_STEPS)):
             with LogTimer(self.log_prefix + "Got remote shell"):
 
-                self.cli_logger.print("Running `{}` as a test.", cf.bold("uptime"))
+                self.cli_logger.print(
+                    self._prefix_message(
+                        "Running `{}` as a test."), cf.bold("uptime"))
                 first_conn_refused_time = None
                 while True:
                     if time.time() > deadline:
-                        raise Exception("wait_ready timeout exceeded.")
+                        raise Exception(
+                            self._prefix_message(
+                                "Waiting for node ready timeout."))
                     if self.provider.is_terminated(self.node_id):
-                        raise Exception("wait_ready aborting because node "
-                                        "detected as terminated.")
+                        raise Exception(
+                            self._prefix_message(
+                                "Waiting for node ready aborting because node "
+                                "detected as terminated."))
 
                     try:
                         # Run outside of the container
                         self.cmd_executor.run(
                             "uptime", timeout=10, run_env="host")
-                        self.cli_logger.success("Success.")
+                        self.cli_logger.success(
+                            self._prefix_message("Success."))
                         return True
                     except ProcessRunnerError as e:
                         first_conn_refused_time = \
@@ -299,7 +322,7 @@ class NodeUpdater:
                                 retry_interval=READY_CHECK_INTERVAL)
                         time.sleep(READY_CHECK_INTERVAL)
                     except Exception as e:
-                        # TODO(maximsmol): we should not be ignoring
+                        # TODO: we should not be ignoring
                         # exceptions if they get filtered properly
                         # (new style log + non-interactive shells)
                         #
@@ -320,8 +343,9 @@ class NodeUpdater:
                                 e.returncode, cmd_)
 
                         self.cli_logger.print(
-                            "SSH still not available {}, "
-                            "retrying in {} seconds.", cf.dimmed(retry_str),
+                            self._prefix_message(
+                                "SSH still not available {}, "
+                                "retrying in {} seconds."), cf.dimmed(retry_str),
                             cf.bold(str(READY_CHECK_INTERVAL)))
 
                         time.sleep(READY_CHECK_INTERVAL)
@@ -329,7 +353,8 @@ class NodeUpdater:
     def bootstrap_data_disks(self, step_numbers=(1, 1)):
         current_step, total_steps = step_numbers
         with self.cli_logger.group(
-                "Preparing data disks",
+                self._prefix_message(
+                    "Preparing data disks"),
                 _numbered=("[]", current_step, total_steps)):
             self.cmd_executor.bootstrap_data_disks()
 
@@ -388,6 +413,7 @@ class NodeUpdater:
         if cluster_name:
             node_envs[CLOUDTIK_RUNTIME_ENV_CLUSTER] = cluster_name
 
+        self.node_ip = node_envs[CLOUDTIK_RUNTIME_ENV_NODE_IP]
         return node_envs
 
     def get_shared_memory_ratio(self):
@@ -395,10 +421,20 @@ class NodeUpdater:
         return get_runtime_shared_memory_ratio(
             self.runtime_config, config=self.config, node_type=node_type)
 
+    def _prefix_message(self, msg):
+        if self.is_head_node:
+            return msg
+        msg_prefix = self.node_ip if self.node_ip else self.node_id
+        if not msg_prefix:
+            return msg
+        return msg_prefix + ": " + msg
+
     def do_update(self):
         self.provider.set_node_tags(
             self.node_id, {CLOUDTIK_TAG_NODE_STATUS: STATUS_WAITING_FOR_SSH})
-        self.cli_logger.labeled_value("New status", STATUS_WAITING_FOR_SSH)
+        self.cli_logger.labeled_value(
+            self._prefix_message(
+                "New status"), STATUS_WAITING_FOR_SSH)
 
         deadline = time.time() + CLOUDTIK_NODE_START_WAIT_S
         self.wait_ready(deadline)
@@ -441,24 +477,30 @@ class NodeUpdater:
             # todo: we lie in the confirmation message since
             # full setup might be cancelled here
             self.cli_logger.print(
-                "Configuration already up to date, "
-                "skipping file mounts, initialization and setup commands.",
+                self._prefix_message(
+                    "Configuration already up to date, "
+                    "skipping file mounts, initialization and setup commands."),
                 _numbered=("[]", "2-7", NUM_SETUP_STEPS))
 
         else:
             self.cli_logger.print(
-                "Updating cluster configuration.",
+                self._prefix_message(
+                    "Updating cluster configuration."),
                 _tags=dict(hash=self.runtime_hash))
 
             # The first step is to format and mount the data disks on host machine
             self.provider.set_node_tags(
                 self.node_id, {CLOUDTIK_TAG_NODE_STATUS: STATUS_BOOTSTRAPPING_DATA_DISKS})
-            self.cli_logger.labeled_value("New status", STATUS_BOOTSTRAPPING_DATA_DISKS)
+            self.cli_logger.labeled_value(
+                self._prefix_message(
+                    "New status"), STATUS_BOOTSTRAPPING_DATA_DISKS)
             self.bootstrap_data_disks(step_numbers=(2, NUM_SETUP_STEPS))
 
             self.provider.set_node_tags(
                 self.node_id, {CLOUDTIK_TAG_NODE_STATUS: STATUS_SYNCING_FILES})
-            self.cli_logger.labeled_value("New status", STATUS_SYNCING_FILES)
+            self.cli_logger.labeled_value(
+                self._prefix_message(
+                    "New status"), STATUS_SYNCING_FILES)
             self.sync_file_mounts(
                 self.rsync_up, step_numbers=(3, NUM_SETUP_STEPS))
 
@@ -469,18 +511,23 @@ class NodeUpdater:
                 # Run init commands
                 self.provider.set_node_tags(
                     self.node_id, {CLOUDTIK_TAG_NODE_STATUS: STATUS_SETTING_UP})
-                self.cli_logger.labeled_value("New status", STATUS_SETTING_UP)
+                self.cli_logger.labeled_value(
+                    self._prefix_message(
+                        "New status"), STATUS_SETTING_UP)
                 if self.initialization_commands:
                     with self.cli_logger.group(
-                            "Running initialization commands",
+                            self._prefix_message(
+                                "Running initialization commands"),
                             _numbered=("[]", 5, NUM_SETUP_STEPS)):
                         self._exec_initialization_commands(runtime_envs)
                 else:
                     self.cli_logger.print(
-                        "No initialization commands to run.",
+                        self._prefix_message(
+                            "No initialization commands to run."),
                         _numbered=("[]", 5, NUM_SETUP_STEPS))
                 with self.cli_logger.group(
-                        "Initializing runner",
+                        self._prefix_message(
+                            "Initializing runner"),
                         _numbered=("[]", 6, NUM_SETUP_STEPS)):
                     self.cmd_executor.run_init(
                         as_head=self.is_head_node,
@@ -489,16 +536,19 @@ class NodeUpdater:
                         sync_run_yet=True)
                 if self.setup_commands:
                     with self.cli_logger.group(
-                            "Running setup commands",
+                            self._prefix_message(
+                                "Running setup commands"),
                             _numbered=("[]", 7, NUM_SETUP_STEPS)):
                         self._exec_setup_commands(runtime_envs)
                 else:
                     self.cli_logger.print(
-                        "No setup commands to run.",
+                        self._prefix_message(
+                            "No setup commands to run."),
                         _numbered=("[]", 7, NUM_SETUP_STEPS))
 
         with self.cli_logger.group(
-                "Starting the cluster services",
+                self._prefix_message(
+                    "Starting the cluster services"),
                 _numbered=("[]", 8, NUM_SETUP_STEPS)):
             self._exec_start_commands(runtime_envs)
 
@@ -512,8 +562,8 @@ class NodeUpdater:
         options["rsync_exclude"] = self.rsync_options.get("rsync_exclude")
         options["rsync_filter"] = self.rsync_options.get("rsync_filter")
         self.cmd_executor.run_rsync_up(source, target, options=options)
-        self.cli_logger.verbose("`rsync`ed {} (local) to {} (remote)",
-                           cf.bold(source), cf.bold(target))
+        self.cli_logger.verbose(
+            "`rsync`ed {} (local) to {} (remote)", cf.bold(source), cf.bold(target))
 
     def rsync_down(self, source, target, docker_mount_if_possible=False):
         options = {}
@@ -521,8 +571,8 @@ class NodeUpdater:
         options["rsync_exclude"] = self.rsync_options.get("rsync_exclude")
         options["rsync_filter"] = self.rsync_options.get("rsync_filter")
         self.cmd_executor.run_rsync_down(source, target, options=options)
-        self.cli_logger.verbose("`rsync`ed {} (remote) to {} (local)",
-                           cf.bold(source), cf.bold(target))
+        self.cli_logger.verbose(
+            "`rsync`ed {} (remote) to {} (local)", cf.bold(source), cf.bold(target))
 
     def _exec_initialization_commands(self, runtime_envs):
         global_event_system.execute_callback(
@@ -565,7 +615,7 @@ class NodeUpdater:
                     "See above for stderr.")
 
             raise click.ClickException(
-                "Initialization command failed."
+                self._prefix_message("Initialization command failed.")
             ) from None
 
     def _exec_setup_commands(self, runtime_envs):
@@ -581,7 +631,8 @@ class NodeUpdater:
             for i, command_group in enumerate(self.setup_commands):
                 command_group_name = command_group.get("group_name", "")
                 with self.cli_logger.group(
-                        "Setting up: {}",
+                        self._prefix_message(
+                            "Setting up: {}"),
                         command_group_name,
                         _numbered=("()", i + 1, total)):
                     commands = command_group.get("commands", [])
@@ -595,7 +646,8 @@ class NodeUpdater:
             {"node_id": self.node_id, "command": cmd})
 
         cmd_to_print = self.get_cmd_to_print(cmd)
-        self.cli_logger.print(cf.bold("- {}"), cmd_to_print)
+        self.cli_logger.print(
+            cf.bold("- " + self._prefix_message("{}")), cmd_to_print)
 
         try:
             # Runs in the container if docker is in use
@@ -616,7 +668,7 @@ class NodeUpdater:
                     "See above for stderr.")
 
             raise click.ClickException(
-                "Setup command failed.")
+                self._prefix_message("Setup command failed."))
 
     def _exec_start_commands(self, runtime_envs):
         global_event_system.execute_callback(
@@ -629,7 +681,8 @@ class NodeUpdater:
             for i, command_group in enumerate(self.start_commands):
                 command_group_name = command_group.get("group_name", "")
                 with self.cli_logger.group(
-                        "Starting: {}",
+                        self._prefix_message(
+                            "Starting: {}"),
                         command_group_name,
                         _numbered=("()", i + 1, total)):
                     commands = command_group.get("commands", [])
@@ -654,7 +707,8 @@ class NodeUpdater:
         env_vars.update(runtime_envs)
 
         cmd_to_print = self.get_cmd_to_print(cmd)
-        self.cli_logger.print(cf.bold("- {}"), cmd_to_print)
+        self.cli_logger.print(
+            cf.bold("- " + self._prefix_message("{}")), cmd_to_print)
 
         try:
             old_redirected = self.call_context.is_output_redirected()
@@ -681,7 +735,8 @@ class NodeUpdater:
                 self.cli_logger.error("Failed.")
                 self.cli_logger.error("See above for stderr.")
 
-            raise click.ClickException("Start command failed.")
+            raise click.ClickException(
+                self._prefix_message("Start command failed."))
 
     def exec_commands(self, action_name, commands, envs):
         with LogTimer(
@@ -690,7 +745,8 @@ class NodeUpdater:
             for i, command_group in enumerate(commands):
                 command_group_name = command_group.get("group_name", "")
                 with self.cli_logger.group(
-                        "{}: {}",
+                        self._prefix_message(
+                            "{}: {}"),
                         action_name,
                         command_group_name,
                         _numbered=("()", i + 1, total)):
@@ -704,7 +760,8 @@ class NodeUpdater:
             env_vars.update(envs)
 
         cmd_to_print = self.get_cmd_to_print(cmd)
-        self.cli_logger.print(cf.bold("- {}"), cmd_to_print)
+        self.cli_logger.print(
+            cf.bold("- " + self._prefix_message("{}")), cmd_to_print)
 
         try:
             # Runs in the container if docker is in use
@@ -717,7 +774,8 @@ class NodeUpdater:
                 self.cli_logger.error("Failed.")
                 self.cli_logger.error("See above for stderr.")
 
-            raise click.ClickException("Exec command failed.")
+            raise click.ClickException(
+                self._prefix_message("Exec command failed."))
 
 
 class NodeUpdaterThread(NodeUpdater, Thread):
