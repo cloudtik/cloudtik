@@ -12,6 +12,7 @@ from typing import Optional
 
 from cloudtik.core._private.cluster.cluster_metrics_updater import ClusterMetricsUpdater
 from cloudtik.core._private.cluster.resource_scaling_policy import ResourceScalingPolicy
+from cloudtik.core._private.core_utils import address_from_string
 from cloudtik.core._private.state.scaling_state import ScalingStateClient
 
 try:
@@ -61,11 +62,11 @@ class ClusterController:
         self.controller_ip = controller_ip
         # Initialize the Redis clients.
         self.redis = create_redis_client(
-            redis_address, password=redis_password)
+            redis_address, password=redis_password, prefer_ip=True)
 
         (redis_address,
          redis_ip, redis_port) = validate_redis_address(redis_address)
-        (redis_host, _) = redis_address.split(":")
+        redis_host, _ = address_from_string(redis_address)
 
         if prometheus_client:
             controller_addr = f"{controller_ip}:{CLOUDTIK_METRIC_PORT}"
@@ -73,8 +74,8 @@ class ClusterController:
             self.redis.set(constants.CLOUDTIK_METRIC_ADDRESS_KEY, controller_addr)
 
         control_state = ControlState()
-
-        control_state.initialize_control_state(redis_ip, redis_port, redis_password)
+        control_state.initialize_control_state(
+            redis_ip, redis_port, redis_password)
 
         # initialize the global kv store client
         state_client = StateClient.create_from_redis(self.redis)
@@ -215,7 +216,7 @@ class ClusterController:
             kv_put(CLOUDTIK_CLUSTER_SCALING_ERROR, message, overwrite=True)
 
         redis_client = create_redis_client(
-            self.redis_address, password=self.redis_password)
+            self.redis_address, password=self.redis_password, prefer_ip=True)
 
         from cloudtik.core._private.utils import publish_error
         publish_error(

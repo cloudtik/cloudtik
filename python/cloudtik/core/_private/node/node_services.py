@@ -27,7 +27,7 @@ from cloudtik.core._private.state import kv_store
 from cloudtik.core._private.resource_spec import ResourceSpec
 
 from cloudtik.core._private.core_utils import try_to_create_directory, try_to_symlink, open_log, \
-    detect_fate_sharing_support, set_sigterm_handler, get_cloudtik_home_dir, get_node_ip_address
+    detect_fate_sharing_support, set_sigterm_handler, get_cloudtik_home_dir, get_node_ip_address, address_string
 
 # Logger for this module.
 logger = logging.getLogger(__name__)
@@ -317,7 +317,8 @@ class NodeServicesStarter:
     def create_redis_client(self):
         """Create a redis client."""
         return create_redis_client(
-            self._redis_address, self._start_params.redis_password)
+            self._redis_address, self._start_params.redis_password,
+            prefer_ip=self.head)
 
     def get_state_client(self):
         if self._state_client is None:
@@ -623,7 +624,7 @@ class NodeServicesStarter:
             # For head, start_redis will update redis address to the right one
             # set redis address to use as we don't start redis here
             # TODO: handle dynamic port allocated if the default is in use
-            self._redis_address = services.address(
+            self._redis_address = address_string(
                 self._node_ip_address, constants.CLOUDTIK_DEFAULT_PORT)
 
         if (not self._start_params.no_clustering
