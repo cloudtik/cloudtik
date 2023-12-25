@@ -756,6 +756,11 @@ def get_cloudtik_temp_dir():
     return os.path.join(get_user_temp_dir(), "cloudtik")
 
 
+def get_cloudtik_home_dir():
+    runtime_dir = os.path.expanduser("~/runtime")
+    return os.path.join(runtime_dir, "cloudtik")
+
+
 def exec_with_output(cmd):
     return subprocess.check_output(cmd, shell=True)
 

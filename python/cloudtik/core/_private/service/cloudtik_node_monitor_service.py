@@ -108,8 +108,6 @@ class NodeMonitor:
             try:
                 self._update_processes()
                 self._update_metrics()
-                self._send_processes()
-                self._send_metrics()
             except Exception as e:
                 logger.exception("Error happened when updating metrics or processes: " + str(e))
             time.sleep(constants.CLOUDTIK_UPDATE_INTERVAL_S)
@@ -140,11 +138,15 @@ class NodeMonitor:
                 logger.exception(traceback.format_exc())
 
     def _update_processes(self):
+        self._refresh_processes()
+        self._publish_processes()
+
+    def _refresh_processes(self):
         """check CloudTik runtime processes on the local machine."""
-        process_infos = []
+        processes_info = []
         for proc in psutil.process_iter(["name", "cmdline"]):
             try:
-                process_infos.append((proc, proc.name(), proc.cmdline()))
+                processes_info.append((proc, proc.name(), proc.cmdline()))
             except psutil.Error:
                 pass
 
@@ -160,7 +162,7 @@ class NodeMonitor:
                     15, len(keyword), keyword)
                 raise ValueError(msg)
             found_process[process_name] = "-"
-            for candidate in process_infos:
+            for candidate in processes_info:
                 proc, proc_cmd, proc_args = candidate
                 corpus = (proc_cmd
                           if filter_by_cmd else subprocess.list2cmdline(proc_args))
@@ -174,6 +176,10 @@ class NodeMonitor:
             self.old_processes = found_process
 
     def _update_metrics(self):
+        self._refresh_metrics()
+        self._publish_metrics()
+
+    def _refresh_metrics(self):
         if self.metrics_collector is None:
             self.metrics_collector = MetricsCollector()
 
@@ -182,7 +188,7 @@ class NodeMonitor:
             logger.debug("Metrics collected for node: {}".format(metrics))
         self.node_metrics["metrics"] = metrics
 
-    def _send_processes(self):
+    def _publish_processes(self):
         now = time.time()
         node_processes = self.node_processes
         node_processes[NODE_STATE_TIME] = now
@@ -193,7 +199,7 @@ class NodeMonitor:
             logger.exception("Failed sending node processes: " + str(e))
             logger.exception(traceback.format_exc())
 
-    def _send_metrics(self):
+    def _publish_metrics(self):
         now = time.time()
         node_metrics = self.node_metrics
         node_metrics[NODE_STATE_TIME] = now

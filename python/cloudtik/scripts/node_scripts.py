@@ -17,7 +17,7 @@ from cloudtik.core._private.constants import CLOUDTIK_PROCESSES, \
     CLOUDTIK_REDIS_DEFAULT_PASSWORD, \
     CLOUDTIK_DEFAULT_PORT, CLOUDTIK_RUNTIME_ENV_RUNTIMES, CLOUDTIK_RUNTIME_ENV_NODE_TYPE, \
     CLOUDTIK_RUNTIME_ENV_NODE_SEQ_ID
-from cloudtik.core._private.core_utils import get_cloudtik_temp_dir, wait_for_port as _wait_for_port
+from cloudtik.core._private.core_utils import get_cloudtik_home_dir, wait_for_port as _wait_for_port
 from cloudtik.core._private.node.node_services import NodeServicesStarter
 from cloudtik.core._private.parameter import StartParams
 from cloudtik.core._private.resource_spec import ResourceSpec
@@ -110,10 +110,10 @@ def node():
     type=str,
     help="the file that contains the cluster config")
 @click.option(
-    "--temp-dir",
+    "--home-dir",
     hidden=True,
     default=None,
-    help="manually specify the root temporary dir of the Cloudtik process")
+    help="manually specify the root session dir of the CloudTik")
 @click.option(
     "--metrics-export-port",
     type=int,
@@ -174,7 +174,7 @@ def node():
 def start(node_ip_address, address, port, head,
           redis_password, redis_shard_ports, redis_max_memory,
           memory, num_cpus, num_gpus, resources,
-          cluster_config, temp_dir, metrics_export_port,
+          cluster_config, home_dir, metrics_export_port,
           no_redirect_output, runtimes, node_type, node_seq_id,
           no_controller, no_redis, no_clustering):
     """Start the main daemon processes on the local machine."""
@@ -199,7 +199,7 @@ def start(node_ip_address, address, port, head,
         num_cpus=num_cpus,
         num_gpus=num_gpus,
         resources=resources,
-        temp_dir=temp_dir,
+        home_dir=home_dir,
         metrics_export_port=metrics_export_port,
         redirect_output=redirect_output,
         runtimes=runtimes,
@@ -256,14 +256,14 @@ def start(node_ip_address, address, port, head,
             start_params, head=True, shutdown_at_exit=False, spawn_reaper=False)
 
         redis_address = node_starter.redis_address
-        if temp_dir is None:
-            # Default temp directory.
-            temp_dir = get_cloudtik_temp_dir()
-        # Using the user-supplied temp dir unblocks
-        # users who can't write to the default temp.
-        os.makedirs(temp_dir, exist_ok=True)
-        current_cluster_path = os.path.join(temp_dir, "cloudtik_current_cluster")
-        # TODO: Consider using the custom temp_dir for this file across the
+        if home_dir is None:
+            # Default home directory.
+            home_dir = get_cloudtik_home_dir()
+        # Using the user-supplied home dir unblocks
+        # users who can't write to the default home.
+        os.makedirs(home_dir, exist_ok=True)
+        current_cluster_path = os.path.join(home_dir, "cloudtik_current_cluster")
+        # TODO: Consider using the custom home_dir for this file across the
         # code base.
         with open(current_cluster_path, "w") as f:
             print(redis_address, file=f)
@@ -306,10 +306,10 @@ def start(node_ip_address, address, port, head,
         NodeServicesStarter(
             start_params, head=False, shutdown_at_exit=False, spawn_reaper=False)
 
-    if no_clustering:
+    if head and no_clustering:
         startup_msg = "CloudTik state service started."
     else:
-        startup_msg = "CloudTik clustering service started."
+        startup_msg = "CloudTik runtime started."
     cli_logger.success(startup_msg)
     cli_logger.flush()
 
@@ -412,7 +412,7 @@ def stop(force, no_redis):
         # Stopping the redis service means the end of cluster
         try:
             os.remove(
-                os.path.join(get_cloudtik_temp_dir(),
+                os.path.join(get_cloudtik_home_dir(),
                              "cloudtik_current_cluster"))
         except OSError:
             # This just means the file doesn't exist.

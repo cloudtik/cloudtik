@@ -12,6 +12,7 @@ from cloudtik.core._private.command_executor.command_executor \
 from cloudtik.core._private.command_executor.host_command_executor import HostCommandExecutor
 from cloudtik.core._private.constants import \
     CLOUDTIK_NODE_START_WAIT_S
+from cloudtik.core._private.core_utils import get_cloudtik_temp_dir
 from cloudtik.core._private.log_timer import LogTimer
 
 from cloudtik.core._private.cli_logger import cf
@@ -80,9 +81,11 @@ class SSHCommandExecutor(HostCommandExecutor):
 
         ssh_control_hash = hashlib.md5(cluster_name.encode()).hexdigest()
         ssh_user_hash = hashlib.md5(getuser().encode()).hexdigest()
-        ssh_control_path = "/tmp/cloudtik/ssh/{}_{}".format(
-            ssh_user_hash[:HASH_MAX_LENGTH],
-            ssh_control_hash[:HASH_MAX_LENGTH])
+        ssh_control_path = os.path.join(
+            get_cloudtik_temp_dir(),
+            "ssh/{}_{}".format(
+                ssh_user_hash[:HASH_MAX_LENGTH],
+                ssh_control_hash[:HASH_MAX_LENGTH]))
         self.ssh_private_key = auth_config.get("ssh_private_key")
         self.ssh_control_path = ssh_control_path
         self.ssh_ip = ssh_ip

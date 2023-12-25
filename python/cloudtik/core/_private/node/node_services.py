@@ -27,7 +27,7 @@ from cloudtik.core._private.state import kv_store
 from cloudtik.core._private.resource_spec import ResourceSpec
 
 from cloudtik.core._private.core_utils import try_to_create_directory, try_to_symlink, open_log, \
-    detect_fate_sharing_support, set_sigterm_handler, get_cloudtik_temp_dir
+    detect_fate_sharing_support, set_sigterm_handler, get_cloudtik_home_dir
 
 # Logger for this module.
 logger = logging.getLogger(__name__)
@@ -90,7 +90,7 @@ class NodeServicesStarter:
 
         start_params.update_if_absent(
             include_log_monitor=True,
-            temp_dir=get_cloudtik_temp_dir()
+            home_dir=get_cloudtik_home_dir()
             )
 
         self._resource_spec = None
@@ -114,7 +114,7 @@ class NodeServicesStarter:
         if head:
             start_params.update_if_absent(num_redis_shards=1)
 
-        # Register the temp dir.
+        # Register the session and home dir.
         if head:
             # date including microsecond
             date_str = datetime.datetime.today().strftime(
@@ -127,7 +127,7 @@ class NodeServicesStarter:
             # setup state client
             self.get_state_client()
 
-        self._init_temp()
+        self._init_home_dir()
         self._init_data_dir()
 
         self._metrics_export_port = self._get_cached_port(
@@ -174,26 +174,26 @@ class NodeServicesStarter:
 
         set_sigterm_handler(sigterm_handler)
 
-    def _init_temp(self):
+    def _init_home_dir(self):
         # Create a dictionary to store temp file index.
         self._incremental_dict = collections.defaultdict(lambda: 0)
 
         if self.head:
-            self._temp_dir = self._start_params.temp_dir
+            self._home_dir = self._start_params.home_dir
         else:
-            temp_dir = self._kv_get_with_retry(
-                "temp_dir", constants.KV_NAMESPACE_SESSION)
-            self._temp_dir = core_utils.decode(temp_dir)
+            home_dir = self._kv_get_with_retry(
+                "home_dir", constants.KV_NAMESPACE_SESSION)
+            self._home_dir = core_utils.decode(home_dir)
 
-        try_to_create_directory(self._temp_dir)
+        try_to_create_directory(self._home_dir)
 
         if self.head:
-            self._session_dir = os.path.join(self._temp_dir, self.session_name)
+            self._session_dir = os.path.join(self._home_dir, self.session_name)
         else:
             session_dir = self._kv_get_with_retry(
                 "session_dir", constants.KV_NAMESPACE_SESSION)
             self._session_dir = core_utils.decode(session_dir)
-        session_symlink = os.path.join(self._temp_dir, SESSION_LATEST)
+        session_symlink = os.path.join(self._home_dir, SESSION_LATEST)
 
         # Send a warning message if the session exists.
         try_to_create_directory(self._session_dir)
@@ -204,11 +204,6 @@ class NodeServicesStarter:
         try_to_create_directory(self._logs_dir)
         old_logs_dir = os.path.join(self._logs_dir, "old")
         try_to_create_directory(old_logs_dir)
-
-        # Create a directory to be used for runtime environment.
-        self._runtime_env_dir = os.path.join(
-            self._session_dir, self._start_params.runtime_dir_name)
-        try_to_create_directory(self._runtime_env_dir)
 
     def _init_data_dir(self):
         data_disk_dir = get_first_data_disk_dir()
@@ -341,13 +336,9 @@ class NodeServicesStarter:
 
         return self._state_client
 
-    def get_temp_dir_path(self):
+    def get_home_dir_path(self):
         """Get the path of the temporary directory."""
-        return self._temp_dir
-
-    def get_runtime_env_dir_path(self):
-        """Get the path of the runtime env."""
-        return self._runtime_env_dir
+        return self._home_dir
 
     def get_session_dir_path(self):
         """Get the path of the session directory."""
@@ -375,7 +366,7 @@ class NodeServicesStarter:
                 "{directory_name}/{prefix}.{unique_index}{suffix}"
         """
         if directory_name is None:
-            directory_name = get_cloudtik_temp_dir()
+            directory_name = get_cloudtik_home_dir()
         directory_name = os.path.expanduser(directory_name)
         index = self._incremental_dict[suffix, prefix, directory_name]
         # `tempfile.TMP_MAX` could be extremely large,
@@ -657,7 +648,7 @@ class NodeServicesStarter:
             b"session_dir", self._session_dir.encode(), True,
             constants.KV_NAMESPACE_SESSION)
         self.get_state_client().kv_put(
-            b"temp_dir", self._temp_dir.encode(), True,
+            b"home_dir", self._home_dir.encode(), True,
             constants.KV_NAMESPACE_SESSION)
 
     def _kill_process_type(self,
