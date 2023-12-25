@@ -17,9 +17,9 @@ import time
 from typing import Optional, Dict
 from collections import defaultdict
 
-import cloudtik
 import cloudtik.core._private.constants as constants
 import cloudtik.core._private.services as services
+from cloudtik.core._private.redis_utils import create_redis_client
 from cloudtik.core._private.runtime_utils import get_first_data_disk_dir
 from cloudtik.core._private.state.control_state import StateClient
 from cloudtik.core._private import core_utils
@@ -27,7 +27,7 @@ from cloudtik.core._private.state import kv_store
 from cloudtik.core._private.resource_spec import ResourceSpec
 
 from cloudtik.core._private.core_utils import try_to_create_directory, try_to_symlink, open_log, \
-    detect_fate_sharing_support, set_sigterm_handler, get_cloudtik_home_dir
+    detect_fate_sharing_support, set_sigterm_handler, get_cloudtik_home_dir, get_node_ip_address
 
 # Logger for this module.
 logger = logging.getLogger(__name__)
@@ -80,10 +80,10 @@ class NodeServicesStarter:
         if start_params.node_ip_address:
             node_ip_address = start_params.node_ip_address
         elif start_params.redis_address:
-            node_ip_address = services.get_node_ip_address(
+            node_ip_address = get_node_ip_address(
                 start_params.redis_address)
         else:
-            node_ip_address = services.get_node_ip_address()
+            node_ip_address = get_node_ip_address()
         self._node_ip_address = node_ip_address
 
         self._state_client = None
@@ -316,7 +316,7 @@ class NodeServicesStarter:
 
     def create_redis_client(self):
         """Create a redis client."""
-        return services.create_redis_client(
+        return create_redis_client(
             self._redis_address, self._start_params.redis_password)
 
     def get_state_client(self):
@@ -885,7 +885,7 @@ class NodeServicesStarter:
 
     def start_log_monitor(self):
         """Start the log monitor."""
-        process_info = cloudtik.core._private.services.start_log_monitor(
+        process_info = services.start_log_monitor(
             self.redis_address,
             self._logs_dir,
             stdout_file=subprocess.DEVNULL,

@@ -83,7 +83,10 @@ class QuorumManager:
         if self.node_constraints_by_node_type:
             # update the collected quorum nodes and nodes info
             self._update_quorum_nodes(terminating_nodes)
-        self._update_nodes_info(terminating_nodes)
+
+        if (self.node_constraints_by_node_type
+                or self.launch_with_strong_priority):
+            self._update_nodes_info(terminating_nodes)
 
     def _is_strong_priority_check_needed(self):
         # Return True if there are multiple worker node types

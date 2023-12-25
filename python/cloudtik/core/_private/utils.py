@@ -22,7 +22,7 @@ from shlex import quote
 import yaml
 
 import cloudtik
-from cloudtik.core._private import constants, services
+from cloudtik.core._private import constants
 from cloudtik.core._private.call_context import CallContext
 from cloudtik.core._private.cli_logger import cli_logger, cf
 from cloudtik.core._private.cluster.cluster_metrics import ClusterMetricsSummary
@@ -33,7 +33,7 @@ from cloudtik.core._private.constants import CLOUDTIK_WHEELS, \
     CLOUDTIK_DEFAULT_PORT, PRIVACY_REPLACEMENT_TEMPLATE, PRIVACY_REPLACEMENT, CLOUDTIK_CONFIG_SECRET, \
     CLOUDTIK_ENCRYPTION_PREFIX, CLOUDTIK_RUNTIME_ENV_SECRETS
 from cloudtik.core._private.core_utils import load_class, double_quote, check_process_exists, get_cloudtik_temp_dir, \
-    get_config_for_update, get_json_object_md5, to_hex_string, from_hex_string
+    get_config_for_update, get_json_object_md5, to_hex_string, from_hex_string, get_node_ip_address
 from cloudtik.core._private.crypto import AESCipher
 from cloudtik.core._private.debug import log_once
 from cloudtik.core._private.runtime_factory import _get_runtime, _get_runtime_cls, DEFAULT_RUNTIMES, \
@@ -1367,7 +1367,7 @@ def set_node_type_resources(config):
 def with_head_node_ip_environment_variables(
         head_ip, envs: Dict[str, Any] = None) -> Dict[str, Any]:
     if head_ip is None:
-        head_ip = services.get_node_ip_address()
+        head_ip = get_node_ip_address()
     if envs is None:
         envs = {}
     envs[CLOUDTIK_RUNTIME_ENV_HEAD_IP] = head_ip

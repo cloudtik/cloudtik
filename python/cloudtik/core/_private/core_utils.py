@@ -1022,3 +1022,67 @@ def to_hex_string(b):
 
 def from_hex_string(s):
     return binascii.unhexlify(s)
+
+
+def address_to_ip(address):
+    """Convert a hostname to a numerical IP addresses in an address.
+
+    This should be a no-op if address already contains an actual numerical IP
+    address.
+
+    Args:
+        address: This can be either a string containing a hostname (or an IP
+            address) and a port or it can be just an IP address.
+
+    Returns:
+        The same address but with the hostname replaced by a numerical IP
+            address.
+    """
+    address_parts = address.split(":")
+    ip_address = socket.gethostbyname(address_parts[0])
+    # Make sure localhost isn't resolved to the loopback ip
+    if ip_address == "127.0.0.1":
+        ip_address = get_node_ip_address()
+    return ":".join([ip_address] + address_parts[1:])
+
+
+def node_ip_address_from_perspective(address):
+    """IP address by which the local node can be reached *from* the `address`.
+
+    Args:
+        address (str): The host and port of any known live service on the
+            network you care about.
+
+    Returns:
+        The IP address by which the local node can be reached from the address.
+    """
+    host, port = address.split(":")
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try:
+        # This command will raise an exception if there is no internet
+        # connection.
+        s.connect((host, int(port)))
+        node_ip_address = s.getsockname()[0]
+    except OSError as e:
+        node_ip_address = "127.0.0.1"
+        # [Errno 101] Network is unreachable
+        if e.errno == errno.ENETUNREACH:
+            try:
+                # try get node ip address from host name
+                host_name = socket.getfqdn(socket.gethostname())
+                node_ip_address = socket.gethostbyname(host_name)
+            except Exception:
+                pass
+    finally:
+        s.close()
+
+    return node_ip_address
+
+
+def get_node_ip_address(address="8.8.8.8:53"):
+    if sys.platform == "darwin" or sys.platform == "win32":
+        # Due to the mac osx/windows firewall,
+        # we use loopback ip as the ip address
+        # to prevent security popups.
+        return "127.0.0.1"
+    return node_ip_address_from_perspective(address)

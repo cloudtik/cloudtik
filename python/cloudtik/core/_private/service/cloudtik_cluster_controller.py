@@ -28,12 +28,12 @@ from cloudtik.core._private.cluster.event_summarizer import EventSummarizer
 from cloudtik.core._private.prometheus_metrics import ClusterPrometheusMetrics
 from cloudtik.core._private.cluster.cluster_metrics import ClusterMetrics
 from cloudtik.core._private.utils import CLOUDTIK_CLUSTER_SCALING_ERROR
-from cloudtik.core._private import constants, services
+from cloudtik.core._private import constants
 from cloudtik.core._private.logging_utils import setup_component_logger
 from cloudtik.core._private.state.kv_store import kv_initialize, \
     kv_put, kv_initialized, kv_del
 from cloudtik.core._private.state.control_state import ControlState, StateClient
-from cloudtik.core._private.services import validate_redis_address
+from cloudtik.core._private.redis_utils import validate_redis_address, create_redis_client
 
 logger = logging.getLogger(__name__)
 
@@ -60,7 +60,7 @@ class ClusterController:
         # IP address.
         self.controller_ip = controller_ip
         # Initialize the Redis clients.
-        self.redis = services.create_redis_client(
+        self.redis = create_redis_client(
             redis_address, password=redis_password)
 
         (redis_address,
@@ -214,7 +214,7 @@ class ClusterController:
         if kv_initialized():
             kv_put(CLOUDTIK_CLUSTER_SCALING_ERROR, message, overwrite=True)
 
-        redis_client = services.create_redis_client(
+        redis_client = create_redis_client(
             self.redis_address, password=self.redis_password)
 
         from cloudtik.core._private.utils import publish_error

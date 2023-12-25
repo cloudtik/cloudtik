@@ -17,9 +17,11 @@ from cloudtik.core._private.constants import CLOUDTIK_PROCESSES, \
     CLOUDTIK_REDIS_DEFAULT_PASSWORD, \
     CLOUDTIK_DEFAULT_PORT, CLOUDTIK_RUNTIME_ENV_RUNTIMES, CLOUDTIK_RUNTIME_ENV_NODE_TYPE, \
     CLOUDTIK_RUNTIME_ENV_NODE_SEQ_ID
-from cloudtik.core._private.core_utils import get_cloudtik_home_dir, wait_for_port as _wait_for_port
+from cloudtik.core._private.core_utils import get_cloudtik_home_dir, wait_for_port as _wait_for_port, \
+    get_node_ip_address, address_to_ip
 from cloudtik.core._private.node.node_services import NodeServicesStarter
 from cloudtik.core._private.parameter import StartParams
+from cloudtik.core._private.redis_utils import find_redis_address, validate_redis_address, create_redis_client
 from cloudtik.core._private.resource_spec import ResourceSpec
 from cloudtik.core._private.runtime_utils import get_runtime_value
 from cloudtik.core._private.util.pull.pull_server import pull_server
@@ -180,7 +182,7 @@ def start(node_ip_address, address, port, head,
     """Start the main daemon processes on the local machine."""
     # Convert hostnames to numerical IP address.
     if node_ip_address is not None:
-        node_ip_address = services.address_to_ip(node_ip_address)
+        node_ip_address = address_to_ip(node_ip_address)
     redirect_output = None if not no_redirect_output else True
 
     resources = parse_resources_json(resources)
@@ -229,7 +231,7 @@ def start(node_ip_address, address, port, head,
 
         # Get the node IP address if one is not provided.
         start_params.update_if_absent(
-            node_ip_address=services.get_node_ip_address())
+            node_ip_address=get_node_ip_address())
         cli_logger.labeled_value("Local node IP", start_params.node_ip_address)
         start_params.update_if_absent(
             redis_port=port,
@@ -245,7 +247,7 @@ def start(node_ip_address, address, port, head,
             # TODO: since we start redis and clustering services separately
             #  check clustering services exists for duplicated start
             default_address = f"{start_params.node_ip_address}:{port}"
-            redis_addresses = services.find_redis_address(default_address)
+            redis_addresses = find_redis_address(default_address)
             if len(redis_addresses) > 0:
                 raise ConnectionError(
                     f"CloudTik is already running at {default_address}. "
@@ -275,7 +277,7 @@ def start(node_ip_address, address, port, head,
             raise Exception("Invalid command. --address must be provided for worker node.")
 
         (redis_address,
-         redis_ip, redis_port) = services.validate_redis_address(address)
+         redis_ip, redis_port) = validate_redis_address(address)
         if redis_address is None:
             cli_logger.abort("`{}` is required unless starting with `{}`.",
                              cf.bold("--address"), cf.bold("--head"))
@@ -289,7 +291,7 @@ def start(node_ip_address, address, port, head,
             redis_ip, redis_port, password=redis_password)
 
         # Create a Redis client.
-        redis_client = services.create_redis_client(
+        redis_client = create_redis_client(
             redis_address, password=redis_password)
 
         # Check that the version information on this node matches the version
@@ -298,7 +300,7 @@ def start(node_ip_address, address, port, head,
 
         # Get the node IP address if one is not provided.
         start_params.update_if_absent(
-            node_ip_address=services.get_node_ip_address(redis_address))
+            node_ip_address=get_node_ip_address(redis_address))
 
         cli_logger.labeled_value("Local node IP", start_params.node_ip_address)
 

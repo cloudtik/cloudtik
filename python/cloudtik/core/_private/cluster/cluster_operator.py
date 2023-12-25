@@ -24,7 +24,7 @@ import psutil
 import yaml
 
 from cloudtik.core import tags
-from cloudtik.core._private import services, constants
+from cloudtik.core._private import constants
 from cloudtik.core._private.call_context import CallContext
 from cloudtik.core._private.cluster.cluster_config import _load_cluster_config, _bootstrap_config, try_logging_config
 from cloudtik.core._private.cluster.cluster_exec import exec_cluster
@@ -34,12 +34,12 @@ from cloudtik.core._private.cluster.node_availability_tracker import NodeAvailab
 from cloudtik.core._private.cluster.resource_demand_scheduler import ResourceDict, \
     get_node_type_counts, get_unfulfilled_for_bundles
 from cloudtik.core._private.core_utils import stop_process_tree, double_quote, get_cloudtik_temp_dir, get_free_port, \
-    memory_to_gb, memory_to_gb_string
+    memory_to_gb, memory_to_gb_string, address_to_ip
 from cloudtik.core._private.job_waiter.job_waiter_factory import create_job_waiter
 from cloudtik.core._private.runtime_factory import _get_runtime_cls
 from cloudtik.core._private.service_discovery.naming import get_cluster_head_hostname
 from cloudtik.core._private.service_discovery.utils import ServiceRegisterException
-from cloudtik.core._private.services import validate_redis_address
+from cloudtik.core._private.redis_utils import validate_redis_address, get_address_to_use_or_die
 from cloudtik.core._private.state import kv_store
 from cloudtik.core._private.state.state_utils import NODE_STATE_NODE_IP, NODE_STATE_NODE_ID, NODE_STATE_NODE_KIND, \
     NODE_STATE_HEARTBEAT_TIME, NODE_STATE_TIME
@@ -3586,7 +3586,7 @@ def _scale_cluster_on_head(
     if resources:
         all_resources.update(resources)
 
-    address = services.get_address_to_use_or_die()
+    address = get_address_to_use_or_die()
     kv_initialize_with_address(address, CLOUDTIK_REDIS_DEFAULT_PASSWORD)
 
     if up_only:
@@ -4021,9 +4021,9 @@ def get_default_cloud_database(
 def do_health_check(
         address, redis_password, component, with_details):
     if not address:
-        redis_address = services.get_address_to_use_or_die()
+        redis_address = get_address_to_use_or_die()
     else:
-        redis_address = services.address_to_ip(address)
+        redis_address = address_to_ip(address)
 
     if not component:
         do_core_health_check(

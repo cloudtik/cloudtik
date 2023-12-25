@@ -11,9 +11,10 @@ import time
 import traceback
 
 import cloudtik.core._private.constants as constants
-import cloudtik.core._private.services as services
 import cloudtik.core._private.utils as utils
+from cloudtik.core._private.core_utils import get_node_ip_address
 from cloudtik.core._private.logging_utils import setup_component_logger
+from cloudtik.core._private.redis_utils import create_redis_client
 
 # TODO (haifeng): check what is this comment about
 # Logger for this module. It should be configured at the entry point
@@ -95,9 +96,9 @@ class LogMonitor:
                  redis_address,
                  redis_password=None):
         """Initialize the log monitor object."""
-        self.ip = services.get_node_ip_address()
+        self.ip = get_node_ip_address()
         self.logs_dir = logs_dir
-        self.redis_client = services.create_redis_client(
+        self.redis_client = create_redis_client(
             redis_address, password=redis_password)
         self.log_filenames = set()
         self.open_file_infos = []
@@ -406,7 +407,7 @@ if __name__ == "__main__":
         log_monitor.run()
     except Exception as e:
         # Something went wrong
-        redis_client = services.create_redis_client(
+        redis_client = create_redis_client(
             args.redis_address, password=args.redis_password)
         traceback_str = utils.format_error_message(
             traceback.format_exc())
