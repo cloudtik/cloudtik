@@ -21,6 +21,7 @@ set_service_command "$@"
 case "$SERVICE_COMMAND" in
 start)
     sudo service dnsmasq start
+    wait_for_port "${DNSMASQ_SERVICE_PORT}"
 
     if [ "${DNSMASQ_DEFAULT_RESOLVER}" == "true" ]; then
         # update the /etc/resolv.conf

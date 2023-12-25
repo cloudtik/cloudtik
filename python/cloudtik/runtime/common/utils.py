@@ -15,10 +15,9 @@ def get_runtime_endpoints_of(config: Dict[str, Any], runtime_name: str):
         raise RuntimeError("Runtime {} is not enabled.".format(runtime_name))
 
     # Get the cluster head ip
-    head_internal_ip = get_cluster_head_ip(config)
-
+    head_ip = get_cluster_head_ip(config)
     runtime = _get_runtime(runtime_name, runtime_config)
-    return runtime.get_runtime_endpoints(config, head_internal_ip)
+    return runtime.get_runtime_endpoints(config, head_ip)
 
 
 def get_runtime_default_storage_of(config: Dict[str, Any], runtime_name: str):
@@ -30,8 +29,10 @@ def get_runtime_default_storage_of(config: Dict[str, Any], runtime_name: str):
     # 3) Try to use cloud storage;
     if is_runtime_enabled(runtime_config, BUILT_IN_RUNTIME_HDFS):
         # Use local HDFS, for this to work, cluster must be running
-        head_internal_ip = get_cluster_head_ip(config)
-        default_storage = {CLOUDTIK_DEFAULT_STORAGE_URI: "hdfs://{}:9000".format(head_internal_ip)}
+        endpoints = get_runtime_endpoints_of(config, BUILT_IN_RUNTIME_HDFS)
+        hdfs_uri = endpoints["hdfs"]
+        default_storage = {
+            CLOUDTIK_DEFAULT_STORAGE_URI: hdfs_uri}
         return default_storage
     else:
         hdfs_namenode_uri = config_of_runtime.get("hdfs_namenode_uri")

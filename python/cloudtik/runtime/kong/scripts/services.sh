@@ -32,6 +32,7 @@ start)
         sudo env "PATH=$PATH" kong start \
           -c ${KONG_CONFIG_FILE} \
           >${KONG_HOME}/logs/kong.log 2>&1
+        wait_for_port "${KONG_SERVICE_PORT}"
     fi
     ;;
 stop)

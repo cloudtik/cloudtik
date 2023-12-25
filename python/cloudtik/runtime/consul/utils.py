@@ -184,6 +184,7 @@ def _with_runtime_environment_variables(
             raise RuntimeError("Invalid join list. No running consul server cluster is detected.")
         runtime_envs["CONSUL_JOIN_LIST"] = join_list
 
+    runtime_envs["CONSUL_SERVICE_PORT"] = CONSUL_SERVER_RPC_PORT
     return runtime_envs
 
 
