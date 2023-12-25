@@ -776,7 +776,7 @@ def _monitor_cluster(config: Dict[str, Any],
     """Tails the controller logs of a cluster."""
 
     call_context = cli_call_context()
-    cmd = f"tail -n {num_lines} -f /tmp/cloudtik/session_latest/logs/cloudtik_cluster_controller"
+    cmd = f"tail -n {num_lines} -f ~/runtime/cloudtik/session_latest/logs/cloudtik_cluster_controller"
     if file_type and file_type != "":
         cmd += f".{file_type}"
     else:

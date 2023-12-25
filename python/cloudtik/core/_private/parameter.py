@@ -34,10 +34,8 @@ class StartParams:
             maxclients number.
         redis_password (str): Prevents external clients without the password
             from connecting to Redis if provided.
-        temp_dir (str): If provided, it will specify the root temporary
-            directory.
-        runtime_dir_name (str): If provided, specifies the directory that
-            will be created in the session dir to hold runtime_env files.
+        home_dir (str): If provided, it will specify the root directory of
+            session data.
         include_log_monitor (bool): If True, then start a log monitor to
             monitor the log files for all processes on this node and push their
             contents to Redis.
@@ -70,8 +68,7 @@ class StartParams:
                  num_redis_shards=None,
                  redis_max_clients=None,
                  redis_password=constants.CLOUDTIK_REDIS_DEFAULT_PASSWORD,
-                 temp_dir=None,
-                 runtime_dir_name=None,
+                 home_dir=None,
                  include_log_monitor=None,
                  cluster_config=None,
                  metrics_export_port=None,
@@ -97,9 +94,7 @@ class StartParams:
         self.num_redis_shards = num_redis_shards
         self.redis_max_clients = redis_max_clients
         self.redis_password = redis_password
-        self.temp_dir = temp_dir
-        self.runtime_dir_name = (
-            runtime_dir_name or constants.CLOUDTIK_DEFAULT_RUNTIME_DIR_NAME)
+        self.home_dir = home_dir
         self.include_log_monitor = include_log_monitor
         self.cluster_config = cluster_config
         self.metrics_export_port = metrics_export_port
@@ -219,7 +214,6 @@ class StartParams:
             elif comp == "worker_ports":
                 min_port = port_list[0]
                 max_port = port_list[len(port_list) - 1]
-                port_range_str = None
                 if len(port_list) < 50:
                     port_range_str = str(port_list)
                 else:

@@ -27,6 +27,7 @@ from cloudtik.core._private import core_utils
 from cloudtik.core import tags
 from cloudtik.core._private.core_utils import detect_fate_sharing_support, set_kill_on_parent_death_linux, \
     set_kill_child_on_death_win32, get_cloudtik_temp_dir
+from cloudtik.core._private.runtime_utils import get_runtime_head_host
 from cloudtik.core._private.state.control_state import ControlState
 
 resource = None
@@ -490,8 +491,10 @@ def start_cloudtik_process(command,
             raise ValueError(
                 "If 'use_gdb' is true, then 'use_tmux' must be true as well.")
 
-        # TODO(suquark): Any better temp file creation here?
-        gdb_init_path = os.path.join(get_cloudtik_temp_dir(),
+        # TODO: Any better temp file creation here?
+        temp_dir = get_cloudtik_temp_dir()
+        os.makedirs(temp_dir, exist_ok=True)
+        gdb_init_path = os.path.join(temp_dir,
                                      f"gdb_init_{process_type}_{time.time()}")
         process_path = command[0]
         process_args = command[1:]
@@ -820,7 +823,12 @@ def start_redis(
                 "to the number of redis shards (including the "
                 "primary shard) we will start.")
         if redis_shard_ports is None:
-            redis_shard_ports = num_redis_shards * [None]
+            if port is None:
+                redis_shard_ports = num_redis_shards * [None]
+            else:
+                redis_shard_port_start = port + 1
+                redis_shard_ports = [
+                    redis_shard_port_start + i for i in range(num_redis_shards)]
         elif len(redis_shard_ports) != num_redis_shards:
             raise RuntimeError(
                 "The number of Redis shard ports does not match "
@@ -922,7 +930,9 @@ def start_redis(
                 listen_to_localhost_only=(node_ip_address == "127.0.0.1"))
             processes.append(p)
 
-            shard_address = address(node_ip_address, redis_shard_port)
+            shard_host = (node_ip_address if node_ip_address == "127.0.0.1"
+                          else get_runtime_head_host(True))
+            shard_address = address(shard_host, redis_shard_port)
             last_shard_port = redis_shard_port
 
         redis_shards.append(shard_address)

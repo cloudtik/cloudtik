@@ -17,6 +17,7 @@ import yaml
 from cloudtik.core._private.call_context import CallContext
 from cloudtik.core._private.cli_logger import cli_logger
 from cloudtik.core._private.cluster.cluster_exec import exec_cluster, exec_on_head, rsync_cluster, rsync_on_head
+from cloudtik.core._private.core_utils import get_cloudtik_home_dir
 from cloudtik.core._private.provider_factory import _get_node_provider
 from cloudtik.core._private.utils import get_head_working_ip, get_node_cluster_ip, get_runtime_logs, \
     get_runtime_processes, _get_node_specific_runtime_types, with_verbose_option
@@ -166,9 +167,9 @@ def get_local_logs(
 
 def get_cloudtik_local_logs(
         archive: Archive,
-        exclude: Optional[Sequence[str]] = None,
-        session_log_dir: str = "/tmp/cloudtik/session_latest") -> Archive:
-    log_dir = os.path.join(session_log_dir, "logs")
+        exclude: Optional[Sequence[str]] = None) -> Archive:
+    session_dir = get_cloudtik_latest_session_dir()
+    log_dir = os.path.join(session_dir, "logs")
     get_local_logs_for(archive, "cloudtik", log_dir, exclude)
     return archive
 
@@ -217,20 +218,22 @@ def get_local_logs_for(
     return archive
 
 
-def get_local_debug_state(archive: Archive,
-                          session_dir: str = "/tmp/cloudtik/session_latest"
-                          ) -> Archive:
+def get_cloudtik_latest_session_dir():
+    return os.path.join(get_cloudtik_home_dir(), "session_latest")
+
+
+def get_local_debug_state(
+        archive: Archive) -> Archive:
     """Copy local log files into an archive.
 
     Args:
         archive (Archive): Archive object to add log files to.
-        session_dir (str): Path to the session files. Defaults to
-            ``/tmp/cloudtik/session_latest``
 
     Returns:
         Open archive object.
 
     """
+    session_dir = get_cloudtik_latest_session_dir()
     if not archive.is_open:
         archive.open()
 
