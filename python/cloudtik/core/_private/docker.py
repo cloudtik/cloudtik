@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Any, Dict
 
 import cloudtik
+from cloudtik.core._private.core_utils import get_cloudtik_temp_dir
 
 try:  # py3
     from shlex import quote
@@ -15,8 +16,9 @@ from cloudtik.core._private.cli_logger import cli_logger
 
 def get_docker_host_mount_location(cluster_name: str) -> str:
     """Return host path that Docker mounts attach to."""
-    docker_mount_prefix = "/tmp/cloudtik/mounts/{cluster_name}"
-    return docker_mount_prefix.format(cluster_name=cluster_name)
+    docker_mount_prefix = "mounts/{cluster_name}".format(
+        cluster_name=cluster_name)
+    return os.path.join(get_cloudtik_temp_dir(), docker_mount_prefix)
 
 
 def get_docker_host_mount_location_for_object(
