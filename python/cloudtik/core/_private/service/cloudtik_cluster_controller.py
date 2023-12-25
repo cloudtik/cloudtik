@@ -234,7 +234,7 @@ class ClusterController:
         signal.signal(signal.SIGTERM, self._signal_handler)
         try:
             if kv_initialized():
-                # Delete any previous autoscaling errors.
+                # Delete any previous scaling errors.
                 kv_del(CLOUDTIK_CLUSTER_SCALING_ERROR)
             self._initialize_cluster_scaler()
             self._run()
