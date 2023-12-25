@@ -34,6 +34,7 @@ start)
         -log-file=${CONSUL_LOG_FILE} \
         -pid-file=${CONSUL_PID_FILE} >/dev/null 2>&1 &
     ;;
+    wait_for_port "${CONSUL_SERVICE_PORT}"
 stop)
     # Stop server or client agent
     stop_process_by_pid_file "${CONSUL_PID_FILE}"

@@ -366,7 +366,7 @@ mount_hdfs_fs() {
 }
 
 mount_local_hdfs_fs() {
-    fs_default_dir="dfs://${HEAD_HOST_ADDRESS}:9000"
+    fs_default_dir="dfs://${HEAD_HOST_ADDRESS}:${HDFS_SERVICE_PORT}"
     if [ -z "${MOUNTED_DEFAULT_FS}" ]; then
         FS_MOUNT_PATH=${DEFAULT_FS_MOUNT_PATH}
         MOUNTED_DEFAULT_FS=${FS_MOUNT_PATH}

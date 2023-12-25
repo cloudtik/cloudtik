@@ -23,6 +23,7 @@ start)
         # etcd run only on workers
         ETCD_CONFIG_FILE=${ETCD_HOME}/conf/etcd.yaml
         nohup etcd --config-file=${ETCD_CONFIG_FILE} >/dev/null 2>&1 &
+        wait_for_port "${ETCD_SERVICE_PORT}"
     fi
     ;;
 stop)

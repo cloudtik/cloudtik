@@ -53,7 +53,8 @@ def _bootstrap_runtime_config(cluster_config: Dict[str, Any]) -> Dict[str, Any]:
 def _with_runtime_environment_variables(
         runtime_config, config):
     runtime_envs = {
-        "ETCD_CLUSTER_NAME": config["cluster_name"]
+        "ETCD_CLUSTER_NAME": config["cluster_name"],
+        "ETCD_SERVICE_PORT": ETCD_SERVICE_PORT
     }
     return runtime_envs
 

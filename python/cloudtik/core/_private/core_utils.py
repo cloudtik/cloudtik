@@ -1003,7 +1003,7 @@ def wait_for_port(
             check_port_state()
             break
         except Exception:
-            time.sleep(1)
+            time.sleep(0.5)
             if time.perf_counter() - start_time >= timeout:
                 on_host = f" on {host}" if host else ""
                 state = "free" if free else "ready"

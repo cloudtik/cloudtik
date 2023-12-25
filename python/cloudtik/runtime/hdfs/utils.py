@@ -46,7 +46,10 @@ def _with_runtime_environment_variables(
         runtime_config, config, provider, node_id: str):
     hdfs_config = _get_config(runtime_config)
 
-    runtime_envs = {"HDFS_ENABLED": True}
+    runtime_envs = {
+        "HDFS_ENABLED": True,
+        "HDFS_SERVICE_PORT": HDFS_SERVICE_PORT
+    }
 
     force_clean = hdfs_config.get(HDFS_FORCE_CLEAN_KEY, False)
     if force_clean:

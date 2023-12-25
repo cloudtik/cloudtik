@@ -21,6 +21,7 @@ set_service_command "$@"
 case "$SERVICE_COMMAND" in
 start)
     sudo service named start
+    wait_for_port "${BIND_SERVICE_PORT}"
 
     if [ "${BIND_DEFAULT_RESOLVER}" == "true" ]; then
         # update the /etc/resolv.conf

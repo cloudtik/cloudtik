@@ -25,6 +25,7 @@ start)
         sudo apisix start \
           -c ${APISIX_CONFIG_FILE} \
           >${APISIX_HOME}/logs/apisix.log 2>&1
+        wait_for_port "${APISIX_SERVICE_PORT}"
     fi
     ;;
 stop)

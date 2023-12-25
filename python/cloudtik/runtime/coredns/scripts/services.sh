@@ -26,6 +26,7 @@ start)
       -conf ${COREDNS_CONFIG_FILE} \
       -pidfile ${COREDNS_PID_FILE} \
       >${COREDNS_HOME}/logs/coredns.log 2>&1 &
+    wait_for_port "${COREDNS_SERVICE_PORT}"
 
     if [ "${COREDNS_DEFAULT_RESOLVER}" == "true" ]; then
         # update the /etc/resolv.conf
