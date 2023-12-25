@@ -6,7 +6,6 @@ from typing import Optional
 
 import click
 
-from cloudtik.core._private import services
 from cloudtik.core._private.cli_logger import (add_click_logging_options,
                                                cli_logger)
 from cloudtik.core._private.cluster.cluster_operator import (
@@ -16,6 +15,7 @@ from cloudtik.core._private.cluster.cluster_operator import (
     _wait_for_ready, _show_cluster_status, _monitor_cluster, cli_call_context, _exec_node_on_head,
     do_health_check, cluster_resource_metrics_on_head, show_info, _run_script_on_head)
 from cloudtik.core._private.constants import CLOUDTIK_REDIS_DEFAULT_PASSWORD
+from cloudtik.core._private.redis_utils import get_address_to_use_or_die
 from cloudtik.core._private.state import kv_store
 from cloudtik.core._private.state.kv_store import kv_initialize_with_address
 from cloudtik.core._private.utils import CLOUDTIK_CLUSTER_SCALING_ERROR, \
@@ -596,7 +596,7 @@ def wait_for_ready(min_workers, timeout):
 def debug_status(address, redis_password):
     """Print cluster status, including autoscaling info."""
     if not address:
-        address = services.get_address_to_use_or_die()
+        address = get_address_to_use_or_die()
     kv_initialize_with_address(address, redis_password)
     status = kv_store.kv_get(
         CLOUDTIK_CLUSTER_SCALING_STATUS)
@@ -627,7 +627,7 @@ def debug_status(address, redis_password):
 def process_status(address, redis_password, runtimes):
     """Show cluster process status."""
     if not address:
-        address = services.get_address_to_use_or_die()
+        address = get_address_to_use_or_die()
     cluster_process_status_on_head(
         address, redis_password, runtimes)
 
@@ -648,7 +648,7 @@ def process_status(address, redis_password, runtimes):
 def resource_metrics(address, redis_password):
     """Show cluster resource metrics."""
     if not address:
-        address = services.get_address_to_use_or_die()
+        address = get_address_to_use_or_die()
     cluster_resource_metrics_on_head(
         address, redis_password)
 

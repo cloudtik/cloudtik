@@ -10,7 +10,7 @@ from typing import Any, Dict, Optional, List
 from Tea.exceptions import UnretryableException
 
 from cloudtik.core._private.cli_logger import cli_logger, cf
-from cloudtik.core._private.services import get_node_ip_address
+from cloudtik.core._private.core_utils import get_node_ip_address
 from cloudtik.core._private.utils import check_cidr_conflict, is_use_internal_ip, \
     is_managed_cloud_storage, is_use_managed_cloud_storage, is_worker_role_for_cloud_storage, is_use_working_vpc, \
     is_use_peering_vpc, is_peering_firewall_allow_ssh_only, is_peering_firewall_allow_working_subnet, DOCKER_CONFIG_KEY, \

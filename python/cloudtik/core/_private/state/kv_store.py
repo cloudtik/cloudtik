@@ -1,6 +1,6 @@
 from typing import List, Union, Optional
 
-from cloudtik.core._private import services
+from cloudtik.core._private.redis_utils import create_redis_client
 from cloudtik.core._private.state.control_state import StateClient
 
 _initialized = False
@@ -27,7 +27,7 @@ def kv_initialize(state_client: StateClient):
 
 
 def kv_initialize_with_address(redis_address, redis_password):
-    redis_client = services.create_redis_client(
+    redis_client = create_redis_client(
         redis_address, redis_password)
     state_client = StateClient.create_from_redis(
         redis_client)

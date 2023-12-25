@@ -3,8 +3,7 @@ import os
 import time
 from typing import Any, Dict, Optional
 
-from cloudtik.core._private.core_utils import get_address_string
-from cloudtik.core._private.services import address_to_ip
+from cloudtik.core._private.core_utils import get_address_string, address_to_ip
 from cloudtik.core._private.state.state_utils import NODE_STATE_NODE_ID, NODE_STATE_NODE_IP, NODE_STATE_TIME
 from cloudtik.core._private.utils import make_node_id, RUNTIME_CONFIG_KEY
 from cloudtik.core.scaling_policy import ScalingPolicy, ScalingState

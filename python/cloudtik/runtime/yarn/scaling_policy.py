@@ -7,7 +7,7 @@ import urllib.error
 
 from cloudtik.core._private import constants
 from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_YARN
-from cloudtik.core._private.services import address_to_ip
+from cloudtik.core._private.core_utils import address_to_ip
 from cloudtik.core._private.state.state_utils import NODE_STATE_NODE_ID, NODE_STATE_NODE_IP, NODE_STATE_TIME
 from cloudtik.core._private.utils import make_node_id, get_resource_demands_for_cpu, RUNTIME_CONFIG_KEY, \
     convert_nodes_to_cpus, get_resource_demands_for_memory, convert_nodes_to_memory
