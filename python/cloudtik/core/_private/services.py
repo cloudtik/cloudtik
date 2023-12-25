@@ -25,8 +25,8 @@ import cloudtik.core._private.utils as utils
 from cloudtik.core._private import core_utils
 from cloudtik.core import tags
 from cloudtik.core._private.core_utils import detect_fate_sharing_support, set_kill_on_parent_death_linux, \
-    set_kill_child_on_death_win32, get_cloudtik_temp_dir, get_node_ip_address
-from cloudtik.core._private.redis_utils import create_redis_client
+    set_kill_child_on_death_win32, get_cloudtik_temp_dir, get_node_ip_address, address_string
+from cloudtik.core._private.redis_utils import create_redis_client, wait_for_redis_to_start
 from cloudtik.core._private.runtime_utils import get_runtime_head_host
 from cloudtik.core._private.state.control_state import ControlState
 
@@ -133,10 +133,6 @@ class ConsolePopen(subprocess.Popen):
                 kwargs[flags_key] = (kwargs.get(flags_key) or 0) | flags_to_add
             self._use_signals = (kwargs[flags_key] & new_pgroup)
             super(ConsolePopen, self).__init__(*args, **kwargs)
-
-
-def address(host, port):
-    return host + ":" + str(port)
 
 
 def new_port(lower_bound=10000, upper_bound=65535, denylist=None):
@@ -405,69 +401,6 @@ def start_cloudtik_process(command,
         use_tmux=use_tmux)
 
 
-def wait_for_redis_to_start(redis_host, redis_port, password=None):
-    """Wait for a Redis server to be available.
-
-    This is accomplished by creating a Redis client and sending a random
-    command to the server until the command gets through.
-
-    Args:
-        redis_host (str): The host address of the redis server.
-        redis_port (int): The port of the redis server.
-        password (str): The password of the redis server.
-
-    Raises:
-        Exception: An exception is raised if we could not connect with Redis.
-    """
-    redis_client = redis.StrictRedis(
-        host=redis_host, port=redis_port, password=password)
-    # Wait for the Redis server to start.
-    num_retries = constants.CLOUDTIK_START_REDIS_WAIT_RETRIES
-    delay = 0.001
-    for i in range(num_retries):
-        try:
-            # Run some random command and see if it worked.
-            logger.debug(
-                "Waiting for redis server at {}:{} to respond...".format(
-                    redis_host, redis_port))
-            redis_client.client_list()
-        # If the Redis service is delayed getting set up for any reason, we may
-        # get a redis.ConnectionError: Error 111 connecting to host:port.
-        # Connection refused.
-        # Unfortunately, redis.ConnectionError is also the base class of
-        # redis.AuthenticationError. We *don't* want to obscure a
-        # redis.AuthenticationError, because that indicates the user provided a
-        # bad password. Thus a double except clause to ensure a
-        # redis.AuthenticationError isn't trapped here.
-        except redis.AuthenticationError as authEx:
-            raise RuntimeError("Unable to connect to Redis at {}:{}.".format(
-                redis_host, redis_port)) from authEx
-        except redis.ConnectionError as connEx:
-            if i >= num_retries - 1:
-                raise RuntimeError(
-                    f"Unable to connect to Redis at {redis_host}:"
-                    f"{redis_port} after {num_retries} retries. Check that "
-                    f"{redis_host}:{redis_port} is reachable from this "
-                    "machine. If it is not, your firewall may be blocking "
-                    "this port. If the problem is a flaky connection, try "
-                    "setting the environment variable "
-                    "`CLOUDTIK_START_REDIS_WAIT_RETRIES` to increase the number of"
-                    " attempts to ping the Redis server.") from connEx
-            # Wait a little bit.
-            time.sleep(delay)
-            delay *= 2
-        else:
-            break
-    else:
-        raise RuntimeError(
-            f"Unable to connect to Redis (after {num_retries} retries). "
-            "If the Redis instance is on a different machine, check that "
-            "your firewall and relevant ports are configured properly. "
-            "You can also set the environment variable "
-            "`CLOUDTIK_START_REDIS_WAIT_RETRIES` to increase the number of "
-            "attempts to ping the Redis server.")
-
-
 def _compute_version_info():
     """Compute the versions of Python, and CloudTik.
 
@@ -622,7 +555,7 @@ def start_redis(
         primary_redis_address = external_addresses[0]
         [primary_redis_ip, port] = primary_redis_address.split(":")
         port = int(port)
-        redis_address = address(primary_redis_ip, port)
+        redis_address = address_string(primary_redis_ip, port)
         primary_redis_client = create_redis_client(
             "%s:%s" % (primary_redis_ip, port), password=password)
     else:
@@ -672,7 +605,7 @@ def start_redis(
             port_denylist=port_denylist,
             listen_to_localhost_only=(node_ip_address == "127.0.0.1"))
         processes.append(p)
-        redis_address = address(node_ip_address, port)
+        redis_address = address_string(node_ip_address, port)
         primary_redis_client = redis.StrictRedis(
             host=node_ip_address, port=port, password=password)
 
@@ -741,7 +674,7 @@ def start_redis(
 
             shard_host = (node_ip_address if node_ip_address == "127.0.0.1"
                           else get_runtime_head_host(True))
-            shard_address = address(shard_host, redis_shard_port)
+            shard_address = address_string(shard_host, redis_shard_port)
             last_shard_port = redis_shard_port
 
         redis_shards.append(shard_address)

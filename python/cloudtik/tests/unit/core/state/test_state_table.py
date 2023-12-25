@@ -9,7 +9,8 @@ CLOUDTIK_PATH = os.path.abspath(os.path.dirname(os.path.dirname(os.path.dirname(
 CLOUDTIK_REDIS_EXECUTABLE = os.path.join(
     CLOUDTIK_PATH, "core/thirdparty/redis/cloudtik-redis-server" + EXE_SUFFIX)
 
-from cloudtik.core._private.services import start_cloudtik_process, wait_for_redis_to_start
+from cloudtik.core._private.services import start_cloudtik_process
+from cloudtik.core._private.redis_utils import wait_for_redis_to_start
 import cloudtik.core._private.constants as constants
 from cloudtik.core._private.state.control_state import ControlState
 

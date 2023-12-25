@@ -949,6 +949,10 @@ def get_address_string(host, port):
         return "{}:{}".format(host, port)
 
 
+def address_from_string(address):
+    return address.split(":")
+
+
 def is_valid_dns_name(name):
     return bool(re.match("^[a-z0-9-]*$", name))
 
@@ -1038,7 +1042,7 @@ def address_to_ip(address):
         The same address but with the hostname replaced by a numerical IP
             address.
     """
-    address_parts = address.split(":")
+    address_parts = address_from_string(address)
     ip_address = socket.gethostbyname(address_parts[0])
     # Make sure localhost isn't resolved to the loopback ip
     if ip_address == "127.0.0.1":
@@ -1056,7 +1060,7 @@ def node_ip_address_from_perspective(address):
     Returns:
         The IP address by which the local node can be reached from the address.
     """
-    host, port = address.split(":")
+    host, port = address_from_string(address)
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     try:
         # This command will raise an exception if there is no internet
@@ -1086,3 +1090,7 @@ def get_node_ip_address(address="8.8.8.8:53"):
         # to prevent security popups.
         return "127.0.0.1"
     return node_ip_address_from_perspective(address)
+
+
+def address_string(host, port):
+    return host + ":" + str(port)

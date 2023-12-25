@@ -21,7 +21,8 @@ from cloudtik.core._private.core_utils import get_cloudtik_home_dir, wait_for_po
     get_node_ip_address, address_to_ip
 from cloudtik.core._private.node.node_services import NodeServicesStarter
 from cloudtik.core._private.parameter import StartParams
-from cloudtik.core._private.redis_utils import find_redis_address, validate_redis_address, create_redis_client
+from cloudtik.core._private.redis_utils import find_redis_address, validate_redis_address, create_redis_client, \
+    wait_for_redis_to_start
 from cloudtik.core._private.resource_spec import ResourceSpec
 from cloudtik.core._private.runtime_utils import get_runtime_value
 from cloudtik.core._private.util.pull.pull_server import pull_server
@@ -287,7 +288,7 @@ def start(node_ip_address, address, port, head,
 
         # Wait for the Redis server to be started. And throw an exception if we
         # can't connect to it.
-        services.wait_for_redis_to_start(
+        wait_for_redis_to_start(
             redis_ip, redis_port, password=redis_password)
 
         # Create a Redis client.

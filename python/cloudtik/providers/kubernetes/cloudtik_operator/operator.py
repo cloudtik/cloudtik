@@ -10,9 +10,10 @@ import kopf
 import yaml
 
 import cloudtik.core._private.service.cloudtik_cluster_controller as cluster_controller
-from cloudtik.core._private import constants, services
+from cloudtik.core._private import constants
 from cloudtik.core._private.call_context import CallContext
 from cloudtik.core._private.cluster import cluster_operator
+from cloudtik.core._private.core_utils import address_string
 from cloudtik.core._private.utils import get_cluster_head_ip
 from cloudtik.providers.kubernetes.cloudtik_operator import operator_utils
 from cloudtik.providers.kubernetes.cloudtik_operator.operator_utils import (
@@ -117,7 +118,7 @@ class CloudTikCluster:
         """Runs the cluster controller in operator instead of on head."""
         head_pod_ip = get_cluster_head_ip(self.controller_config)
         port = operator_utils.infer_head_port(self.controller_config)
-        address = services.address(head_pod_ip, port)
+        address = address_string(head_pod_ip, port)
         controller = cluster_controller.ClusterController(
             address,
             cluster_config=self.controller_config_path,

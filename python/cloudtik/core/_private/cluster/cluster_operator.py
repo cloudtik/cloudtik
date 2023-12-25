@@ -2548,8 +2548,8 @@ def cluster_process_status_on_head(
 
     control_state = ControlState()
     _, redis_ip, redis_port = validate_redis_address(redis_address)
-    control_state.initialize_control_state(redis_ip, redis_port,
-                                           redis_password)
+    control_state.initialize_control_state(
+        redis_ip, redis_port, redis_password)
     node_processes_table = control_state.get_node_processes_table()
     node_processes_rows = node_processes_table.get_all().values()
     node_processes_by_node_ip = _index_node_processes(node_processes_rows)
@@ -4141,8 +4141,8 @@ def do_nodes_health_check(redis_address, redis_password, with_details=False):
 
     control_state = ControlState()
     _, redis_ip, redis_port = validate_redis_address(redis_address)
-    control_state.initialize_control_state(redis_ip, redis_port,
-                                           redis_password)
+    control_state.initialize_control_state(
+        redis_ip, redis_port, redis_password)
     node_processes_table = control_state.get_node_processes_table()
     node_processes_rows = node_processes_table.get_all().values()
     node_processes_by_node_ip = _index_node_processes(node_processes_rows)
