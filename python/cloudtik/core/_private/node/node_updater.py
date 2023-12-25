@@ -421,7 +421,7 @@ class NodeUpdater:
         return get_runtime_shared_memory_ratio(
             self.runtime_config, config=self.config, node_type=node_type)
 
-    def _prefix_message_prefix_message(self, msg):
+    def _prefix_message(self, msg):
         if self.is_head_node:
             return msg
         msg_prefix = self.node_ip if self.node_ip else self.node_id
