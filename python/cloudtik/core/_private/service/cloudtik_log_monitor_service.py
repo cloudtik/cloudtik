@@ -36,6 +36,9 @@ LOG_NAME_UPDATE_INTERVAL_S = float(
 LOG_MONITOR_MANY_FILES_THRESHOLD = int(
     os.getenv("CLOUDTIK_LOG_MONITOR_MANY_FILES_THRESHOLD", 1000))
 
+# print every 5 minutes for repeating errors
+LOG_ERROR_REPEAT_SECONDS = 300
+
 
 class LogFileInfo:
     def __init__(self,
@@ -317,6 +320,10 @@ class LogMonitor:
         """
         total_log_files = 0
         last_updated = time.time()
+        last_error_str = None
+        last_error_num = 0
+        interval = 1
+        log_repeat_errors = LOG_ERROR_REPEAT_SECONDS // interval
         while True:
             elapsed_seconds = int(time.time() - last_updated)
             if (total_log_files < LOG_MONITOR_MANY_FILES_THRESHOLD
@@ -324,11 +331,29 @@ class LogMonitor:
                 total_log_files = self.update_log_filenames()
                 last_updated = time.time()
             self.open_closed_files()
-            anything_published = self.check_log_files_and_publish_updates()
-            # If nothing was published, then wait a little bit before checking
-            # for logs to avoid using too much CPU.
-            if not anything_published:
-                time.sleep(0.1)
+
+            try:
+                anything_published = self.check_log_files_and_publish_updates()
+                last_error_str = None
+            except Exception as e:
+                error_str = str(e)
+                if last_error_str != error_str:
+                    logger.exception("Error happened when publishing: " + str(e))
+                    logger.exception(traceback.format_exc())
+                    last_error_str = error_str
+                    last_error_num = 1
+                else:
+                    last_error_num += 1
+                    if last_error_num % log_repeat_errors == 0:
+                        logger.error("Error happened {} times for updating: {}".format(
+                            last_error_num, error_str))
+                # if there is error, wait for some time
+                time.sleep(interval)
+            else:
+                # If nothing was published, then wait a little bit before checking
+                # for logs to avoid using too much CPU.
+                if not anything_published:
+                    time.sleep(0.1)
 
 
 if __name__ == "__main__":

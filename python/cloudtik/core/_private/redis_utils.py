@@ -6,7 +6,6 @@ import redis
 
 from cloudtik.core._private import utils as utils, constants as constants
 from cloudtik.core._private.core_utils import address_to_ip, address_from_string
-from cloudtik.core._private.services import logger
 
 
 def find_redis_address(address=None):
@@ -163,9 +162,6 @@ def wait_for_redis_to_start(redis_host, redis_port, password=None):
     for i in range(num_retries):
         try:
             # Run some random command and see if it worked.
-            logger.debug(
-                "Waiting for redis server at {}:{} to respond...".format(
-                    redis_host, redis_port))
             redis_client.client_list()
         # If the Redis service is delayed getting set up for any reason, we may
         # get a redis.ConnectionError: Error 111 connecting to host:port.

@@ -107,7 +107,7 @@ CLOUDTIK_NODE_START_WAIT_S = env_integer("CLOUDTIK_NODE_START_WAIT_S", 900)
 # Interval at which to check if node SSH became available.
 CLOUDTIK_NODE_SSH_INTERVAL_S = env_integer("CLOUDTIK_NODE_SSH_INTERVAL_S", 5)
 
-# Abort autoscaling if more than this number of errors are encountered. This
+# Abort scaler if more than this number of errors are encountered. This
 # is a safety feature to prevent e.g. runaway node launches.
 CLOUDTIK_MAX_NUM_FAILURES = env_integer("CLOUDTIK_MAX_NUM_FAILURES", 5)
 
@@ -120,7 +120,7 @@ CLOUDTIK_MAX_LAUNCH_BATCH = env_integer("CLOUDTIK_MAX_LAUNCH_BATCH", 5)
 CLOUDTIK_MAX_CONCURRENT_LAUNCHES = env_integer(
     "CLOUDTIK_MAX_CONCURRENT_LAUNCHES", 10)
 
-# Interval at which to perform autoscaling updates.
+# Interval at which to perform scaling updates.
 CLOUDTIK_UPDATE_INTERVAL_S = env_integer("CLOUDTIK_UPDATE_INTERVAL_S", 5)
 
 # We will attempt to restart on nodes it hasn't heard from

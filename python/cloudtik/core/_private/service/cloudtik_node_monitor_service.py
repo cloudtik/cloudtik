@@ -24,6 +24,9 @@ from cloudtik.core._private.utils import get_runtime_processes, make_node_id
 
 logger = logging.getLogger(__name__)
 
+# print every 5 minutes for repeating errors
+LOG_ERROR_REPEAT_SECONDS = 300
+
 
 class NodeMonitor:
     """Node Monitor for node heartbeats and node status updates
@@ -99,6 +102,10 @@ class NodeMonitor:
         self._update()
 
     def _update(self):
+        last_error_str = None
+        last_error_num = 0
+        interval = constants.CLOUDTIK_UPDATE_INTERVAL_S
+        log_repeat_errors = LOG_ERROR_REPEAT_SECONDS // interval
         while True:
             if self.stop_event and self.stop_event.is_set():
                 break
@@ -108,9 +115,21 @@ class NodeMonitor:
             try:
                 self._update_processes()
                 self._update_metrics()
+                last_error_str = None
             except Exception as e:
-                logger.exception("Error happened when updating metrics or processes: " + str(e))
-            time.sleep(constants.CLOUDTIK_UPDATE_INTERVAL_S)
+                error_str = str(e)
+                if last_error_str != error_str:
+                    logger.exception("Error happened when updating: " + str(e))
+                    logger.exception(traceback.format_exc())
+                    last_error_str = error_str
+                    last_error_num = 1
+                else:
+                    last_error_num += 1
+                    if last_error_num % log_repeat_errors == 0:
+                        logger.error("Error happened {} times for updating: {}".format(
+                            last_error_num, error_str))
+
+            time.sleep(interval)
 
     def _handle_failure(self, error):
         logger.exception(f"Error in node monitor loop:\n{error}")
@@ -126,16 +145,30 @@ class NodeMonitor:
         thread.start()
 
     def _heartbeat(self):
+        last_error_str = None
+        last_error_num = 0
+        interval = constants.CLOUDTIK_HEARTBEAT_PERIOD_SECONDS
+        log_repeat_errors = LOG_ERROR_REPEAT_SECONDS // interval
         while True:
-            time.sleep(constants.CLOUDTIK_HEARTBEAT_PERIOD_SECONDS)
+            time.sleep(interval)
             now = time.time()
             self.node_info[NODE_STATE_HEARTBEAT_TIME] = now
             node_info_as_json = json.dumps(self.node_info)
             try:
                 self.node_table.put(self.node_id, node_info_as_json)
+                last_error_str = None
             except Exception as e:
-                logger.exception("Failed sending heartbeat: " + str(e))
-                logger.exception(traceback.format_exc())
+                error_str = str(e)
+                if last_error_str != error_str:
+                    logger.exception("Error happened when heartbeat: " + str(e))
+                    logger.exception(traceback.format_exc())
+                    last_error_str = error_str
+                    last_error_num = 1
+                else:
+                    last_error_num += 1
+                    if last_error_num % log_repeat_errors == 0:
+                        logger.error("Error happened {} times for heartbeat: {}".format(
+                            last_error_num, error_str))
 
     def _update_processes(self):
         self._refresh_processes()
@@ -193,22 +226,14 @@ class NodeMonitor:
         node_processes = self.node_processes
         node_processes[NODE_STATE_TIME] = now
         node_processes_as_json = json.dumps(node_processes)
-        try:
-            self.node_processes_table.put(self.node_id, node_processes_as_json)
-        except Exception as e:
-            logger.exception("Failed sending node processes: " + str(e))
-            logger.exception(traceback.format_exc())
+        self.node_processes_table.put(self.node_id, node_processes_as_json)
 
     def _publish_metrics(self):
         now = time.time()
         node_metrics = self.node_metrics
         node_metrics[NODE_STATE_TIME] = now
         node_metrics_as_json = json.dumps(node_metrics)
-        try:
-            self.node_metrics_table.put(self.node_id, node_metrics_as_json)
-        except Exception as e:
-            logger.exception("Failed sending node metrics: " + str(e))
-            logger.exception(traceback.format_exc())
+        self.node_metrics_table.put(self.node_id, node_metrics_as_json)
 
     def run(self):
         # Register signal handlers for cluster scaler termination.
