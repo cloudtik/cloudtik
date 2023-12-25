@@ -59,7 +59,7 @@ from cloudtik.core._private.utils import validate_config, \
 from cloudtik.core._private.constants import CLOUDTIK_MAX_NUM_FAILURES, \
     CLOUDTIK_MAX_LAUNCH_BATCH, CLOUDTIK_MAX_CONCURRENT_LAUNCHES, \
     CLOUDTIK_UPDATE_INTERVAL_S, CLOUDTIK_HEARTBEAT_TIMEOUT_S, \
-    CLOUDTIK_SCALER_PERIODIC_STATUS_LOG
+    CLOUDTIK_SCALER_PERIODIC_STATUS_LOG, CLOUDTIK_SCALER_STARTUP_BACKOFF_S
 
 logger = logging.getLogger(__name__)
 
@@ -314,6 +314,12 @@ class ClusterScaler:
             for remote, local in self.config["file_mounts"].items()
         }
 
+        # This up_time is used to backoff for health checking
+        # We will avoid to recover or terminate "unhealthy" node in a short period
+        # after starting to void use out-dated data to make decisions when the system
+        # itself is down.
+        self.startup_time = time.time()
+
         for local_path in self.config["file_mounts"].values():
             assert os.path.exists(local_path)
         config_to_log = copy.deepcopy(self.config)
@@ -513,7 +519,9 @@ class ClusterScaler:
             nodes_not_allowed_to_terminate = \
                 self._get_nodes_needed_for_request_resources(sorted_node_ids)
             if logger.isEnabledFor(logging.DEBUG):
-                logger.debug("Nodes not allowed to terminate: {}".format(nodes_not_allowed_to_terminate))
+                logger.debug(
+                    "Nodes not allowed to terminate: {}".format(
+                        nodes_not_allowed_to_terminate))
 
         # Tracks counts of nodes we intend to keep for each node type.
         node_type_counts = defaultdict(int)
@@ -545,7 +553,9 @@ class ClusterScaler:
 
             node_ip = self.provider.internal_ip(node_id)
             if (idle_timeout_minutes > 0
-                    and node_ip in last_used and last_used[node_ip] < horizon):
+                    and not self._is_startup_backoff(now)
+                    and node_ip in last_used
+                    and last_used[node_ip] < horizon):
                 self.schedule_node_termination(node_id, "idle", logger.info)
             elif not self.launch_config_ok(node_id):
                 self.schedule_node_termination(node_id, "outdated",
@@ -1181,10 +1191,18 @@ class ClusterScaler:
                 return True
         return False
 
+    def _is_startup_backoff(self, now: float):
+        horizon = now - self.startup_time
+        if horizon <= CLOUDTIK_SCALER_STARTUP_BACKOFF_S:
+            return True
+        return False
+
     def terminate_unhealthy_nodes(self, now: float):
         """Terminated nodes for which we haven't received a heartbeat on time.
         These nodes are subsequently terminated.
         """
+        if self._is_startup_backoff(now):
+            return
         for node_id in self.non_terminated_nodes.worker_ids:
             node_status = self.provider.node_tags(node_id)[CLOUDTIK_TAG_NODE_STATUS]
             # We're not responsible for taking down
@@ -1205,6 +1223,8 @@ class ClusterScaler:
         self.terminate_scheduled_nodes()
 
     def attempt_to_recover_unhealthy_nodes(self, now):
+        if self._is_startup_backoff(now):
+            return
         for node_id in self.non_terminated_nodes.worker_ids:
             self.recover_if_needed(node_id, now)
 

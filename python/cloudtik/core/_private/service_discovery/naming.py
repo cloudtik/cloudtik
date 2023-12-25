@@ -12,6 +12,8 @@ from cloudtik.core._private.utils import is_config_use_hostname, get_runtime_con
 from cloudtik.core.tags import CLOUDTIK_TAG_HEAD_NODE_SEQ_ID
 
 CONSUL_CONFIG_DISABLE_CLUSTER_NODE_NAME = "disable_cluster_node_name"
+CONSUL_CONFIG_SERVER_MODE = "server"
+
 DNS_DEFAULT_RESOLVER_CONFIG_KEY = "default_resolver"
 
 DNS_NAMING_RUNTIMES = [
@@ -71,7 +73,11 @@ def is_discoverable_cluster_node_name(runtime_config: Dict[str, Any]):
         return False
     # TODO: To support other popular options than Consul
     consul_config = runtime_config.get(runtime_type, {})
-    if consul_config.get(CONSUL_CONFIG_DISABLE_CLUSTER_NODE_NAME, False):
+    # Server mode cannot use DNS because the Consul cluster itself is not yet ready
+    # TODO: This can be improved to start consul with single node from head and workers join
+    #  the cluster later
+    if (consul_config.get(CONSUL_CONFIG_SERVER_MODE, False)
+            or consul_config.get(CONSUL_CONFIG_DISABLE_CLUSTER_NODE_NAME, False)):
         return False
     return True
 

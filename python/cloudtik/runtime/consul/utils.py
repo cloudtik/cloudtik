@@ -185,6 +185,7 @@ def _with_runtime_environment_variables(
         runtime_envs["CONSUL_JOIN_LIST"] = join_list
 
     runtime_envs["CONSUL_SERVICE_PORT"] = CONSUL_SERVER_RPC_PORT
+    runtime_envs["CONSUL_CLIENT_PORT"] = CONSUL_SERVER_HTTP_PORT
     return runtime_envs
 
 
