@@ -26,8 +26,9 @@ from cloudtik.core._private.util import core_utils
 from cloudtik.core._private.state import kv_store
 from cloudtik.core._private.resource_spec import ResourceSpec
 
-from cloudtik.core._private.util.core_utils import try_to_create_directory, try_to_symlink, open_log, \
-    detect_fate_sharing_support, set_sigterm_handler, get_cloudtik_home_dir, get_node_ip_address, address_string
+from cloudtik.core._private.util.core_utils import create_shared_directory, try_to_symlink, open_log, \
+    detect_fate_sharing_support, set_sigterm_handler, get_cloudtik_home_dir, get_node_ip_address, address_string, \
+    create_directory
 
 # Logger for this module.
 logger = logging.getLogger(__name__)
@@ -185,7 +186,7 @@ class NodeServicesStarter:
                 "home_dir", constants.KV_NAMESPACE_SESSION)
             self._home_dir = core_utils.decode(home_dir)
 
-        try_to_create_directory(self._home_dir)
+        create_directory(self._home_dir)
 
         if self.head:
             self._session_dir = os.path.join(self._home_dir, self.session_name)
@@ -196,14 +197,14 @@ class NodeServicesStarter:
         session_symlink = os.path.join(self._home_dir, SESSION_LATEST)
 
         # Send a warning message if the session exists.
-        try_to_create_directory(self._session_dir)
+        create_directory(self._session_dir)
         try_to_symlink(session_symlink, self._session_dir)
 
         # Create a directory to be used for process log files.
         self._logs_dir = os.path.join(self._session_dir, "logs")
-        try_to_create_directory(self._logs_dir)
+        create_shared_directory(self._logs_dir)
         old_logs_dir = os.path.join(self._logs_dir, "old")
-        try_to_create_directory(old_logs_dir)
+        create_shared_directory(old_logs_dir)
 
     def _init_data_dir(self):
         data_disk_dir = get_first_data_disk_dir()
