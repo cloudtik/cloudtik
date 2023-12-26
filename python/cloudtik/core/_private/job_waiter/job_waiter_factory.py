@@ -1,7 +1,7 @@
 import logging
 from typing import Any, Dict, Optional, List
 
-from cloudtik.core._private.util.core_utils import load_class
+from cloudtik.core._private.util.core_utils import load_class, split_list
 from cloudtik.core._private.runtime_factory import _get_runtime
 from cloudtik.core._private.utils import RUNTIME_CONFIG_KEY
 from cloudtik.core.job_waiter import JobWaiter
@@ -63,7 +63,7 @@ def _parse_built_in_chain(job_waiter_name: str) -> Optional[List[str]]:
     if len(chain_str) == 0:
         return names_in_chain
 
-    items = chain_str.split(",")
+    items = split_list(chain_str)
     for item in items:
         striped_item = item.strip()
         if len(striped_item) > 0:

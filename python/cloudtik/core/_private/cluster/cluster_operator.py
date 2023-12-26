@@ -28,13 +28,15 @@ from cloudtik.core._private import constants
 from cloudtik.core._private.call_context import CallContext
 from cloudtik.core._private.cluster.cluster_config import _load_cluster_config, _bootstrap_config, try_logging_config
 from cloudtik.core._private.cluster.cluster_exec import exec_cluster
+from cloudtik.core._private.cluster.cluster_logging import print_logs
 from cloudtik.core._private.cluster.cluster_tunnel_request import request_tunnel_to_head
 from cloudtik.core._private.cluster.cluster_utils import create_node_updater_for_exec
 from cloudtik.core._private.cluster.node_availability_tracker import NodeAvailabilitySummary
 from cloudtik.core._private.cluster.resource_demand_scheduler import ResourceDict, \
     get_node_type_counts, get_unfulfilled_for_bundles
-from cloudtik.core._private.util.core_utils import stop_process_tree, double_quote, get_cloudtik_temp_dir, get_free_port, \
-    memory_to_gb, memory_to_gb_string, address_to_ip
+from cloudtik.core._private.util.core_utils import stop_process_tree, double_quote, get_cloudtik_temp_dir, \
+    get_free_port, \
+    memory_to_gb, memory_to_gb_string, address_to_ip, split_list
 from cloudtik.core._private.job_waiter.job_waiter_factory import create_job_waiter
 from cloudtik.core._private.runtime_factory import _get_runtime_cls
 from cloudtik.core._private.service_discovery.naming import get_cluster_head_hostname
@@ -1718,7 +1720,7 @@ def dump_local(stream: bool = False,
     if stream and output:
         raise ValueError(
             "You can only use either `--output` or `--stream`, but not both.")
-    runtime_list = runtimes.split(",") if runtimes and len(runtimes) > 0 else None
+    runtime_list = split_list(runtimes) if runtimes else None
     parameters = GetParameters(
         logs=logs,
         debug_state=debug_state,
@@ -2510,7 +2512,7 @@ def _get_combined_runtimes(config, provider, nodes, runtimes):
 
     if runtimes:
         runtime_filtered = set()
-        filtering_runtime_list = runtimes.split(",")
+        filtering_runtime_list = split_list(runtimes)
         for filtering_runtime in filtering_runtime_list:
             if filtering_runtime in valid_runtime_set:
                 runtime_filtered.add(filtering_runtime)
@@ -2609,6 +2611,25 @@ def cluster_process_status(config_file: str,
 
     exec_cmd_on_cluster(config_file, cmd,
                         override_cluster_name, no_config_cache)
+
+
+def cluster_logs(
+        config_file: str,
+        override_cluster_name: Optional[str],
+        no_config_cache: bool = False,
+        runtimes=None) -> None:
+    """Print cluster logs."""
+    cmd = f"cloudtik head logs"
+    if runtimes:
+        cmd += " --runtimes=" + quote(runtimes)
+
+    exec_cmd_on_cluster(
+        config_file, cmd, override_cluster_name, no_config_cache)
+
+
+def cluster_logs_on_head(
+        redis_address, redis_password, runtimes):
+    print_logs(redis_address, redis_password, runtimes)
 
 
 def exec_on_nodes(

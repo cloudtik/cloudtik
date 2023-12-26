@@ -13,7 +13,7 @@ from cloudtik.core._private.cluster.cluster_operator import (
     RUN_ENV_TYPES, teardown_cluster_on_head, cluster_process_status_on_head, rsync_node_on_head, attach_node_on_head,
     start_node_on_head, stop_node_on_head, kill_node_on_head, scale_cluster_on_head,
     _wait_for_ready, _show_cluster_status, _monitor_cluster, cli_call_context, _exec_node_on_head,
-    do_health_check, cluster_resource_metrics_on_head, show_info, _run_script_on_head)
+    do_health_check, cluster_resource_metrics_on_head, show_info, _run_script_on_head, cluster_logs_on_head)
 from cloudtik.core._private.constants import CLOUDTIK_REDIS_DEFAULT_PASSWORD
 from cloudtik.core._private.util.redis_utils import get_address_to_use_or_die
 from cloudtik.core._private.state import kv_store
@@ -629,6 +629,33 @@ def process_status(address, redis_password, runtimes):
     if not address:
         address = get_address_to_use_or_die()
     cluster_process_status_on_head(
+        address, redis_password, runtimes)
+
+
+@head.command()
+@click.option(
+    "--address",
+    required=False,
+    type=str,
+    help="Override the address to connect to.")
+@click.option(
+    "--redis-password",
+    required=False,
+    type=str,
+    default=CLOUDTIK_REDIS_DEFAULT_PASSWORD,
+    help="Connect with redis password.")
+@click.option(
+    "--runtimes",
+    required=False,
+    type=str,
+    default=None,
+    help="The list of runtimes to print logs for. If not specified, will print all.")
+@add_click_logging_options
+def logs(address, redis_password, runtimes):
+    """Print cluster logs."""
+    if not address:
+        address = get_address_to_use_or_die()
+    cluster_logs_on_head(
         address, redis_password, runtimes)
 
 

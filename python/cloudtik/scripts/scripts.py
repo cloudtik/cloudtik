@@ -24,7 +24,7 @@ from cloudtik.core._private.cluster.cluster_operator import (
     show_cluster_status, start_ssh_proxy, stop_ssh_proxy, cluster_debug_status,
     cluster_health_check, cluster_process_status, attach_worker, scale_cluster,
     exec_on_nodes, submit_and_exec, _wait_for_ready, _rsync, cli_call_context, cluster_resource_metrics,
-    show_info, _run_script)
+    show_info, _run_script, cluster_logs)
 from cloudtik.core._private.utils import parse_bundles_json, parse_resources
 from cloudtik.scripts.head_scripts import head
 from cloudtik.scripts.node_scripts import node
@@ -994,6 +994,40 @@ def monitor(cluster_config_file, lines, cluster_name, file_type):
 @cli.command()
 @click.argument("cluster_config_file", required=True, type=str)
 @click.option(
+    "--cluster-name",
+    "-n",
+    required=False,
+    type=str,
+    help="Override the configured cluster name.")
+@click.option(
+    "--no-config-cache",
+    is_flag=True,
+    default=False,
+    help="Disable the local cluster config cache.")
+@click.option(
+    "--runtimes",
+    required=False,
+    type=str,
+    default=None,
+    help="The list of runtimes to print logs for. If not specified, will all.")
+@add_click_logging_options
+def logs(cluster_config_file, cluster_name, no_config_cache, runtimes):
+    """Print logs of runtimes."""
+    try:
+        cluster_logs(
+            cluster_config_file, cluster_name,
+            no_config_cache, runtimes)
+    except RuntimeError as re:
+        cli_logger.error("Printing cluster logs failed. " + str(re))
+        if cli_logger.verbosity == 0:
+            cli_logger.print("For more details, please run with -v flag.")
+        else:
+            traceback.print_exc()
+
+
+@cli.command()
+@click.argument("cluster_config_file", required=True, type=str)
+@click.option(
     "--no-config-cache",
     is_flag=True,
     default=False,
@@ -1372,6 +1406,7 @@ cli.add_command(worker_ips)
 _add_command_alias(worker_ips, name="worker_ips", hidden=True)
 
 cli.add_command(monitor)
+cli.add_command(logs)
 
 # commands for advanced management
 cli.add_command(start_proxy)
