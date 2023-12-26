@@ -11,6 +11,7 @@ import traceback
 
 import cloudtik.core._private.constants as constants
 import cloudtik.core._private.utils as utils
+from cloudtik.core._private.cluster.cluster_logging import LOGGER_ID_CLUSTER_CONTROLLER, LOGGER_ID_NODE_MONITOR
 from cloudtik.core._private.util.core_utils import get_node_ip_address
 from cloudtik.core._private.util.logging_utils import setup_component_logger
 from cloudtik.core._private.util.redis_utils import create_redis_client
@@ -53,7 +54,8 @@ class LogFileInfo:
                  file_position=None,
                  file_handle=None,
                  is_err_file=False,
-                 worker_pid=None):
+                 worker_pid=None,
+                 runtime_name=None):
         assert (filename is not None and size_when_last_opened is not None
                 and file_position is not None)
         self.filename = filename
@@ -62,6 +64,7 @@ class LogFileInfo:
         self.file_handle = file_handle
         self.is_err_file = is_err_file
         self.worker_pid = worker_pid
+        self.runtime_name = runtime_name
 
     def reopen_if_necessary(self):
         """Check if the file's inode has changed and reopen it if necessary.
@@ -86,6 +89,7 @@ class LogFileInfo:
             f"\tfile_handle: {self.file_handle}\n"
             f"\tis_err_file: {self.is_err_file}\n"
             f"\tworker_pid: {self.worker_pid}\n"
+            f"\truntime_name: {self.runtime_name}\n"
             ")"
         )
 
@@ -154,8 +158,8 @@ class LogMonitor:
             # is still alive. Only applies to worker processes.
             # For all other system components, we always assume they are alive.
             if (
-                    file_info.worker_pid != "cloudtik_node_monitor"
-                    and file_info.worker_pid != "cloudtik_cluster_controller"
+                    file_info.worker_pid != LOGGER_ID_NODE_MONITOR
+                    and file_info.worker_pid != LOGGER_ID_CLUSTER_CONTROLLER
                     and file_info.worker_pid is not None
             ):
                 assert not isinstance(file_info.worker_pid, str), (
@@ -200,8 +204,9 @@ class LogMonitor:
         for file_path in monitor_log_paths:
             if os.path.isfile(
                     file_path) and file_path not in self.log_filenames:
-                worker_pid = None
                 is_err_file = file_path.endswith("err")
+                worker_pid = None
+                runtime_name = constants.CLOUDTIK_RUNTIME_NAME
 
                 self.log_filenames.add(file_path)
                 self.closed_file_infos.append(
@@ -211,7 +216,8 @@ class LogMonitor:
                         file_position=0,
                         file_handle=None,
                         is_err_file=is_err_file,
-                        worker_pid=worker_pid))
+                        worker_pid=worker_pid,
+                        runtime_name=runtime_name))
                 log_filename = os.path.basename(file_path)
                 logger.info(f"Beginning to track file {log_filename}")
 
@@ -289,6 +295,7 @@ class LogMonitor:
                 data = {
                     "ip": self.node_ip,
                     "id": file_info.worker_pid,
+                    "runtime": file_info.runtime_name,
                     "is_err": file_info.is_err_file,
                     "lines": lines_to_publish,
                 }
@@ -324,9 +331,9 @@ class LogMonitor:
             # TODO (haifeng) : correct and add the processes we will have
             if file_info.file_position == 0:
                 if "/cloudtik_node_monitor" in file_info.filename:
-                    file_info.worker_pid = "cloudtik_node_monitor"
+                    file_info.worker_pid = LOGGER_ID_NODE_MONITOR
                 elif "/cloudtik_cluster_controller" in file_info.filename:
-                    file_info.worker_pid = "cloudtik_cluster_controller"
+                    file_info.worker_pid = LOGGER_ID_CLUSTER_CONTROLLER
                 else:
                     file_info.worker_pid = "user"
 
