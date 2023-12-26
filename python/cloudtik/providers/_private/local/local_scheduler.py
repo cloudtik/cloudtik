@@ -9,7 +9,7 @@ from cloudtik.core._private.call_context import CallContext
 from cloudtik.core._private.command_executor.docker_command_executor import DockerCommandExecutor
 from cloudtik.core._private.command_executor.local_command_executor import LocalCommandExecutor
 from cloudtik.core._private.command_executor.ssh_command_executor import SSHCommandExecutor
-from cloudtik.core._private.core_utils import get_ip_by_name
+from cloudtik.core._private.util.core_utils import get_ip_by_name
 from cloudtik.core._private.state.file_state_store import FileStateStore
 from cloudtik.core._private.utils import is_head_node_by_tags
 from cloudtik.core.command_executor import CommandExecutor

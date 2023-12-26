@@ -6,7 +6,7 @@ import inspect
 import yaml
 
 from cloudtik.core._private.concurrent_cache import ConcurrentObjectCache
-from cloudtik.core._private.core_utils import load_class
+from cloudtik.core._private.util.core_utils import load_class
 
 logger = logging.getLogger(__name__)
 

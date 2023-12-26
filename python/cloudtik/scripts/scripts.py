@@ -13,7 +13,7 @@ from typing import Optional
 import click
 
 from cloudtik.core._private import constants
-from cloudtik.core._private import logging_utils
+from cloudtik.core._private.util import logging_utils
 from cloudtik.core._private.cli_logger import (add_click_logging_options,
                                                cli_logger, cf)
 from cloudtik.core._private.cluster.cluster_config import _load_cluster_config

@@ -3,7 +3,7 @@ import os
 from typing import Any, Dict
 
 from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_ZOOKEEPER
-from cloudtik.core._private.runtime_utils import sort_nodes_by_seq_id, get_node_host_from_node_info
+from cloudtik.core._private.util.runtime_utils import sort_nodes_by_seq_id, get_node_host_from_node_info
 from cloudtik.core._private.service_discovery.naming import get_cluster_node_address_type
 from cloudtik.core._private.service_discovery.utils import get_canonical_service_name, define_runtime_service_on_worker, \
     get_service_discovery_config, ServiceRegisterException, SERVICE_DISCOVERY_FEATURE_KEY_VALUE

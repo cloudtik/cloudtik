@@ -15,7 +15,7 @@ import subprocess
 
 import cloudtik
 from cloudtik.core._private import constants
-from cloudtik.core._private.logging_utils import setup_component_logger
+from cloudtik.core._private.util.logging_utils import setup_component_logger
 from cloudtik.core._private.metrics.metrics_collector import MetricsCollector
 from cloudtik.core._private.state.control_state import ControlState
 from cloudtik.core._private.state.state_utils import NODE_STATE_NODE_IP, NODE_STATE_NODE_ID, NODE_STATE_NODE_KIND, \

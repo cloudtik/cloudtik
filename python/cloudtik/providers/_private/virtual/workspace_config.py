@@ -8,7 +8,7 @@ from typing import Any, Optional
 from typing import Dict
 
 from cloudtik.core._private.cli_logger import cli_logger, cf
-from cloudtik.core._private.core_utils import stop_process_tree, exec_with_output, get_host_address, get_free_port
+from cloudtik.core._private.util.core_utils import stop_process_tree, exec_with_output, get_host_address, get_free_port
 from cloudtik.core._private.utils import save_server_process, is_use_internal_ip
 from cloudtik.core.tags import CLOUDTIK_TAG_NODE_KIND, NODE_KIND_HEAD
 from cloudtik.core.workspace_provider import Existence

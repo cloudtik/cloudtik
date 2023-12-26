@@ -13,7 +13,7 @@ from cloudtik.core._private.call_context import CallContext
 from cloudtik.core._private.cli_logger import cli_logger
 from cloudtik.core._private.command_executor.docker_command_executor import DockerCommandExecutor
 from cloudtik.core._private.constants import CLOUDTIK_DATA_DISK_MOUNT_POINT, CLOUDTIK_DATA_DISK_MOUNT_NAME_PREFIX
-from cloudtik.core._private.core_utils import get_memory_in_bytes
+from cloudtik.core._private.util.core_utils import get_memory_in_bytes
 from cloudtik.core._private.state.file_state_store import FileStateStore
 from cloudtik.core._private.utils import DOCKER_CONFIG_KEY, AUTH_CONFIG_KEY, FILE_MOUNTS_CONFIG_KEY, \
     _merge_node_type_specific_config, is_head_node_by_tags, _is_use_internal_ip, _is_permanent_data_volumes

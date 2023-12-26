@@ -1,10 +1,10 @@
 import os
 from shlex import quote
 
-from cloudtik.core._private.core_utils import exec_with_call, exec_with_output, remove_files, get_address_string, \
+from cloudtik.core._private.util.core_utils import exec_with_call, exec_with_output, remove_files, get_address_string, \
     JSONSerializableObject
 from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_NGINX
-from cloudtik.core._private.runtime_utils import get_runtime_value, get_runtime_config_from_node, \
+from cloudtik.core._private.util.runtime_utils import get_runtime_value, get_runtime_config_from_node, \
     get_runtime_cluster_name
 from cloudtik.core._private.service_discovery.utils import exclude_runtime_of_cluster, \
     serialize_service_selector

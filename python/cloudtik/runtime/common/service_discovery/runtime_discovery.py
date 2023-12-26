@@ -1,11 +1,11 @@
 import os
 from typing import Dict, Any, Union, List, Optional
 
-from cloudtik.core._private.core_utils import get_config_for_update, get_env_string_value
+from cloudtik.core._private.util.core_utils import get_config_for_update, get_env_string_value
 from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_HDFS, BUILT_IN_RUNTIME_METASTORE, \
     BUILT_IN_RUNTIME_CONSUL, BUILT_IN_RUNTIME_ZOOKEEPER, BUILT_IN_RUNTIME_MYSQL, BUILT_IN_RUNTIME_POSTGRES, \
     BUILT_IN_RUNTIME_ETCD, BUILT_IN_RUNTIME_MINIO
-from cloudtik.core._private.runtime_utils import get_runtime_head_host, subscribe_cluster_runtime_config, \
+from cloudtik.core._private.util.runtime_utils import get_runtime_head_host, subscribe_cluster_runtime_config, \
     get_runtime_node_address_type, get_runtime_cluster_name
 from cloudtik.core._private.service_discovery.naming import get_cluster_node_address_type
 from cloudtik.core._private.service_discovery.utils import get_service_selector_for_update, \

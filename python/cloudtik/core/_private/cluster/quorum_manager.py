@@ -2,8 +2,8 @@ import json
 import logging
 from typing import Optional, List
 
-from cloudtik.core._private.core_utils import get_string_hash
-from cloudtik.core._private.runtime_utils import RUNTIME_NODE_SEQ_ID, RUNTIME_NODE_IP, RUNTIME_NODE_ID, \
+from cloudtik.core._private.util.core_utils import get_string_hash
+from cloudtik.core._private.util.runtime_utils import RUNTIME_NODE_SEQ_ID, RUNTIME_NODE_IP, RUNTIME_NODE_ID, \
     RUNTIME_NODE_QUORUM_JOIN, RUNTIME_NODE_QUORUM_ID, RUNTIME_NODE_STATUS
 from cloudtik.core._private.state.kv_store import kv_put
 from cloudtik.core._private.utils import _get_node_constraints_for_node_type, CLOUDTIK_CLUSTER_NODES_INFO_NODE_TYPE, \

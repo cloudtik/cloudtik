@@ -8,7 +8,7 @@ import logging
 
 from cloudtik.core._private.cli_logger import cli_logger
 import cloudtik.core._private.utils as utils
-from cloudtik.core._private.core_utils import get_memory_in_bytes, get_cloudtik_temp_dir
+from cloudtik.core._private.util.core_utils import get_memory_in_bytes, get_cloudtik_temp_dir
 from cloudtik.core.tags import CLOUDTIK_TAG_CLUSTER_NAME
 
 logger = logging.getLogger(__name__)

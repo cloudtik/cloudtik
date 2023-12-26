@@ -1,6 +1,6 @@
 import urllib.error
 
-from cloudtik.core._private.core_utils import get_address_string, JSONSerializableObject
+from cloudtik.core._private.util.core_utils import get_address_string, JSONSerializableObject
 from cloudtik.core._private.util.rest_api import rest_api_get_json, rest_api_post_json, rest_api_delete, \
     rest_api_method_json
 

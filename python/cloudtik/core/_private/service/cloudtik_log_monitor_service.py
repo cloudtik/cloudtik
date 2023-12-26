@@ -12,9 +12,9 @@ import traceback
 
 import cloudtik.core._private.constants as constants
 import cloudtik.core._private.utils as utils
-from cloudtik.core._private.core_utils import get_node_ip_address
-from cloudtik.core._private.logging_utils import setup_component_logger
-from cloudtik.core._private.redis_utils import create_redis_client
+from cloudtik.core._private.util.core_utils import get_node_ip_address
+from cloudtik.core._private.util.logging_utils import setup_component_logger
+from cloudtik.core._private.util.redis_utils import create_redis_client
 
 # TODO (haifeng): check what is this comment about
 # Logger for this module. It should be configured at the entry point

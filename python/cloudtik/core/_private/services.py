@@ -22,12 +22,12 @@ import psutil
 
 import cloudtik.core._private.constants as constants
 import cloudtik.core._private.utils as utils
-from cloudtik.core._private import core_utils
+from cloudtik.core._private.util import core_utils
 from cloudtik.core import tags
-from cloudtik.core._private.core_utils import detect_fate_sharing_support, set_kill_on_parent_death_linux, \
+from cloudtik.core._private.util.core_utils import detect_fate_sharing_support, set_kill_on_parent_death_linux, \
     set_kill_child_on_death_win32, get_cloudtik_temp_dir, get_node_ip_address, address_string
-from cloudtik.core._private.redis_utils import create_redis_client, wait_for_redis_to_start
-from cloudtik.core._private.runtime_utils import get_runtime_head_host
+from cloudtik.core._private.util.redis_utils import create_redis_client, wait_for_redis_to_start
+from cloudtik.core._private.util.runtime_utils import get_runtime_head_host
 from cloudtik.core._private.state.control_state import ControlState
 
 resource = None

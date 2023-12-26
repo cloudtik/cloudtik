@@ -1,7 +1,7 @@
 import os
 from typing import Any, Dict
 
-from cloudtik.core._private.core_utils import get_env_string_value
+from cloudtik.core._private.util.core_utils import get_env_string_value
 from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_HADOOP, BUILT_IN_RUNTIME_HDFS
 from cloudtik.core._private.service_discovery.runtime_services import get_service_discovery_runtime
 from cloudtik.core._private.utils import \

@@ -3,7 +3,7 @@ import os
 from typing import Any, Dict, Optional
 from functools import partial
 
-from cloudtik.core._private.core_utils import get_cloudtik_temp_dir, get_json_object_hash
+from cloudtik.core._private.util.core_utils import get_cloudtik_temp_dir, get_json_object_hash
 from cloudtik.core._private.debug import log_once
 from cloudtik.core._private.utils import prepare_config, decrypt_config, runtime_prepare_config, validate_config, \
     verify_config, encrypt_config, RUNTIME_CONFIG_KEY, runtime_bootstrap_config, load_yaml_config

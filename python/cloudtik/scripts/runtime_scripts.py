@@ -11,7 +11,7 @@ from cloudtik.core._private.cli_logger import (add_click_logging_options,
 from cloudtik.core._private.cluster.cluster_operator import (
     start_node_from_head, stop_node_from_head)
 from cloudtik.core._private.runtime_factory import _get_runtime_home, _get_runtime
-from cloudtik.core._private.runtime_utils import get_runtime_config_from_node
+from cloudtik.core._private.util.runtime_utils import get_runtime_config_from_node
 from cloudtik.core._private.utils import run_bash_scripts, run_system_command, with_script_args
 from cloudtik.scripts.utils import NaturalOrderGroup, add_command_alias
 

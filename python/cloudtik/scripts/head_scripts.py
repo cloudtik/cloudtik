@@ -15,7 +15,7 @@ from cloudtik.core._private.cluster.cluster_operator import (
     _wait_for_ready, _show_cluster_status, _monitor_cluster, cli_call_context, _exec_node_on_head,
     do_health_check, cluster_resource_metrics_on_head, show_info, _run_script_on_head)
 from cloudtik.core._private.constants import CLOUDTIK_REDIS_DEFAULT_PASSWORD
-from cloudtik.core._private.redis_utils import get_address_to_use_or_die
+from cloudtik.core._private.util.redis_utils import get_address_to_use_or_die
 from cloudtik.core._private.state import kv_store
 from cloudtik.core._private.state.kv_store import kv_initialize_with_address
 from cloudtik.core._private.utils import CLOUDTIK_CLUSTER_SCALING_ERROR, \

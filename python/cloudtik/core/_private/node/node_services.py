@@ -19,14 +19,14 @@ from collections import defaultdict
 
 import cloudtik.core._private.constants as constants
 import cloudtik.core._private.services as services
-from cloudtik.core._private.redis_utils import create_redis_client
-from cloudtik.core._private.runtime_utils import get_first_data_disk_dir
+from cloudtik.core._private.util.redis_utils import create_redis_client
+from cloudtik.core._private.util.runtime_utils import get_first_data_disk_dir
 from cloudtik.core._private.state.control_state import StateClient
-from cloudtik.core._private import core_utils
+from cloudtik.core._private.util import core_utils
 from cloudtik.core._private.state import kv_store
 from cloudtik.core._private.resource_spec import ResourceSpec
 
-from cloudtik.core._private.core_utils import try_to_create_directory, try_to_symlink, open_log, \
+from cloudtik.core._private.util.core_utils import try_to_create_directory, try_to_symlink, open_log, \
     detect_fate_sharing_support, set_sigterm_handler, get_cloudtik_home_dir, get_node_ip_address, address_string
 
 # Logger for this module.

@@ -18,7 +18,7 @@ from typing import Dict, Any, Callable, List, Optional, Tuple
 from cloudtik.core._private.cluster.node_availability_tracker import NodeAvailabilitySummary
 from cloudtik.core._private.cluster.resource_utilization import UtilizationScorer, NodeResources, ResourceDemands, \
     UtilizationScore
-from cloudtik.core._private.core_utils import load_class
+from cloudtik.core._private.util.core_utils import load_class
 from cloudtik.core.node_provider import NodeProvider
 from cloudtik.core._private.constants import CLOUDTIK_CONSERVE_GPU_NODES, to_memory_units, \
     CLOUDTIK_RESOURCE_UTILIZATION_SCORER_KEY

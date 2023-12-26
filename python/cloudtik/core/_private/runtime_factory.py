@@ -5,7 +5,7 @@ import os
 from typing import Any, Dict
 
 from cloudtik.core._private.concurrent_cache import ConcurrentObjectCache
-from cloudtik.core._private.core_utils import load_class
+from cloudtik.core._private.util.core_utils import load_class
 from cloudtik.core.runtime import Runtime
 
 logger = logging.getLogger(__name__)

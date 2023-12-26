@@ -1,6 +1,6 @@
 import logging
 
-from cloudtik.core._private.core_utils import get_list_for_update
+from cloudtik.core._private.util.core_utils import get_list_for_update
 from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_PROMETHEUS
 from cloudtik.core._private.service_discovery.utils import SERVICE_SELECTOR_RUNTIMES, deserialize_service_selector
 from cloudtik.core._private.util.pull.pull_job import PullJob

@@ -12,8 +12,8 @@ from typing import Optional
 
 import cloudtik
 from cloudtik.core._private import constants
-from cloudtik.core._private.core_utils import load_class
-from cloudtik.core._private.logging_utils import setup_component_logger
+from cloudtik.core._private.util.core_utils import load_class
+from cloudtik.core._private.util.logging_utils import setup_component_logger
 from cloudtik.core._private.util.pull.pull_job import ScriptPullJob
 from cloudtik.core._private.util.pull.pull_server import PROCESS_PULL_SERVER
 

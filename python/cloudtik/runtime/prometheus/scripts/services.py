@@ -1,7 +1,7 @@
 import argparse
 import os
 
-from cloudtik.core._private.runtime_utils import get_runtime_bool
+from cloudtik.core._private.util.runtime_utils import get_runtime_bool
 from cloudtik.runtime.prometheus.scripting import start_pull_server, stop_pull_server
 from cloudtik.runtime.prometheus.utils import _get_home_dir
 

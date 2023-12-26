@@ -1,6 +1,6 @@
 import logging
 
-from cloudtik.core._private.core_utils import get_num_cpus
+from cloudtik.core._private.util.core_utils import get_num_cpus
 
 logger = logging.getLogger(__name__)
 

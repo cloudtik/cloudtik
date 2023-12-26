@@ -3,7 +3,7 @@ import os
 import time
 from typing import Any, Dict, Optional
 
-from cloudtik.core._private.core_utils import get_address_string, address_to_ip
+from cloudtik.core._private.util.core_utils import get_address_string, address_to_ip
 from cloudtik.core._private.state.state_utils import NODE_STATE_NODE_ID, NODE_STATE_NODE_IP, NODE_STATE_TIME
 from cloudtik.core._private.utils import make_node_id, RUNTIME_CONFIG_KEY
 from cloudtik.core.scaling_policy import ScalingPolicy, ScalingState
@@ -177,7 +177,7 @@ class RayScalingPolicy(ScalingPolicy):
     def _init_gcs_client(self):
         import ray
         import ray._private.ray_constants as ray_constants
-        from ray.core.generated import gcs_pb2, gcs_service_pb2, gcs_service_pb2_grpc
+        from ray.core.generated import gcs_service_pb2_grpc
 
         gcs_address = get_address_string(self.head_host, self.ray_port)
         options = ray_constants.GLOBAL_GRPC_OPTIONS
@@ -187,7 +187,7 @@ class RayScalingPolicy(ScalingPolicy):
         )
 
     def _get_all_resource_usage(self):
-        from ray.core.generated import gcs_pb2, gcs_service_pb2, gcs_service_pb2_grpc
+        from ray.core.generated import gcs_pb2, gcs_service_pb2
 
         def log_resource_batch_data_if_desired(
                 resources_batch_data: gcs_pb2.ResourceUsageBatchData,

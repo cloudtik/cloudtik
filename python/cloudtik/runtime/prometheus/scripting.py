@@ -2,9 +2,9 @@ import os
 from typing import Any, Dict
 
 from cloudtik.core._private import constants
-from cloudtik.core._private.core_utils import exec_with_output, get_list_for_update, get_address_string
+from cloudtik.core._private.util.core_utils import exec_with_output, get_list_for_update, get_address_string
 from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_PROMETHEUS
-from cloudtik.core._private.runtime_utils import load_and_save_yaml, \
+from cloudtik.core._private.util.runtime_utils import load_and_save_yaml, \
     get_runtime_config_from_node, save_yaml, get_runtime_value, get_runtime_head_host, get_runtime_node_address_type, \
     get_runtime_workspace_name, get_runtime_cluster_name
 from cloudtik.core._private.service_discovery.utils import \

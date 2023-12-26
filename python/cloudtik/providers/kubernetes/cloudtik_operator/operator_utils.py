@@ -7,7 +7,7 @@ from typing import Any, Dict, List
 from kubernetes.client.rest import ApiException
 
 from cloudtik.core._private import constants
-from cloudtik.core._private.core_utils import get_config_for_update
+from cloudtik.core._private.util.core_utils import get_config_for_update
 from cloudtik.providers._private._kubernetes import custom_objects_api
 from cloudtik.providers._private._kubernetes.config import _get_cluster_selector
 from cloudtik.providers._private._kubernetes.node_provider import head_service_selector

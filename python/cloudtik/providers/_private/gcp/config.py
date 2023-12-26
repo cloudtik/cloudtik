@@ -12,7 +12,7 @@ from googleapiclient import errors
 
 from google.oauth2 import service_account
 
-from cloudtik.core._private.core_utils import get_config_for_update, get_node_ip_address
+from cloudtik.core._private.util.core_utils import get_config_for_update, get_node_ip_address
 from cloudtik.core._private.util.database_utils import DATABASE_ENGINE_POSTGRES, DATABASE_ENGINE_MYSQL
 from cloudtik.core.workspace_provider import Existence, CLOUDTIK_MANAGED_CLOUD_STORAGE, \
     CLOUDTIK_MANAGED_CLOUD_STORAGE_URI, CLOUDTIK_MANAGED_CLOUD_DATABASE, CLOUDTIK_MANAGED_CLOUD_DATABASE_ENDPOINT, \

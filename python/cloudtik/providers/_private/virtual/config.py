@@ -8,7 +8,7 @@ import logging
 import psutil
 
 from cloudtik.core._private.cli_logger import cli_logger
-from cloudtik.core._private.core_utils import get_memory_in_bytes, get_cloudtik_temp_dir, exec_with_output, \
+from cloudtik.core._private.util.core_utils import get_memory_in_bytes, get_cloudtik_temp_dir, exec_with_output, \
     exec_with_call
 from cloudtik.core._private.utils import AUTH_CONFIG_KEY, DOCKER_CONFIG_KEY, \
     FILE_MOUNTS_CONFIG_KEY, get_head_service_ports, get_head_node_config, RUNTIME_CONFIG_KEY, \

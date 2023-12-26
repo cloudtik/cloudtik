@@ -1,6 +1,6 @@
 from typing import List, Union, Optional
 
-from cloudtik.core._private.redis_utils import create_redis_client
+from cloudtik.core._private.util.redis_utils import create_redis_client
 from cloudtik.core._private.state.control_state import StateClient
 
 _initialized = False

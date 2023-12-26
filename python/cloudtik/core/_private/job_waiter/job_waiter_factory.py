@@ -1,7 +1,7 @@
 import logging
 from typing import Any, Dict, Optional, List
 
-from cloudtik.core._private.core_utils import load_class
+from cloudtik.core._private.util.core_utils import load_class
 from cloudtik.core._private.runtime_factory import _get_runtime
 from cloudtik.core._private.utils import RUNTIME_CONFIG_KEY
 from cloudtik.core.job_waiter import JobWaiter

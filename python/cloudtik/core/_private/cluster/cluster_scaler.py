@@ -22,7 +22,7 @@ from cloudtik.core._private.cluster.cluster_metrics_updater import ClusterMetric
 from cloudtik.core._private.cluster.node_availability_tracker import NodeAvailabilitySummary, NodeAvailabilityTracker
 from cloudtik.core._private.cluster.quorum_manager import QuorumManager
 from cloudtik.core._private.cluster.resource_scaling_policy import ResourceScalingPolicy
-from cloudtik.core._private.core_utils import get_string_hash
+from cloudtik.core._private.util.core_utils import get_string_hash
 from cloudtik.core._private.crypto import AESCipher
 from cloudtik.core._private.state.kv_store import kv_put, kv_del, kv_initialized
 try:

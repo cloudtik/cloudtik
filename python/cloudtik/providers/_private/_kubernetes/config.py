@@ -11,7 +11,7 @@ from kubernetes import client
 from kubernetes.client.rest import ApiException
 
 from cloudtik.core._private.cli_logger import cli_logger, cf
-from cloudtik.core._private.core_utils import parse_memory_resource, \
+from cloudtik.core._private.util.core_utils import parse_memory_resource, \
     generate_public_key, string_to_hex_string, string_from_hex_string
 from cloudtik.core._private.docker import get_versioned_image
 from cloudtik.core._private.provider_factory import _get_node_provider

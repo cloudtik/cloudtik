@@ -1,6 +1,6 @@
 from typing import Any, Dict
 
-from cloudtik.core._private.core_utils import generate_public_key
+from cloudtik.core._private.util.core_utils import generate_public_key
 from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_SSHSERVER
 from cloudtik.core._private.utils import get_config_for_update
 

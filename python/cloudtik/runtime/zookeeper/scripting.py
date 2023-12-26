@@ -5,8 +5,8 @@ from shlex import quote
 from typing import Any, Dict, List
 
 from cloudtik.core._private.constants import CLOUDTIK_RUNTIME_ENV_NODE_SEQ_ID
-from cloudtik.core._private.core_utils import get_address_string
-from cloudtik.core._private.runtime_utils import subscribe_runtime_config, RUNTIME_NODE_SEQ_ID, RUNTIME_NODE_IP, \
+from cloudtik.core._private.util.core_utils import get_address_string
+from cloudtik.core._private.util.runtime_utils import subscribe_runtime_config, RUNTIME_NODE_SEQ_ID, RUNTIME_NODE_IP, \
     sort_nodes_by_seq_id, get_runtime_node_ip, get_runtime_node_host, get_node_host_from_node_info, \
     get_runtime_node_address_type
 from cloudtik.core._private.utils import \

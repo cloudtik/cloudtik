@@ -5,8 +5,8 @@ from typing import Any, Dict, Optional
 import prettytable as pt
 
 from cloudtik.core._private.cluster.cluster_operator import _get_cluster_info
-from cloudtik.core._private.core_utils import get_cloudtik_temp_dir, get_json_object_hash
-from cloudtik.core._private.schema_utils import WORKSPACE_SCHEMA_REFS, WORKSPACE_SCHEMA_NAME, \
+from cloudtik.core._private.util.core_utils import get_cloudtik_temp_dir, get_json_object_hash
+from cloudtik.core._private.util.schema_utils import WORKSPACE_SCHEMA_REFS, WORKSPACE_SCHEMA_NAME, \
     validate_schema_by_name
 from cloudtik.core.tags import CLOUDTIK_TAG_NODE_STATUS
 from cloudtik.core.workspace_provider import Existence, CLOUDTIK_MANAGED_CLOUD_STORAGE, \

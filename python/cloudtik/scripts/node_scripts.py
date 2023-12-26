@@ -17,14 +17,14 @@ from cloudtik.core._private.constants import CLOUDTIK_PROCESSES, \
     CLOUDTIK_REDIS_DEFAULT_PASSWORD, \
     CLOUDTIK_DEFAULT_PORT, CLOUDTIK_RUNTIME_ENV_RUNTIMES, CLOUDTIK_RUNTIME_ENV_NODE_TYPE, \
     CLOUDTIK_RUNTIME_ENV_NODE_SEQ_ID
-from cloudtik.core._private.core_utils import get_cloudtik_home_dir, wait_for_port as _wait_for_port, \
+from cloudtik.core._private.util.core_utils import get_cloudtik_home_dir, wait_for_port as _wait_for_port, \
     get_node_ip_address, address_to_ip
 from cloudtik.core._private.node.node_services import NodeServicesStarter
 from cloudtik.core._private.parameter import StartParams
-from cloudtik.core._private.redis_utils import find_redis_address, validate_redis_address, create_redis_client, \
+from cloudtik.core._private.util.redis_utils import find_redis_address, validate_redis_address, create_redis_client, \
     wait_for_redis_to_start
 from cloudtik.core._private.resource_spec import ResourceSpec
-from cloudtik.core._private.runtime_utils import get_runtime_value
+from cloudtik.core._private.util.runtime_utils import get_runtime_value
 from cloudtik.core._private.util.pull.pull_server import pull_server
 from cloudtik.core._private.utils import parse_resources_json, run_script
 from cloudtik.scripts.utils import NaturalOrderGroup

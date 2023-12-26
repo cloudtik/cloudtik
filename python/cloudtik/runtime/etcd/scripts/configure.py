@@ -1,6 +1,6 @@
 import argparse
 
-from cloudtik.core._private.runtime_utils import subscribe_nodes_info
+from cloudtik.core._private.util.runtime_utils import subscribe_nodes_info
 from cloudtik.runtime.etcd.scripting import configure_initial_cluster
 
 

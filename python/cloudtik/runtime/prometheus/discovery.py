@@ -1,8 +1,8 @@
 import os
 from typing import Dict, Any
 
-from cloudtik.core._private.core_utils import get_json_object_hash, get_address_string
-from cloudtik.core._private.runtime_utils import save_yaml, get_node_host_from_node_state
+from cloudtik.core._private.util.core_utils import get_json_object_hash, get_address_string
+from cloudtik.core._private.util.runtime_utils import save_yaml, get_node_host_from_node_state
 from cloudtik.core._private.service_discovery.utils import ServiceAddressType
 from cloudtik.core._private.state.state_utils import NODE_STATE_NODE_TYPE
 from cloudtik.core._private.util.pull.pull_job import PullJob

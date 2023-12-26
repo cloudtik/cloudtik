@@ -1,6 +1,6 @@
 import argparse
 
-from cloudtik.core._private.runtime_utils import get_runtime_value
+from cloudtik.core._private.util.runtime_utils import get_runtime_value
 from cloudtik.core.api import configure_logging
 from cloudtik.runtime.redis.scripting import init_cluster_service
 from cloudtik.runtime.redis.utils import REDIS_CLUSTER_MODE_SHARDING

@@ -12,7 +12,7 @@ from cloudtik.core._private.command_executor.command_executor \
 from cloudtik.core._private.command_executor.host_command_executor import HostCommandExecutor
 from cloudtik.core._private.constants import \
     CLOUDTIK_NODE_START_WAIT_S
-from cloudtik.core._private.core_utils import get_cloudtik_temp_dir
+from cloudtik.core._private.util.core_utils import get_cloudtik_temp_dir
 from cloudtik.core._private.log_timer import LogTimer
 
 from cloudtik.core._private.cli_logger import cf
