@@ -12,7 +12,7 @@ from http.server import SimpleHTTPRequestHandler, HTTPServer
 import json
 
 from cloudtik.core._private import constants
-from cloudtik.core._private.util.core_utils import try_to_create_directory, try_to_symlink, get_cloudtik_temp_dir
+from cloudtik.core._private.util.core_utils import create_shared_directory, try_to_symlink, get_cloudtik_temp_dir
 from cloudtik.core._private.util.logging_utils import setup_component_logger
 from cloudtik.core._private.utils import save_server_process
 from cloudtik.providers._private.onpremise.config import DEFAULT_CLOUD_SIMULATOR_PORT, \
@@ -149,7 +149,7 @@ def start_server(
         temp_dir = get_cloudtik_temp_dir()
         args.logs_dir = os.path.join(temp_dir, "cloud-simulator")
 
-    try_to_create_directory(args.logs_dir)
+    create_shared_directory(args.logs_dir)
 
     # session
     # date including microsecond
@@ -160,12 +160,12 @@ def start_server(
     session_symlink = os.path.join(args.logs_dir, "session_latest")
 
     # Send a warning message if the session exists.
-    try_to_create_directory(session_dir)
+    create_shared_directory(session_dir)
     try_to_symlink(session_symlink, session_dir)
 
     # Create a directory to be used for process log files.
     logs_dir = os.path.join(session_dir, "logs")
-    try_to_create_directory(logs_dir)
+    create_shared_directory(logs_dir)
 
     setup_component_logger(
         logging_level=args.logging_level,

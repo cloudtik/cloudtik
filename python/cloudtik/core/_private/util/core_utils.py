@@ -110,14 +110,23 @@ def try_make_directory_shared(directory_path):
             raise
 
 
-def try_to_create_directory(directory_path):
-    """Attempt to create a directory that is globally readable/writable.
+def create_directory(directory_path):
+    """Attempt to create a directory.
 
     Args:
         directory_path: The path of the directory to create.
     """
     directory_path = os.path.expanduser(directory_path)
     os.makedirs(directory_path, exist_ok=True)
+
+
+def create_shared_directory(directory_path):
+    """Attempt to create a directory that is globally readable/writable.
+
+    Args:
+        directory_path: The path of the directory to create.
+    """
+    create_directory(directory_path)
     # Change the log directory permissions so others can use it. This is
     # important when multiple people are using the same machine.
     try_make_directory_shared(directory_path)
