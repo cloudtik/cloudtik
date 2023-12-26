@@ -1,12 +1,11 @@
 import os
 import re
 import subprocess
-import tempfile
 import time
 import sys
 
 from cloudtik.core._private.cli_logger import cli_logger, cf
-from cloudtik.core._private.core_utils import get_cloudtik_temp_dir
+from cloudtik.core._private.util.core_utils import get_cloudtik_temp_dir
 
 CONN_REFUSED_PATIENCE = 30  # how long to wait for sshd to run
 

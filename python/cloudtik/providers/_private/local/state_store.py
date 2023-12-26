@@ -1,7 +1,6 @@
 import logging
-import socket
 
-from cloudtik.core._private.core_utils import get_ip_by_name
+from cloudtik.core._private.util.core_utils import get_ip_by_name
 from cloudtik.core._private.state.file_state_store import FileStateStore
 from cloudtik.providers._private.local.config import get_all_node_ids
 

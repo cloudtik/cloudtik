@@ -32,13 +32,13 @@ from cloudtik.core._private.constants import CLOUDTIK_WHEELS, \
     CLOUDTIK_CLUSTER_URI_TEMPLATE, CLOUDTIK_RUNTIME_NAME, CLOUDTIK_RUNTIME_ENV_NODE_IP, CLOUDTIK_RUNTIME_ENV_HEAD_IP, \
     CLOUDTIK_DEFAULT_PORT, PRIVACY_REPLACEMENT_TEMPLATE, PRIVACY_REPLACEMENT, CLOUDTIK_CONFIG_SECRET, \
     CLOUDTIK_ENCRYPTION_PREFIX, CLOUDTIK_RUNTIME_ENV_SECRETS
-from cloudtik.core._private.core_utils import load_class, double_quote, check_process_exists, get_cloudtik_temp_dir, \
+from cloudtik.core._private.util.core_utils import load_class, double_quote, check_process_exists, get_cloudtik_temp_dir, \
     get_config_for_update, get_json_object_md5, to_hex_string, from_hex_string, get_node_ip_address
 from cloudtik.core._private.crypto import AESCipher
 from cloudtik.core._private.debug import log_once
 from cloudtik.core._private.runtime_factory import _get_runtime, _get_runtime_cls, DEFAULT_RUNTIMES, \
     BUILT_IN_RUNTIME_ALL, BUILT_IN_RUNTIME_NONE
-from cloudtik.core._private.schema_utils import CLUSTER_SCHEMA_NAME, CLUSTER_SCHEMA_REFS, \
+from cloudtik.core._private.util.schema_utils import CLUSTER_SCHEMA_NAME, CLUSTER_SCHEMA_REFS, \
     validate_schema_by_name
 from cloudtik.core.node_provider import NodeProvider
 from cloudtik.core._private.provider_factory import _get_default_config, _get_node_provider, \

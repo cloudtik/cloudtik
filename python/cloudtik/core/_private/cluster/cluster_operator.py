@@ -33,13 +33,13 @@ from cloudtik.core._private.cluster.cluster_utils import create_node_updater_for
 from cloudtik.core._private.cluster.node_availability_tracker import NodeAvailabilitySummary
 from cloudtik.core._private.cluster.resource_demand_scheduler import ResourceDict, \
     get_node_type_counts, get_unfulfilled_for_bundles
-from cloudtik.core._private.core_utils import stop_process_tree, double_quote, get_cloudtik_temp_dir, get_free_port, \
+from cloudtik.core._private.util.core_utils import stop_process_tree, double_quote, get_cloudtik_temp_dir, get_free_port, \
     memory_to_gb, memory_to_gb_string, address_to_ip
 from cloudtik.core._private.job_waiter.job_waiter_factory import create_job_waiter
 from cloudtik.core._private.runtime_factory import _get_runtime_cls
 from cloudtik.core._private.service_discovery.naming import get_cluster_head_hostname
 from cloudtik.core._private.service_discovery.utils import ServiceRegisterException
-from cloudtik.core._private.redis_utils import validate_redis_address, get_address_to_use_or_die
+from cloudtik.core._private.util.redis_utils import validate_redis_address, get_address_to_use_or_die
 from cloudtik.core._private.state import kv_store
 from cloudtik.core._private.state.state_utils import NODE_STATE_NODE_IP, NODE_STATE_NODE_ID, NODE_STATE_NODE_KIND, \
     NODE_STATE_HEARTBEAT_TIME, NODE_STATE_TIME

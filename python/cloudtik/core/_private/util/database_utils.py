@@ -1,6 +1,6 @@
 import os
 
-from cloudtik.core._private.core_utils import get_env_string_value
+from cloudtik.core._private.util.core_utils import get_env_string_value
 
 DATABASE_CONFIG_ENGINE = "engine"
 DATABASE_CONFIG_ADDRESS = "address"

@@ -5,7 +5,7 @@ import psutil
 import redis
 
 from cloudtik.core._private import utils as utils, constants as constants
-from cloudtik.core._private.core_utils import address_to_ip, address_from_string
+from cloudtik.core._private.util.core_utils import address_to_ip, address_from_string
 
 
 def find_redis_address(address=None):

@@ -4,7 +4,7 @@ import socket
 from typing import Any, Optional
 from typing import Dict
 
-from cloudtik.core._private.core_utils import get_memory_in_bytes, get_cloudtik_temp_dir, exec_with_output, \
+from cloudtik.core._private.util.core_utils import get_memory_in_bytes, get_cloudtik_temp_dir, exec_with_output, \
     get_host_address
 from cloudtik.core._private.resource_spec import ResourceSpec
 from cloudtik.core._private.utils import is_docker_enabled

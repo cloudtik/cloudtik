@@ -37,7 +37,7 @@ from functools import wraps
 from googleapiclient.discovery import Resource
 from googleapiclient.errors import HttpError
 
-from cloudtik.core._private.core_utils import string_to_hex_string, string_from_hex_string
+from cloudtik.core._private.util.core_utils import string_to_hex_string, string_from_hex_string
 from cloudtik.core.tags import CLOUDTIK_TAG_CLUSTER_NAME, CLOUDTIK_TAG_NODE_NAME, CLOUDTIK_TAG_USER_NODE_TYPE
 
 logger = logging.getLogger(__name__)

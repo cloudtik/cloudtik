@@ -1,7 +1,7 @@
 from typing import Any, Dict
 
 from cloudtik.core._private.constants import CLOUDTIK_DEFAULT_STORAGE_URI, CLOUDTIK_DEFAULT_CLOUD_STORAGE_URI
-from cloudtik.core._private.core_utils import exec_with_output
+from cloudtik.core._private.util.core_utils import exec_with_output
 from cloudtik.core._private.provider_factory import _get_node_provider
 from cloudtik.core._private.runtime_factory import _get_runtime, BUILT_IN_RUNTIME_HDFS
 from cloudtik.core._private.utils import RUNTIME_CONFIG_KEY, get_cluster_head_ip, is_runtime_enabled

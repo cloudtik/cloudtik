@@ -4,7 +4,7 @@ from shlex import quote
 
 from cloudtik.core._private import constants
 from cloudtik.core._private.cli_logger import cli_logger
-from cloudtik.core._private.core_utils import get_cloudtik_temp_dir, check_process_exists, stop_process_tree, \
+from cloudtik.core._private.util.core_utils import get_cloudtik_temp_dir, check_process_exists, stop_process_tree, \
     get_named_log_file_handles
 from cloudtik.core._private.node.node_services import SESSION_LATEST
 from cloudtik.core._private.services import start_cloudtik_process

@@ -1,9 +1,9 @@
 import os
 from shlex import quote
 
-from cloudtik.core._private.core_utils import exec_with_output
+from cloudtik.core._private.util.core_utils import exec_with_output
 from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_PROMETHEUS, BUILT_IN_RUNTIME_GRAFANA
-from cloudtik.core._private.runtime_utils import get_runtime_config_from_node, get_runtime_value, \
+from cloudtik.core._private.util.runtime_utils import get_runtime_config_from_node, get_runtime_value, \
     save_yaml, get_runtime_node_ip, get_runtime_head_host, get_runtime_cluster_name
 from cloudtik.core._private.service_discovery.utils import \
     serialize_service_selector

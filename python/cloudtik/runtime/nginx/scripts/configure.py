@@ -1,6 +1,6 @@
 import argparse
 
-from cloudtik.core._private.runtime_utils import get_runtime_bool
+from cloudtik.core._private.util.runtime_utils import get_runtime_bool
 from cloudtik.runtime.nginx.scripting import configure_backend
 
 

@@ -2,7 +2,7 @@ import copy
 from enum import Enum, auto
 from typing import Optional, Dict, Any, List, Union
 
-from cloudtik.core._private.core_utils import deserialize_config, serialize_config, \
+from cloudtik.core._private.util.core_utils import deserialize_config, serialize_config, \
     get_list_for_update
 
 # The standard keys and values used for service discovery

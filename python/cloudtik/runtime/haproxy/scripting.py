@@ -2,9 +2,9 @@ import os
 import shutil
 from shlex import quote
 
-from cloudtik.core._private.core_utils import exec_with_output, exec_with_call, JSONSerializableObject
+from cloudtik.core._private.util.core_utils import exec_with_output, exec_with_call, JSONSerializableObject
 from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_HAPROXY
-from cloudtik.core._private.runtime_utils import get_runtime_config_from_node, get_runtime_value, get_runtime_node_ip, \
+from cloudtik.core._private.util.runtime_utils import get_runtime_config_from_node, get_runtime_value, get_runtime_node_ip, \
     get_runtime_cluster_name
 from cloudtik.core._private.service_discovery.utils import serialize_service_selector, exclude_runtime_of_cluster
 from cloudtik.runtime.haproxy.utils import _get_config, HAPROXY_APP_MODE_LOAD_BALANCER, HAPROXY_CONFIG_MODE_STATIC, \

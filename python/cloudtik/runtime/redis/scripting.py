@@ -6,9 +6,9 @@ import time
 from redis.cluster import RedisCluster
 from redis.cluster import ClusterNode
 
-from cloudtik.core._private.core_utils import exec_with_call
+from cloudtik.core._private.util.core_utils import exec_with_call
 from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_REDIS
-from cloudtik.core._private.runtime_utils import get_first_data_disk_dir, get_worker_ips_ready_from_head, \
+from cloudtik.core._private.util.runtime_utils import get_first_data_disk_dir, get_worker_ips_ready_from_head, \
     get_runtime_config_from_node, get_runtime_value, run_func_with_retry, get_runtime_head_host, \
     get_runtime_node_host, get_runtime_node_ip, get_runtime_workspace_name, \
     get_runtime_cluster_name, get_runtime_node_type

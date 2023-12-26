@@ -1,6 +1,6 @@
 import argparse
 
-from cloudtik.core._private.runtime_utils import get_runtime_value, get_runtime_bool
+from cloudtik.core._private.util.runtime_utils import get_runtime_value, get_runtime_bool
 from cloudtik.runtime.nginx.scripting import stop_pull_server, start_pull_server
 from cloudtik.runtime.nginx.utils \
     import NGINX_APP_MODE_API_GATEWAY, NGINX_CONFIG_MODE_DNS, \

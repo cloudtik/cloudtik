@@ -1,9 +1,9 @@
 import os
 from typing import Any, Dict
 
-from cloudtik.core._private.core_utils import get_address_string
+from cloudtik.core._private.util.core_utils import get_address_string
 from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_KONG, BUILT_IN_RUNTIME_POSTGRES
-from cloudtik.core._private.runtime_utils import get_runtime_bool, \
+from cloudtik.core._private.util.runtime_utils import get_runtime_bool, \
     get_runtime_value
 from cloudtik.core._private.service_discovery.naming import get_cluster_head_host
 from cloudtik.core._private.service_discovery.runtime_services import get_service_discovery_runtime

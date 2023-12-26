@@ -17,7 +17,7 @@ import yaml
 from cloudtik.core._private.call_context import CallContext
 from cloudtik.core._private.cli_logger import cli_logger
 from cloudtik.core._private.cluster.cluster_exec import exec_cluster, exec_on_head, rsync_cluster, rsync_on_head
-from cloudtik.core._private.core_utils import get_cloudtik_home_dir
+from cloudtik.core._private.util.core_utils import get_cloudtik_home_dir
 from cloudtik.core._private.provider_factory import _get_node_provider
 from cloudtik.core._private.utils import get_head_working_ip, get_node_cluster_ip, get_runtime_logs, \
     get_runtime_processes, _get_node_specific_runtime_types, with_verbose_option

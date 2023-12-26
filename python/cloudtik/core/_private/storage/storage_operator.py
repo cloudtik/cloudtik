@@ -2,8 +2,8 @@ import logging
 import os
 from typing import Any, Dict, Optional
 
-from cloudtik.core._private.core_utils import get_cloudtik_temp_dir, get_json_object_hash
-from cloudtik.core._private.schema_utils import STORAGE_SCHEMA_NAME, STORAGE_SCHEMA_REFS, \
+from cloudtik.core._private.util.core_utils import get_cloudtik_temp_dir, get_json_object_hash
+from cloudtik.core._private.util.schema_utils import STORAGE_SCHEMA_NAME, STORAGE_SCHEMA_REFS, \
     validate_schema_by_name
 from cloudtik.core._private.utils import print_dict_info, \
     load_yaml_config, handle_cli_override, save_config_cache, load_config_from_cache, merge_config_hierarchy

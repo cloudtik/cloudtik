@@ -7,7 +7,7 @@ import subprocess
 import sys
 
 import cloudtik.core._private.constants as constants
-from cloudtik.core._private.core_utils import get_num_cpus, get_cuda_visible_devices, get_system_memory, \
+from cloudtik.core._private.util.core_utils import get_num_cpus, get_cuda_visible_devices, get_system_memory, \
     estimate_available_memory
 
 try:

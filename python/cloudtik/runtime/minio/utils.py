@@ -3,9 +3,9 @@ from typing import Any, Dict
 
 from cloudtik.core._private.constants import \
     CLOUDTIK_DATA_DISK_MOUNT_POINT, CLOUDTIK_DATA_DISK_MOUNT_NAME_PREFIX
-from cloudtik.core._private.core_utils import get_config_for_update
+from cloudtik.core._private.util.core_utils import get_config_for_update
 from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_MINIO
-from cloudtik.core._private.runtime_utils import get_data_disk_dirs, get_runtime_cluster_name, \
+from cloudtik.core._private.util.runtime_utils import get_data_disk_dirs, get_runtime_cluster_name, \
     get_runtime_workspace_name
 from cloudtik.core._private.service_discovery.runtime_services import get_service_discovery_runtime
 from cloudtik.core._private.service_discovery.utils import \

@@ -2,7 +2,7 @@ from typing import Dict, Any, Optional
 
 from cloudtik.core._private.constants import CLOUDTIK_RUNTIME_ENV_NODE_HOST, CLOUDTIK_RUNTIME_ENV_HEAD_HOST, \
     CLOUDTIK_RUNTIME_ENV_NODE_IP, CLOUDTIK_RUNTIME_ENV_HEAD_IP
-from cloudtik.core._private.core_utils import is_valid_dns_name
+from cloudtik.core._private.util.core_utils import is_valid_dns_name
 from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_DNSMASQ, BUILT_IN_RUNTIME_BIND, \
     BUILT_IN_RUNTIME_COREDNS
 from cloudtik.core._private.service_discovery.runtime_services import get_service_discovery_runtime

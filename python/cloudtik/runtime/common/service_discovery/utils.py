@@ -1,4 +1,4 @@
-from cloudtik.core._private.core_utils import get_address_string
+from cloudtik.core._private.util.core_utils import get_address_string
 
 
 API_GATEWAY_SERVICE_DISCOVERY_LABEL_ROUTE_PATH = "route-path"

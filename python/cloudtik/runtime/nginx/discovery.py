@@ -1,6 +1,6 @@
 import logging
 
-from cloudtik.core._private.core_utils import get_json_object_hash, get_address_string
+from cloudtik.core._private.util.core_utils import get_json_object_hash, get_address_string
 from cloudtik.core._private.service_discovery.utils import deserialize_service_selector
 from cloudtik.core._private.util.pull.pull_job import PullJob
 from cloudtik.runtime.common.service_discovery.consul \

@@ -11,7 +11,7 @@ from typing import Any, Dict, Optional
 
 import ipaddr
 
-from cloudtik.core._private.core_utils import get_list_for_update
+from cloudtik.core._private.util.core_utils import get_list_for_update
 from cloudtik.core._private.util.database_utils import DATABASE_ENGINE_MYSQL, DATABASE_ENGINE_POSTGRES
 from cloudtik.core.tags import CLOUDTIK_TAG_NODE_KIND, NODE_KIND_HEAD, CLOUDTIK_TAG_CLUSTER_NAME, \
     CLOUDTIK_TAG_NODE_SEQ_ID

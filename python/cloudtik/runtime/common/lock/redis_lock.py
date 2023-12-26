@@ -1,7 +1,7 @@
 import time
 import uuid
 
-from cloudtik.core._private.runtime_utils import get_redis_client
+from cloudtik.core._private.util.runtime_utils import get_redis_client
 from cloudtik.runtime.common.lock.lock_base import Lock, LOCK_MAX_ATTEMPTS, LockAcquisitionException
 
 # the key will always be substituted into this pattern before locking,

@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Any, Dict
 
 import cloudtik
-from cloudtik.core._private.core_utils import get_cloudtik_temp_dir
+from cloudtik.core._private.util.core_utils import get_cloudtik_temp_dir
 
 try:  # py3
     from shlex import quote

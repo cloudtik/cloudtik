@@ -6,7 +6,7 @@ import psutil
 import datetime
 import sys
 
-from cloudtik.core._private.core_utils import get_num_cpus, get_system_memory, get_used_memory
+from cloudtik.core._private.util.core_utils import get_num_cpus, get_system_memory, get_used_memory
 from cloudtik.core._private.debug import log_once
 from cloudtik.core._private.metrics import k8s_utils
 

@@ -12,7 +12,7 @@ from typing import Optional
 
 from cloudtik.core._private.cluster.cluster_metrics_updater import ClusterMetricsUpdater
 from cloudtik.core._private.cluster.resource_scaling_policy import ResourceScalingPolicy
-from cloudtik.core._private.core_utils import address_from_string
+from cloudtik.core._private.util.core_utils import address_from_string
 from cloudtik.core._private.state.scaling_state import ScalingStateClient
 
 try:
@@ -30,11 +30,11 @@ from cloudtik.core._private.prometheus_metrics import ClusterPrometheusMetrics
 from cloudtik.core._private.cluster.cluster_metrics import ClusterMetrics
 from cloudtik.core._private.utils import CLOUDTIK_CLUSTER_SCALING_ERROR
 from cloudtik.core._private import constants
-from cloudtik.core._private.logging_utils import setup_component_logger
+from cloudtik.core._private.util.logging_utils import setup_component_logger
 from cloudtik.core._private.state.kv_store import kv_initialize, \
     kv_put, kv_initialized, kv_del
 from cloudtik.core._private.state.control_state import ControlState, StateClient
-from cloudtik.core._private.redis_utils import validate_redis_address, create_redis_client
+from cloudtik.core._private.util.redis_utils import validate_redis_address, create_redis_client
 
 logger = logging.getLogger(__name__)
 

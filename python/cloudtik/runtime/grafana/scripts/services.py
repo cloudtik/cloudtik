@@ -1,6 +1,6 @@
 import argparse
 
-from cloudtik.core._private.runtime_utils import get_runtime_value, get_runtime_bool
+from cloudtik.core._private.util.runtime_utils import get_runtime_value, get_runtime_bool
 from cloudtik.runtime.grafana.scripting import start_pull_server, stop_pull_server
 from cloudtik.runtime.grafana.utils import GRAFANA_DATA_SOURCES_SCOPE_WORKSPACE
 

@@ -3,7 +3,7 @@ import copy
 import pytest
 
 from cloudtik.core._private.call_context import CallContext
-from cloudtik.core._private.core_utils import get_memory_in_bytes, format_memory
+from cloudtik.core._private.util.core_utils import get_memory_in_bytes, format_memory
 from cloudtik.core._private.utils import update_nested_dict, process_config_with_privacy, encrypt_config, \
     decrypt_config, hash_runtime_conf, run_in_parallel_on_nodes, ParallelTaskSkipped, parse_resource_list, \
     parse_resources_json, parse_bundles_json, get_resource_list_str

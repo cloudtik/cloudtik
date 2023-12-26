@@ -13,7 +13,7 @@ import cloudtik.core._private.service.cloudtik_cluster_controller as cluster_con
 from cloudtik.core._private import constants
 from cloudtik.core._private.call_context import CallContext
 from cloudtik.core._private.cluster import cluster_operator
-from cloudtik.core._private.core_utils import address_string
+from cloudtik.core._private.util.core_utils import address_string
 from cloudtik.core._private.utils import get_cluster_head_ip
 from cloudtik.providers.kubernetes.cloudtik_operator import operator_utils
 from cloudtik.providers.kubernetes.cloudtik_operator.operator_utils import (

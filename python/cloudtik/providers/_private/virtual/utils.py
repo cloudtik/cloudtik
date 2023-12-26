@@ -1,4 +1,4 @@
-from cloudtik.core._private.core_utils import get_memory_in_bytes, format_memory
+from cloudtik.core._private.util.core_utils import get_memory_in_bytes, format_memory
 
 
 def get_instance_type_name(instance_type):
