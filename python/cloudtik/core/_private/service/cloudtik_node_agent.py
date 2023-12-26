@@ -15,7 +15,7 @@ import subprocess
 
 import cloudtik
 from cloudtik.core._private import constants
-from cloudtik.core._private.util.core_utils import get_node_ip_address
+from cloudtik.core._private.util.core_utils import get_node_ip_address, split_list
 from cloudtik.core._private.util.logging_utils import setup_component_logger
 from cloudtik.core._private.metrics.metrics_collector import MetricsCollector
 from cloudtik.core._private.state.control_state import ControlState
@@ -94,7 +94,7 @@ class NodeMonitor:
         self.node_metrics_table = self.control_state.get_node_metrics_table()
 
         self.processes_to_check = constants.CLOUDTIK_PROCESSES
-        runtime_list = runtimes.split(",") if runtimes and len(runtimes) > 0 else None
+        runtime_list = split_list(runtimes) if runtimes else None
         self.processes_to_check.extend(get_runtime_processes(runtime_list))
 
         logger.info("Monitor: Started")

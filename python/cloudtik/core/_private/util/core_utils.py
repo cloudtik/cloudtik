@@ -17,7 +17,7 @@ import tempfile
 import threading
 import time
 from contextlib import closing
-from typing import Optional
+from typing import Optional, List
 
 import ipaddr
 # Import psutil after others so the packaged version is used.
@@ -1103,3 +1103,7 @@ def get_node_ip_address(address="8.8.8.8:53"):
 
 def address_string(host, port):
     return host + ":" + str(port)
+
+
+def split_list(list_str: str, separator=",") -> List[str]:
+    return [x.strip() for x in list_str.split(separator)]

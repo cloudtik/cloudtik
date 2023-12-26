@@ -32,8 +32,9 @@ from cloudtik.core._private.constants import CLOUDTIK_WHEELS, \
     CLOUDTIK_CLUSTER_URI_TEMPLATE, CLOUDTIK_RUNTIME_NAME, CLOUDTIK_RUNTIME_ENV_NODE_IP, CLOUDTIK_RUNTIME_ENV_HEAD_IP, \
     CLOUDTIK_DEFAULT_PORT, PRIVACY_REPLACEMENT_TEMPLATE, PRIVACY_REPLACEMENT, CLOUDTIK_CONFIG_SECRET, \
     CLOUDTIK_ENCRYPTION_PREFIX, CLOUDTIK_RUNTIME_ENV_SECRETS
-from cloudtik.core._private.util.core_utils import load_class, double_quote, check_process_exists, get_cloudtik_temp_dir, \
-    get_config_for_update, get_json_object_md5, to_hex_string, from_hex_string, get_node_ip_address
+from cloudtik.core._private.util.core_utils import load_class, double_quote, check_process_exists, \
+    get_cloudtik_temp_dir, \
+    get_config_for_update, get_json_object_md5, to_hex_string, from_hex_string, get_node_ip_address, split_list
 from cloudtik.core._private.crypto import AESCipher
 from cloudtik.core._private.debug import log_once
 from cloudtik.core._private.runtime_factory import _get_runtime, _get_runtime_cls, DEFAULT_RUNTIMES, \
@@ -2609,15 +2610,14 @@ def _get_cluster_uri(provider_type: str, cluster_name: str) -> str:
 
 
 def _parse_runtime_list(runtimes: str):
-    if runtimes is None or len(runtimes) == 0:
+    if not runtimes:
         return []
 
     runtime_list = []
-    items = runtimes.split(",")
+    items = split_list(runtimes)
     for item in items:
-        striped_item = item.strip()
-        if len(striped_item) > 0:
-            runtime_list.append(striped_item)
+        if item:
+            runtime_list.append(item)
     return runtime_list
 
 
@@ -3454,7 +3454,7 @@ def parse_bundles_json(
 
 def parse_resource_list(resource_list_str: str, ) -> Dict[str, int]:
     resource_dict = {}
-    resources = [x.strip() for x in resource_list_str.split(",")]
+    resources = split_list(resource_list_str)
     for resource in resources:
         resource_parts = [x.strip() for x in resource.split(":")]
         if len(resource_parts) != 2:
