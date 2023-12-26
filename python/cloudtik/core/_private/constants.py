@@ -179,8 +179,8 @@ CLOUDTIK_PROCESSES = [
     # The third element is the process name.
     # The forth element, if node, the process should on all nodes,if head, the process should on head node.
     ["cloudtik_cluster_controller.py", False, "ClusterController", "head"],
-    ["cloudtik_node_monitor_service.py", False, "NodeMonitor", "node"],
-    ["cloudtik_log_monitor_service.py", False, "LogMonitor", "node"],
+    ["cloudtik_node_agent.py", False, "NodeMonitor", "node"],
+    ["cloudtik_log_agent.py", False, "LogMonitor", "node"],
     ["cloudtik-redis-server", False, "RedisServer", "head"],
 ]
 
@@ -212,7 +212,17 @@ ERROR_LOG_MONITOR_DIED = "log_monitor_died"
 # kv namespaces
 KV_NAMESPACE_SESSION = "session"
 
-LOG_MONITOR_MAX_OPEN_FILES = 200
+# The number of files the log monitor will open. If more files exist, they will
+# be ignored.
+LOG_MONITOR_MAX_OPEN_FILES = int(
+    os.environ.get("CLOUDTIK_LOG_MONITOR_MAX_OPEN_FILES", "200")
+)
+
+# The maximum batch of lines to be read in a single iteration. We _always_ try
+# to read this number of lines even if there aren't any new lines.
+LOG_MONITOR_NUM_LINES_TO_READ = int(
+    os.environ.get("CLOUDTIK_LOG_MONITOR_NUM_LINES_TO_READ", "1000")
+)
 
 LOG_FILE_CHANNEL = "CLOUDKIT_LOG_CHANNEL"
 
