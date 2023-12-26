@@ -603,7 +603,7 @@ class NodeServicesStarter:
             logging_level=self.logging_level,
             max_bytes=self.max_bytes,
             backup_count=self.backup_count,
-            monitor_ip=self._node_ip_address,
+            node_ip=self._node_ip_address,
             runtimes=self._start_params.runtimes,
             node_type=self._start_params.node_type,
             node_seq_id=self._start_params.node_seq_id,
@@ -896,7 +896,9 @@ class NodeServicesStarter:
             fate_share=self.kernel_fate_share,
             logging_level=self.logging_level,
             max_bytes=self.max_bytes,
-            backup_count=self.backup_count)
+            backup_count=self.backup_count,
+            node_ip=self._node_ip_address,
+            runtimes=self._start_params.runtimes)
         assert constants.PROCESS_TYPE_LOG_MONITOR not in self.all_processes
         self.all_processes[constants.PROCESS_TYPE_LOG_MONITOR] = [
             process_info,

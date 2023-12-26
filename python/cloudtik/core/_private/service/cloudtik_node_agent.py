@@ -15,6 +15,7 @@ import subprocess
 
 import cloudtik
 from cloudtik.core._private import constants
+from cloudtik.core._private.util.core_utils import get_node_ip_address
 from cloudtik.core._private.util.logging_utils import setup_component_logger
 from cloudtik.core._private.metrics.metrics_collector import MetricsCollector
 from cloudtik.core._private.state.control_state import ControlState
@@ -43,6 +44,8 @@ class NodeMonitor:
                  static_resource_list=None,
                  stop_event: Optional[Event] = None,
                  runtimes: str = None):
+        if not node_ip:
+            node_ip = get_node_ip_address()
         if node_id is None:
             node_id = make_node_id(node_ip)
         self.node_id = node_id
@@ -326,11 +329,11 @@ if __name__ == "__main__":
         default=None,
         help="The unique node id to use to for this node.")
     parser.add_argument(
-        "--monitor-ip",
+        "--node-ip",
         required=False,
         type=str,
         default=None,
-        help="The IP address of the machine hosting the monitor process.")
+        help="The IP address of this node.")
     parser.add_argument(
         "--static_resource_list",
         required=False,
@@ -359,7 +362,7 @@ if __name__ == "__main__":
 
     node_monitor = NodeMonitor(
         args.node_id,
-        args.monitor_ip,
+        args.node_ip,
         args.node_kind,
         args.node_type,
         args.node_seq_id,

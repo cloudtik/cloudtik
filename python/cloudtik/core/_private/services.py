@@ -863,7 +863,9 @@ def start_log_monitor(
         fate_share=None,
         logging_level=None,
         max_bytes=0,
-        backup_count=0):
+        backup_count=0,
+        node_ip=None,
+        runtimes=None):
     """Start a log monitor process.
 
     Args:
@@ -879,12 +881,14 @@ def start_log_monitor(
             RotatingFileHandler's maxBytes.
         backup_count (int): Log rotation parameter. Corresponding to
             RotatingFileHandler's backupCount.
+        node_ip (str): IP address of the machine.
+        runtimes (str): List of runtimes of the current node
 
     Returns:
         ProcessInfo for the process that was started.
     """
-    log_monitor_filepath = os.path.join(CLOUDTIK_PATH, CLOUDTIK_CORE_PRIVATE_SERVICE,
-                                        "cloudtik_log_monitor_service.py")
+    log_monitor_filepath = os.path.join(
+        CLOUDTIK_PATH, CLOUDTIK_CORE_PRIVATE_SERVICE, "cloudtik_log_agent.py")
     command = [
         sys.executable, "-u", log_monitor_filepath,
         f"--redis-address={redis_address}", f"--logs-dir={logs_dir}",
@@ -895,6 +899,11 @@ def start_log_monitor(
         command.append("--logging-level=" + logging_level)
     if redis_password:
         command += ["--redis-password", redis_password]
+    if node_ip:
+        command.append("--node-ip=" + node_ip)
+    if runtimes and len(runtimes) > 0:
+        command.append("--runtimes=" + quote(runtimes))
+
     process_info = start_cloudtik_process(
         command,
         constants.PROCESS_TYPE_LOG_MONITOR,
@@ -975,7 +984,7 @@ def start_node_monitor(
         logging_level=None,
         max_bytes=0,
         backup_count=0,
-        monitor_ip=None,
+        node_ip=None,
         runtimes=None,
         node_type=None,
         node_seq_id=None):
@@ -997,7 +1006,7 @@ def start_node_monitor(
             RotatingFileHandler's maxBytes.
         backup_count (int): Log rotation parameter. Corresponding to
             RotatingFileHandler's backupCount.
-        monitor_ip (str): IP address of the machine that the monitor will be
+        node_ip (str): IP address of the machine that the monitor will be
             run on. Can be excluded, but required for scaler metrics.
         runtimes (str): List of runtimes of the current node
         node_type (str): The node type of the current node
@@ -1005,7 +1014,8 @@ def start_node_monitor(
     Returns:
         ProcessInfo for the process that was started.
     """
-    monitor_path = os.path.join(CLOUDTIK_PATH, CLOUDTIK_CORE_PRIVATE_SERVICE, "cloudtik_node_monitor_service.py")
+    monitor_path = os.path.join(
+        CLOUDTIK_PATH, CLOUDTIK_CORE_PRIVATE_SERVICE, "cloudtik_node_agent.py")
     command = [
         sys.executable,
         "-u",
@@ -1023,8 +1033,8 @@ def start_node_monitor(
 
     if redis_password:
         command.append("--redis-password=" + redis_password)
-    if monitor_ip:
-        command.append("--monitor-ip=" + monitor_ip)
+    if node_ip:
+        command.append("--node-ip=" + node_ip)
 
     assert resource_spec.resolved()
     static_resources = resource_spec.to_resource_dict()
