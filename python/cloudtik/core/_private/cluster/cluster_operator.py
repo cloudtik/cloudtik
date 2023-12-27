@@ -54,7 +54,7 @@ from cloudtik.core._private.constants import \
     CLOUDTIK_RESOURCE_REQUESTS, \
     MAX_PARALLEL_SHUTDOWN_WORKERS, \
     CLOUDTIK_REDIS_DEFAULT_PASSWORD, CLOUDTIK_CLUSTER_STATUS_STOPPED, CLOUDTIK_CLUSTER_STATUS_RUNNING, \
-    CLOUDTIK_RUNTIME_NAME, CLOUDTIK_KV_NAMESPACE_HEALTHCHECK
+    CLOUDTIK_RUNTIME_NAME, CLOUDTIK_KV_NAMESPACE_HEALTHCHECK, SESSION_LATEST
 from cloudtik.core._private.utils import hash_runtime_conf, \
     hash_launch_conf, get_proxy_process_file, get_safe_proxy_process, \
     get_head_working_ip, get_node_cluster_ip, is_use_internal_ip, \
@@ -778,11 +778,12 @@ def _monitor_cluster(config: Dict[str, Any],
     """Tails the controller logs of a cluster."""
 
     call_context = cli_call_context()
-    cmd = f"tail -n {num_lines} -f ~/runtime/cloudtik/session_latest/logs/cloudtik_cluster_controller"
+    cmd = f"tail -n {num_lines} -f ~/runtime/cloudtik/{SESSION_LATEST}/logs/cloudtik_cluster_controller"
     if file_type and file_type != "":
         cmd += f".{file_type}"
     else:
         cmd += "*"
+    cmd += " || true"
 
     _exec_cluster(
         config,

@@ -36,7 +36,7 @@ class StartParams:
             from connecting to Redis if provided.
         home_dir (str): If provided, it will specify the root directory of
             session data.
-        include_log_monitor (bool): If True, then start a log monitor to
+        no_log_monitor (bool): If False, then start a log monitor to
             monitor the log files for all processes on this node and push their
             contents to Redis.
         cluster_config: path to cluster config file.
@@ -69,7 +69,7 @@ class StartParams:
                  redis_max_clients=None,
                  redis_password=constants.CLOUDTIK_REDIS_DEFAULT_PASSWORD,
                  home_dir=None,
-                 include_log_monitor=None,
+                 no_log_monitor=None,
                  cluster_config=None,
                  metrics_export_port=None,
                  env_vars=None,
@@ -95,7 +95,7 @@ class StartParams:
         self.redis_max_clients = redis_max_clients
         self.redis_password = redis_password
         self.home_dir = home_dir
-        self.include_log_monitor = include_log_monitor
+        self.no_log_monitor = no_log_monitor
         self.cluster_config = cluster_config
         self.metrics_export_port = metrics_export_port
         self.env_vars = env_vars

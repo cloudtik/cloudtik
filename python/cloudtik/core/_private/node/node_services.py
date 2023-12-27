@@ -33,7 +33,6 @@ from cloudtik.core._private.util.core_utils import create_shared_directory, try_
 # Logger for this module.
 logger = logging.getLogger(__name__)
 
-SESSION_LATEST = "session_latest"
 NUM_PORT_RETRIES = 40
 NUM_REDIS_GET_RETRIES = 20
 
@@ -90,7 +89,7 @@ class NodeServicesStarter:
         self._state_client = None
 
         start_params.update_if_absent(
-            include_log_monitor=True,
+            no_log_monitor=False,
             home_dir=get_cloudtik_home_dir()
             )
 
@@ -194,7 +193,7 @@ class NodeServicesStarter:
             session_dir = self._kv_get_with_retry(
                 "session_dir", constants.KV_NAMESPACE_SESSION)
             self._session_dir = core_utils.decode(session_dir)
-        session_symlink = os.path.join(self._home_dir, SESSION_LATEST)
+        session_symlink = os.path.join(self._home_dir, constants.SESSION_LATEST)
 
         # Send a warning message if the session exists.
         create_directory(self._session_dir)
@@ -638,7 +637,7 @@ class NodeServicesStarter:
                      f"redirected to {self._logs_dir}.")
         # TODO (haifeng): any service needs start on each worker node management
         self.start_node_monitor()
-        if self._start_params.include_log_monitor:
+        if not self._start_params.no_log_monitor:
             self.start_log_monitor()
 
     def _write_cluster_info_to_state(self):

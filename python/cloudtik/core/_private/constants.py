@@ -209,6 +209,8 @@ ERROR_CLUSTER_CONTROLLER_DIED = "cluster_controller_died"
 ERROR_NODE_MONITOR_DIED = "node_monitor_died"
 ERROR_LOG_MONITOR_DIED = "log_monitor_died"
 
+SESSION_LATEST = "session_latest"
+
 # kv namespaces
 KV_NAMESPACE_SESSION = "session"
 

@@ -19,6 +19,12 @@ logger = logging.getLogger(__name__)
 LOGGER_ID_CLUSTER_CONTROLLER = "cloudtik_cluster_controller"
 LOGGER_ID_NODE_MONITOR = "cloudtik_node_monitor"
 
+LOGGING_DATA_NODE_ID = "node_id"
+LOGGING_DATA_NODE_IP = "node_ip"
+LOGGING_DATA_NODE_TYPE = "node_type"
+LOGGING_DATA_ID = "id"
+LOGGING_DATA_RUNTIME = "runtime"
+
 
 def print_logs(redis_address, redis_password, runtimes):
     runtimes = split_list(runtimes) if runtimes else None
@@ -38,7 +44,7 @@ def print_logs(redis_address, redis_password, runtimes):
 def print_logs_data(data: Dict[str, str], print_file: Any):
     def prefix_for(data: Dict[str, str]) -> str:
         """The prefix for this log line."""
-        if data.get("id") in [LOGGER_ID_CLUSTER_CONTROLLER, LOGGER_ID_NODE_MONITOR]:
+        if data.get(LOGGING_DATA_ID) in [LOGGER_ID_CLUSTER_CONTROLLER, LOGGER_ID_NODE_MONITOR]:
             return ""
         else:
             res = "id="
@@ -51,10 +57,10 @@ def print_logs_data(data: Dict[str, str], print_file: Any):
     def color_for(data: Dict[str, str], line: str) -> str:
         """The color for this log line."""
         if (
-            data.get("id") == LOGGER_ID_NODE_MONITOR
+            data.get(LOGGING_DATA_ID) == LOGGER_ID_NODE_MONITOR
         ):
             return colorama.Fore.YELLOW
-        elif data.get("id") == LOGGER_ID_CLUSTER_CONTROLLER:
+        elif data.get(LOGGING_DATA_ID) == LOGGER_ID_CLUSTER_CONTROLLER:
             if "Error:" in line or "Warning:" in line:
                 return colorama.Fore.YELLOW
             else:
@@ -75,19 +81,19 @@ def print_logs_data(data: Dict[str, str], print_file: Any):
                 # colorama.Fore.LIGHTWHITE_EX, # Too light
                 # colorama.Fore.LIGHTYELLOW_EX, # Too light
             ]
-            log_id = data.get("id", 0)
+            lid = data.get(LOGGING_DATA_ID, 0)
             try:
-                i = int(log_id)
+                i = int(lid)
             except ValueError:
-                i = abs(hash(log_id))
+                i = abs(hash(lid))
             return colors[i % len(colors)]
         else:
             return colorama.Fore.CYAN
 
-    log_id = data.get("id")
+    log_id = data.get(LOGGING_DATA_ID)
     lines = data.get("lines", [])
 
-    if data.get("ip") == data.get("localhost"):
+    if data.get(LOGGING_DATA_NODE_IP) == data.get("localhost"):
         for line in lines:
             print(
                 "{}({}{}){} {}".format(
@@ -106,7 +112,7 @@ def print_logs_data(data: Dict[str, str], print_file: Any):
                     color_for(data, line),
                     prefix_for(data),
                     log_id,
-                    data.get("ip"),
+                    data.get(LOGGING_DATA_NODE_IP),
                     colorama.Style.RESET_ALL,
                     message_for(data, line),
                 ),

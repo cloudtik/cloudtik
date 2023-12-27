@@ -157,7 +157,7 @@ def start_server(
         "%Y-%m-%d_%H-%M-%S_%f")
     session_name = f"session_{date_str}_{os.getpid()}"
     session_dir = os.path.join(args.logs_dir, session_name)
-    session_symlink = os.path.join(args.logs_dir, "session_latest")
+    session_symlink = os.path.join(args.logs_dir, constants.SESSION_LATEST)
 
     # Send a warning message if the session exists.
     create_shared_directory(session_dir)

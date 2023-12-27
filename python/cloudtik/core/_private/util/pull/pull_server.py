@@ -4,9 +4,9 @@ from shlex import quote
 
 from cloudtik.core._private import constants
 from cloudtik.core._private.cli_logger import cli_logger
+from cloudtik.core._private.constants import SESSION_LATEST
 from cloudtik.core._private.util.core_utils import get_cloudtik_temp_dir, check_process_exists, stop_process_tree, \
-    get_named_log_file_handles
-from cloudtik.core._private.node.node_services import SESSION_LATEST
+    get_named_log_file_handles, get_cloudtik_home_dir, create_shared_directory
 from cloudtik.core._private.services import start_cloudtik_process
 from cloudtik.core._private.utils import save_server_process, get_server_process
 
@@ -137,8 +137,10 @@ def start_pull_server(
         return
 
     if not logs_dir:
-        temp_dir = get_cloudtik_temp_dir()
-        logs_dir = os.path.join(temp_dir, SESSION_LATEST, "logs")
+        home_dir = get_cloudtik_home_dir()
+        logs_dir = os.path.join(home_dir, SESSION_LATEST, "logs")
+
+    create_shared_directory(logs_dir)
 
     logging_name = _get_logging_name(identifier)
     stdout_file, stderr_file = get_named_log_file_handles(
