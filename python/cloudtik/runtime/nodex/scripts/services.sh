@@ -29,7 +29,7 @@ get_nodex_port() {
 case "$SERVICE_COMMAND" in
 start)
     NODEX_SERVICE_PORT=$(get_nodex_port)
-    NODEX_ADDRESS="${NODE_IP_ADDRESS}:${NODEX_PORT}"
+    NODEX_ADDRESS="${NODE_IP_ADDRESS}:${NODEX_SERVICE_PORT}"
     nohup ${NODEX_HOME}/nodex \
           --web.listen-address=${NODEX_ADDRESS} >${NODEX_HOME}/logs/nodex.log 2>&1 &
     ;;

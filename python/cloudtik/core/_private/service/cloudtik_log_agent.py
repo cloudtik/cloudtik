@@ -60,14 +60,19 @@ def is_proc_alive(pid):
 def _get_pid_from_log_file(file_path):
     job_match = JOB_LOG_PATTERN.match(file_path)
     if job_match:
-        worker_pid = int(job_match.group(2))
-    else:
-        pid_match = PID_LOG_PATTERN.match(file_path)
-        if pid_match:
-            worker_pid = job_match.group(1)
-        else:
-            # use file name as pid
-            worker_pid = Path(file_path).stem
+        try:
+            return int(job_match.group(2))
+        except ValueError:
+            pass
+
+    pid_match = PID_LOG_PATTERN.match(file_path)
+    if pid_match:
+        worker_pid = pid_match.group(1)
+        if worker_pid:
+            return worker_pid
+
+    # use file name as pid
+    worker_pid = Path(file_path).stem
     return worker_pid
 
 
