@@ -29,6 +29,9 @@ logger = logging.getLogger(__name__)
 # The groups are job id, and pid.
 JOB_LOG_PATTERN = re.compile(".*job.*-([0-9a-f]+)-(\d+).")
 
+# The groups are worker string pid, and ignored session id.
+PID_LOG_PATTERN = re.compile("(.*)-(\d+).")
+
 # Log name update interval under pressure.
 # We need it because log name update is CPU intensive and uses 100%
 # of cpu when there are many log files.
@@ -52,6 +55,20 @@ def is_proc_alive(pid):
     except psutil.NoSuchProcess:
         # The process does not exist.
         return False
+
+
+def _get_pid_from_log_file(file_path):
+    job_match = JOB_LOG_PATTERN.match(file_path)
+    if job_match:
+        worker_pid = int(job_match.group(2))
+    else:
+        pid_match = PID_LOG_PATTERN.match(file_path)
+        if pid_match:
+            worker_pid = job_match.group(1)
+        else:
+            # use file name as pid
+            worker_pid = Path(file_path).stem
+    return worker_pid
 
 
 class LogFileInfo:
@@ -261,13 +278,7 @@ class LogMonitor:
             if os.path.isfile(
                     file_path) and file_path not in self.log_filenames:
                 is_err_file = file_path.endswith("err")
-
-                job_match = JOB_LOG_PATTERN.match(file_path)
-                if job_match:
-                    worker_pid = int(job_match.group(3))
-                else:
-                    # use file name
-                    worker_pid = Path(file_path).stem
+                worker_pid = _get_pid_from_log_file(file_path)
 
                 self.log_filenames.add(file_path)
                 self.closed_file_infos.append(

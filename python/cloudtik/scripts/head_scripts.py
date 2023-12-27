@@ -650,13 +650,28 @@ def process_status(address, redis_password, runtimes):
     type=str,
     default=None,
     help="The list of runtimes to print logs for. If not specified, will print all.")
+@click.option(
+    "--node-types",
+    required=False,
+    type=str,
+    default=None,
+    help="The list of node types to print logs for.")
+@click.option(
+    "--node-ips",
+    required=False,
+    type=str,
+    default=None,
+    help="The list of node ips to print logs for.")
 @add_click_logging_options
-def logs(address, redis_password, runtimes):
+def logs(
+        address, redis_password,
+        runtimes, node_types, node_ips):
     """Print cluster logs."""
     if not address:
         address = get_address_to_use_or_die()
     cluster_logs_on_head(
-        address, redis_password, runtimes)
+        address, redis_password,
+        runtimes, node_types, node_ips)
 
 
 @head.command()

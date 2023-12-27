@@ -16,8 +16,8 @@ from cloudtik.core._private.util.redis_utils import create_redis_client
 
 logger = logging.getLogger(__name__)
 
-LOGGER_ID_CLUSTER_CONTROLLER = "cloudtik_cluster_controller"
-LOGGER_ID_NODE_MONITOR = "cloudtik_node_monitor"
+LOGGER_ID_CLUSTER_CONTROLLER = "cluster-controller"
+LOGGER_ID_NODE_MONITOR = "node-monitor"
 
 LOGGING_DATA_NODE_ID = "id"
 LOGGING_DATA_NODE_IP = "ip"
@@ -26,10 +26,15 @@ LOGGING_DATA_PID = "pid"
 LOGGING_DATA_RUNTIME = "runtime"
 
 
-def print_logs(redis_address, redis_password, runtimes):
+def print_logs(
+        redis_address, redis_password,
+        runtimes, node_types, node_ips):
     runtimes = split_list(runtimes) if runtimes else None
+    node_types = split_list(node_types) if node_types else None
+    node_ips = split_list(node_ips) if node_ips else None
     worker = PrintLogsWorker(
-        redis_address, redis_password, runtimes)
+        redis_address, redis_password,
+        runtimes, node_types, node_ips)
 
     try:
         worker.print()
@@ -44,11 +49,16 @@ def print_logs(redis_address, redis_password, runtimes):
 def print_logs_data(data: Dict[str, str], print_file: Any):
     def prefix_for(data: Dict[str, str]) -> str:
         """The prefix for this log line."""
+        runtime = data.get(LOGGING_DATA_RUNTIME)
+        if runtime:
+            prefix = f"{runtime}: "
+        else:
+            prefix = ""
         pid = data.get(LOGGING_DATA_PID)
         if not isinstance(pid, str):
-            res = "pid="
-            return res
-        return ""
+            return prefix + "pid="
+        else:
+            return prefix
 
     def message_for(data: Dict[str, str], line: str) -> str:
         """The printed message of this log line."""
@@ -127,13 +137,20 @@ def print_to_std_stream(data):
 
 class PrintLogsWorker:
     def __init__(
-            self, redis_address, redis_password, runtimes):
+            self, redis_address, redis_password,
+            runtimes=None, node_types=None, node_ips=None):
         self.redis_address = redis_address
         self.redis_password = redis_password
         self.runtimes = runtimes
+        self.node_types = node_types
+        self.node_ips = node_ips
+
+        self.filter_logs_by_runtimes = False if not runtimes else True
+        self.filter_logs_by_node_types = False if not node_types else True
+        self.filter_logs_by_node_ips = False if not node_ips else True
+
         self.print_thread = None
         self.threads_stopped = threading.Event()
-        self.filter_logs_by_runtimes = False if not runtimes else True
         self.redis_client = create_redis_client(
             redis_address, redis_password)
 
@@ -188,10 +205,9 @@ class PrintLogsWorker:
 
                 data = json.loads(core_utils.decode(msg["data"]))
 
-                # Don't show logs from other runtimes if filtering by runtime
-                if (self.filter_logs_by_runtimes and data["runtime"]
-                        and data["runtime"] not in self.runtimes):
+                if self._filtered(data):
                     continue
+
                 data["localhost"] = localhost
                 global_standard_stream_dispatcher.emit(data)
 
@@ -200,3 +216,19 @@ class PrintLogsWorker:
         finally:
             # Close the pubsub client to avoid leaking file descriptors.
             pubsub_client.close()
+
+    def _filtered(self, data):
+        # Don't show logs from other runtimes if filtering by runtime
+        if self.filter_logs_by_runtimes:
+            runtime = data.get(LOGGING_DATA_RUNTIME)
+            if runtime and runtime not in self.runtimes:
+                return True
+        if self.filter_logs_by_node_types:
+            node_type = data.get(LOGGING_DATA_NODE_TYPE)
+            if node_type and node_type not in self.node_types:
+                return True
+        if self.filter_logs_by_node_ips:
+            node_ip = data.get(LOGGING_DATA_NODE_IP)
+            if node_ip and node_ip not in self.node_ips:
+                return True
+        return False
