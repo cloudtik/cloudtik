@@ -14,7 +14,7 @@ import traceback
 import cloudtik.core._private.constants as constants
 import cloudtik.core._private.utils as utils
 from cloudtik.core._private.cluster.cluster_logging import LOGGER_ID_CLUSTER_CONTROLLER, LOGGER_ID_NODE_MONITOR, \
-    LOGGING_DATA_NODE_ID, LOGGING_DATA_NODE_IP, LOGGING_DATA_NODE_TYPE, LOGGING_DATA_ID, LOGGING_DATA_RUNTIME
+    LOGGING_DATA_NODE_ID, LOGGING_DATA_NODE_IP, LOGGING_DATA_NODE_TYPE, LOGGING_DATA_PID, LOGGING_DATA_RUNTIME
 from cloudtik.core._private.runtime_factory import _get_runtime_cls
 from cloudtik.core._private.util.core_utils import get_node_ip_address, split_list
 from cloudtik.core._private.util.logging_utils import setup_component_logger
@@ -357,7 +357,7 @@ class LogMonitor:
                     LOGGING_DATA_NODE_ID: self.node_id,
                     LOGGING_DATA_NODE_IP: self.node_ip,
                     LOGGING_DATA_NODE_TYPE: self.node_type,
-                    LOGGING_DATA_ID: file_info.worker_pid,
+                    LOGGING_DATA_PID: file_info.worker_pid,
                     LOGGING_DATA_RUNTIME: file_info.runtime_name,
                     "is_err": file_info.is_err_file,
                     "lines": lines_to_publish,
