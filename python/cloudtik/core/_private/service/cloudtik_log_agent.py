@@ -4,15 +4,19 @@ import glob
 import json
 import logging.handlers
 import os
+from pathlib import Path
 import platform
+import re
 import shutil
 import time
 import traceback
 
 import cloudtik.core._private.constants as constants
 import cloudtik.core._private.utils as utils
-from cloudtik.core._private.cluster.cluster_logging import LOGGER_ID_CLUSTER_CONTROLLER, LOGGER_ID_NODE_MONITOR
-from cloudtik.core._private.util.core_utils import get_node_ip_address
+from cloudtik.core._private.cluster.cluster_logging import LOGGER_ID_CLUSTER_CONTROLLER, LOGGER_ID_NODE_MONITOR, \
+    LOGGING_DATA_NODE_ID, LOGGING_DATA_NODE_IP, LOGGING_DATA_NODE_TYPE, LOGGING_DATA_PID, LOGGING_DATA_RUNTIME
+from cloudtik.core._private.runtime_factory import _get_runtime_cls
+from cloudtik.core._private.util.core_utils import get_node_ip_address, split_list
 from cloudtik.core._private.util.logging_utils import setup_component_logger
 from cloudtik.core._private.util.redis_utils import create_redis_client
 
@@ -21,6 +25,9 @@ from cloudtik.core._private.util.redis_utils import create_redis_client
 # into the program using CloudTik. It provides a default configuration at
 # entry/init points.
 logger = logging.getLogger(__name__)
+
+# The groups are job id, and pid.
+JOB_LOG_PATTERN = re.compile(".*job.*-([0-9a-f]+)-(\d+).")
 
 # Log name update interval under pressure.
 # We need it because log name update is CPU intensive and uses 100%
@@ -113,7 +120,9 @@ class LogMonitor:
        lines in the file. If so, we will publish them to Redis.
 
     Attributes:
+        node_id (str): The id of this node. Typical the stable host name if available
         node_ip (str): The ip address of this node.
+        node_type (str): The node type of this node.
         logs_dir (str): The directory that the log files are in.
         redis_client: A client used to communicate with the Redis server.
         log_filenames (set): This is the set of filenames of all files in
@@ -126,7 +135,9 @@ class LogMonitor:
     """
 
     def __init__(self,
-                 node_ip: str,
+                 node_id,
+                 node_ip,
+                 node_type,
                  logs_dir,
                  redis_address,
                  redis_password=None,
@@ -136,16 +147,40 @@ class LogMonitor:
         """Initialize the log monitor object."""
         if not node_ip:
             node_ip = get_node_ip_address()
+        if node_id is None:
+            node_id = utils.make_node_id(node_ip)
+        self.node_id = node_id
         self.node_ip = node_ip
+        self.node_type = node_type
+
         self.logs_dir = logs_dir
         self.redis_client = create_redis_client(
             redis_address, password=redis_password)
-        self.runtimes = runtimes
+        self.runtimes = split_list(runtimes) if runtimes else None
         self.log_filenames = set()
         self.open_file_infos = []
         self.closed_file_infos = []
         self.can_open_more_files = True
         self.max_files_open: int = max_files_open
+        self.runtime_logs = self._get_runtime_log_dirs()
+
+    def _get_runtime_log_dirs(self):
+        if not self.runtimes:
+            return None
+
+        # Iterate through all the runtimes
+        runtime_log_dirs = {}
+        for runtime_type in self.runtimes:
+            runtime_cls = _get_runtime_cls(runtime_type)
+            runtime_logs = runtime_cls.get_logs()
+            if not runtime_logs:
+                continue
+            log_dirs = []
+            for category in runtime_logs:
+                log_dir = runtime_logs[category]
+                log_dirs += [log_dir]
+            runtime_log_dirs[runtime_type] = log_dirs
+        return runtime_log_dirs
 
     def _close_all_files(self):
         """Close all open files (so that we can open more)."""
@@ -158,14 +193,12 @@ class LogMonitor:
             # is still alive. Only applies to worker processes.
             # For all other system components, we always assume they are alive.
             if (
-                    file_info.worker_pid != LOGGER_ID_NODE_MONITOR
+                    file_info.runtime_name is None
+                    and file_info.worker_pid != LOGGER_ID_NODE_MONITOR
                     and file_info.worker_pid != LOGGER_ID_CLUSTER_CONTROLLER
                     and file_info.worker_pid is not None
+                    and not isinstance(file_info.worker_pid, str)
             ):
-                assert not isinstance(file_info.worker_pid, str), (
-                    "PID should be an int type. " f"Given PID: {file_info.worker_pid}."
-                )
-
                 proc_alive = is_proc_alive(file_info.worker_pid)
                 if not proc_alive:
                     # TODO: handle completed job log
@@ -192,21 +225,49 @@ class LogMonitor:
 
     def update_log_filenames(self):
         """Update the list of log files to monitor."""
-        monitor_log_paths = []
+        system_log_paths = []
         # segfaults and other serious errors are logged here
-        monitor_log_paths += glob.glob(f"{self.logs_dir}/cloudtik_node_monitor*[.log|.out|.err]")
+        system_log_paths += glob.glob(
+            f"{self.logs_dir}/cloudtik_node_monitor*[.log|.out|.err]")
         # monitor logs are needed to report cluster scaler events
-        monitor_log_paths += glob.glob(f"{self.logs_dir}/cloudtik_cluster_controller*[.log|.out|.err]")
-        # user job logs are here
-        user_logs_dir = os.path.expanduser("~/user/logs")
-        monitor_log_paths += glob.glob(f"{user_logs_dir}/*.log")
+        system_log_paths += glob.glob(
+            f"{self.logs_dir}/cloudtik_cluster_controller*[.log|.out|.err]")
 
-        for file_path in monitor_log_paths:
+        self._update_log_paths(
+            system_log_paths, runtime_name=constants.CLOUDTIK_RUNTIME_NAME)
+
+        self._update_runtime_log_paths()
+
+        # user job logs are here
+        user_log_paths = []
+        user_logs_dir = os.path.expanduser("~/user/logs")
+        user_log_paths += glob.glob(f"{user_logs_dir}/*.log")
+
+        self._update_log_paths(
+            user_log_paths, runtime_name=None)
+
+    def _update_runtime_log_paths(self):
+        if not self.runtime_logs:
+            return
+        for runtime_type, log_dirs in self.runtime_logs.items():
+            log_paths = []
+            for log_dir in log_dirs:
+                log_paths += glob.glob(f"{log_dir}/*.log")
+            self._update_log_paths(
+                log_paths, runtime_name=runtime_type)
+
+    def _update_log_paths(self, log_paths, runtime_name):
+        for file_path in log_paths:
             if os.path.isfile(
                     file_path) and file_path not in self.log_filenames:
                 is_err_file = file_path.endswith("err")
-                worker_pid = None
-                runtime_name = constants.CLOUDTIK_RUNTIME_NAME
+
+                job_match = JOB_LOG_PATTERN.match(file_path)
+                if job_match:
+                    worker_pid = int(job_match.group(3))
+                else:
+                    # use file name
+                    worker_pid = Path(file_path).stem
 
                 self.log_filenames.add(file_path)
                 self.closed_file_infos.append(
@@ -293,9 +354,11 @@ class LogMonitor:
             nonlocal anything_published
             if len(lines_to_publish) > 0:
                 data = {
-                    "ip": self.node_ip,
-                    "id": file_info.worker_pid,
-                    "runtime": file_info.runtime_name,
+                    LOGGING_DATA_NODE_ID: self.node_id,
+                    LOGGING_DATA_NODE_IP: self.node_ip,
+                    LOGGING_DATA_NODE_TYPE: self.node_type,
+                    LOGGING_DATA_PID: file_info.worker_pid,
+                    LOGGING_DATA_RUNTIME: file_info.runtime_name,
                     "is_err": file_info.is_err_file,
                     "lines": lines_to_publish,
                 }
@@ -334,8 +397,6 @@ class LogMonitor:
                     file_info.worker_pid = LOGGER_ID_NODE_MONITOR
                 elif "/cloudtik_cluster_controller" in file_info.filename:
                     file_info.worker_pid = LOGGER_ID_CLUSTER_CONTROLLER
-                else:
-                    file_info.worker_pid = "user"
 
             # Record the current position in the file.
             file_info.file_position = file_info.file_handle.tell()
@@ -407,6 +468,24 @@ if __name__ == "__main__":
                      "log monitor to connect "
                      "to."))
     parser.add_argument(
+        "--node-id",
+        required=False,
+        type=str,
+        default=None,
+        help="The unique node id to use to for this node.")
+    parser.add_argument(
+        "--node-ip",
+        required=False,
+        type=str,
+        default=None,
+        help="The IP address of this node.")
+    parser.add_argument(
+        "--node-type",
+        required=False,
+        type=str,
+        default=None,
+        help="the node type of the this node")
+    parser.add_argument(
         "--redis-address",
         required=True,
         type=str,
@@ -460,12 +539,6 @@ if __name__ == "__main__":
         help="Specify the backup count of rotated log file, default is "
         f"{constants.LOGGING_ROTATE_BACKUP_COUNT}.")
     parser.add_argument(
-        "--node-ip",
-        required=False,
-        type=str,
-        default=None,
-        help="The IP address of the this node.")
-    parser.add_argument(
         "--runtimes",
         required=False,
         type=str,
@@ -481,7 +554,9 @@ if __name__ == "__main__":
         backup_count=args.logging_rotate_backup_count)
 
     log_monitor = LogMonitor(
+        args.node_id,
         args.node_ip,
+        args.node_type,
         args.logs_dir,
         args.redis_address,
         redis_password=args.redis_password,

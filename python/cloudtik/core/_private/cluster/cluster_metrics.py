@@ -74,9 +74,13 @@ def freq_of_dicts(dicts: List[Dict],
 class ClusterMetrics:
     """Container for cluster load metrics.
 
-    Metrics here are updated from heartbeats. The scaler
+    Metrics here are updated from heartbeats and updates from node agents. The scaler
     queries these metrics to determine when to scale up, and which nodes
     can be removed.
+
+    The scaler uses the node ip (NOT node id) to match the resource records in the metrics
+    using the internal ip getting from the provider.
+
     """
 
     def __init__(self):

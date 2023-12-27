@@ -49,14 +49,15 @@ class NodeMonitor:
         if node_id is None:
             node_id = make_node_id(node_ip)
         self.node_id = node_id
-        (redis_host, redis_port) = redis_address.split(":")
-
-        self.redis_address = redis_address
-        self.redis_password = redis_password
         self.node_ip = node_ip
         self.node_kind = node_kind
         self.node_type = node_type
         self.node_seq_id = node_seq_id
+
+        (redis_host, redis_port) = redis_address.split(":")
+        self.redis_address = redis_address
+        self.redis_password = redis_password
+
         self.static_resource_list = static_resource_list
         # node_info store the basic aliveness of the current node
         self.node_info = {
@@ -253,6 +254,18 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Parse the arguments of the Node Monitor")
     parser.add_argument(
+        "--node-id",
+        required=False,
+        type=str,
+        default=None,
+        help="The unique node id to use to for this node.")
+    parser.add_argument(
+        "--node-ip",
+        required=False,
+        type=str,
+        default=None,
+        help="The IP address of this node.")
+    parser.add_argument(
         "--node-kind",
         required=True,
         type=str,
@@ -322,18 +335,6 @@ if __name__ == "__main__":
         default=constants.LOGGING_ROTATE_BACKUP_COUNT,
         help="Specify the backup count of rotated log file, default is "
         f"{constants.LOGGING_ROTATE_BACKUP_COUNT}.")
-    parser.add_argument(
-        "--node-id",
-        required=False,
-        type=str,
-        default=None,
-        help="The unique node id to use to for this node.")
-    parser.add_argument(
-        "--node-ip",
-        required=False,
-        type=str,
-        default=None,
-        help="The IP address of this node.")
     parser.add_argument(
         "--static_resource_list",
         required=False,
