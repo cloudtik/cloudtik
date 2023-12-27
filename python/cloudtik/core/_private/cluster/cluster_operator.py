@@ -2618,19 +2618,26 @@ def cluster_logs(
         config_file: str,
         override_cluster_name: Optional[str],
         no_config_cache: bool = False,
-        runtimes=None) -> None:
+        runtimes=None, node_types=None, node_ips=None):
     """Print cluster logs."""
     cmd = f"cloudtik head logs"
     if runtimes:
         cmd += " --runtimes=" + quote(runtimes)
+    if node_types:
+        cmd += " --node-types=" + quote(node_types)
+    if node_ips:
+        cmd += " --node-ips=" + quote(node_ips)
 
     exec_cmd_on_cluster(
         config_file, cmd, override_cluster_name, no_config_cache)
 
 
 def cluster_logs_on_head(
-        redis_address, redis_password, runtimes):
-    print_logs(redis_address, redis_password, runtimes)
+        redis_address, redis_password,
+        runtimes=None, node_types=None, node_ips=None):
+    print_logs(
+        redis_address, redis_password,
+        runtimes, node_types, node_ips)
 
 
 def exec_on_nodes(

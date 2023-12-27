@@ -1010,13 +1010,28 @@ def monitor(cluster_config_file, lines, cluster_name, file_type):
     type=str,
     default=None,
     help="The list of runtimes to print logs for. If not specified, will all.")
+@click.option(
+    "--node-types",
+    required=False,
+    type=str,
+    default=None,
+    help="The list of node types to print logs for.")
+@click.option(
+    "--node-ips",
+    required=False,
+    type=str,
+    default=None,
+    help="The list of node ips to print logs for.")
 @add_click_logging_options
-def logs(cluster_config_file, cluster_name, no_config_cache, runtimes):
+def logs(
+        cluster_config_file, cluster_name, no_config_cache,
+        runtimes, node_types, node_ips):
     """Print logs of runtimes."""
     try:
         cluster_logs(
             cluster_config_file, cluster_name,
-            no_config_cache, runtimes)
+            no_config_cache, runtimes,
+            node_types, node_ips)
     except RuntimeError as re:
         cli_logger.error("Printing cluster logs failed. " + str(re))
         if cli_logger.verbosity == 0:
