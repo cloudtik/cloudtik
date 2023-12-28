@@ -21,7 +21,7 @@ CLOUDTIK_REGION="GLOBAL"
 # The universe image is for tests. It include all the runtimes except
 # apisix (cannot coexist with kong) and metastore (log4j vulnerability)
 declare -A IMAGE_RUNTIME_MAP=(\
-    ["universe"]="ai, bind, consul, coredns, dnsmasq, etcd, flink, grafana, hadoop, haproxy, hdfs, kafka, kong, minio, mongodb, mount, mysql, nginx, nodex, postgres, presto, prometheus, ray, redis, spark, sshserver, trino, yarn, zookeeper" \
+    ["universe"]="ai, bind, consul, coredns, dnsmasq, elasticsearch, etcd, flink, grafana, hadoop, haproxy, hdfs, kafka, kong, minio, mongodb, mount, mysql, nginx, nodex, postgres, presto, prometheus, ray, redis, spark, sshserver, trino, yarn, zookeeper" \
 )
 
 while [[ $# -gt 0 ]]
