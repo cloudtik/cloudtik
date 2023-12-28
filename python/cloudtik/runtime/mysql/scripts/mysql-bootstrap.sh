@@ -2,10 +2,9 @@
 
 # Current bin directory
 BIN_DIR="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
-ROOT_DIR="$(dirname "$(dirname "$BIN_DIR")")"
 
 # schema initialization functions
-. "$BIN_DIR"/mysql-init.sh
+. "$BIN_DIR"/mysql.sh
 
 # TODO: For group replication, a few cases needs to be considered:
 # 1. For the first time creating, the head node needs to execute start group replication
@@ -18,7 +17,7 @@ ROOT_DIR="$(dirname "$(dirname "$BIN_DIR")")"
 
 # Instead of using group_replication_bootstrap_group=ON, it is safer to manually start
 # group replication and turn on group_replication_bootstrap_group ON and OFF in commands.
-start_group_replication_with_bootstrap() {
+bootstrap_group_replication() {
     mysql_check_connection "$@"
     if [ $? != 0 ]; then
         echo "Error: timeout waiting for service ready."
@@ -27,4 +26,4 @@ start_group_replication_with_bootstrap() {
     fi
 }
 
-start_group_replication_with_bootstrap "$@"
+bootstrap_group_replication "$@"

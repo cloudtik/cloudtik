@@ -50,7 +50,7 @@ update_kafka_data_disks_config() {
     local kafka_data_dir=$(get_data_disk_dirs_of "kafka/data" true)
     # if no disks mounted
     if [ -z "$kafka_data_dir" ]; then
-        kafka_data_dir="${KAFKA_HOME}/kafka/data"
+        kafka_data_dir="${KAFKA_HOME}/data"
         mkdir -p $kafka_data_dir
     fi
 
