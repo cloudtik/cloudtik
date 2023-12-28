@@ -86,16 +86,15 @@ configure_elasticsearch() {
     update_in_file "${config_template_file}" \
       "{%bind.ip%}" "${NODE_IP_ADDRESS}"
     update_in_file "${config_template_file}" \
+      "{%node.host%}" "${NODE_HOST_ADDRESS}"
+    update_in_file "${config_template_file}" \
       "{%bind.port%}" "${ELASTICSEARCH_SERVICE_PORT}"
+    update_in_file "${config_template_file}" \
+      "{%transport.port%}" "${ELASTICSEARCH_TRANSPORT_PORT}"
 
     update_data_dir
     update_in_file "${config_template_file}" \
       "{%path.logs%}" "${ELASTICSEARCH_LOG_DIR}"
-
-    if [ "${ELASTICSEARCH_CLUSTER_MODE}" == "cluster" ]; then
-        update_in_file "${config_template_file}" \
-          "{%transport.port%}" "${ELASTICSEARCH_TRANSPORT_PORT}"
-    fi
 
     if [ ! -z "$ELASTICSEARCH_PASSWORD" ]; then
         elasticsearch_set_key_value "bootstrap.password" "$ELASTICSEARCH_PASSWORD"

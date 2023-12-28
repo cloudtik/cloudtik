@@ -49,12 +49,11 @@ elasticsearch_set_key_value() {
     local value="${2:?missing value}"
 
     debug "Storing key: ${key}"
-    elasticsearch-keystore add --stdin --force "$key" <<<"$value"
+    elasticsearch-keystore add --stdin --force "$key" <<<"$value" >/dev/null 2>&1
 
     # Avoid exit code of previous commands to affect the result of this function
     true
 }
-
 
 ########################
 # Write a configuration setting value (need yq installed)
@@ -231,12 +230,12 @@ elasticsearch_healthcheck() {
 
     host=$(get_elasticsearch_hostname)
 
-    if [[ ! -z "${ELASTICSEARCH_USERNAME}" ]]
+    if [[ ! -z "${ELASTICSEARCH_USERNAME}" ]]; then
         username="${ELASTICSEARCH_USERNAME}"
     fi
 
     # TODO: empty password disable security
-    if [[ ! -z "${ELASTICSEARCH_PASSWORD}" ]]
+    if [[ ! -z "${ELASTICSEARCH_PASSWORD}" ]]; then
         command_args+=("-k" "--user" "${username}:${ELASTICSEARCH_PASSWORD}")
         protocol="https"
     fi

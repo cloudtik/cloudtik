@@ -3,8 +3,8 @@ import argparse
 from cloudtik.core._private.util.runtime_utils import get_runtime_value
 from cloudtik.core.api import configure_logging
 from cloudtik.runtime.common.utils import SERVICE_COMMAND_START
-from cloudtik.runtime.redis.scripting import init_cluster_service
-from cloudtik.runtime.redis.utils import REDIS_CLUSTER_MODE_SHARDING
+from cloudtik.runtime.elasticsearch.scripting import configure_clustering
+from cloudtik.runtime.elasticsearch.utils import ELASTICSEARCH_CLUSTER_MODE_CLUSTER
 
 
 def main():
@@ -22,12 +22,11 @@ def main():
         nargs=argparse.REMAINDER,
     )
     args = parser.parse_args()
-    configure_logging(verbosity=0)
-
-    cluster_mode = get_runtime_value("REDIS_CLUSTER_MODE")
-    if (cluster_mode == REDIS_CLUSTER_MODE_SHARDING and
+    cluster_mode = get_runtime_value("ELASTICSEARCH_CLUSTER_MODE")
+    if (cluster_mode == ELASTICSEARCH_CLUSTER_MODE_CLUSTER and
             args.command == SERVICE_COMMAND_START):
-        init_cluster_service(args.head)
+        configure_logging(verbosity=0)
+        configure_clustering(args.head)
 
 
 if __name__ == "__main__":

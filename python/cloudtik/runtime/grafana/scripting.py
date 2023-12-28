@@ -46,7 +46,7 @@ def configure_data_sources(head):
 
 
 def _save_data_sources_config(data_sources):
-    # writhe the data sources file
+    # write the data sources file
     home_dir = _get_home_dir()
     config_file = os.path.join(
         home_dir, "conf", "provisioning",

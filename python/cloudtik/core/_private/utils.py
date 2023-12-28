@@ -2164,6 +2164,7 @@ def get_attach_command(use_screen: bool,
             raise ValueError(
                 "--new only makes sense if passing --screen or --tmux")
         cmd = "$SHELL"
+    cmd += " || true"
     return cmd
 
 

@@ -16,7 +16,7 @@ class ElasticSearchRuntime(RuntimeBase):
     ElasticSearch Cluster.
     It supports the following topology:
     1. A standalone server: on head
-    4. A cluster: with multiple roles on each node or based roles based on node
+    2. A cluster: with multiple roles on each node or roles based on node
     types.
 
     Notice of limitations:
@@ -24,7 +24,7 @@ class ElasticSearchRuntime(RuntimeBase):
     Hints:
     1. Checking cluster status:
     curl -k --user elastic:password 'https://host:9200/_cat/nodes'
-    2. Reset elastic super user password:
+    2. Reset elastic user password:
     elasticsearch-reset-password -u elastic
     """
 

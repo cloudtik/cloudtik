@@ -95,7 +95,7 @@ def _with_runtime_environment_variables(
     service_port = _get_service_port(elasticsearch_config)
     runtime_envs["ELASTICSEARCH_SERVICE_PORT"] = service_port
 
-    transport_port = _get_service_port(elasticsearch_config)
+    transport_port = _get_transport_port(elasticsearch_config)
     runtime_envs["ELASTICSEARCH_TRANSPORT_PORT"] = transport_port
 
     cluster_mode = _get_cluster_mode(elasticsearch_config)
