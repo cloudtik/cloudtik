@@ -1,4 +1,9 @@
 #!/bin/bash
+# Copyright VMware, Inc.
+# SPDX-License-Identifier: APACHE-2.0
+#
+# shellcheck disable=SC1090,SC1091
+
 # Current bin directory
 BIN_DIR="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 ROOT_DIR="$(dirname "$(dirname "$BIN_DIR")")"
@@ -117,6 +122,19 @@ elasticsearch_conf_set() {
 }
 
 ########################
+# Determine the hostname by which Elasticsearch can be contacted
+# Returns:
+#   The value of $ELASTICSEARCH_ADVERTISED_HOSTNAME or the current host address
+########################
+get_elasticsearch_hostname() {
+    if [[ -n "$ELASTICSEARCH_ADVERTISED_HOSTNAME" ]]; then
+        echo "$ELASTICSEARCH_ADVERTISED_HOSTNAME"
+    else
+        get_machine_ip
+    fi
+}
+
+########################
 # Check if Elasticsearch is running
 # Globals:
 #   ELASTICSEARCH_PID_FILE
@@ -191,4 +209,47 @@ elasticsearch_start() {
     retry_while "is_elasticsearch_running" "$retries" "$seconds"
     # Check Elasticsearch API is reachable
     retry_while "elasticsearch_healthcheck" "$retries" "$seconds"
+}
+
+########################
+# Check Elasticsearch/Opensearch health
+# Globals:
+#   DB_*
+# Arguments:
+#   None
+# Returns:
+#   0 when healthy
+#   1 when unhealthy
+#########################
+elasticsearch_healthcheck() {
+    info "Checking ElasticSearch health..."
+    local -r cmd="curl"
+    local command_args=("--silent" "--write-out" "%{http_code}")
+    local protocol="http"
+    local host
+    local username="elastic"
+
+    host=$(get_elasticsearch_hostname)
+
+    if [[ ! -z "${ELASTICSEARCH_USERNAME}" ]]
+        username="${ELASTICSEARCH_USERNAME}"
+    fi
+
+    # TODO: empty password disable security
+    if [[ ! -z "${ELASTICSEARCH_PASSWORD}" ]]
+        command_args+=("-k" "--user" "${username}:${ELASTICSEARCH_PASSWORD}")
+        protocol="https"
+    fi
+
+    # Combination of --silent, --output and --write-out allows us to obtain both the status code and the request body
+    output=$(mktemp)
+    command_args+=("-o" "$output" "${protocol}://${host}:${ELASTICSEARCH_SERVICE_PORT}/_cluster/health?local=true")
+    HTTP_CODE=$("$cmd" "${command_args[@]}")
+    if [[ ${HTTP_CODE} -ge 200 && ${HTTP_CODE} -le 299 ]]; then
+        rm "$output"
+        return 0
+    else
+        rm "$output"
+        return 1
+    fi
 }
