@@ -56,5 +56,10 @@ transport.port: {%transport.port%}
 #
 #cluster.initial_master_nodes: ["node-1", "node-2"]
 
-# Enable security features
+# --------------------------------- Security ----------------------------------
+#
+# Enable security features. When this option is not explicitly set, security and
+# TLS will be auto-configured. This should be avoided because we will override
+# the config for each configuring.
+# For cluster, Transport SSL must be enabled if security is enabled.
 xpack.security.enabled: {%security.enabled%}

@@ -41,9 +41,9 @@ def configure_clustering(head):
 
 def _configure_cluster_bootstrap():
     def update_initial_master_nodes(config_object):
-        discovery_config = get_config_for_update(config_object, "discovery")
+        cluster_config = get_config_for_update(config_object, "cluster")
         node_name = "node-{}".format(get_runtime_node_seq_id())
-        discovery_config["initial_master_nodes"] = [node_name]
+        cluster_config["initial_master_nodes"] = [node_name]
 
     _update_config_file(update_initial_master_nodes)
 
@@ -69,7 +69,9 @@ def _configure_cluster_joining(
         discovery_config = get_config_for_update(config_object, "discovery")
         discovery_config["seed_hosts"] = seed_hosts
         # remove initial_master_nodes when seed_hosts is set
-        discovery_config.pop("initial_master_nodes", None)
+        cluster_config = config_object.get("cluster")
+        if cluster_config:
+            cluster_config.pop("initial_master_nodes", None)
 
     _update_config_file(update_discovery_seed_hosts)
 
