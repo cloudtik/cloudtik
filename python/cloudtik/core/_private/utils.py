@@ -1236,16 +1236,12 @@ def get_cloudtik_head_prepare_command(config) -> str:
 
 def get_cloudtik_head_start_command(config) -> str:
     # Start the Redis service for state and data
-    # ulimit -n 65536; cloudtik node start --head
-    # --no-clustering
     start_command = "ulimit -n 65536; cloudtik node start --head"
     start_command += " --no-clustering"
     return start_command
 
 
 def get_cloudtik_head_start_clustering_command(config) -> str:
-    # ulimit -n 65536; cloudtik node start --head
-    # --cluster-config=~/cloudtik_bootstrap_config.yaml
     start_command = "ulimit -n 65536; cloudtik node start --head"
     start_command += " --no-redis"
 
@@ -1258,7 +1254,6 @@ def get_cloudtik_head_start_clustering_command(config) -> str:
 
 
 def get_cloudtik_worker_start_command(config) -> str:
-    # ulimit -n 65536; cloudtik node start
     start_command = "ulimit -n 65536; cloudtik node start"
     return start_command
 
