@@ -16,9 +16,9 @@ from cloudtik.core._private.cluster.cluster_operator import (
 from cloudtik.core._private.constants import CLOUDTIK_PROCESSES, \
     CLOUDTIK_REDIS_DEFAULT_PASSWORD, \
     CLOUDTIK_DEFAULT_PORT, CLOUDTIK_RUNTIME_ENV_RUNTIMES, CLOUDTIK_RUNTIME_ENV_NODE_TYPE, \
-    CLOUDTIK_RUNTIME_ENV_NODE_SEQ_ID
+    CLOUDTIK_RUNTIME_ENV_NODE_SEQ_ID, CLOUDTIK_RUNTIME_ENV_NODE_IP, CLOUDTIK_RUNTIME_ENV_HEAD_HOST
 from cloudtik.core._private.util.core_utils import get_cloudtik_home_dir, wait_for_port as _wait_for_port, \
-    get_node_ip_address, address_to_ip
+    get_node_ip_address, address_to_ip, address_string
 from cloudtik.core._private.node.node_services import NodeServicesStarter
 from cloudtik.core._private.parameter import StartParams
 from cloudtik.core._private.util.redis_utils import find_redis_address, validate_redis_address, create_redis_client, \
@@ -182,6 +182,8 @@ def start(node_ip_address, address, port, head,
           no_controller, no_redis, no_clustering):
     """Start the main daemon processes on the local machine."""
     # Convert hostnames to numerical IP address.
+    if not node_ip_address:
+        node_ip_address = get_runtime_value(CLOUDTIK_RUNTIME_ENV_NODE_IP)
     if node_ip_address is not None:
         node_ip_address = address_to_ip(node_ip_address)
     redirect_output = None if not no_redirect_output else True
@@ -272,18 +274,15 @@ def start(node_ip_address, address, port, head,
     else:
         # Start on a non-head node.
         if not address:
-            cli_logger.abort("`{}` is required for starting worker node",
-                             cf.bold("--address"))
-            raise Exception("Invalid command. --address must be provided for worker node.")
+            head_host = get_runtime_value(CLOUDTIK_RUNTIME_ENV_HEAD_HOST)
+            if not head_host:
+                cli_logger.abort("`{}` is required for starting worker node",
+                                 cf.bold("--address"))
+                raise Exception("Invalid command. --address must be provided for worker node.")
+            address = address_string(head_host, CLOUDTIK_DEFAULT_PORT)
 
         (redis_address,
          redis_ip, redis_port) = validate_redis_address(address)
-        if redis_address is None:
-            cli_logger.abort("`{}` is required unless starting with `{}`.",
-                             cf.bold("--address"), cf.bold("--head"))
-
-            raise Exception("If --head is not passed in, --address must "
-                            "be provided.")
 
         # Wait for the Redis server to be started. And throw an exception if we
         # can't connect to it.
