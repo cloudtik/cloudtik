@@ -6,6 +6,9 @@ from cloudtik.core._private.provider_factory import _get_node_provider
 from cloudtik.core._private.runtime_factory import _get_runtime, BUILT_IN_RUNTIME_HDFS
 from cloudtik.core._private.utils import RUNTIME_CONFIG_KEY, get_cluster_head_ip, is_runtime_enabled
 
+SERVICE_COMMAND_START = "start"
+SERVICE_COMMAND_STOP = "stop"
+
 
 def get_runtime_endpoints_of(config: Dict[str, Any], runtime_name: str):
     runtime_config = config.get(RUNTIME_CONFIG_KEY)

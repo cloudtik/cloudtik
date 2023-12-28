@@ -36,8 +36,6 @@ start)
 
         if [ "${IS_HEAD_NODE}" == "true" ] \
             && [ "${MYSQL_CLUSTER_MODE}" == "group_replication" ]; then
-            # Case 1 and Case 2. start group replication with bootstrap
-            # TODO: distinguish for Case 3
             echo "Bootstrapping group replication"
             bash $BIN_DIR/mysql-bootstrap.sh \
               -h ${HEAD_HOST_ADDRESS} >${MYSQL_HOME}/logs/mysql-bootstrap.log 2>&1

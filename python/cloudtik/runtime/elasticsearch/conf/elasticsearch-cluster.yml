@@ -24,7 +24,17 @@ path.logs: "{%path.logs%}"
 # By default Elasticsearch is only accessible on localhost. Set a different
 # address here to expose this node on the network:
 #
-network.host: {%bind.ip%}
+network.host: {%node.host%}
+#
+# The network address(es) to which the node should bind in order to listen
+# for incoming connections.
+#
+network.bind_host: {%bind.ip%}
+#
+# The network address that clients and other nodes can use to contact this
+# node. Accepts an IP address, a hostname.
+#
+network.publish_host: {%node.host%}
 #
 # By default Elasticsearch listens for HTTP traffic on the first free port it
 # finds starting at 9200. Set a specific HTTP port here:
@@ -34,6 +44,7 @@ http.port: {%bind.port%}
 # The port to bind for communication between nodes.
 #
 transport.port: {%transport.port%}
+
 # --------------------------------- Discovery ----------------------------------
 #
 # Pass an initial list of hosts to perform discovery when this node is started:

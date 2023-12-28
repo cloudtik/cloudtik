@@ -22,6 +22,8 @@ bootstrap_group_replication() {
     if [ $? != 0 ]; then
         echo "Error: timeout waiting for service ready."
     else
+        # Case 1 and Case 2. start group replication with bootstrap
+        # TODO: distinguish for Case 3
         mysql_bootstrap_group_replication "$@"
     fi
 }
