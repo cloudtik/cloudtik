@@ -234,8 +234,7 @@ elasticsearch_healthcheck() {
         username="${ELASTICSEARCH_USERNAME}"
     fi
 
-    # TODO: empty password disable security
-    if [[ ! -z "${ELASTICSEARCH_PASSWORD}" ]]; then
+    if [[ "${ELASTICSEARCH_SECURITY}" == true ]]; then
         command_args+=("-k" "--user" "${username}:${ELASTICSEARCH_PASSWORD}")
         protocol="https"
     fi

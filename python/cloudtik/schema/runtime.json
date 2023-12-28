@@ -1226,6 +1226,38 @@
                     }
                 }
             }
+        },
+        "elasticsearch": {
+            "type": "object",
+            "description": "ElasticSearch runtime configurations",
+            "additionalProperties": true,
+            "properties": {
+                "port": {
+                    "type": "integer",
+                    "default": 9200,
+                    "description": "The ElasticSearch HTTP port."
+                },
+                "transport_port": {
+                    "type": "integer",
+                    "default": 9300,
+                    "description": "The ElasticSearch inter-communication port."
+                },
+                "cluster_mode": {
+                    "type": "string",
+                    "default": "cluster",
+                    "description": "The cluster mode to use: none, cluster."
+                },
+                "security": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Whether to enable security or not."
+                },
+                "password": {
+                    "type": "string",
+                    "default": "cloudtik",
+                    "description": "Specify the password for elastic user if security enabled."
+                }
+            }
         }
     }
 }

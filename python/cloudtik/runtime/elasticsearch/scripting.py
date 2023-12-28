@@ -4,7 +4,7 @@ import os
 from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_ELASTICSEARCH
 from cloudtik.core._private.util.core_utils import address_string, get_config_for_update
 from cloudtik.core._private.util.runtime_utils import get_runtime_config_from_node, \
-    get_worker_ips_ready_from_head, get_runtime_head_host, load_and_save_yaml
+    get_worker_ips_ready_from_head, get_runtime_head_host, load_and_save_yaml, get_runtime_node_seq_id
 from cloudtik.runtime.elasticsearch.utils import _get_home_dir, _get_config, _get_transport_port
 
 logger = logging.getLogger(__name__)
@@ -29,7 +29,7 @@ def configure_clustering(head):
             runtime=BUILT_IN_RUNTIME_ELASTICSEARCH)
         if not worker_hosts:
             # The head will bootstrap the cluster
-            pass
+            _configure_cluster_bootstrap()
         else:
             _configure_cluster_joining(
                 runtime_config, worker_hosts)
@@ -37,6 +37,15 @@ def configure_clustering(head):
         # For workers, we assume the head must be bootstrapped and running
         # TODO: support to use service discovery to get a full view of seed hosts
         _configure_cluster_joining_head(runtime_config)
+
+
+def _configure_cluster_bootstrap():
+    def update_initial_master_nodes(config_object):
+        discovery_config = get_config_for_update(config_object, "discovery")
+        node_name = "node-{}".format(get_runtime_node_seq_id())
+        discovery_config["initial_master_nodes"] = [node_name]
+
+    _update_config_file(update_initial_master_nodes)
 
 
 def _configure_cluster_joining_head(runtime_config):
@@ -52,9 +61,6 @@ def _get_seed_hosts(hosts, port):
 def _configure_cluster_joining(
         runtime_config, cluster_hosts):
     # write the config file to update discovery.seed_hosts
-    home_dir = _get_home_dir()
-    config_file = os.path.join(
-        home_dir, "config", "elasticsearch.yml")
     elasticsearch_config = _get_config(runtime_config)
     transport_port = _get_transport_port(elasticsearch_config)
     seed_hosts = _get_seed_hosts(cluster_hosts, transport_port)
@@ -65,5 +71,14 @@ def _configure_cluster_joining(
         # remove initial_master_nodes when seed_hosts is set
         discovery_config.pop("initial_master_nodes", None)
 
+    _update_config_file(update_discovery_seed_hosts)
+
+
+def _update_config_file(update_fn):
+    # write the config file to update discovery.seed_hosts
+    home_dir = _get_home_dir()
+    config_file = os.path.join(
+        home_dir, "config", "elasticsearch.yml")
+
     load_and_save_yaml(
-        config_file, update_discovery_seed_hosts)
+        config_file, update_fn)
