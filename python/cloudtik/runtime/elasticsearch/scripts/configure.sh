@@ -96,6 +96,9 @@ configure_elasticsearch() {
     update_in_file "${config_template_file}" \
       "{%path.logs%}" "${ELASTICSEARCH_LOG_DIR}"
 
+    update_in_file "${config_template_file}" \
+      "{%security.enabled%}" "${ELASTICSEARCH_SECURITY}"
+
     if [ ! -z "$ELASTICSEARCH_PASSWORD" ]; then
         elasticsearch_set_key_value "bootstrap.password" "$ELASTICSEARCH_PASSWORD"
     fi

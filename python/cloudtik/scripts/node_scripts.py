@@ -233,7 +233,6 @@ def start(node_ip_address, address, port, head,
         # Get the node IP address if one is not provided.
         start_params.update_if_absent(
             node_ip_address=get_node_ip_address())
-        cli_logger.labeled_value("Local node IP", start_params.node_ip_address)
         start_params.update_if_absent(
             redis_port=port,
             redis_shard_ports=redis_shard_ports,
@@ -302,8 +301,6 @@ def start(node_ip_address, address, port, head,
         # Get the node IP address if one is not provided.
         start_params.update_if_absent(
             node_ip_address=get_node_ip_address(redis_address))
-
-        cli_logger.labeled_value("Local node IP", start_params.node_ip_address)
 
         start_params.update(redis_address=redis_address)
         NodeServicesStarter(

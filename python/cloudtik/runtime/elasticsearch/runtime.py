@@ -23,7 +23,8 @@ class ElasticSearchRuntime(RuntimeBase):
 
     Hints:
     1. Checking cluster status:
-    curl -k --user elastic:password 'https://host:9200/_cat/nodes'
+    curl 'http://host:9200/_cat/nodes'
+    secure cluster: curl -k --user elastic:password 'https://host:9200/_cat/nodes'
     2. Reset elastic user password:
     elasticsearch-reset-password -u elastic
     """

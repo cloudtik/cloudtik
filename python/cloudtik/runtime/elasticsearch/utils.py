@@ -25,7 +25,7 @@ ELASTICSEARCH_CLUSTER_MODE_NONE = "none"
 ELASTICSEARCH_CLUSTER_MODE_CLUSTER = "cluster"
 
 ELASTICSEARCH_PASSWORD_CONFIG_KEY = "password"
-
+ELASTICSEARCH_SECURITY_CONFIG_KEY = "security"
 
 ELASTICSEARCH_SERVICE_TYPE = BUILT_IN_RUNTIME_ELASTICSEARCH
 ELASTICSEARCH_SERVICE_PORT_DEFAULT = 9200
@@ -51,6 +51,11 @@ def _get_transport_port(elasticsearch_config: Dict[str, Any]):
 def _get_cluster_mode(elasticsearch_config: Dict[str, Any]):
     return elasticsearch_config.get(
         ELASTICSEARCH_CLUSTER_MODE_CONFIG_KEY, ELASTICSEARCH_CLUSTER_MODE_CLUSTER)
+
+
+def _is_security(elasticsearch_config: Dict[str, Any]):
+    return elasticsearch_config.get(
+        ELASTICSEARCH_SECURITY_CONFIG_KEY, True)
 
 
 def _get_home_dir():
@@ -104,6 +109,8 @@ def _with_runtime_environment_variables(
     password = elasticsearch_config.get(
         ELASTICSEARCH_PASSWORD_CONFIG_KEY, ELASTICSEARCH_PASSWORD_DEFAULT)
     runtime_envs["ELASTICSEARCH_PASSWORD"] = password
+    runtime_envs["ELASTICSEARCH_SECURITY"] = _is_security(
+        elasticsearch_config)
 
     return runtime_envs
 
