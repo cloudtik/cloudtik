@@ -52,8 +52,9 @@ BUILT_IN_RUNTIME_KONG = "kong"
 BUILT_IN_RUNTIME_APISIX = "apisix"
 BUILT_IN_RUNTIME_REDIS = "redis"
 BUILT_IN_RUNTIME_MONGODB = "mongodb"
+BUILT_IN_RUNTIME_ELASTICSEARCH = "elasticsearch"
 
-DEFAULT_RUNTIMES = [BUILT_IN_RUNTIME_PROMETHEUS, BUILT_IN_RUNTIME_NODEX, BUILT_IN_RUNTIME_SPARK]
+DEFAULT_RUNTIMES = [BUILT_IN_RUNTIME_NODEX, BUILT_IN_RUNTIME_PROMETHEUS, BUILT_IN_RUNTIME_SPARK]
 
 
 def _import_ai():
@@ -211,6 +212,11 @@ def _import_mongodb():
     return MongoDBRuntime
 
 
+def _import_elasticsearch():
+    from cloudtik.runtime.elasticsearch.runtime import ElasticSearchRuntime
+    return ElasticSearchRuntime
+
+
 _RUNTIMES = {
     BUILT_IN_RUNTIME_AI: _import_ai,
     BUILT_IN_RUNTIME_SPARK: _import_spark,
@@ -243,6 +249,7 @@ _RUNTIMES = {
     BUILT_IN_RUNTIME_APISIX: _import_apisix,
     BUILT_IN_RUNTIME_REDIS: _import_redis,
     BUILT_IN_RUNTIME_MONGODB: _import_mongodb,
+    BUILT_IN_RUNTIME_ELASTICSEARCH: _import_elasticsearch,
 }
 
 
