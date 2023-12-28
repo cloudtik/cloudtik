@@ -47,3 +47,11 @@ http.port: {%bind.port%}
 # The port to bind for communication between nodes.
 #
 transport.port: {%transport.port%}
+
+# --------------------------------- Security ----------------------------------
+#
+# Enable security features. When this option is not explicitly set, security and
+# TLS will be auto-configured. This should be avoided because we will override
+# the config for each configuring.
+# For single node, Transport SSL is not compulsory when security is enabled.
+xpack.security.enabled: {%security.enabled%}

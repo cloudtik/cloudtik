@@ -1249,8 +1249,7 @@
                 },
                 "security": {
                     "type": "boolean",
-                    "default": true,
-                    "description": "Whether to enable security or not."
+                    "description": "Whether to enable security or not. Default true for single node. Default false for cluster."
                 },
                 "password": {
                     "type": "string",

@@ -54,8 +54,11 @@ def _get_cluster_mode(elasticsearch_config: Dict[str, Any]):
 
 
 def _is_security(elasticsearch_config: Dict[str, Any]):
+    cluster_mode = _get_cluster_mode(elasticsearch_config)
+    # TODO: default enable security for clustering
+    default_enabled = True if cluster_mode == ELASTICSEARCH_CLUSTER_MODE_NONE else False
     return elasticsearch_config.get(
-        ELASTICSEARCH_SECURITY_CONFIG_KEY, True)
+        ELASTICSEARCH_SECURITY_CONFIG_KEY, default_enabled)
 
 
 def _get_home_dir():
@@ -162,6 +165,7 @@ def _get_runtime_services(
     else:
         # single standalone on head
         services = {
-            service_name: define_elasticsearch_service(define_runtime_service_on_head),
+            service_name: define_elasticsearch_service(
+                define_runtime_service_on_head),
         }
     return services
