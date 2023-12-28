@@ -1236,7 +1236,7 @@ def get_cloudtik_head_prepare_command(config) -> str:
 
 def get_cloudtik_head_start_command(config) -> str:
     # Start the Redis service for state and data
-    # ulimit -n 65536; cloudtik node start --head --port=6789
+    # ulimit -n 65536; cloudtik node start --head
     # --no-clustering
     start_command = "ulimit -n 65536; cloudtik node start --head"
     start_command += " --no-clustering"
