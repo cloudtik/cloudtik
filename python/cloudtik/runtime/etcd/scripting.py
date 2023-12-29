@@ -3,7 +3,7 @@ import os
 from typing import Any, Dict
 
 from cloudtik.core._private.constants import CLOUDTIK_RUNTIME_ENV_NODE_SEQ_ID
-from cloudtik.core._private.util.core_utils import exec_with_output, strip_quote
+from cloudtik.core._private.util.core_utils import exec_with_output, strip_quote, http_address_string
 from cloudtik.core._private.util.runtime_utils import RUNTIME_NODE_SEQ_ID, RUNTIME_NODE_IP, sort_nodes_by_seq_id, \
     load_and_save_yaml, get_runtime_value, get_runtime_node_ip, get_runtime_node_address_type, \
     get_node_host_from_node_info, get_runtime_node_host
@@ -20,9 +20,10 @@ logger = logging.getLogger(__name__)
 def _get_initial_cluster_from_nodes_info(initial_cluster):
     address_type = get_runtime_node_address_type()
     return ",".join(
-        ["server{}=http://{}:{}".format(
-            node_info[RUNTIME_NODE_SEQ_ID], get_node_host_from_node_info(
-                node_info, address_type), ETCD_PEER_PORT) for node_info in initial_cluster])
+        ["server{}={}".format(
+            node_info[RUNTIME_NODE_SEQ_ID], http_address_string(
+                get_node_host_from_node_info(node_info, address_type),
+                ETCD_PEER_PORT)) for node_info in initial_cluster])
 
 
 def configure_initial_cluster(nodes_info: Dict[str, Any]):
@@ -79,13 +80,14 @@ def _request_member_add(endpoints, node_host, seq_id):
     # etcdctl --endpoints=http://existing_node_host:2379 member add server --peer-urls=http://node_host:2380
     cmd = ["etcdctl"]
     endpoints_str = ",".join(
-        ["http://{}:{}".format(
+        [http_address_string(
             endpoint, ETCD_SERVICE_PORT) for endpoint in endpoints])
     cmd += ["--endpoints=" + endpoints_str]
     cmd += ["member", "add"]
     node_name = "server{}".format(seq_id)
     cmd += [node_name]
-    peer_urls = "--peer-urls=http://{}:{}".format(node_host, ETCD_PEER_PORT)
+    peer_urls = "--peer-urls={}".format(
+        http_address_string(node_host, ETCD_PEER_PORT))
     cmd += [peer_urls]
 
     cmd_str = " ".join(cmd)

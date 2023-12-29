@@ -2,7 +2,7 @@ import os
 from shlex import quote
 
 from cloudtik.core._private.util.core_utils import get_config_for_update, get_list_for_update, get_address_string, \
-    exec_with_output, string_to_hex_string
+    exec_with_output, string_to_hex_string, http_address_string, address_string
 from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_APISIX
 from cloudtik.core._private.util.runtime_utils import get_runtime_config_from_node, load_and_save_yaml, get_runtime_value, \
     get_runtime_cluster_name
@@ -36,8 +36,8 @@ def update_configurations(head):
             etcd = get_config_for_update(deployment, "etcd")
             hosts = get_list_for_update(etcd, "host")
             for service_address in service_addresses:
-                hosts.append("http://{}".format(
-                    get_address_string(service_address[0], service_address[1])))
+                hosts.append(
+                    http_address_string(service_address[0], service_address[1]))
             cluster_name = get_runtime_cluster_name()
             if cluster_name:
                 prefix = "apisix" + string_to_hex_string(cluster_name)
@@ -51,13 +51,15 @@ def update_configurations(head):
             dsn = get_config_for_update(discovery, "dns")
             servers = get_list_for_update(dsn, "servers")
             # TODO: get the address based on configuration
-            servers.append("127.0.0.1:8600")
+            servers.append(
+                address_string("127.0.0.1", 8600))
         elif config_mode == APISIX_CONFIG_MODE_CONSUL:
             discovery = get_config_for_update(config_object, "discovery")
             consul = get_config_for_update(discovery, "consul")
             servers = get_list_for_update(consul, "servers")
             # TODO: get the address based on configuration
-            servers.append("http://127.0.0.1:8500")
+            servers.append(
+                http_address_string("127.0.0.1", 8500))
 
     _update_configurations(update_callback)
 
@@ -77,7 +79,7 @@ def _get_pull_identifier():
 
 
 def _get_admin_api_endpoint(node_ip, admin_port):
-    return "http://{}:{}".format(
+    return http_address_string(
         node_ip, admin_port)
 
 

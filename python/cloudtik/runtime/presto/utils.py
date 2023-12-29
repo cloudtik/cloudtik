@@ -1,7 +1,7 @@
 import os
 from typing import Any, Dict
 
-from cloudtik.core._private.util.core_utils import double_quote
+from cloudtik.core._private.util.core_utils import double_quote, http_address_string
 from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_PRESTO
 from cloudtik.core._private.service_discovery.naming import get_cluster_head_host
 from cloudtik.core._private.service_discovery.utils import get_canonical_service_name, define_runtime_service_on_head, \
@@ -107,7 +107,7 @@ def _get_runtime_endpoints(cluster_config, cluster_head_ip):
     endpoints = {
         "presto": {
             "name": "Presto Web UI",
-            "url": "http://{}:{}".format(head_host, PRESTO_SERVICE_PORT)
+            "url": http_address_string(head_host, PRESTO_SERVICE_PORT)
         },
     }
     return endpoints

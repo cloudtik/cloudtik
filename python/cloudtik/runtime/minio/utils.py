@@ -3,7 +3,7 @@ from typing import Any, Dict
 
 from cloudtik.core._private.constants import \
     CLOUDTIK_DATA_DISK_MOUNT_POINT, CLOUDTIK_DATA_DISK_MOUNT_NAME_PREFIX
-from cloudtik.core._private.util.core_utils import get_config_for_update
+from cloudtik.core._private.util.core_utils import get_config_for_update, http_address_string
 from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_MINIO
 from cloudtik.core._private.util.runtime_utils import get_data_disk_dirs, get_runtime_cluster_name, \
     get_runtime_workspace_name
@@ -165,12 +165,12 @@ def _get_runtime_endpoints(
     endpoints = {
         "minio": {
             "name": "MinIO Service",
-            "url": "http://{}:{}".format(
+            "url": http_address_string(
                 head_host, _get_service_port(minio_config))
         },
         "minio-console": {
             "name": "MinIO Console",
-            "url": "http://{}:{}".format(
+            "url": http_address_string(
                 head_host, _get_console_port(minio_config))
         },
     }
@@ -287,4 +287,4 @@ def _get_server_pool_spec(
     node_name = get_cluster_node_name(cluster_name, expansion)
     hostname = get_cluster_node_fqdn(node_name, workspace_name)
     service_port = _get_service_port(minio_config)
-    return "http://{}:{}{}".format(hostname, service_port, data_dir_spec)
+    return http_address_string(hostname, service_port, path=data_dir_spec)

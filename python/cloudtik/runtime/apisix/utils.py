@@ -1,7 +1,7 @@
 import os
 from typing import Any, Dict
 
-from cloudtik.core._private.util.core_utils import get_address_string
+from cloudtik.core._private.util.core_utils import http_address_string
 from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_APISIX
 from cloudtik.core._private.service_discovery.naming import get_cluster_head_host
 from cloudtik.core._private.service_discovery.runtime_services import get_service_discovery_runtime
@@ -167,8 +167,7 @@ def _get_runtime_endpoints(
     endpoints = {
         "apisix": {
             "name": "APISIX",
-            "url": "http://{}".format(
-                get_address_string(head_host, service_port))
+            "url": http_address_string(head_host, service_port)
         },
     }
     return endpoints

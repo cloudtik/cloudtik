@@ -7,6 +7,7 @@ from cloudtik.core._private.service_discovery.runtime_services import get_servic
 from cloudtik.core._private.service_discovery.utils import get_canonical_service_name, \
     get_service_discovery_config, define_runtime_service_on_head_or_all, SERVICE_DISCOVERY_PROTOCOL_HTTP, \
     SERVICE_DISCOVERY_FEATURE_LOAD_BALANCER
+from cloudtik.core._private.util.core_utils import http_address_string
 from cloudtik.core._private.utils import RUNTIME_CONFIG_KEY
 from cloudtik.runtime.common.service_discovery.consul import get_service_dns_name
 
@@ -94,7 +95,7 @@ def _get_runtime_endpoints(
     endpoints = {
         "nginx": {
             "name": "NGINX",
-            "url": "http://{}:{}".format(head_host, service_port)
+            "url": http_address_string(head_host, service_port)
         },
     }
     return endpoints
