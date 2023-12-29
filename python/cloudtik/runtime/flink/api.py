@@ -12,7 +12,8 @@ class FlinkCluster(Cluster):
             self, cluster_config: Union[dict, str],
             should_bootstrap: bool = True,
             no_config_cache: bool = True,
-            verbosity: Optional[int] = None) -> None:
+            verbosity: Optional[int] = None,
+            skip_runtime_bootstrap: bool = False) -> None:
         """Create a Flink cluster object to operate on with this API.
 
         Args:
@@ -21,7 +22,8 @@ class FlinkCluster(Cluster):
         """
         super().__init__(
             cluster_config, should_bootstrap,
-            no_config_cache, verbosity)
+            no_config_cache, verbosity,
+            skip_runtime_bootstrap=skip_runtime_bootstrap)
 
     def jobs(self, endpoint: str):
         """Make a rest request to Flink History Server

@@ -65,26 +65,33 @@ class Cluster:
             self, cluster_config: Union[dict, str],
             should_bootstrap: bool = True,
             no_config_cache: bool = True,
-            verbosity: Optional[int] = None) -> None:
+            verbosity: Optional[int] = None,
+            skip_runtime_bootstrap: bool = False) -> None:
         """Create a cluster object to operate on with this API.
 
         Args:
             cluster_config (Union[str, dict]): Either the config dict of the
                 cluster, or a path pointing to a file containing the config.
             verbosity: If verbosity > 0, print more detailed messages.
+            skip_runtime_bootstrap: Use this flag only for hard stop cluster purposes.
         """
         self.cluster_config = cluster_config
         if isinstance(cluster_config, dict):
             if should_bootstrap:
                 self.config = _bootstrap_config(
-                    cluster_config, no_config_cache=no_config_cache)
+                    cluster_config,
+                    no_config_cache=no_config_cache,
+                    skip_runtime_bootstrap=skip_runtime_bootstrap)
             else:
                 self.config = cluster_config
         else:
             if not os.path.exists(cluster_config):
                 raise ValueError("Cluster config file not found: {}".format(cluster_config))
             self.config = _load_cluster_config(
-                cluster_config, should_bootstrap=should_bootstrap, no_config_cache=no_config_cache)
+                cluster_config,
+                should_bootstrap=should_bootstrap,
+                no_config_cache=no_config_cache,
+                skip_runtime_bootstrap=skip_runtime_bootstrap)
 
         # TODO: Each call may need its own call context
         _cli_logger = cli_logger
