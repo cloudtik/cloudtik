@@ -4,8 +4,10 @@ import os
 from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_ELASTICSEARCH
 from cloudtik.core._private.util.core_utils import address_string, get_config_for_update
 from cloudtik.core._private.util.runtime_utils import get_runtime_config_from_node, \
-    get_worker_ips_ready_from_head, get_runtime_head_host, load_and_save_yaml, get_runtime_node_seq_id
-from cloudtik.runtime.elasticsearch.utils import _get_home_dir, _get_config, _get_transport_port
+    get_worker_ips_ready_from_head, get_runtime_head_host, load_and_save_yaml, get_runtime_node_seq_id, \
+    get_runtime_node_type
+from cloudtik.runtime.elasticsearch.utils import _get_home_dir, _get_config, _get_transport_port, \
+    _get_clustering_config, _is_role_by_node_type, _get_node_type_of_roles
 
 logger = logging.getLogger(__name__)
 
@@ -29,7 +31,7 @@ def configure_clustering(head):
             runtime=BUILT_IN_RUNTIME_ELASTICSEARCH)
         if not worker_hosts:
             # The head will bootstrap the cluster
-            _configure_cluster_bootstrap()
+            _configure_cluster_bootstrap(runtime_config)
         else:
             _configure_cluster_joining(
                 runtime_config, worker_hosts)
@@ -39,11 +41,45 @@ def configure_clustering(head):
         _configure_cluster_joining_head(runtime_config)
 
 
-def _configure_cluster_bootstrap():
+def _configure_node_roles_by_node_type(
+        runtime_config, config_object):
+    elasticsearch_config = _get_config(runtime_config)
+    clustering_config = _get_clustering_config(elasticsearch_config)
+    if not _is_role_by_node_type(clustering_config):
+        return None
+    node_type_of_roles = _get_node_type_of_roles(clustering_config)
+    if not node_type_of_roles:
+        return None
+    node_type = get_runtime_node_type()
+    if node_type not in node_type_of_roles:
+        return None
+
+    roles = node_type_of_roles[node_type]
+    # assign role based on node type
+    node_config_object = get_config_for_update(config_object, "node")
+    node_config_object["roles"] = roles
+    return roles
+
+
+def _configure_node_roles(runtime_config, config_object):
+    roles = _configure_node_roles_by_node_type(
+            runtime_config, config_object)
+    if roles is not None:
+        # configured
+        return
+
+    # default all roles
+    node_config_object = config_object.get("node")
+    if node_config_object:
+        node_config_object.pop("roles", None)
+
+
+def _configure_cluster_bootstrap(runtime_config):
     def update_initial_master_nodes(config_object):
         cluster_config = get_config_for_update(config_object, "cluster")
         node_name = "node-{}".format(get_runtime_node_seq_id())
         cluster_config["initial_master_nodes"] = [node_name]
+        _configure_node_roles(runtime_config, config_object)
 
     _update_config_file(update_initial_master_nodes)
 
@@ -72,6 +108,7 @@ def _configure_cluster_joining(
         cluster_config = config_object.get("cluster")
         if cluster_config:
             cluster_config.pop("initial_master_nodes", None)
+        _configure_node_roles(runtime_config, config_object)
 
     _update_config_file(update_discovery_seed_hosts)
 

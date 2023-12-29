@@ -1,12 +1,14 @@
 import os
 from typing import Any, Dict
 
+from cloudtik.core._private.constants import CLOUDTIK_NODE_TYPE_WORKER_DEFAULT
 from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_ELASTICSEARCH
 from cloudtik.core._private.service_discovery.naming import get_cluster_head_host
 from cloudtik.core._private.service_discovery.utils import \
     get_canonical_service_name, define_runtime_service, \
     get_service_discovery_config, define_runtime_service_on_head
-from cloudtik.core._private.utils import is_node_seq_id_enabled, enable_node_seq_id
+from cloudtik.core._private.util.core_utils import get_config_for_update
+from cloudtik.core._private.utils import is_node_seq_id_enabled, enable_node_seq_id, get_runtime_config_for_update
 
 RUNTIME_PROCESSES = [
         # The first element is the substring to filter.
@@ -27,11 +29,41 @@ ELASTICSEARCH_CLUSTER_MODE_CLUSTER = "cluster"
 ELASTICSEARCH_PASSWORD_CONFIG_KEY = "password"
 ELASTICSEARCH_SECURITY_CONFIG_KEY = "security"
 
+ELASTICSEARCH_CLUSTERING_CONFIG_KEY = "clustering"
+ELASTICSEARCH_ROLE_BY_NODE_TYPE_CONFIG_KEY = "role_by_node_type"
+ELASTICSEARCH_NODE_TYPE_OF_ROLES_CONFIG_KEY = "node_type_of_roles"
+
 ELASTICSEARCH_SERVICE_TYPE = BUILT_IN_RUNTIME_ELASTICSEARCH
 ELASTICSEARCH_SERVICE_PORT_DEFAULT = 9200
 ELASTICSEARCH_TRANSPORT_PORT_DEFAULT = 9300
 
 ELASTICSEARCH_PASSWORD_DEFAULT = "cloudtik"
+
+ELASTICSEARCH_ROLE_MASTER = "master"
+ELASTICSEARCH_ROLE_DATA = "data"
+ELASTICSEARCH_ROLE_DATA_CONTENT = "data_content"
+ELASTICSEARCH_ROLE_DATA_HOT = "data_hot"
+ELASTICSEARCH_ROLE_DATA_WARM = "data_warm"
+ELASTICSEARCH_ROLE_DATA_COLD = "data_cold"
+ELASTICSEARCH_ROLE_DATA_FROZEN = "data_frozen"
+ELASTICSEARCH_ROLE_INGEST = "ingest"
+ELASTICSEARCH_ROLE_ML = "ml"
+ELASTICSEARCH_ROLE_TRANSFORM = "transform"
+ELASTICSEARCH_ROLE_REMOTE_CLUSTER_CLIENT = "remote_cluster_client"
+
+ELASTICSEARCH_ALL_ROLES = [
+    ELASTICSEARCH_ROLE_MASTER,
+    ELASTICSEARCH_ROLE_DATA,
+    ELASTICSEARCH_ROLE_DATA_CONTENT,
+    ELASTICSEARCH_ROLE_DATA_HOT,
+    ELASTICSEARCH_ROLE_DATA_WARM,
+    ELASTICSEARCH_ROLE_DATA_COLD,
+    ELASTICSEARCH_ROLE_DATA_FROZEN,
+    ELASTICSEARCH_ROLE_INGEST,
+    ELASTICSEARCH_ROLE_ML,
+    ELASTICSEARCH_ROLE_TRANSFORM,
+    ELASTICSEARCH_ROLE_REMOTE_CLUSTER_CLIENT,
+]
 
 
 def _get_config(runtime_config: Dict[str, Any]):
@@ -54,11 +86,23 @@ def _get_cluster_mode(elasticsearch_config: Dict[str, Any]):
 
 
 def _is_security(elasticsearch_config: Dict[str, Any]):
-    cluster_mode = _get_cluster_mode(elasticsearch_config)
-    # TODO: default enable security for clustering
-    default_enabled = True if cluster_mode == ELASTICSEARCH_CLUSTER_MODE_NONE else False
     return elasticsearch_config.get(
-        ELASTICSEARCH_SECURITY_CONFIG_KEY, default_enabled)
+        ELASTICSEARCH_SECURITY_CONFIG_KEY, False)
+
+
+def _get_clustering_config(elasticsearch_config: Dict[str, Any]):
+    return elasticsearch_config.get(
+        ELASTICSEARCH_CLUSTERING_CONFIG_KEY, {})
+
+
+def _is_role_by_node_type(clustering_config: Dict[str, Any]):
+    return clustering_config.get(
+        ELASTICSEARCH_ROLE_BY_NODE_TYPE_CONFIG_KEY, True)
+
+
+def _get_node_type_of_roles(clustering_config: Dict[str, Any]):
+    return clustering_config.get(
+        ELASTICSEARCH_NODE_TYPE_OF_ROLES_CONFIG_KEY)
 
 
 def _get_home_dir():
@@ -76,6 +120,79 @@ def _get_runtime_logs():
     return {"elasticsearch": logs_dir}
 
 
+def _match_roles_for_node_type(node_type, roles_matched):
+    if node_type == CLOUDTIK_NODE_TYPE_WORKER_DEFAULT:
+        roles = [ELASTICSEARCH_ROLE_MASTER]
+        roles_matched.update(roles)
+        return roles
+
+    # smart match node type with a role
+    # if matched, use the node for a specific role
+    meaningful_parts = node_type.split(".")
+    name_to_match = meaningful_parts[-1]
+    if name_to_match in ELASTICSEARCH_ALL_ROLES:
+        roles = [name_to_match]
+        if (name_to_match == ELASTICSEARCH_ROLE_ML
+                or name_to_match == ELASTICSEARCH_ROLE_TRANSFORM):
+            roles += [ELASTICSEARCH_ROLE_REMOTE_CLUSTER_CLIENT]
+        roles_matched.update(roles)
+        return roles
+    return None
+
+
+def _check_node_type_of_roles(cluster_config, node_type_of_roles):
+    available_node_types = cluster_config["available_node_types"]
+    head_node_type = cluster_config["head_node_type"]
+    worker_node_types = set()
+    for node_type in available_node_types:
+        if node_type != head_node_type:
+            worker_node_types.add(node_type)
+
+    if node_type_of_roles:
+        # user specified the node type of roles
+        for node_type in node_type_of_roles:
+            if node_type not in worker_node_types:
+                raise RuntimeError(
+                    "Node type {} is not defined.".format(node_type))
+        return node_type_of_roles
+
+    # This configuration need extra worker node types
+    if len(worker_node_types) <= 1:
+        return None
+    master_node_type = CLOUDTIK_NODE_TYPE_WORKER_DEFAULT
+    if master_node_type not in worker_node_types:
+        raise RuntimeError(
+            "Default worker type {} is not defined for role by node type.".format(
+                master_node_type))
+
+    # first try to match with names
+    node_type_of_roles = {}
+    roles_matched = set()
+    for node_type in worker_node_types:
+        roles = _match_roles_for_node_type(node_type, roles_matched)
+        if roles is not None:
+            node_type_of_roles[node_type] = roles
+
+    # finally assign all the remaining
+    roles_all = set(ELASTICSEARCH_ALL_ROLES)
+    roles_remaining = list(roles_all.difference(roles_matched))
+    for node_type in worker_node_types:
+        if node_type not in node_type_of_roles:
+            # not assign any roles, assign remaining roles
+            # coordinating role if empty
+            node_type_of_roles[node_type] = roles_remaining
+    return master_node_type
+
+
+def _update_node_type_of_roles(cluster_config, node_type_of_roles):
+    runtime_config_to_update = get_runtime_config_for_update(cluster_config)
+    elasticsearch_config_to_update = get_config_for_update(
+        runtime_config_to_update, BUILT_IN_RUNTIME_ELASTICSEARCH)
+    clustering_config_to_update = get_config_for_update(
+        elasticsearch_config_to_update, ELASTICSEARCH_CLUSTERING_CONFIG_KEY)
+    clustering_config_to_update[ELASTICSEARCH_NODE_TYPE_OF_ROLES_CONFIG_KEY] = node_type_of_roles
+
+
 def _bootstrap_runtime_config(
         runtime_config: Dict[str, Any],
         cluster_config: Dict[str, Any]) -> Dict[str, Any]:
@@ -86,6 +203,16 @@ def _bootstrap_runtime_config(
         # But we don't enforce it.
         if not is_node_seq_id_enabled(cluster_config):
             enable_node_seq_id(cluster_config)
+
+        if cluster_mode == ELASTICSEARCH_CLUSTER_MODE_CLUSTER:
+            clustering_config = _get_clustering_config(elasticsearch_config)
+            # check whether we need to use role by node type
+            if _is_role_by_node_type(clustering_config):
+                node_type_of_roles = _get_node_type_of_roles(clustering_config)
+                node_type_of_roles = _check_node_type_of_roles(
+                    cluster_config, node_type_of_roles)
+                if node_type_of_roles:
+                    _update_node_type_of_roles(cluster_config, node_type_of_roles)
 
     return cluster_config
 

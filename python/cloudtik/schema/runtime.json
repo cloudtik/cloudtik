@@ -1146,7 +1146,7 @@
                         "role_by_node_type": {
                             "type": "boolean",
                             "default": true,
-                            "description": "When this sets to true and if there are multiple node types defined. None default worker types will be replica"
+                            "description": "When this sets to true and if there are multiple node types defined, non default worker types will be replica"
                         },
                         "master_node_type": {
                             "type": "string",
@@ -1249,12 +1249,38 @@
                 },
                 "security": {
                     "type": "boolean",
-                    "description": "Whether to enable security or not. Default true for single node. Default false for cluster."
+                    "default": false,
+                    "description": "Whether to enable security or not."
                 },
                 "password": {
                     "type": "string",
                     "default": "cloudtik",
                     "description": "Specify the password for elastic user if security enabled."
+                },
+                "clustering": {
+                    "type": "object",
+                    "description": "Clustering configurations",
+                    "properties": {
+                        "role_by_node_type": {
+                            "type": "boolean",
+                            "default": true,
+                            "description": "When this sets to true and if there are multiple node types defined, decide roles by node type"
+                        },
+                        "node_type_of_roles": {
+                            "type": "object",
+                            "description": "Map from node type to a list of roles.",
+                            "additionalProperties": false,
+                            "patternProperties": {
+                                ".*": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "string"
+                                    },
+                                    "description": "The list of roles of the node type."
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }

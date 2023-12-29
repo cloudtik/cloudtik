@@ -145,7 +145,7 @@ def _check_master_node_type(cluster_config, master_node_type):
     master_node_type = CLOUDTIK_NODE_TYPE_WORKER_DEFAULT
     if master_node_type not in worker_node_types:
         raise RuntimeError(
-            "Node type {} is not defined for role by node type.".format(
+            "Default worker type {} is not defined for role by node type.".format(
                 master_node_type))
     return master_node_type
 
