@@ -1,3 +1,7 @@
+# Custom commands that will be run on the host node after common initialization.
+initialization_commands:
+    - sudo sysctl -w vm.max_map_count=262144
+
 # Custom commands that will be run on the head node after common setup.
 head_setup_commands:
     - cloudtik runtime install elasticsearch --head
