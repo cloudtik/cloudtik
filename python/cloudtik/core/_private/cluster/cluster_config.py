@@ -37,7 +37,8 @@ def try_reload_log_state(provider_config: Dict[str, Any],
 
 def _bootstrap_config(config: Dict[str, Any],
                       no_config_cache: bool = False,
-                      init_config_cache: bool = False) -> Dict[str, Any]:
+                      init_config_cache: bool = False,
+                      skip_runtime_bootstrap: bool = False) -> Dict[str, Any]:
     # Check if bootstrapped, return if it is the case
     if config.get("bootstrapped", False):
         return config
@@ -92,22 +93,29 @@ def _bootstrap_config(config: Dict[str, Any],
                      _PROVIDER_PRETTY_NAMES.get(config["provider"]["type"]))
 
     config = provider_cls.post_prepare(config)
-    config = runtime_prepare_config(config.get(RUNTIME_CONFIG_KEY), config)
+
+    if not skip_runtime_bootstrap:
+        config = runtime_prepare_config(
+            config.get(RUNTIME_CONFIG_KEY), config)
 
     try:
-        validate_config(config)
+        validate_config(
+            config, skip_runtime_validate=skip_runtime_bootstrap)
     except (ModuleNotFoundError, ImportError):
         cli_logger.abort(
             "Not all dependencies were found. Please "
             "update your install command.")
 
     resolved_config = provider_cls.bootstrap_config(config)
-    # final round to runtime for config prepare
-    resolved_config = runtime_bootstrap_config(
-        config.get(RUNTIME_CONFIG_KEY), resolved_config)
+
+    if not skip_runtime_bootstrap:
+        # final round to runtime for config prepare
+        resolved_config = runtime_bootstrap_config(
+            config.get(RUNTIME_CONFIG_KEY), resolved_config)
 
     # add a verify step
-    verify_config(resolved_config)
+    verify_config(
+        resolved_config, skip_runtime_verify=skip_runtime_bootstrap)
 
     if not no_config_cache or init_config_cache:
         os.makedirs(config_cache_dir, exist_ok=True)
@@ -126,10 +134,13 @@ def _bootstrap_config(config: Dict[str, Any],
 def _load_cluster_config(config_file: str,
                          override_cluster_name: Optional[str] = None,
                          should_bootstrap: bool = True,
-                         no_config_cache: bool = False) -> Dict[str, Any]:
+                         no_config_cache: bool = False,
+                         skip_runtime_bootstrap: bool = False) -> Dict[str, Any]:
     config = load_yaml_config(config_file)
     if override_cluster_name is not None:
         config["cluster_name"] = override_cluster_name
     if should_bootstrap:
-        config = _bootstrap_config(config, no_config_cache=no_config_cache)
+        config = _bootstrap_config(
+            config, no_config_cache=no_config_cache,
+            skip_runtime_bootstrap=skip_runtime_bootstrap)
     return config

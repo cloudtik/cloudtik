@@ -359,7 +359,12 @@ def teardown_cluster(config_file: str, yes: bool, workers_only: bool,
                      hard: bool = False,
                      deep: bool = False) -> None:
     """Destroys all nodes of a cluster described by a config json."""
-    config = _load_cluster_config(config_file, override_cluster_name)
+
+    # when stop the cluster hard, we avoid runtime validate or verification errors
+    skip_runtime_bootstrap = True if hard else False
+    config = _load_cluster_config(
+        config_file, override_cluster_name,
+        skip_runtime_bootstrap=skip_runtime_bootstrap)
 
     cli_logger.confirm(yes, "Are you sure that you want to shut down cluster {}?",
                        config["cluster_name"], _abort=True)

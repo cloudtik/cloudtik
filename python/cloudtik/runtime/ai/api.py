@@ -11,7 +11,8 @@ class AICluster(Cluster):
             self, cluster_config: Union[dict, str],
             should_bootstrap: bool = True,
             no_config_cache: bool = True,
-            verbosity: Optional[int] = None) -> None:
+            verbosity: Optional[int] = None,
+            skip_runtime_bootstrap: bool = False) -> None:
         """Create a Spark cluster object to operate on with this API.
 
         Args:
@@ -20,7 +21,8 @@ class AICluster(Cluster):
         """
         super().__init__(
             cluster_config, should_bootstrap,
-            no_config_cache, verbosity)
+            no_config_cache, verbosity,
+            skip_runtime_bootstrap=skip_runtime_bootstrap)
 
     def get_endpoints(self):
         return get_runtime_endpoints(self.config)

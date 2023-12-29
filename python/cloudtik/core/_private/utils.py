@@ -341,7 +341,8 @@ def run_in_parallel_on_nodes(run_exec,
     return len(nodes) - failures - skipped, failures, skipped
 
 
-def validate_config(config: Dict[str, Any]) -> None:
+def validate_config(
+        config: Dict[str, Any], skip_runtime_validate: bool = False) -> None:
     """Required Dicts indicate that no extra fields can be introduced."""
     if not isinstance(config, dict):
         raise ValueError("Config {} is not a dictionary".format(config))
@@ -376,19 +377,22 @@ def validate_config(config: Dict[str, Any]) -> None:
     provider_cls = _get_node_provider_cls(config["provider"])
     provider_cls.validate_config(config["provider"])
 
-    # add runtime config validate and testing
-    runtime_validate_config(config.get(RUNTIME_CONFIG_KEY), config)
+    if not skip_runtime_validate:
+        # add runtime config validate and testing
+        runtime_validate_config(config.get(RUNTIME_CONFIG_KEY), config)
 
 
-def verify_config(config: Dict[str, Any]):
+def verify_config(
+        config: Dict[str, Any], skip_runtime_verify: bool = False):
     """Verify the configurations. Usually verify may mean to involve slow process"""
     provider_config = config["provider"]
     provider = _get_node_provider(provider_config, config["cluster_name"])
 
     provider.verify_config(provider_config)
 
-    # add runtime config validate and testing
-    runtime_verify_config(config.get(RUNTIME_CONFIG_KEY), config)
+    if not skip_runtime_verify:
+        # add runtime config validate and testing
+        runtime_verify_config(config.get(RUNTIME_CONFIG_KEY), config)
 
 
 def prepare_config(config: Dict[str, Any]) -> Dict[str, Any]:
