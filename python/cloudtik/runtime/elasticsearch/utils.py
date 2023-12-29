@@ -2,13 +2,15 @@ import os
 from typing import Any, Dict
 
 from cloudtik.core._private.constants import CLOUDTIK_NODE_TYPE_WORKER_DEFAULT
-from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_ELASTICSEARCH
+from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_ELASTICSEARCH, BUILT_IN_RUNTIME_MOUNT
 from cloudtik.core._private.service_discovery.naming import get_cluster_head_host
 from cloudtik.core._private.service_discovery.utils import \
     get_canonical_service_name, define_runtime_service, \
     get_service_discovery_config, define_runtime_service_on_head
-from cloudtik.core._private.util.core_utils import get_config_for_update
-from cloudtik.core._private.utils import is_node_seq_id_enabled, enable_node_seq_id, get_runtime_config_for_update
+from cloudtik.core._private.util.core_utils import get_config_for_update, http_address_string
+from cloudtik.core._private.utils import is_node_seq_id_enabled, enable_node_seq_id, get_runtime_config_for_update, \
+    get_runtime_config
+from cloudtik.runtime.common.service_discovery.cluster import has_runtime_in_cluster
 
 RUNTIME_PROCESSES = [
         # The first element is the substring to filter.
@@ -28,6 +30,7 @@ ELASTICSEARCH_CLUSTER_MODE_CLUSTER = "cluster"
 
 ELASTICSEARCH_PASSWORD_CONFIG_KEY = "password"
 ELASTICSEARCH_SECURITY_CONFIG_KEY = "security"
+ELASTICSEARCH_SNAPSHOT_REPOSITORY_CONFIG_KEY = "snapshot_repository"
 
 ELASTICSEARCH_CLUSTERING_CONFIG_KEY = "clustering"
 ELASTICSEARCH_ROLE_BY_NODE_TYPE_CONFIG_KEY = "role_by_node_type"
@@ -66,6 +69,13 @@ ELASTICSEARCH_ALL_ROLES = [
 ]
 
 
+def _is_role_support_snapshot_repository(role):
+    if (role == ELASTICSEARCH_ROLE_MASTER
+            or role.startswith(ELASTICSEARCH_ROLE_DATA)):
+        return True
+    return False
+
+
 def _get_config(runtime_config: Dict[str, Any]):
     return runtime_config.get(BUILT_IN_RUNTIME_ELASTICSEARCH, {})
 
@@ -88,6 +98,11 @@ def _get_cluster_mode(elasticsearch_config: Dict[str, Any]):
 def _is_security(elasticsearch_config: Dict[str, Any]):
     return elasticsearch_config.get(
         ELASTICSEARCH_SECURITY_CONFIG_KEY, False)
+
+
+def _is_snapshot_repository_enabled(elasticsearch_config: Dict[str, Any]):
+    return elasticsearch_config.get(
+        ELASTICSEARCH_SNAPSHOT_REPOSITORY_CONFIG_KEY, False)
 
 
 def _get_clustering_config(elasticsearch_config: Dict[str, Any]):
@@ -151,7 +166,8 @@ def _check_node_type_of_roles(cluster_config, node_type_of_roles):
     if node_type_of_roles:
         # user specified the node type of roles
         for node_type in node_type_of_roles:
-            if node_type not in worker_node_types:
+            if (node_type != head_node_type
+                    and node_type not in worker_node_types):
                 raise RuntimeError(
                     "Node type {} is not defined.".format(node_type))
         return node_type_of_roles
@@ -181,7 +197,10 @@ def _check_node_type_of_roles(cluster_config, node_type_of_roles):
             # not assign any roles, assign remaining roles
             # coordinating role if empty
             node_type_of_roles[node_type] = roles_remaining
-    return master_node_type
+
+    # for this case head node is master only
+    node_type_of_roles[head_node_type] = [ELASTICSEARCH_ROLE_MASTER]
+    return node_type_of_roles
 
 
 def _update_node_type_of_roles(cluster_config, node_type_of_roles):
@@ -218,7 +237,14 @@ def _bootstrap_runtime_config(
 
 
 def _validate_config(config: Dict[str, Any]):
-    pass
+    runtime_config = get_runtime_config(config)
+    elasticsearch_config = _get_config(runtime_config)
+    if (_is_snapshot_repository_enabled(elasticsearch_config)
+            and not has_runtime_in_cluster(
+            runtime_config, BUILT_IN_RUNTIME_MOUNT)):
+        raise ValueError(
+            "Enabling snapshot repository needs {} runtime to be configured.".format(
+                BUILT_IN_RUNTIME_MOUNT))
 
 
 def _with_runtime_environment_variables(
@@ -252,7 +278,7 @@ def _get_runtime_endpoints(
     endpoints = {
         "elasticsearch": {
             "name": "ElasticSearch",
-            "url": "{}:{}".format(head_host, service_port)
+            "url": http_address_string(head_host, service_port)
         },
     }
     return endpoints
