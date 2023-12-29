@@ -1,13 +1,15 @@
 import logging
 import os
 
+from cloudtik.core._private.constants import CLOUDTIK_FS_PATH
 from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_ELASTICSEARCH
 from cloudtik.core._private.util.core_utils import address_string, get_config_for_update
 from cloudtik.core._private.util.runtime_utils import get_runtime_config_from_node, \
     get_worker_ips_ready_from_head, get_runtime_head_host, load_and_save_yaml, get_runtime_node_seq_id, \
-    get_runtime_node_type
+    get_runtime_node_type, get_runtime_cluster_name
 from cloudtik.runtime.elasticsearch.utils import _get_home_dir, _get_config, _get_transport_port, \
-    _get_clustering_config, _is_role_by_node_type, _get_node_type_of_roles
+    _get_clustering_config, _is_role_by_node_type, _get_node_type_of_roles, _is_snapshot_repository_enabled, \
+    _is_role_support_snapshot_repository
 
 logger = logging.getLogger(__name__)
 
@@ -42,8 +44,7 @@ def configure_clustering(head):
 
 
 def _configure_node_roles_by_node_type(
-        runtime_config, config_object):
-    elasticsearch_config = _get_config(runtime_config)
+        elasticsearch_config, config_object):
     clustering_config = _get_clustering_config(elasticsearch_config)
     if not _is_role_by_node_type(clustering_config):
         return None
@@ -61,17 +62,45 @@ def _configure_node_roles_by_node_type(
     return roles
 
 
-def _configure_node_roles(runtime_config, config_object):
-    roles = _configure_node_roles_by_node_type(
-            runtime_config, config_object)
-    if roles is not None:
-        # configured
-        return
+def _need_snapshot_repository_for_roles(roles):
+    for role in roles:
+        if _is_role_support_snapshot_repository(role):
+            return True
+    return False
 
-    # default all roles
-    node_config_object = config_object.get("node")
-    if node_config_object:
-        node_config_object.pop("roles", None)
+
+def _configure_node_roles(runtime_config, config_object):
+    elasticsearch_config = _get_config(runtime_config)
+    roles = _configure_node_roles_by_node_type(
+            elasticsearch_config, config_object)
+    set_snapshot_repository = _is_snapshot_repository_enabled(
+        elasticsearch_config)
+    if roles is not None:
+        if set_snapshot_repository:
+            set_snapshot_repository = _need_snapshot_repository_for_roles(
+                roles)
+    else:
+        # default all roles
+        node_config_object = config_object.get("node")
+        if node_config_object:
+            node_config_object.pop("roles", None)
+        set_snapshot_repository = True
+
+    if set_snapshot_repository:
+        _configure_snapshot_repository(config_object)
+
+
+def _configure_snapshot_repository(config_object):
+    cluster_name = get_runtime_cluster_name()
+    snapshot_repository_path = os.path.join(
+        CLOUDTIK_FS_PATH, BUILT_IN_RUNTIME_ELASTICSEARCH,
+        "snapshots", cluster_name)
+
+    # This is called at service starting, so the mount is ready
+    os.makedirs(snapshot_repository_path, exist_ok=True)
+
+    path_config_object = get_config_for_update(config_object, "path")
+    path_config_object["repo"] = [snapshot_repository_path]
 
 
 def _configure_cluster_bootstrap(runtime_config):

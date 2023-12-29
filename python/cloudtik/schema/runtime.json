@@ -1257,6 +1257,11 @@
                     "default": "cloudtik",
                     "description": "Specify the password for elastic user if security enabled."
                 },
+                "snapshot_repository": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Whether to enable snapshot repository."
+                },
                 "clustering": {
                     "type": "object",
                     "description": "Clustering configurations",
