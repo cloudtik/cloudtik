@@ -32,6 +32,6 @@ class RuntimeBase(Runtime):
         runtime_module = inspect.getmodule(self.__class__)
         runtime_home = os.path.dirname(runtime_module.__file__)
         config_root = os.path.join(runtime_home, "config")
-        runtime_commands = _get_runtime_config_object(
+        config_object = _get_runtime_config_object(
             config_root, cluster_config["provider"], object_name)
-        return merge_rooted_config_hierarchy(config_root, runtime_commands, object_name)
+        return merge_rooted_config_hierarchy(config_root, config_object, object_name)
