@@ -1,7 +1,7 @@
 import os
 from shlex import quote
 
-from cloudtik.core._private.util.core_utils import exec_with_output
+from cloudtik.core._private.util.core_utils import exec_with_output, http_address_string
 from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_PROMETHEUS, BUILT_IN_RUNTIME_GRAFANA
 from cloudtik.core._private.util.runtime_utils import get_runtime_config_from_node, get_runtime_value, \
     save_yaml, get_runtime_node_ip, get_runtime_head_host, get_runtime_cluster_name
@@ -36,7 +36,7 @@ def configure_data_sources(head):
             BUILT_IN_RUNTIME_PROMETHEUS,
             get_runtime_cluster_name())
         head_host = get_runtime_head_host(head)
-        url = "http://{}:{}".format(head_host, prometheus_port)
+        url = http_address_string(head_host, prometheus_port)
         prometheus_data_source = get_prometheus_data_source(
             name, url, is_default=True)
         data_sources.append(prometheus_data_source)
@@ -64,7 +64,7 @@ def _get_pull_identifier():
 
 
 def _get_admin_api_endpoint(node_ip, grafana_port):
-    return "http://{}:{}".format(
+    return http_address_string(
         node_ip, grafana_port)
 
 

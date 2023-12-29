@@ -1,6 +1,6 @@
 import logging
 
-from cloudtik.core._private.util.core_utils import get_list_for_update
+from cloudtik.core._private.util.core_utils import get_list_for_update, http_address_string
 from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_PROMETHEUS
 from cloudtik.core._private.service_discovery.utils import SERVICE_SELECTOR_RUNTIMES, deserialize_service_selector
 from cloudtik.core._private.util.pull.pull_job import PullJob
@@ -26,7 +26,7 @@ def _get_prometheus_data_source(service_node):
     cluster_name = get_service_cluster_of_node(service_node)
     name = get_data_source_name(service_name, cluster_name)
     service_host, service_port = get_service_address_of_node(service_node)
-    url = "http://{}:{}".format(service_host, service_port)
+    url = http_address_string(service_host, service_port)
     return get_prometheus_data_source(name, url, is_default=False)
 
 

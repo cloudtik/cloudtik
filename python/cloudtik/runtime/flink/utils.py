@@ -2,7 +2,7 @@ import os
 from typing import Any, Dict
 
 from cloudtik.core._private.cluster.cluster_tunnel_request import _request_rest_to_head
-from cloudtik.core._private.util.core_utils import double_quote
+from cloudtik.core._private.util.core_utils import double_quote, http_address_string
 from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_FLINK, BUILT_IN_RUNTIME_YARN, \
     BUILT_IN_RUNTIME_HADOOP
 from cloudtik.core._private.service_discovery.naming import get_cluster_head_host
@@ -184,12 +184,12 @@ def _get_runtime_endpoints(cluster_config, cluster_head_ip):
     endpoints = {
         "jupyter-web": {
             "name": "Jupyter Web UI",
-            "url": "http://{}:{}".format(head_host, FLINK_JUPYTER_WEB_PORT),
+            "url": http_address_string(head_host, FLINK_JUPYTER_WEB_PORT),
             "info": "default password is \'cloudtik\'"
          },
         "flink-history": {
             "name": "Flink History Server Web UI",
-            "url": "http://{}:{}".format(head_host, FLINK_HISTORY_SERVER_API_PORT)
+            "url": http_address_string(head_host, FLINK_HISTORY_SERVER_API_PORT)
          },
     }
     return endpoints

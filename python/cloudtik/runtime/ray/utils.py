@@ -5,6 +5,7 @@ from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_RAY
 from cloudtik.core._private.service_discovery.naming import get_cluster_head_host
 from cloudtik.core._private.service_discovery.utils import get_canonical_service_name, define_runtime_service_on_head, \
     get_service_discovery_config, SERVICE_DISCOVERY_FEATURE_SCHEDULER
+from cloudtik.core._private.util.core_utils import http_address_string, address_string
 from cloudtik.core.scaling_policy import ScalingPolicy
 from cloudtik.runtime.ray.scaling_policy import RayScalingPolicy
 
@@ -60,12 +61,12 @@ def _get_runtime_endpoints(cluster_config, cluster_head_ip):
     endpoints = {
         "ray": {
             "name": "Ray",
-            "url": "{}:{}".format(
+            "url": address_string(
                 head_host, RAY_SERVICE_PORT)
         },
         "dashboard": {
             "name": "Ray Dashboard",
-            "url": "http://{}:{}".format(
+            "url": http_address_string(
                 head_host, RAY_DASHBOARD_PORT)
         }
     }

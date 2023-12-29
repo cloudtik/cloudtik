@@ -1107,3 +1107,15 @@ def address_string(host, port):
 
 def split_list(list_str: str, separator=",") -> List[str]:
     return [x.strip() for x in list_str.split(separator)]
+
+
+def http_address_string(
+        host, port=None, https=False, path=None):
+    protocol = "https" if https else "http"
+    if port:
+        s = "{}://{}:{}".format(protocol, host, port)
+    else:
+        s = "{}://{}".format(protocol, host)
+    if path:
+        s += path
+    return s

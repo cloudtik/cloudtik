@@ -1,7 +1,7 @@
 import os
 from typing import Any, Dict
 
-from cloudtik.core._private.util.core_utils import get_address_string
+from cloudtik.core._private.util.core_utils import http_address_string
 from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_KONG, BUILT_IN_RUNTIME_POSTGRES
 from cloudtik.core._private.util.runtime_utils import get_runtime_bool, \
     get_runtime_value
@@ -214,8 +214,7 @@ def _get_runtime_endpoints(
     endpoints = {
         "kong": {
             "name": "Kong",
-            "url": "http://{}".format(
-                get_address_string(head_host, service_port))
+            "url": http_address_string(head_host, service_port)
         },
     }
     return endpoints

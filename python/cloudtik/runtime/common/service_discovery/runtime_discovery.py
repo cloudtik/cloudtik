@@ -1,7 +1,7 @@
 import os
 from typing import Dict, Any, Union, List, Optional
 
-from cloudtik.core._private.util.core_utils import get_config_for_update, get_env_string_value
+from cloudtik.core._private.util.core_utils import get_config_for_update, get_env_string_value, http_address_string
 from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_HDFS, BUILT_IN_RUNTIME_METASTORE, \
     BUILT_IN_RUNTIME_CONSUL, BUILT_IN_RUNTIME_ZOOKEEPER, BUILT_IN_RUNTIME_MYSQL, BUILT_IN_RUNTIME_POSTGRES, \
     BUILT_IN_RUNTIME_ETCD, BUILT_IN_RUNTIME_MINIO
@@ -200,7 +200,7 @@ def discover_minio(
     if not service_addresses:
         return None
     service_address = service_addresses[0]
-    minio_uri = "http://{}:{}".format(
+    minio_uri = http_address_string(
         service_address[0], service_address[1])
     return minio_uri
 

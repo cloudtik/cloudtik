@@ -5,6 +5,7 @@ from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_HDFS
 from cloudtik.core._private.service_discovery.naming import get_cluster_head_host
 from cloudtik.core._private.service_discovery.utils import get_canonical_service_name, define_runtime_service_on_head, \
     get_service_discovery_config, SERVICE_DISCOVERY_FEATURE_STORAGE
+from cloudtik.core._private.util.core_utils import http_address_string
 from cloudtik.core._private.utils import get_node_cluster_ip_of
 from cloudtik.runtime.common.service_discovery.workspace import register_service_to_workspace
 
@@ -69,7 +70,7 @@ def _get_runtime_endpoints(cluster_config, cluster_head_ip):
     endpoints = {
         "hdfs-web": {
             "name": "HDFS Web UI",
-            "url": "http://{}:{}".format(head_host, HDFS_WEB_PORT)
+            "url": http_address_string(head_host, HDFS_WEB_PORT)
         },
         "hdfs": {
             "name": "HDFS Service",
