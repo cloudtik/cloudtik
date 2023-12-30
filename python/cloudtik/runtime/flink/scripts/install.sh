@@ -9,7 +9,7 @@ eval set -- "${args}"
 
 if [ -z "$FLINK_VERSION" ]; then
     # if FLINK_VERSION is not set, set a default Flink version
-    export FLINK_VERSION=1.14.5
+    export FLINK_VERSION=1.18.0
 fi
 
 export USER_HOME=/home/$(whoami)

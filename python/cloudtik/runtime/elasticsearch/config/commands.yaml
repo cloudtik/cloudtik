@@ -1,6 +1,6 @@
 # Custom commands that will be run on the host node after common initialization.
 initialization_commands:
-    - sudo sysctl -w vm.max_map_count=262144
+    - sudo sysctl -w vm.max_map_count=262144 >/dev/null
 
 # Custom commands that will be run on the head node after common setup.
 head_setup_commands:

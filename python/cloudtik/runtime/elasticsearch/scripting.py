@@ -84,7 +84,6 @@ def _configure_node_roles(runtime_config, config_object):
         node_config_object = config_object.get("node")
         if node_config_object:
             node_config_object.pop("roles", None)
-        set_snapshot_repository = True
 
     if set_snapshot_repository:
         _configure_snapshot_repository(config_object)

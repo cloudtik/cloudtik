@@ -46,6 +46,9 @@ def _configure_static_backend(nginx_config):
     backend_config = _get_backend_config(nginx_config)
     servers = backend_config.get(
         NGINX_BACKEND_SERVERS_CONFIG_KEY)
+    if not servers:
+        raise RuntimeError(
+            "Static servers must be provided with config mode: static.")
     balance_method = get_runtime_value("NGINX_BACKEND_BALANCE")
     _save_load_balancer_upstream(
         servers, balance_method)
