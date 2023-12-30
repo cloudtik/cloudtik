@@ -39,12 +39,9 @@ def _register_head_runtime_commands():
 def _search_and_register_runtime_commands():
     from cloudtik import runtime
 
-    def ingore_error(name):
-        pass
-
     base_dir = os.path.dirname(runtime.__file__)
-    for loader, module_name, is_pkg in pkgutil.walk_packages(
-            runtime.__path__, onerror=ingore_error):
+    for loader, module_name, is_pkg in pkgutil.iter_modules(
+            runtime.__path__):
         # walk packages will return global packages not in the current path
         # if the name is also package in the global namespace
         if not is_pkg or "." in module_name:
