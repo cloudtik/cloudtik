@@ -484,12 +484,19 @@ class Cluster:
         return _get_worker_node_ips(
             config=self.config, runtime=runtime, node_status=node_status)
 
-    def get_nodes(self) -> List[Dict[str, Any]]:
-        """Returns a list of info for each cluster node
+    def get_nodes(
+            self,
+            runtime: str = None,
+            node_status: str = None) -> List[Dict[str, Any]]:
+        """Returns a list of info for each cluster node.
+        Args:
+            runtime (str): The nodes with the specified runtime.
+            node_status (str): The node status of the nodes.
         Returns:
             A list of Dict object for each node with the information
         """
-        return cluster_operator._get_cluster_nodes_info(config=self.config)
+        return cluster_operator._get_cluster_nodes_info(
+            config=self.config, runtime=runtime, node_status=node_status)
 
     def get_info(self) -> Dict[str, Any]:
         """Returns the general information of the cluster
@@ -781,7 +788,7 @@ class ThisCluster:
                             runtime: str = None, node_status: str = None) -> List[str]:
         """Returns worker node IPs for given configuration file.
         Args:
-            runtime (str): Comma separated list of runtimes on which the workers run
+            runtime (str): The workers with the specified runtime.
             node_status (str): The node status of the workers. Values: setting-up, up-to-date, update-failed
         Returns:
             List of worker node ip addresses.
@@ -792,12 +799,19 @@ class ThisCluster:
         return _get_worker_node_ips(
             config=self.config, runtime=runtime, node_status=node_status)
 
-    def get_nodes(self) -> List[Dict[str, Any]]:
-        """Returns a list of info for each cluster node
+    def get_nodes(
+            self,
+            runtime: str = None,
+            node_status: str = None) -> List[Dict[str, Any]]:
+        """Returns a list of info for each cluster node.
+         Args:
+            runtime (str): The nodes with the specified runtime.
+            node_status (str): The node status of the nodes.
         Returns:
             A list of Dict object for each node with the information
         """
-        return cluster_operator._get_cluster_nodes_info(config=self.config)
+        return cluster_operator._get_cluster_nodes_info(
+            config=self.config, runtime=runtime, node_status=node_status)
 
     def get_info(self) -> Dict[str, Any]:
         """Returns the general information of the cluster

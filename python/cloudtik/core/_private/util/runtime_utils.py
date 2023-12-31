@@ -13,7 +13,7 @@ from cloudtik.core._private.constants import CLOUDTIK_RUNTIME_ENV_NODE_TYPE, CLO
 from cloudtik.core._private.crypto import AESCipher
 from cloudtik.core._private.provider_factory import _get_node_provider
 from cloudtik.core._private.service_discovery.naming import _get_cluster_node_fqdn_of, _get_cluster_node_sdn_of, \
-    get_address_type_of_hostname
+    get_address_type_of_hostname, _get_worker_node_hosts
 from cloudtik.core._private.service_discovery.utils import ServiceAddressType
 from cloudtik.core._private.util.redis_utils import create_redis_client
 from cloudtik.core._private.state.state_utils import NODE_STATE_NODE_IP, NODE_STATE_NODE_SEQ_ID
@@ -247,6 +247,12 @@ def get_workers_ready_from_head():
 def get_worker_ips_ready_from_head(runtime=None):
     config = load_head_cluster_config()
     return _get_worker_node_ips(
+        config, runtime=runtime, node_status=STATUS_UP_TO_DATE)
+
+
+def get_worker_hosts_ready_from_head(runtime=None):
+    config = load_head_cluster_config()
+    return _get_worker_node_hosts(
         config, runtime=runtime, node_status=STATUS_UP_TO_DATE)
 
 

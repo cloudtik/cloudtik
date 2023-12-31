@@ -15,6 +15,7 @@ from cloudtik.core._private.cluster.cluster_operator import (
     _wait_for_ready, _show_cluster_status, _monitor_cluster, cli_call_context, _exec_node_on_head,
     do_health_check, cluster_resource_metrics_on_head, show_info, _run_script_on_head, cluster_logs_on_head)
 from cloudtik.core._private.constants import CLOUDTIK_REDIS_DEFAULT_PASSWORD
+from cloudtik.core._private.service_discovery.naming import _get_worker_node_hosts
 from cloudtik.core._private.util.redis_utils import get_address_to_use_or_die
 from cloudtik.core._private.state import kv_store
 from cloudtik.core._private.state.kv_store import kv_initialize_with_address
@@ -451,13 +452,46 @@ def head_ip(public):
 def worker_ips(runtime, node_status, separator):
     """Return the list of worker IPs of a cluster."""
     config = load_head_cluster_config()
-    workers = _get_worker_node_ips(
+    ips = _get_worker_node_ips(
         config, runtime=runtime, node_status=node_status)
-    if len(workers) > 0:
+    if len(ips) > 0:
         if separator:
-            click.echo(separator.join(workers))
+            click.echo(separator.join(ips))
         else:
-            click.echo("\n".join(workers))
+            click.echo("\n".join(ips))
+
+
+@head.command()
+@add_click_logging_options
+@click.option(
+    "--runtime",
+    required=False,
+    type=str,
+    default=None,
+    help="Get the worker hosts for specific runtime.")
+@click.option(
+    "--node-status",
+    required=False,
+    type=str,
+    default=None,
+    help="The node status of the workers. Values: setting-up, up-to-date, update-failed."
+    " If not specified, return all the workers.")
+@click.option(
+    "--separator",
+    required=False,
+    type=str,
+    default=None,
+    help="The separator between worker hosts. Default is change a line.")
+def worker_hosts(runtime, node_status, separator):
+    """Return the list of worker hosts of a cluster."""
+    config = load_head_cluster_config()
+    hosts = _get_worker_node_hosts(
+        config, runtime=runtime, node_status=node_status)
+    if len(hosts) > 0:
+        if separator:
+            click.echo(separator.join(hosts))
+        else:
+            click.echo("\n".join(hosts))
 
 
 @head.command()

@@ -946,13 +946,56 @@ def worker_ips(
         cluster_config_file, cluster_name,
         runtime, node_status, separator):
     """Return the list of worker IPs of a cluster."""
-    workers = get_worker_node_ips(
-        cluster_config_file, cluster_name, runtime=runtime, node_status=node_status)
-    if len(workers) > 0:
+    ips = get_worker_node_ips(
+        cluster_config_file, cluster_name,
+        runtime=runtime, node_status=node_status)
+    if len(ips) > 0:
         if separator:
-            click.echo(separator.join(workers))
+            click.echo(separator.join(ips))
         else:
-            click.echo("\n".join(workers))
+            click.echo("\n".join(ips))
+
+
+@cli.command()
+@click.argument("cluster_config_file", required=True, type=str)
+@click.option(
+    "--cluster-name",
+    "-n",
+    required=False,
+    type=str,
+    help="Override the configured cluster name.")
+@click.option(
+    "--runtime",
+    required=False,
+    type=str,
+    default=None,
+    help="Get the worker hosts for specific runtime.")
+@click.option(
+    "--node-status",
+    required=False,
+    type=str,
+    default=None,
+    help="The node status of the workers. Values: setting-up, up-to-date, update-failed."
+    " If not specified, return all the workers.")
+@click.option(
+    "--separator",
+    required=False,
+    type=str,
+    default=None,
+    help="The separator between worker hosts. Default is change a line.")
+@add_click_logging_options
+def worker_hosts(
+        cluster_config_file, cluster_name,
+        runtime, node_status, separator):
+    """Return the list of worker hosts of a cluster."""
+    hosts = get_worker_node_hosts(
+        cluster_config_file, cluster_name,
+        runtime=runtime, node_status=node_status)
+    if len(hosts) > 0:
+        if separator:
+            click.echo(separator.join(hosts))
+        else:
+            click.echo("\n".join(hosts))
 
 
 @cli.command()
