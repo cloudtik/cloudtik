@@ -30,7 +30,7 @@ from cloudtik.core._private.concurrent_cache import ConcurrentObjectCache
 from cloudtik.core._private.constants import CLOUDTIK_WHEELS, \
     CLOUDTIK_DEFAULT_MAX_WORKERS, CLOUDTIK_NODE_SSH_INTERVAL_S, CLOUDTIK_NODE_START_WAIT_S, MAX_PARALLEL_EXEC_NODES, \
     CLOUDTIK_CLUSTER_URI_TEMPLATE, CLOUDTIK_RUNTIME_NAME, CLOUDTIK_RUNTIME_ENV_NODE_IP, CLOUDTIK_RUNTIME_ENV_HEAD_IP, \
-    CLOUDTIK_DEFAULT_PORT, PRIVACY_REPLACEMENT_TEMPLATE, PRIVACY_REPLACEMENT, CLOUDTIK_CONFIG_SECRET, \
+    PRIVACY_REPLACEMENT_TEMPLATE, PRIVACY_REPLACEMENT, CLOUDTIK_CONFIG_SECRET, \
     CLOUDTIK_ENCRYPTION_PREFIX, CLOUDTIK_RUNTIME_ENV_SECRETS
 from cloudtik.core._private.util.core_utils import load_class, double_quote, check_process_exists, \
     get_cloudtik_temp_dir, \
@@ -1019,8 +1019,14 @@ def combine_commands_from_docker(config, merged_commands, command_key):
 
 
 def _get_node_specific_runtime_types(config, node_id: str):
-    provider = _get_node_provider(config["provider"], config["cluster_name"])
-    node_type_config = _get_node_specific_config(config, provider, node_id)
+    provider = _get_node_provider_of(config)
+    node_tags = provider.node_tags(node_id)
+    node_type = node_tags.get(CLOUDTIK_TAG_USER_NODE_TYPE)
+    return _get_node_type_specific_runtime_types(config, node_type)
+
+
+def _get_node_type_specific_runtime_types(config, node_type: str):
+    node_type_config = _get_node_type_specific_config(config, node_type)
     if (node_type_config is not None) and (
             RUNTIME_CONFIG_KEY in node_type_config) and (
             RUNTIME_TYPES_CONFIG_KEY in node_type_config[RUNTIME_CONFIG_KEY]):
@@ -1072,14 +1078,17 @@ def _get_node_type_specific_commands(config, node_type: str,
 
 def _get_node_specific_config(config, provider, node_id: str) -> Any:
     node_tags = provider.node_tags(node_id)
-    if CLOUDTIK_TAG_USER_NODE_TYPE in node_tags:
-        node_type = node_tags[CLOUDTIK_TAG_USER_NODE_TYPE]
-        available_node_types = config["available_node_types"]
-        if node_type not in available_node_types:
-            raise ValueError(f"Unknown node type tag: {node_type}.")
-        return available_node_types[node_type]
+    node_type = node_tags.get(CLOUDTIK_TAG_USER_NODE_TYPE)
+    return _get_node_type_specific_config(config, node_type)
 
-    return None
+
+def _get_node_type_specific_config(config, node_type: str) -> Any:
+    if not node_type:
+        return None
+    available_node_types = config["available_node_types"]
+    if node_type not in available_node_types:
+        raise ValueError(f"Unknown node type tag: {node_type}.")
+    return available_node_types[node_type]
 
 
 def _get_node_specific_fields(config, provider, node_id: str,
@@ -1995,7 +2004,7 @@ def get_head_working_ip(config: Dict[str, Any],
 
 
 def get_cluster_head_ip(config: Dict[str, Any], public: bool = False) -> str:
-    provider = _get_node_provider(config["provider"], config["cluster_name"])
+    provider = _get_node_provider_of(config)
     head_node = get_running_head_node(config)
     if public:
         return get_head_working_ip(config, provider, head_node)
@@ -2168,8 +2177,8 @@ def is_docker_enabled(config: Dict[str, Any]) -> bool:
 
 def get_nodes_info(provider, nodes, extras: bool = False,
                    available_node_types: Dict[str, Any] = None):
-    return [get_node_info(provider, node,
-                          extras, available_node_types) for node in nodes]
+    return [get_node_info(
+        provider, node, extras, available_node_types) for node in nodes]
 
 
 def get_node_info(provider, node, extras: bool = False,
@@ -2186,8 +2195,12 @@ def get_node_info(provider, node, extras: bool = False,
     return node_info
 
 
-def _get_sorted_nodes_info(provider, nodes):
-    nodes_info = get_nodes_info(provider, nodes)
+def _get_sorted_nodes_info(
+        config: Dict[str, Any], provider, nodes,
+        runtime: str = None, node_status: str = None):
+    nodes_info = _get_nodes_info_for(
+        config, provider, nodes,
+        runtime=runtime, node_status=node_status)
 
     # sort nodes info based on node type and then node ip for workers
     def node_info_sort(node_info):
@@ -2213,7 +2226,8 @@ def _get_nodes_info_in_status(node_info_list, status):
         CLOUDTIK_TAG_NODE_STATUS)]
 
 
-def _get_nodes_in_status(provider, nodes: List[str], node_status: str) -> List[str]:
+def _get_nodes_in_status(
+        provider, nodes: List[str], node_status: str) -> List[str]:
     return [node for node in nodes if is_node_in_status(provider, node, node_status)]
 
 
@@ -2222,17 +2236,66 @@ def is_node_in_status(provider, node: str, node_status: str):
     return True if node_status == node_info.get(CLOUDTIK_TAG_NODE_STATUS) else False
 
 
+def _get_node_provider_of(config: Dict[str, Any]):
+    return _get_node_provider(
+        config["provider"], config["cluster_name"])
+
+
 def _get_worker_nodes(config: Dict[str, Any]) -> List[str]:
     """Returns worker node ids for given configuration."""
     # Technically could be reused in get_worker_node_ips
-    provider = _get_node_provider(config["provider"], config["cluster_name"])
+    provider = _get_node_provider_of(config)
     return provider.non_terminated_nodes({CLOUDTIK_TAG_NODE_KIND: NODE_KIND_WORKER})
+
+
+def is_node_info_for_runtime(
+        config: Dict[str, Any], node_info, runtime: str) -> bool:
+    node_type = node_info.get(CLOUDTIK_TAG_USER_NODE_TYPE)
+    runtime_types = _get_node_type_specific_runtime_types(config, node_type)
+    if (runtime_types is not None) and (runtime in runtime_types):
+        return True
+    return False
+
+
+def get_nodes_info_for_runtime(
+        config: Dict[str, Any], nodes_info, runtime: str):
+    return [node_info for node_info in nodes_info if is_node_info_for_runtime(
+        config, node_info, runtime)]
+
+
+def _get_worker_nodes_info(
+        config: Dict[str, Any],
+        runtime: str = None,
+        node_status: str = None) -> List[str]:
+    provider = _get_node_provider_of(config)
+    workers = _get_worker_nodes(config)
+    return _get_nodes_info_for(
+        config, provider, workers,
+        runtime=runtime, node_status=node_status)
+
+
+def _get_nodes_info_for(
+        config: Dict[str, Any], provider, nodes,
+        runtime: str = None,
+        node_status: str = None):
+    nodes_info = get_nodes_info(provider, nodes)
+
+    if runtime is not None:
+        # Filter the nodes for the specific runtime only
+        nodes_info = get_nodes_info_for_runtime(
+            config, nodes_info, runtime)
+
+    if node_status:
+        nodes_info = _get_nodes_info_in_status(
+            nodes_info, node_status)
+
+    return nodes_info
 
 
 def _get_worker_node_ips(
         config: Dict[str, Any], runtime: str = None,
         node_status: str = None) -> List[str]:
-    provider = _get_node_provider(config["provider"], config["cluster_name"])
+    provider = _get_node_provider_of(config)
     nodes = provider.non_terminated_nodes({
         CLOUDTIK_TAG_NODE_KIND: NODE_KIND_WORKER
     })
@@ -2264,14 +2327,16 @@ def get_resource_info_of_node_type(node_type, available_node_types):
     return resource_info
 
 
-def is_node_for_runtime(config: Dict[str, Any], node_id: str, runtime: str) -> bool:
+def is_node_for_runtime(
+        config: Dict[str, Any], node_id: str, runtime: str) -> bool:
     runtime_types = _get_node_specific_runtime_types(config, node_id)
     if (runtime_types is not None) and (runtime in runtime_types):
         return True
     return False
 
 
-def get_nodes_for_runtime(config: Dict[str, Any], nodes: List[str], runtime: str) -> List[str]:
+def get_nodes_for_runtime(
+        config: Dict[str, Any], nodes: List[str], runtime: str) -> List[str]:
     return [node for node in nodes if is_node_for_runtime(config, node, runtime)]
 
 

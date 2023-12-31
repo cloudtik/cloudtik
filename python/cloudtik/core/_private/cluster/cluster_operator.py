@@ -39,7 +39,7 @@ from cloudtik.core._private.util.core_utils import stop_process_tree, double_quo
     memory_to_gb, memory_to_gb_string, address_to_ip, split_list
 from cloudtik.core._private.job_waiter.job_waiter_factory import create_job_waiter
 from cloudtik.core._private.runtime_factory import _get_runtime_cls
-from cloudtik.core._private.service_discovery.naming import get_cluster_head_hostname
+from cloudtik.core._private.service_discovery.naming import get_cluster_head_hostname, _get_worker_node_hosts
 from cloudtik.core._private.service_discovery.utils import ServiceRegisterException
 from cloudtik.core._private.util.redis_utils import validate_redis_address, get_address_to_use_or_die
 from cloudtik.core._private.state import kv_store
@@ -1621,14 +1621,26 @@ def get_head_node_ip(config_file: str,
     return get_cluster_head_ip(config=config, public=public)
 
 
-def get_worker_node_ips(config_file: str,
-                        override_cluster_name: Optional[str] = None,
-                        runtime: str = None,
-                        node_status: str = None
-                        ) -> List[str]:
+def get_worker_node_ips(
+        config_file: str,
+        override_cluster_name: Optional[str] = None,
+        runtime: str = None,
+        node_status: str = None) -> List[str]:
     """Returns worker node IPs for given configuration file."""
     config = _load_cluster_config(config_file, override_cluster_name)
-    return _get_worker_node_ips(config, runtime, node_status=node_status)
+    return _get_worker_node_ips(
+        config, runtime=runtime, node_status=node_status)
+
+
+def get_worker_node_hosts(
+        config_file: str,
+        override_cluster_name: Optional[str] = None,
+        runtime: str = None,
+        node_status: str = None) -> List[str]:
+    """Returns worker node IPs for given configuration file."""
+    config = _load_cluster_config(config_file, override_cluster_name)
+    return _get_worker_node_hosts(
+        config, runtime=runtime, node_status=node_status)
 
 
 def _get_running_head_node_ex(
@@ -2189,10 +2201,14 @@ def _show_cluster_status(config: Dict[str, Any]) -> None:
     cli_logger.print(tb)
 
 
-def _get_cluster_nodes_info(config: Dict[str, Any]):
+def _get_cluster_nodes_info(
+        config: Dict[str, Any],
+        runtime: str = None, node_status: str = None):
     provider = _get_node_provider(config["provider"], config["cluster_name"])
     nodes = provider.non_terminated_nodes({})
-    return _get_sorted_nodes_info(provider, nodes)
+    return _get_sorted_nodes_info(
+        config, provider, nodes,
+        runtime=runtime, node_status=node_status)
 
 
 def _get_cluster_info(config: Dict[str, Any],
@@ -2569,7 +2585,7 @@ def cluster_process_status_on_head(
     nodes = provider.non_terminated_nodes({
         CLOUDTIK_TAG_NODE_STATUS: STATUS_UP_TO_DATE
     })
-    nodes_info = _get_sorted_nodes_info(provider, nodes)
+    nodes_info = _get_sorted_nodes_info(config, provider, nodes)
 
     combined_runtimes = _get_sorted_combined_runtimes(
         config, provider, nodes, runtimes)
@@ -4195,7 +4211,7 @@ def do_nodes_health_check(redis_address, redis_password, with_details=False):
         CLOUDTIK_TAG_NODE_KIND: NODE_KIND_WORKER,
         CLOUDTIK_TAG_NODE_STATUS: STATUS_UP_TO_DATE
     })
-    workers_info = _get_sorted_nodes_info(provider, workers)
+    workers_info = _get_sorted_nodes_info(config, provider, workers)
     for worker_info in workers_info:
         worker = worker_info["node"]
         node_process_ok = check_node_processes(

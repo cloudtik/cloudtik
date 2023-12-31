@@ -1,4 +1,4 @@
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 
 from cloudtik.core._private.constants import CLOUDTIK_RUNTIME_ENV_NODE_HOST, CLOUDTIK_RUNTIME_ENV_HEAD_HOST, \
     CLOUDTIK_RUNTIME_ENV_NODE_IP, CLOUDTIK_RUNTIME_ENV_HEAD_IP
@@ -8,8 +8,9 @@ from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_DNSMASQ, BUI
 from cloudtik.core._private.service_discovery.runtime_services import get_service_discovery_runtime
 from cloudtik.core._private.service_discovery.utils import ServiceAddressType
 from cloudtik.core._private.utils import is_config_use_hostname, get_runtime_config, \
-    get_workspace_name, get_cluster_name, is_node_seq_id_enabled, is_runtime_enabled, is_config_use_fqdn
-from cloudtik.core.tags import CLOUDTIK_TAG_HEAD_NODE_SEQ_ID
+    get_workspace_name, get_cluster_name, is_node_seq_id_enabled, is_runtime_enabled, is_config_use_fqdn, \
+    _get_worker_nodes_info, NODE_INFO_NODE_IP
+from cloudtik.core.tags import CLOUDTIK_TAG_HEAD_NODE_SEQ_ID, CLOUDTIK_TAG_NODE_SEQ_ID
 
 CONSUL_CONFIG_DISABLE_CLUSTER_NODE_NAME = "disable_cluster_node_name"
 CONSUL_CONFIG_SERVER_MODE = "server"
@@ -110,7 +111,8 @@ def get_cluster_node_host(config: Dict[str, Any], node_seq_id, node_ip) -> str:
     return node_ip
 
 
-def get_cluster_node_hostname(config: Dict[str, Any], node_seq_id) -> Optional[str]:
+def get_cluster_node_hostname(
+        config: Dict[str, Any], node_seq_id) -> Optional[str]:
     if (node_seq_id is not None and
             is_cluster_hostname_available(config) and
             is_config_use_hostname(config)):
@@ -178,10 +180,43 @@ def with_head_host_environment_variables(
 
 def get_cluster_node_address_type(
         config: Dict[str, Any]) -> ServiceAddressType:
-    if (is_cluster_hostname_available(config) and
-            is_config_use_hostname(config)):
+    if (is_cluster_hostname_available(config)
+            and is_config_use_hostname(config)):
         if is_config_use_fqdn(config):
             return ServiceAddressType.NODE_FQDN
         else:
             return ServiceAddressType.NODE_SDN
     return ServiceAddressType.NODE_IP
+
+
+def get_fqdn_of_node_info(config, node_info):
+    node_seq_id = node_info[CLOUDTIK_TAG_NODE_SEQ_ID]
+    return get_cluster_node_fqdn_of(config, node_seq_id)
+
+
+def get_sdn_of_node_info(config, node_info):
+    node_seq_id = node_info[CLOUDTIK_TAG_NODE_SEQ_ID]
+    return get_cluster_node_sdn_of(config, node_seq_id)
+
+
+def _get_hosts_of_nodes_info(config, nodes_info):
+    if (is_cluster_hostname_available(config)
+            and is_config_use_hostname(config)):
+        if is_config_use_fqdn(config):
+            return [get_fqdn_of_node_info(
+                config, node_info) for node_info in nodes_info]
+        else:
+            return [get_sdn_of_node_info(
+                config, node_info) for node_info in nodes_info]
+    # use ip as host instead
+    return [node_info[NODE_INFO_NODE_IP] for node_info in nodes_info]
+
+
+def _get_worker_node_hosts(
+        config: Dict[str, Any],
+        runtime: str = None,
+        node_status: str = None) -> List[str]:
+    nodes_info = _get_worker_nodes_info(
+        config, runtime=runtime, node_status=node_status)
+    # convert to hosts
+    return _get_hosts_of_nodes_info(config, nodes_info)

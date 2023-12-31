@@ -5,8 +5,8 @@ from cloudtik.core._private.constants import CLOUDTIK_FS_PATH
 from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_ELASTICSEARCH
 from cloudtik.core._private.util.core_utils import address_string, get_config_for_update
 from cloudtik.core._private.util.runtime_utils import get_runtime_config_from_node, \
-    get_worker_ips_ready_from_head, get_runtime_head_host, load_and_save_yaml, get_runtime_node_seq_id, \
-    get_runtime_node_type, get_runtime_cluster_name
+    get_runtime_head_host, load_and_save_yaml, get_runtime_node_seq_id, \
+    get_runtime_node_type, get_runtime_cluster_name, get_worker_hosts_ready_from_head
 from cloudtik.runtime.elasticsearch.utils import _get_home_dir, _get_config, _get_transport_port, \
     _get_clustering_config, _is_role_by_node_type, _get_node_type_of_roles, _is_snapshot_repository_enabled, \
     _is_role_support_snapshot_repository
@@ -29,7 +29,7 @@ def configure_clustering(head):
 
     if head:
         # For head, check whether there are workers running.
-        worker_hosts = get_worker_ips_ready_from_head(
+        worker_hosts = get_worker_hosts_ready_from_head(
             runtime=BUILT_IN_RUNTIME_ELASTICSEARCH)
         if not worker_hosts:
             # The head will bootstrap the cluster
