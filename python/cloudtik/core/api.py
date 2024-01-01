@@ -6,6 +6,7 @@ import os
 from cloudtik.core._private.annotations import PublicAPI
 from cloudtik.core._private.call_context import CallContext
 from cloudtik.core._private.cluster.cluster_config import _bootstrap_config, _load_cluster_config
+from cloudtik.core._private.service_discovery.naming import _get_worker_node_hosts, get_cluster_head_host
 from cloudtik.core._private.utils import verify_runtime_list, load_head_cluster_config, get_cluster_head_ip, \
     _get_worker_node_ips
 from cloudtik.core._private.workspace import workspace_operator
@@ -473,7 +474,7 @@ class Cluster:
                             runtime: str = None, node_status: str = None) -> List[str]:
         """Returns worker node IPs for given configuration file.
         Args:
-            runtime (str): Comma separated list of runtimes on which the workers run
+            runtime (str): The nodes with the specified runtime.
             node_status (str): The node status of the workers. Values: setting-up, up-to-date, update-failed
         Returns:
             List of worker node ip addresses.
@@ -482,6 +483,31 @@ class Cluster:
             RuntimeError if the cluster is not found.
         """
         return _get_worker_node_ips(
+            config=self.config, runtime=runtime, node_status=node_status)
+
+    def get_head_node_host(self) -> str:
+        """Returns head node host for given configuration file if exists.
+        Returns:
+            The host address of the cluster head node.
+
+        Raises:
+            RuntimeError if the cluster is not found.
+        """
+        return get_cluster_head_host(config=self.config)
+
+    def get_worker_node_hosts(
+            self, runtime: str = None, node_status: str = None) -> List[str]:
+        """Returns worker node hosts for given configuration file.
+        Args:
+            runtime (str): The nodes with the specified runtime.
+            node_status (str): The node status of the workers. Values: setting-up, up-to-date, update-failed
+        Returns:
+            List of worker node host addresses.
+
+        Raises:
+            RuntimeError if the cluster is not found.
+        """
+        return _get_worker_node_hosts(
             config=self.config, runtime=runtime, node_status=node_status)
 
     def get_nodes(
@@ -797,6 +823,31 @@ class ThisCluster:
             RuntimeError if the cluster is not found.
         """
         return _get_worker_node_ips(
+            config=self.config, runtime=runtime, node_status=node_status)
+
+    def get_head_node_host(self) -> str:
+        """Returns head node host for given configuration file if exists.
+        Returns:
+            The host address of the cluster head node.
+
+        Raises:
+            RuntimeError if the cluster is not found.
+        """
+        return get_cluster_head_host(config=self.config)
+
+    def get_worker_node_hosts(
+            self, runtime: str = None, node_status: str = None) -> List[str]:
+        """Returns worker node hosts for given configuration file.
+        Args:
+            runtime (str): The nodes with the specified runtime.
+            node_status (str): The node status of the workers. Values: setting-up, up-to-date, update-failed
+        Returns:
+            List of worker node host addresses.
+
+        Raises:
+            RuntimeError if the cluster is not found.
+        """
+        return _get_worker_node_hosts(
             config=self.config, runtime=runtime, node_status=node_status)
 
     def get_nodes(

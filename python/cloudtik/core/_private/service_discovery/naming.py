@@ -9,7 +9,7 @@ from cloudtik.core._private.service_discovery.runtime_services import get_servic
 from cloudtik.core._private.service_discovery.utils import ServiceAddressType
 from cloudtik.core._private.utils import is_config_use_hostname, get_runtime_config, \
     get_workspace_name, get_cluster_name, is_node_seq_id_enabled, is_runtime_enabled, is_config_use_fqdn, \
-    _get_worker_nodes_info, NODE_INFO_NODE_IP
+    _get_worker_nodes_info, NODE_INFO_NODE_IP, get_cluster_head_ip
 from cloudtik.core.tags import CLOUDTIK_TAG_HEAD_NODE_SEQ_ID, CLOUDTIK_TAG_NODE_SEQ_ID
 
 CONSUL_CONFIG_DISABLE_CLUSTER_NODE_NAME = "disable_cluster_node_name"
@@ -120,7 +120,9 @@ def get_cluster_node_hostname(
     return None
 
 
-def get_cluster_head_host(config: Dict[str, Any], head_ip) -> str:
+def get_cluster_head_host(config: Dict[str, Any], head_ip=None) -> str:
+    if not head_ip:
+        head_ip = get_cluster_head_ip(config)
     return get_cluster_node_host(config, HEAD_NODE_SEQ_ID, head_ip)
 
 
@@ -218,5 +220,6 @@ def _get_worker_node_hosts(
         node_status: str = None) -> List[str]:
     nodes_info = _get_worker_nodes_info(
         config, runtime=runtime, node_status=node_status)
-    # convert to hosts
-    return _get_hosts_of_nodes_info(config, nodes_info)
+    # convert to hosts and sort
+    return sorted(
+        _get_hosts_of_nodes_info(config, nodes_info))

@@ -15,7 +15,7 @@ from cloudtik.core._private.cluster.cluster_operator import (
     _wait_for_ready, _show_cluster_status, _monitor_cluster, cli_call_context, _exec_node_on_head,
     do_health_check, cluster_resource_metrics_on_head, show_info, _run_script_on_head, cluster_logs_on_head)
 from cloudtik.core._private.constants import CLOUDTIK_REDIS_DEFAULT_PASSWORD
-from cloudtik.core._private.service_discovery.naming import _get_worker_node_hosts
+from cloudtik.core._private.service_discovery.naming import _get_worker_node_hosts, get_cluster_head_host
 from cloudtik.core._private.util.redis_utils import get_address_to_use_or_die
 from cloudtik.core._private.state import kv_store
 from cloudtik.core._private.state.kv_store import kv_initialize_with_address
@@ -425,6 +425,19 @@ def head_ip(public):
         click.echo(head_node_ip)
     except RuntimeError as re:
         cli_logger.error("Get head IP failed. " + str(re))
+        raise re
+
+
+@head.command()
+@add_click_logging_options
+def head_host():
+    """Return the head node host of a cluster."""
+    try:
+        config = load_head_cluster_config()
+        host = get_cluster_head_host(config)
+        click.echo(host)
+    except RuntimeError as re:
+        cli_logger.error("Get head host failed. " + str(re))
         raise re
 
 
@@ -988,7 +1001,10 @@ head.add_command(rsync_down)
 
 head.add_command(status)
 head.add_command(info)
+head.add_command(head_ip)
+head.add_command(head_host)
 head.add_command(worker_ips)
+head.add_command(worker_hosts)
 head.add_command(monitor)
 
 head.add_command(teardown)
