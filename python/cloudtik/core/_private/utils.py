@@ -590,15 +590,15 @@ def prepare_pre_internal_commands(config, built_in_commands):
     head_setup_commands += [cloudtik_head_prepare_command]
     built_in_commands["head_setup_commands"] = head_setup_commands
 
-    cloudtik_stop_command = get_cloudtik_stop_command(config)
+    cloudtik_stop_state_command = get_cloudtik_stop_state_command(config)
 
     head_start_commands = built_in_commands.get("head_start_commands", [])
     cloudtik_start_state_command = get_cloudtik_start_state_command(config)
-    head_start_commands += [cloudtik_stop_command, cloudtik_start_state_command]
+    head_start_commands += [cloudtik_stop_state_command, cloudtik_start_state_command]
     built_in_commands["head_start_commands"] = head_start_commands
 
     head_stop_commands = built_in_commands.get("head_stop_commands", [])
-    head_stop_commands += [cloudtik_stop_command]
+    head_stop_commands += [cloudtik_stop_state_command]
     built_in_commands["head_stop_commands"] = head_stop_commands
 
 
