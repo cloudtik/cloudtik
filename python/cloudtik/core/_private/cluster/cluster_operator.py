@@ -39,7 +39,8 @@ from cloudtik.core._private.util.core_utils import stop_process_tree, double_quo
     memory_to_gb, memory_to_gb_string, address_to_ip, split_list
 from cloudtik.core._private.job_waiter.job_waiter_factory import create_job_waiter
 from cloudtik.core._private.runtime_factory import _get_runtime_cls
-from cloudtik.core._private.service_discovery.naming import get_cluster_head_hostname, _get_worker_node_hosts
+from cloudtik.core._private.service_discovery.naming import get_cluster_head_hostname, _get_worker_node_hosts, \
+    get_cluster_head_host
 from cloudtik.core._private.service_discovery.utils import ServiceRegisterException
 from cloudtik.core._private.util.redis_utils import validate_redis_address, get_address_to_use_or_die
 from cloudtik.core._private.state import kv_store
@@ -1613,9 +1614,10 @@ def get_sockets_per_worker(config, provider):
     return sockets_per_worker.strip()
 
 
-def get_head_node_ip(config_file: str,
-                     override_cluster_name: Optional[str] = None,
-                     public: bool = False) -> str:
+def get_head_node_ip(
+        config_file: str,
+        override_cluster_name: Optional[str] = None,
+        public: bool = False) -> str:
     """Returns head node IP for given configuration file if exists."""
     config = _load_cluster_config(config_file, override_cluster_name)
     return get_cluster_head_ip(config=config, public=public)
@@ -1630,6 +1632,14 @@ def get_worker_node_ips(
     config = _load_cluster_config(config_file, override_cluster_name)
     return _get_worker_node_ips(
         config, runtime=runtime, node_status=node_status)
+
+
+def get_head_node_host(
+        config_file: str,
+        override_cluster_name: Optional[str] = None) -> str:
+    """Returns head node host for given configuration file if exists."""
+    config = _load_cluster_config(config_file, override_cluster_name)
+    return get_cluster_head_host(config=config)
 
 
 def get_worker_node_hosts(

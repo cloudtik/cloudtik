@@ -24,7 +24,7 @@ from cloudtik.core._private.cluster.cluster_operator import (
     show_cluster_status, start_ssh_proxy, stop_ssh_proxy, cluster_debug_status,
     cluster_health_check, cluster_process_status, attach_worker, scale_cluster,
     exec_on_nodes, submit_and_exec, _wait_for_ready, _rsync, cli_call_context, cluster_resource_metrics,
-    show_info, _run_script, cluster_logs)
+    show_info, _run_script, cluster_logs, get_worker_node_hosts, get_head_node_host)
 from cloudtik.core._private.utils import parse_bundles_json, parse_resources
 from cloudtik.scripts.head_scripts import head
 from cloudtik.scripts.node_scripts import node
@@ -905,9 +905,34 @@ def info(
 def head_ip(cluster_config_file, cluster_name, public):
     """Return the head node IP of a cluster."""
     try:
-        click.echo(get_head_node_ip(cluster_config_file, cluster_name, public))
+        ip = get_head_node_ip(
+            cluster_config_file, cluster_name, public)
+        click.echo(ip)
     except RuntimeError as re:
         cli_logger.error("Get head IP failed. " + str(re))
+        if cli_logger.verbosity == 0:
+            cli_logger.print("For more details, please run with -v flag.")
+        else:
+            traceback.print_exc()
+
+
+@cli.command()
+@click.argument("cluster_config_file", required=True, type=str)
+@click.option(
+    "--cluster-name",
+    "-n",
+    required=False,
+    type=str,
+    help="Override the configured cluster name.")
+@add_click_logging_options
+def head_host(cluster_config_file, cluster_name):
+    """Return the head node host of a cluster."""
+    try:
+        host = get_head_node_host(
+            cluster_config_file, cluster_name)
+        click.echo(host)
+    except RuntimeError as re:
+        cli_logger.error("Get head host failed. " + str(re))
         if cli_logger.verbosity == 0:
             cli_logger.print("For more details, please run with -v flag.")
         else:
@@ -1457,8 +1482,11 @@ cli.add_command(status)
 cli.add_command(info)
 cli.add_command(head_ip)
 _add_command_alias(head_ip, name="head_ip", hidden=True)
+cli.add_command(head_host)
 cli.add_command(worker_ips)
 _add_command_alias(worker_ips, name="worker_ips", hidden=True)
+cli.add_command(worker_hosts)
+
 
 cli.add_command(monitor)
 cli.add_command(logs)
