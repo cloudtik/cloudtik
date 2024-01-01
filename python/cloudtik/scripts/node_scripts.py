@@ -16,7 +16,8 @@ from cloudtik.core._private.cluster.cluster_operator import (
 from cloudtik.core._private.constants import CLOUDTIK_PROCESSES, \
     CLOUDTIK_REDIS_DEFAULT_PASSWORD, \
     CLOUDTIK_DEFAULT_PORT, CLOUDTIK_RUNTIME_ENV_RUNTIMES, CLOUDTIK_RUNTIME_ENV_NODE_TYPE, \
-    CLOUDTIK_RUNTIME_ENV_NODE_SEQ_ID, CLOUDTIK_RUNTIME_ENV_NODE_IP, CLOUDTIK_RUNTIME_ENV_HEAD_HOST
+    CLOUDTIK_RUNTIME_ENV_NODE_SEQ_ID, CLOUDTIK_RUNTIME_ENV_NODE_IP, CLOUDTIK_RUNTIME_ENV_HEAD_HOST, \
+    CLOUDTIK_PROCESS_REDIS, CLOUDTIK_PROCESS_NODE_MONITOR, CLOUDTIK_PROCESS_CONTROLLER, CLOUDTIK_PROCESS_LOG_MONITOR
 from cloudtik.core._private.util.core_utils import get_cloudtik_home_dir, wait_for_port as _wait_for_port, \
     get_node_ip_address, address_to_ip, address_string
 from cloudtik.core._private.node.node_services import NodeServicesStarter
@@ -151,27 +152,20 @@ def node():
     hidden=True,
     help="The node seq id for this node.")
 @click.option(
-    "--no-controller",
+    "--state",
     is_flag=True,
     hidden=True,
     default=False,
-    help="If True, the cluster controller will not be started on head "
+    help="If True, the redis state services will be started on head "
          "for this command",
 )
 @click.option(
-    "--no-redis",
+    "--controller",
     is_flag=True,
     hidden=True,
     default=False,
-    help="If True, the redis services will not be started as part of this command",
-)
-@click.option(
-    "--no-clustering",
-    is_flag=True,
-    hidden=True,
-    default=False,
-    help="If True, the clustering services including controller and node services"
-         "will not be started as part of this command",
+    help="If True, the cluster controller will be started on head "
+         "for this command",
 )
 @add_click_logging_options
 def start(node_ip_address, address, port, head,
@@ -179,7 +173,7 @@ def start(node_ip_address, address, port, head,
           memory, num_cpus, num_gpus, resources,
           cluster_config, home_dir, metrics_export_port,
           no_redirect_output, runtimes, node_type, node_seq_id,
-          no_controller, no_redis, no_clustering):
+          state, controller):
     """Start the main daemon processes on the local machine."""
     # Convert hostnames to numerical IP address.
     if not node_ip_address:
@@ -210,9 +204,8 @@ def start(node_ip_address, address, port, head,
         runtimes=runtimes,
         node_type=node_type,
         node_seq_id=node_seq_id,
-        no_controller=no_controller,
-        no_redis=no_redis,
-        no_clustering=no_clustering,
+        state=state,
+        controller=controller,
     )
     if head:
         # Use default if port is none, allocate an available port if port is 0
@@ -245,7 +238,7 @@ def start(node_ip_address, address, port, head,
         )
 
         # Fail early when starting a new cluster when one is already running
-        if address is None and not no_redis:
+        if address is None and state:
             # TODO: since we start redis and clustering services separately
             #  check clustering services exists for duplicated start
             default_address = f"{start_params.node_ip_address}:{port}"
@@ -305,10 +298,15 @@ def start(node_ip_address, address, port, head,
         NodeServicesStarter(
             start_params, head=False, shutdown_at_exit=False, spawn_reaper=False)
 
-    if head and no_clustering:
-        startup_msg = "CloudTik state service started."
+    if head:
+        if state:
+            startup_msg = "CloudTik state started."
+        elif controller:
+            startup_msg = "CloudTik controller started."
+        else:
+            startup_msg = "CloudTik node started."
     else:
-        startup_msg = "CloudTik runtime started."
+        startup_msg = "CloudTik node started."
     cli_logger.success(startup_msg)
     cli_logger.flush()
 
@@ -320,20 +318,38 @@ def start(node_ip_address, address, port, head,
     is_flag=True,
     help="If set, will send SIGKILL instead of SIGTERM.")
 @click.option(
-    "--no-redis",
+    "--state",
     is_flag=True,
     hidden=True,
     default=False,
-    help="If True, the redis services will not be stopped as part of this command",
+    help="If True, the redis state service will be stopped.",
+)
+@click.option(
+    "--controller",
+    is_flag=True,
+    hidden=True,
+    default=False,
+    help="If True, the cluster controller service will be stopped.",
 )
 @add_click_logging_options
-def stop(force, no_redis):
+def stop(force, state, controller):
     """Stop CloudTik processes on the local machine."""
+
+    def is_process_to_stop(process_name):
+        if state or controller:
+            if state and process_name == CLOUDTIK_PROCESS_REDIS:
+                return True
+            if controller and process_name == CLOUDTIK_PROCESS_CONTROLLER:
+                return True
+            return False
+        else:
+            return process_name in [
+                CLOUDTIK_PROCESS_NODE_MONITOR, CLOUDTIK_PROCESS_LOG_MONITOR]
 
     is_linux = sys.platform.startswith("linux")
     processes_to_kill = [
         to_kill for to_kill in CLOUDTIK_PROCESSES
-        if not no_redis or to_kill[0] != "cloudtik-redis-server"
+        if is_process_to_stop(to_kill[0])
     ]
 
     process_infos = []
@@ -407,8 +423,8 @@ def stop(force, no_redis):
             cli_logger.warning("Try running the command again, or use `{}`.",
                                cf.bold("--force"))
 
-    if not no_redis:
-        # Stopping the redis service means the end of cluster
+    if state:
+        # Stopping the state service means the end of cluster
         try:
             os.remove(
                 os.path.join(get_cloudtik_home_dir(),

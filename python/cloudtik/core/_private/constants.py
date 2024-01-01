@@ -166,6 +166,12 @@ CLOUDTIK_RESOURCE_REQUESTS = b"cloudtik_resource_requests"
 # `services.py:wait_for_redis_to_start`.
 CLOUDTIK_START_REDIS_WAIT_RETRIES = env_integer("CLOUDTIK_START_REDIS_WAIT_RETRIES", 16)
 
+CLOUDTIK_PROCESS_CONTROLLER = "cloudtik_cluster_controller.py"
+CLOUDTIK_PROCESS_REDIS = "cloudtik-redis-server"
+CLOUDTIK_PROCESS_NODE_MONITOR = "cloudtik_node_agent.py"
+CLOUDTIK_PROCESS_LOG_MONITOR = "cloudtik_log_agent.py"
+CLOUDTIK_PROCESS_REAPER = "cloudtik_process_reaper.py"
+
 CLOUDTIK_PROCESSES = [
     # The first element is the substring to filter.
     # The second element, if True, is to filter ps results by command name
@@ -178,10 +184,10 @@ CLOUDTIK_PROCESSES = [
     # Keyword to filter, filter by command (True)/filter by args (False)
     # The third element is the process name.
     # The forth element, if node, the process should on all nodes,if head, the process should on head node.
-    ["cloudtik_cluster_controller.py", False, "ClusterController", "head"],
-    ["cloudtik_node_agent.py", False, "NodeMonitor", "node"],
-    ["cloudtik_log_agent.py", False, "LogMonitor", "node"],
-    ["cloudtik-redis-server", False, "RedisServer", "head"],
+    [CLOUDTIK_PROCESS_CONTROLLER, False, "ClusterController", "head"],
+    [CLOUDTIK_PROCESS_NODE_MONITOR, False, "NodeMonitor", "node"],
+    [CLOUDTIK_PROCESS_LOG_MONITOR, False, "LogMonitor", "node"],
+    [CLOUDTIK_PROCESS_REDIS, False, "RedisServer", "head"],
 ]
 
 

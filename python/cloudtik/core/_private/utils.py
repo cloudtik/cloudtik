@@ -590,6 +590,19 @@ def prepare_pre_internal_commands(config, built_in_commands):
     head_setup_commands += [cloudtik_head_prepare_command]
     built_in_commands["head_setup_commands"] = head_setup_commands
 
+    cloudtik_stop_state_command = get_cloudtik_stop_state_command(config)
+
+    head_start_commands = built_in_commands.get("head_start_commands", [])
+    cloudtik_start_state_command = get_cloudtik_start_state_command(config)
+    head_start_commands += [cloudtik_stop_state_command, cloudtik_start_state_command]
+    built_in_commands["head_start_commands"] = head_start_commands
+
+    head_stop_commands = built_in_commands.get("head_stop_commands", [])
+    head_stop_commands += [cloudtik_stop_state_command]
+    built_in_commands["head_stop_commands"] = head_stop_commands
+
+
+def prepare_node_internal_commands(config, built_in_commands):
     cloudtik_stop_command = get_cloudtik_stop_command(config)
 
     head_start_commands = built_in_commands.get("head_start_commands", [])
@@ -601,21 +614,6 @@ def prepare_pre_internal_commands(config, built_in_commands):
     head_stop_commands += [cloudtik_stop_command]
     built_in_commands["head_stop_commands"] = head_stop_commands
 
-
-def prepare_post_internal_commands(config, built_in_commands):
-    cloudtik_stop_clustering_command = get_cloudtik_stop_clustering_command(config)
-
-    head_start_commands = built_in_commands.get("head_start_commands", [])
-    cloudtik_head_start_command = get_cloudtik_head_start_clustering_command(config)
-    head_start_commands += [cloudtik_stop_clustering_command, cloudtik_head_start_command]
-    built_in_commands["head_start_commands"] = head_start_commands
-
-    head_stop_commands = built_in_commands.get("head_stop_commands", [])
-    head_stop_commands += [cloudtik_stop_clustering_command]
-    built_in_commands["head_stop_commands"] = head_stop_commands
-
-    cloudtik_stop_command = get_cloudtik_stop_command(config)
-
     worker_start_commands = built_in_commands.get("worker_start_commands", [])
     cloudtik_worker_start_command = get_cloudtik_worker_start_command(config)
     worker_start_commands += [cloudtik_stop_command, cloudtik_worker_start_command]
@@ -624,6 +622,21 @@ def prepare_post_internal_commands(config, built_in_commands):
     worker_stop_commands = built_in_commands.get("worker_stop_commands", [])
     worker_stop_commands += [cloudtik_stop_command]
     built_in_commands["worker_stop_commands"] = worker_stop_commands
+
+
+def prepare_post_internal_commands(config, built_in_commands):
+    no_controller_on_head = config.get("no_controller_on_head", False)
+    if not no_controller_on_head:
+        cloudtik_stop_controller_command = get_cloudtik_stop_controller_command(config)
+
+        head_start_commands = built_in_commands.get("head_start_commands", [])
+        cloudtik_start_controller_command = get_cloudtik_start_controller_command(config)
+        head_start_commands += [cloudtik_stop_controller_command, cloudtik_start_controller_command]
+        built_in_commands["head_start_commands"] = head_start_commands
+
+        head_stop_commands = built_in_commands.get("head_stop_commands", [])
+        head_stop_commands += [cloudtik_stop_controller_command]
+        built_in_commands["head_stop_commands"] = head_stop_commands
 
 
 def merge_command_key(merged_commands, group_name, from_config, command_key):
@@ -641,7 +654,14 @@ def merge_command_key(merged_commands, group_name, from_config, command_key):
     command_groups += [command_group]
 
 
-def merge_runtime_commands(config, commands_root):
+def _is_system_runtime(runtime):
+    dependencies = runtime.get_dependencies()
+    if dependencies and BUILT_IN_RUNTIME_NONE in dependencies:
+        return True
+    return False
+
+
+def merge_runtime_commands(config, commands_root, system=False):
     runtime_config = commands_root.get(RUNTIME_CONFIG_KEY)
     if runtime_config is None:
         return
@@ -649,17 +669,30 @@ def merge_runtime_commands(config, commands_root):
     runtime_types = runtime_config.get(RUNTIME_TYPES_CONFIG_KEY, [])
     for runtime_type in runtime_types:
         runtime = _get_runtime(runtime_type, runtime_config)
+        system_runtime = _is_system_runtime(runtime)
+        if ((system and not system_runtime)
+                or (not system and system_runtime)):
+            continue
+
         runtime_commands = runtime.get_runtime_commands(config)
         if runtime_commands:
             merge_commands_from(commands_root, runtime_type, runtime_commands)
 
 
 def merge_built_in_commands(config, commands_root, built_in_commands):
-    # Merge runtime commands with built-in: built-in -> runtime -> post-built-in
-    pre_built_in_commands, post_built_in_commands = built_in_commands
-    merge_commands_from(commands_root, CLOUDTIK_RUNTIME_NAME, pre_built_in_commands)
+    # Merge runtime commands with built-in:
+    # pre-built-in -> runtime-system ->  node-built-in - runtime-normal -> post-built-in
+    (pre_built_in_commands,
+     node_built_in_commands,
+     post_built_in_commands) = built_in_commands
+    merge_commands_from(
+        commands_root, CLOUDTIK_RUNTIME_NAME, pre_built_in_commands)
+    merge_runtime_commands(config, commands_root, system=True)
+    merge_commands_from(
+        commands_root, CLOUDTIK_RUNTIME_NAME, node_built_in_commands)
     merge_runtime_commands(config, commands_root)
-    merge_commands_from(commands_root, CLOUDTIK_RUNTIME_NAME, post_built_in_commands)
+    merge_commands_from(
+        commands_root, CLOUDTIK_RUNTIME_NAME, post_built_in_commands)
 
 
 def merge_commands_from(config, group_name, from_config):
@@ -894,18 +927,27 @@ def merge_commands(config):
     # Populate some internal command which is generated on the fly
     prepare_pre_internal_commands(config, pre_built_in_commands)
 
+    node_built_in_commands = {}
+    prepare_node_internal_commands(config, node_built_in_commands)
+
     post_built_in_commands = {}
     prepare_post_internal_commands(config, post_built_in_commands)
 
-    built_in_commands = (pre_built_in_commands, post_built_in_commands)
-    merge_global_commands(config, built_in_commands=built_in_commands)
+    built_in_commands = (
+        pre_built_in_commands,
+        node_built_in_commands,
+        post_built_in_commands)
+    merge_global_commands(
+        config, built_in_commands=built_in_commands)
 
     # Merge commands for node types if needed
-    merge_commands_for_node_types(config, built_in_commands=built_in_commands)
+    merge_commands_for_node_types(
+        config, built_in_commands=built_in_commands)
 
 
 def merge_global_commands(config, built_in_commands):
-    merge_commands_for(config, config, built_in_commands=built_in_commands)
+    merge_commands_for(
+        config, config, built_in_commands=built_in_commands)
 
 
 def merge_commands_for_node_types(config, built_in_commands):
@@ -973,8 +1015,9 @@ def is_commands_merge_needed(config, node_type_config) -> bool:
 
 
 def merge_commands_for(config, commands_root, built_in_commands):
-    merge_built_in_commands(config, commands_root,
-                            built_in_commands=built_in_commands)
+    merge_built_in_commands(
+        config, commands_root,
+        built_in_commands=built_in_commands)
 
     # Merge user commands after built-in
     merge_user_commands(commands_root)
@@ -1248,21 +1291,21 @@ def get_cloudtik_head_prepare_command(config) -> str:
 
 
 def get_cloudtik_head_start_command(config) -> str:
-    # Start the Redis service for state and data
     start_command = "ulimit -n 65536; cloudtik node start --head"
-    start_command += " --no-clustering"
     return start_command
 
 
-def get_cloudtik_head_start_clustering_command(config) -> str:
+def get_cloudtik_start_state_command(config) -> str:
+    # Start the Redis service for state
     start_command = "ulimit -n 65536; cloudtik node start --head"
-    start_command += " --no-redis"
+    start_command += " --state"
+    return start_command
 
-    no_controller_on_head = config.get("no_controller_on_head", False)
-    if no_controller_on_head:
-        start_command += " --no-controller"
-    else:
-        start_command += " --cluster-config=~/cloudtik_bootstrap_config.yaml"
+
+def get_cloudtik_start_controller_command(config) -> str:
+    start_command = "ulimit -n 65536; cloudtik node start --head"
+    start_command += " --controller"
+    start_command += " --cluster-config=~/cloudtik_bootstrap_config.yaml"
     return start_command
 
 
@@ -1276,8 +1319,13 @@ def get_cloudtik_stop_command(config) -> str:
     return stop_command
 
 
-def get_cloudtik_stop_clustering_command(config) -> str:
-    stop_command = "cloudtik node stop --no-redis"
+def get_cloudtik_stop_state_command(config) -> str:
+    stop_command = "cloudtik node stop --state"
+    return stop_command
+
+
+def get_cloudtik_stop_controller_command(config) -> str:
+    stop_command = "cloudtik node stop --controller"
     return stop_command
 
 

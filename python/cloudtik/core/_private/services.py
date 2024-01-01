@@ -491,8 +491,9 @@ def start_reaper(fate_share=None):
             # other user processes.
             return None
 
-    reaper_filepath = os.path.join(CLOUDTIK_PATH, CLOUDTIK_CORE_PRIVATE_SERVICE,
-                                   "cloudtik_process_reaper.py")
+    reaper_filepath = os.path.join(
+        CLOUDTIK_PATH, CLOUDTIK_CORE_PRIVATE_SERVICE,
+        constants.CLOUDTIK_PROCESS_REAPER)
     command = [sys.executable, "-u", reaper_filepath]
     process_info = start_cloudtik_process(
         command,
@@ -888,7 +889,8 @@ def start_log_monitor(
         ProcessInfo for the process that was started.
     """
     log_monitor_filepath = os.path.join(
-        CLOUDTIK_PATH, CLOUDTIK_CORE_PRIVATE_SERVICE, "cloudtik_log_agent.py")
+        CLOUDTIK_PATH, CLOUDTIK_CORE_PRIVATE_SERVICE,
+        constants.CLOUDTIK_PROCESS_LOG_MONITOR)
     command = [
         sys.executable, "-u", log_monitor_filepath,
         f"--redis-address={redis_address}", f"--logs-dir={logs_dir}",
@@ -946,7 +948,9 @@ def start_cluster_controller(
     Returns:
         ProcessInfo for the process that was started.
     """
-    controller_path = os.path.join(CLOUDTIK_PATH, CLOUDTIK_CORE_PRIVATE_SERVICE, "cloudtik_cluster_controller.py")
+    controller_path = os.path.join(
+        CLOUDTIK_PATH, CLOUDTIK_CORE_PRIVATE_SERVICE,
+        constants.CLOUDTIK_PROCESS_CONTROLLER)
     command = [
         sys.executable,
         "-u",
@@ -1015,7 +1019,8 @@ def start_node_monitor(
         ProcessInfo for the process that was started.
     """
     monitor_path = os.path.join(
-        CLOUDTIK_PATH, CLOUDTIK_CORE_PRIVATE_SERVICE, "cloudtik_node_agent.py")
+        CLOUDTIK_PATH, CLOUDTIK_CORE_PRIVATE_SERVICE,
+        constants.CLOUDTIK_PROCESS_NODE_MONITOR)
     command = [
         sys.executable,
         "-u",
