@@ -144,7 +144,8 @@ class NodeServicesStarter:
         if head:
             self.start_head_processes()
 
-        if not self._start_params.no_clustering:
+        if (not self._start_params.state
+                and not self._start_params.controller):
             self.start_node_processes()
             # we should update the address info after the node has been started
             try:
@@ -616,8 +617,8 @@ class NodeServicesStarter:
                      f"redirected to {self._logs_dir}.")
         assert self._redis_address is None
 
-        if not self._start_params.no_redis:
-            # If this is the head node, start the relevant head node processes.
+        # If this is the head node, start the relevant head node processes.
+        if self._start_params.state:
             self.start_redis()
             self._write_cluster_info_to_state()
         else:
@@ -627,8 +628,7 @@ class NodeServicesStarter:
             self._redis_address = address_string(
                 self._node_ip_address, constants.CLOUDTIK_DEFAULT_PORT)
 
-        if (not self._start_params.no_clustering
-                and not self._start_params.no_controller):
+        if self._start_params.controller:
             self.start_cluster_controller()
 
     def start_node_processes(self):
