@@ -119,13 +119,6 @@ def node():
     default=None,
     help="manually specify the root session dir of the CloudTik")
 @click.option(
-    "--metrics-export-port",
-    type=int,
-    hidden=True,
-    default=None,
-    help="the port to use to expose metrics through a "
-    "Prometheus endpoint.")
-@click.option(
     "--no-redirect-output",
     is_flag=True,
     default=False,
@@ -171,8 +164,8 @@ def node():
 def start(node_ip_address, address, port, head,
           redis_password, redis_shard_ports, redis_max_memory,
           memory, num_cpus, num_gpus, resources,
-          cluster_config, home_dir, metrics_export_port,
-          no_redirect_output, runtimes, node_type, node_seq_id,
+          cluster_config, home_dir, no_redirect_output,
+          runtimes, node_type, node_seq_id,
           state, controller):
     """Start the main daemon processes on the local machine."""
     # Convert hostnames to numerical IP address.
@@ -199,7 +192,6 @@ def start(node_ip_address, address, port, head,
         num_gpus=num_gpus,
         resources=resources,
         home_dir=home_dir,
-        metrics_export_port=metrics_export_port,
         redirect_output=redirect_output,
         runtimes=runtimes,
         node_type=node_type,

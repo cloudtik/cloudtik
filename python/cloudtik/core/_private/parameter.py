@@ -40,8 +40,6 @@ class StartParams:
             monitor the log files for all processes on this node and push their
             contents to Redis.
         cluster_config: path to cluster config file.
-        metrics_export_port(int): The port at which metrics are exposed
-            through a Prometheus endpoint.
         env_vars (dict): Override environment variables for the node.
         num_cpus (int): Number of CPUs to configure the cloudtik.
         num_gpus (int): Number of GPUs to configure the cloudtik.
@@ -70,7 +68,6 @@ class StartParams:
                  home_dir=None,
                  no_log_monitor=None,
                  cluster_config=None,
-                 metrics_export_port=None,
                  env_vars=None,
                  resources=None,
                  num_cpus=None,
@@ -95,7 +92,6 @@ class StartParams:
         self.home_dir = home_dir
         self.no_log_monitor = no_log_monitor
         self.cluster_config = cluster_config
-        self.metrics_export_port = metrics_export_port
         self.env_vars = env_vars
         self.num_cpus = num_cpus
         self.num_gpus = num_gpus
@@ -157,7 +153,6 @@ class StartParams:
         # Create a dictionary of the component -> port mapping.
         pre_selected_ports = {
             "redis": wrap_port(self.redis_port),
-            "metrics_export": wrap_port(self.metrics_export_port),
         }
         redis_shard_ports = self.redis_shard_ports
         if redis_shard_ports is None:

@@ -69,9 +69,8 @@ class ClusterController:
         redis_host, _ = address_from_string(redis_address)
 
         if prometheus_client:
-            controller_addr = f"{controller_ip}:{CLOUDTIK_METRIC_PORT}"
-            # TODO: handle metrics
-            self.redis.set(constants.CLOUDTIK_METRIC_ADDRESS_KEY, controller_addr)
+            metrics_address = f"{controller_ip}:{CLOUDTIK_METRIC_PORT}"
+            self.redis.set(constants.CLOUDTIK_METRIC_ADDRESS_KEY, metrics_address)
 
         control_state = ControlState()
         control_state.initialize_control_state(
@@ -104,25 +103,7 @@ class ClusterController:
 
         self.prometheus_metrics = ClusterPrometheusMetrics(
             session_name=self._session_name)
-        if prometheus_client:
-            try:
-                logger.info(
-                    "Starting metrics server on port {}".format(
-                        CLOUDTIK_METRIC_PORT))
-                prometheus_client.start_http_server(
-                    port=CLOUDTIK_METRIC_PORT,
-                    addr=controller_ip,
-                    registry=self.prometheus_metrics.registry)
-                # Reset some gauges, since we don't know which labels have
-                # leaked if the cluster controller restarted.
-                self.prometheus_metrics.pending_nodes_of_type.clear()
-                self.prometheus_metrics.active_nodes_of_type.clear()
-            except Exception:
-                logger.exception(
-                    "An exception occurred while starting the metrics server.")
-        else:
-            logger.warning("`prometheus_client` not found, so metrics will "
-                           "not be exported.")
+        self._start_metrics_server(controller_ip)
 
         logger.info("Controller: Started")
 
@@ -147,6 +128,27 @@ class ClusterController:
             resource_scaling_policy=self.resource_scaling_policy,
             event_summarizer=self.event_summarizer,
             prometheus_metrics=self.prometheus_metrics)
+
+    def _start_metrics_server(self, bind_address):
+        if prometheus_client:
+            try:
+                logger.info(
+                    "Starting metrics server on port {}".format(
+                        CLOUDTIK_METRIC_PORT))
+                prometheus_client.start_http_server(
+                    port=CLOUDTIK_METRIC_PORT,
+                    addr=bind_address,
+                    registry=self.prometheus_metrics.registry)
+                # Reset some gauges, since we don't know which labels have
+                # leaked if the cluster controller restarted.
+                self.prometheus_metrics.pending_nodes_of_type.clear()
+                self.prometheus_metrics.active_nodes_of_type.clear()
+            except Exception:
+                logger.exception(
+                    "An exception occurred while starting the metrics server.")
+        else:
+            logger.warning("`prometheus_client` not found, so metrics will "
+                           "not be exported.")
 
     def _run(self):
         """Run the controller loop."""
