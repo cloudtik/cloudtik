@@ -43,7 +43,7 @@ bootstrap_group_replication() {
             echo "Starting group replication seeding by workers: ${group_seeds}"
             update_in_file "${MYSQL_CONF_FILE}" \
               "{%group.replication.group.seeds%}" "${group_seeds}"
-            mysql_start_group_replication
+            mysql_start_group_replication "$@"
         fi
     fi
 }
