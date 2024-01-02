@@ -104,16 +104,19 @@ configure_mysql() {
         update_server_id
     elif [ "${MYSQL_CLUSTER_MODE}" == "group_replication" ]; then
         update_server_id
-        update_in_file "${config_template_file}" "{%group.replication.group.name%}" "${MYSQL_GROUP_REPLICATION_NAME}"
-        update_in_file "${config_template_file}" "{%group.replication.local.host%}" "${NODE_HOST_ADDRESS}"
-        update_in_file "${config_template_file}" "{%group.replication.port%}" "${MYSQL_GROUP_REPLICATION_PORT}"
+        update_in_file "${config_template_file}" \
+          "{%group.replication.group.name%}" "${MYSQL_GROUP_REPLICATION_NAME}"
+        update_in_file "${config_template_file}" \
+          "{%group.replication.local.host%}" "${NODE_HOST_ADDRESS}"
+        update_in_file "${config_template_file}" \
+          "{%group.replication.port%}" "${MYSQL_GROUP_REPLICATION_PORT}"
 
-        # TODO: set head address as seed address is good for first start
+        # set head address as seed address is good for first start
         # But if head is dead while other workers are running, we need head start using workers as seeds
-        # This need to be improved with fixed naming services if we know a fixed number of nodes. We can
-        # assume that the first N nodes used as seeds.
+        # This is done at service start for head.
         # While for workers, we can always trust there is a healthy head to contact with.
-        update_in_file "${config_template_file}" "{%group.replication.seed.host%}" "${HEAD_HOST_ADDRESS}"
+        update_in_file "${config_template_file}" \
+          "{%group.replication.group.seeds%}" "${HEAD_HOST_ADDRESS}:${MYSQL_GROUP_REPLICATION_PORT}"
 
         if [ "${MYSQL_GROUP_REPLICATION_MULTI_PRIMARY}" == "true" ]; then
             # turn on a few flags for multi-primary mode
