@@ -33,21 +33,17 @@ configure_hive_metastore() {
 
     mkdir -p ${METASTORE_HOME}/logs
 
-    DATABASE_NAME=hive_metastore
-    if [ "${SQL_DATABASE}" == "true" ] \
-      && [ "$METASTORE_WITH_SQL_DATABASE" != "false" ]; then
-        # a standalone SQL database
-        DATABASE_ADDRESS=${SQL_DATABASE_HOST}:${SQL_DATABASE_PORT}
-        DATABASE_USER=${SQL_DATABASE_USERNAME}
-        DATABASE_PASSWORD=${SQL_DATABASE_PASSWORD}
-        DATABASE_ENGINE=${SQL_DATABASE_ENGINE}
-    else
-        # local mariadb
-        DATABASE_ADDRESS=localhost
-        DATABASE_USER=hive
-        DATABASE_PASSWORD=hive
-        DATABASE_ENGINE="mysql"
+    if [ "${SQL_DATABASE}" != "true" ]; then
+        echo "SQL database is not configured."
+        exit 1
     fi
+
+    # a standalone SQL database
+    DATABASE_NAME=hive_metastore
+    DATABASE_ADDRESS=${SQL_DATABASE_HOST}:${SQL_DATABASE_PORT}
+    DATABASE_USER=${SQL_DATABASE_USERNAME}
+    DATABASE_PASSWORD=${SQL_DATABASE_PASSWORD}
+    DATABASE_ENGINE=${SQL_DATABASE_ENGINE}
 
     if [ "${DATABASE_ENGINE}" == "mysql" ]; then
         DATABASE_DRIVER="com.mysql.jdbc.Driver"

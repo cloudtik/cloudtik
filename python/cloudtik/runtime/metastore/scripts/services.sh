@@ -25,18 +25,9 @@ case "$SERVICE_COMMAND" in
 start)
     if [ "${METASTORE_HIGH_AVAILABILITY}" == "true" ] \
       || [ "${IS_HEAD_NODE}" == "true" ]; then
-        if [ "${SQL_DATABASE}" != "true" ] \
-          || [ "$METASTORE_WITH_SQL_DATABASE" == "false" ]; then
-            # local database
-            sudo service mysql start
-
-            # do schema check and init
+        if [ "${IS_HEAD_NODE}" == "true" ]; then
+            # do schema check and init only on head
             init_schema
-        else
-            if [ "${IS_HEAD_NODE}" == "true" ]; then
-                # do schema check and init only on head
-                init_schema
-            fi
         fi
 
         nohup $METASTORE_HOME/bin/start-metastore \
@@ -46,10 +37,6 @@ start)
 stop)
     if [ "${METASTORE_HIGH_AVAILABILITY}" == "true" ] \
       || [ "${IS_HEAD_NODE}" == "true" ]; then
-        if [ "${SQL_DATABASE}" != "true" ] \
-          || [ "$METASTORE_WITH_SQL_DATABASE" == "false" ]; then
-            sudo service mysql stop
-        fi
         stop_process_by_command "HiveMetaStore"
     fi
     ;;

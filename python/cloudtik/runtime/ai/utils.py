@@ -79,17 +79,25 @@ def _with_runtime_environment_variables(
 
 def _export_database_configurations(runtime_config):
     ai_config = _get_config(runtime_config)
+
+    # first the user configured or discovered
     database_config = _get_database_config(ai_config)
     if is_database_configured(database_config):
         # set the database environments from database config
         # This may override the environments from provider
         export_database_environment_variables(database_config)
-    else:
-        database_runtime = get_database_runtime_in_cluster(
-            runtime_config)
-        if database_runtime:
-            export_database_runtime_environment_variables(
-                runtime_config, database_runtime)
+        return
+
+    # next the in cluster database
+    database_runtime = get_database_runtime_in_cluster(
+        runtime_config)
+    if database_runtime:
+        export_database_runtime_environment_variables(
+            runtime_config, database_runtime)
+        return
+
+    # final the cloud database configured
+    # database environment variables already exported
 
 
 def _configure(runtime_config, head: bool):

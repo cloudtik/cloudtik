@@ -16,7 +16,7 @@ from cloudtik.core._private.utils import get_runtime_config, is_use_managed_clou
     PROVIDER_DATABASE_CONFIG_KEY, RUNTIME_CONFIG_KEY
 from cloudtik.runtime.common.service_discovery.runtime_discovery import \
     DATABASE_CONNECT_KEY, is_database_service_discovery, discover_database_on_head, \
-    discover_database_from_workspace
+    discover_database_from_workspace, get_database_runtime_in_cluster, export_database_runtime_environment_variables
 
 RUNTIME_PROCESSES = [
         # The first element is the substring to filter.
@@ -118,14 +118,30 @@ def _prepare_config_on_head(cluster_config: Dict[str, Any]):
     return cluster_config
 
 
+def _get_database_runtime_in_cluster(runtime_config):
+    database_runtime = get_database_runtime_in_cluster(
+        runtime_config)
+    if (database_runtime
+            and database_runtime == BUILT_IN_RUNTIME_POSTGRES):
+        return database_runtime
+    return None
+
+
 def _is_valid_database_config(config: Dict[str, Any], final=False):
-    # Check database configuration
     runtime_config = get_runtime_config(config)
     kong_config = _get_config(runtime_config)
+
+    # Check database configuration
     database_config = _get_database_config(kong_config)
     if is_database_configured(database_config):
         if get_database_engine(database_config) != DATABASE_ENGINE_POSTGRES:
             return False
+        return True
+
+    # check in cluster database
+    database_runtime = _get_database_runtime_in_cluster(
+        runtime_config)
+    if database_runtime:
         return True
 
     # check whether cloud database is available (must be postgres)
@@ -183,19 +199,30 @@ def _with_runtime_environment_variables(
 
 def _export_database_configurations(runtime_config):
     kong_config = _get_config(runtime_config)
+
+    # first the user configured or discovered
     database_config = _get_database_config(kong_config)
     if is_database_configured(database_config):
         # set the database environments from database config
         # This may override the environments from provider
         export_database_environment_variables(database_config)
-    else:
-        # check cloud database is configured
-        database_enabled = get_runtime_bool(DATABASE_ENV_ENABLED)
-        if not database_enabled:
-            raise RuntimeError("No Postgres is configured for Kong.")
-        database_engine = get_runtime_value(DATABASE_ENV_ENGINE)
-        if database_engine != DATABASE_ENGINE_POSTGRES:
-            raise RuntimeError("Postgres must be configured for Kong.")
+        return
+
+    # next the in cluster database
+    database_runtime = _get_database_runtime_in_cluster(
+        runtime_config)
+    if database_runtime:
+        export_database_runtime_environment_variables(
+            runtime_config, database_runtime)
+        return
+
+    # finally check cloud database is configured (just check here)
+    database_enabled = get_runtime_bool(DATABASE_ENV_ENABLED)
+    if not database_enabled:
+        raise RuntimeError("No Postgres is configured for Kong.")
+    database_engine = get_runtime_value(DATABASE_ENV_ENGINE)
+    if database_engine != DATABASE_ENGINE_POSTGRES:
+        raise RuntimeError("Postgres must be configured for Kong.")
 
 
 def _configure(runtime_config, head: bool):
