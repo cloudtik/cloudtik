@@ -130,12 +130,6 @@ class NodeServicesStarter:
         self._init_home_dir()
         self._init_data_dir()
 
-        self._metrics_export_port = self._get_cached_port(
-            "metrics_export_port", default_port=start_params.metrics_export_port)
-
-        start_params.update_if_absent(
-            metrics_export_port=self._metrics_export_port)
-
         if spawn_reaper and not self.kernel_fate_share:
             self.start_reaper_process()
         self._start_params.update_pre_selected_port()
@@ -289,11 +283,6 @@ class NodeServicesStarter:
         return f"{self.node_ip_address}"
 
     @property
-    def metrics_export_port(self):
-        """Get the port that exposes metrics"""
-        return self._metrics_export_port
-
-    @property
     def logging_config(self):
         """Get the logging config of the current node."""
         return {
@@ -308,8 +297,6 @@ class NodeServicesStarter:
         return {
             "node_ip_address": self._node_ip_address,
             "redis_address": self._redis_address,
-            "metrics_export_port": self._metrics_export_port,
-            "address": self._redis_address
         }
 
     def is_head(self):
@@ -477,7 +464,7 @@ class NodeServicesStarter:
         port isn't already cached, an unused port is generated and cached.
 
         Args:
-            port_name (str): the name of the port, e.g. metrics_export_port
+            port_name (str): the name of the port.
             default_port (Optional[int]): The port to return and cache if no
             port has already been cached for the given port_name.  If None, an
             unused port is generated and cached.
