@@ -113,7 +113,7 @@ group_replication_local_address="{%group.replication.local.host%}:{%group.replic
 # group members can be chosen as seeds. The server that starts the group does not make use of
 # this option, since it is the initial server and as such, it is in charge of bootstrapping
 # the group.
-group_replication_group_seeds="{%group.replication.seed.host%}:{%group.replication.port%}"
+group_replication_group_seeds="{%group.replication.group.seeds%}"
 
 # Configuring the group_replication_start_on_boot variable to off instructs the plugin to not
 # start operations automatically when the server starts. This is important when setting up

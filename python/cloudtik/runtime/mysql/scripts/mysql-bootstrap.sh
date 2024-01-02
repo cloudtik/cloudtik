@@ -23,8 +23,28 @@ bootstrap_group_replication() {
         echo "Error: timeout waiting for service ready."
     else
         # Case 1 and Case 2. start group replication with bootstrap
-        # TODO: distinguish for Case 3
-        mysql_bootstrap_group_replication "$@"
+        running_worker_hosts=$(cloudtik head worker-hosts --runtime=mysql --node-status=up-to-date 2>/dev/null)
+        if [ -z "$running_worker_hosts" ]; then
+            # Case 1 or Case 2
+            echo "Bootstrapping group replication"
+            mysql_bootstrap_group_replication "$@"
+        else
+            # Case 3
+            local group_seeds=""
+            for worker_host in ${running_worker_hosts}; do
+                local group_seed="${worker_host}:${MYSQL_GROUP_REPLICATION_PORT}"
+                if [ -z "${group_seeds}" ]; then
+                    group_seeds="${group_seed}"
+                else
+                    group_seeds="${group_seeds},${group_seed}"
+                fi
+            done
+
+            echo "Starting group replication seeding by workers"
+            update_in_file "${MYSQL_CONF_FILE}" \
+              "{%group.replication.group.seeds%}" "${group_seeds}"
+            mysql_start_group_replication
+        fi
     fi
 }
 
