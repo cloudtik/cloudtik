@@ -3,14 +3,17 @@ from typing import Any, Dict
 
 from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_METASTORE
 from cloudtik.core._private.service_discovery.naming import get_cluster_head_host
+from cloudtik.core._private.service_discovery.runtime_services import get_service_discovery_runtime
 from cloudtik.core._private.service_discovery.utils import get_canonical_service_name, \
     get_service_discovery_config, define_runtime_service_on_head_or_all
 from cloudtik.core._private.util.database_utils import is_database_configured, \
     export_database_environment_variables
-from cloudtik.core._private.utils import export_runtime_flags, get_node_cluster_ip_of
+from cloudtik.core._private.utils import export_runtime_flags, get_node_cluster_ip_of, get_runtime_config, \
+    PROVIDER_DATABASE_CONFIG_KEY, is_use_managed_cloud_database
 from cloudtik.runtime.common.service_discovery.runtime_discovery import \
-    discover_database_from_workspace, discover_database_on_head, DATABASE_CONNECT_KEY, get_database_runtime_in_cluster, \
-    export_database_runtime_environment_variables
+    discover_database_from_workspace, discover_database_on_head, DATABASE_CONNECT_KEY, \
+    get_database_runtime_in_cluster, export_database_runtime_environment_variables, \
+    is_database_service_discovery
 from cloudtik.runtime.common.service_discovery.workspace import register_service_to_workspace
 
 RUNTIME_PROCESSES = [
@@ -19,7 +22,6 @@ RUNTIME_PROCESSES = [
     # The third element is the process name.
     # The forth element, if node, the process should on all nodes,if head, the process should on head node.
     ["proc_metastore", False, "Metastore", "node"],
-    ["mysqld", False, "MariaDB", "node"],
 ]
 
 METASTORE_HIGH_AVAILABILITY_CONFIG_KEY = "high_availability"
@@ -57,6 +59,40 @@ def _prepare_config_on_head(cluster_config: Dict[str, Any]):
     return cluster_config
 
 
+def _validate_config(config: Dict[str, Any], final=False):
+    if not _is_valid_database_config(config, final):
+        raise ValueError("Database must be configured for Metastore.")
+
+
+def _is_valid_database_config(config: Dict[str, Any], final=False):
+    runtime_config = get_runtime_config(config)
+    metastore_config = _get_config(runtime_config)
+
+    # Check database configuration
+    database_config = _get_database_config(metastore_config)
+    if is_database_configured(database_config):
+        return True
+
+    # check in cluster database
+    database_runtime = get_database_runtime_in_cluster(
+        runtime_config)
+    if database_runtime:
+        return True
+
+    # check whether cloud database is available
+    provider_config = config["provider"]
+    if (PROVIDER_DATABASE_CONFIG_KEY in provider_config or
+            (not final and is_use_managed_cloud_database(config))):
+        return True
+
+    # if there is service discovery mechanism, assume we can get from service discovery
+    if (not final and is_database_service_discovery(metastore_config)
+            and get_service_discovery_runtime(runtime_config)):
+        return True
+
+    return False
+
+
 def _with_runtime_environment_variables(
         runtime_config, config, provider, node_id: str):
     runtime_envs = {"METASTORE_ENABLED": True}
@@ -74,17 +110,25 @@ def _with_runtime_environment_variables(
 
 def _export_database_configurations(runtime_config):
     metastore_config = _get_config(runtime_config)
+
+    # first the user configured or discovered
     database_config = _get_database_config(metastore_config)
     if is_database_configured(database_config):
         # set the database environments from database config
         # This may override the environments from provider
         export_database_environment_variables(database_config)
-    else:
-        database_runtime = get_database_runtime_in_cluster(
-            runtime_config)
-        if database_runtime:
-            export_database_runtime_environment_variables(
-                runtime_config, database_runtime)
+        return
+
+    # next the in cluster database
+    database_runtime = get_database_runtime_in_cluster(
+        runtime_config)
+    if database_runtime:
+        export_database_runtime_environment_variables(
+            runtime_config, database_runtime)
+        return
+
+    # finally cloud database is configured
+    # database environment variables already exported
 
 
 def _configure(runtime_config, head: bool):

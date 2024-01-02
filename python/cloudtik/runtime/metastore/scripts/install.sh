@@ -23,9 +23,9 @@ export RUNTIME_PATH=$USER_HOME/runtime
 . "$ROOT_DIR"/common/scripts/hadoop-install.sh
 
 install_database_tools() {
-    # TODO: install only when necessary
-    sudo apt-get -qq update -y > /dev/null
-    sudo DEBIAN_FRONTEND=noninteractive apt-get -qq install -y mariadb-server > /dev/null
+    which mysql > /dev/null \
+      || (sudo apt-get -qq update -y > /dev/null; \
+          sudo DEBIAN_FRONTEND=noninteractive apt-get -qq install mysql-client -y > /dev/null)
 
     which psql > /dev/null \
       || (sudo apt-get -qq update -y > /dev/null; \

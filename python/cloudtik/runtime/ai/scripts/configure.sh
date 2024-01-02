@@ -88,6 +88,7 @@ set_artifact_config_for_cloud_storage() {
         set_artifact_config_for_local_hdfs
     fi
 }
+
 set_backend_store_uri() {
     if [ "${SQL_DATABASE}" == "true" ] \
       && [ "$AI_WITH_SQL_DATABASE" != "false" ]; then

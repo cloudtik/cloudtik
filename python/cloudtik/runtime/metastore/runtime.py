@@ -8,7 +8,7 @@ from cloudtik.runtime.common.runtime_base import RuntimeBase
 from cloudtik.runtime.metastore.utils import _with_runtime_environment_variables, \
     _get_runtime_processes, _get_runtime_logs, \
     _get_runtime_endpoints, register_service, _get_head_service_ports, _get_runtime_services, \
-    _prepare_config_on_head, _prepare_config, _configure, _services
+    _prepare_config_on_head, _prepare_config, _configure, _services, _validate_config
 
 logger = logging.getLogger(__name__)
 
@@ -31,6 +31,10 @@ class MetastoreRuntime(RuntimeBase):
         The head configuration will be updated and saved with the returned configuration.
         """
         return _prepare_config_on_head(cluster_config)
+
+    def validate_config(self, cluster_config: Dict[str, Any]):
+        """Validate cluster configuration from runtime perspective."""
+        _validate_config(cluster_config)
 
     def with_environment_variables(
             self, config: Dict[str, Any], provider: NodeProvider,
