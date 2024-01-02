@@ -297,7 +297,6 @@ class NodeServicesStarter:
         return {
             "node_ip_address": self._node_ip_address,
             "redis_address": self._redis_address,
-            "address": self._redis_address
         }
 
     def is_head(self):
