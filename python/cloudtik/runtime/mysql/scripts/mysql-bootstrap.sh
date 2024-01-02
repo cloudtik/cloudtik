@@ -23,7 +23,7 @@ bootstrap_group_replication() {
         echo "Error: timeout waiting for service ready."
     else
         # Case 1 and Case 2. start group replication with bootstrap
-        running_worker_hosts=$(cloudtik head worker-hosts --runtime=mysql --node-status=up-to-date 2>/dev/null)
+        running_worker_hosts=$(cloudtik head worker-hosts --runtime=mysql --node-status=up-to-date)
         if [ -z "$running_worker_hosts" ]; then
             # Case 1 or Case 2
             echo "Bootstrapping group replication"

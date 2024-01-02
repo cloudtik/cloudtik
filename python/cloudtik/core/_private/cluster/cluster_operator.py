@@ -407,20 +407,17 @@ def _teardown_cluster(config: Dict[str, Any],
     if not hard:
         if not workers_only:
             with _cli_logger.group(
-                    "Requesting head to stop clustering services",
+                    "Stopping cluster controller",
                     _numbered=("[]", current_step, total_steps)):
                 current_step += 1
                 try:
-                    _stop_node_from_head(
+                    _stop_cluster_controller(
                         config,
-                        call_context=call_context,
-                        node_ip=None, all_nodes=False,
-                        runtimes=[CLOUDTIK_RUNTIME_NAME],
-                        indent_level=2)
+                        call_context=call_context)
                 except Exception as e:
                     _cli_logger.verbose_error("{}", str(e))
                     _cli_logger.warning(
-                        "Exception occurred when stopping clustering services "
+                        "Exception occurred when stopping cluster controller "
                         "(use -v to show details).")
                     _cli_logger.warning(
                         "Ignoring the exception and "
@@ -3239,13 +3236,14 @@ def stop_node_from_head(config_file: str,
         indent_level=indent_level, parallel=parallel)
 
 
-def _stop_node_from_head(config: Dict[str, Any],
-                         call_context: CallContext,
-                         node_ip: Optional[str],
-                         all_nodes: bool,
-                         runtimes: Optional[List[str]] = None,
-                         indent_level: int = None,
-                         parallel: bool = True):
+def _stop_node_from_head(
+        config: Dict[str, Any],
+        call_context: CallContext,
+        node_ip: Optional[str],
+        all_nodes: bool,
+        runtimes: Optional[List[str]] = None,
+        indent_level: int = None,
+        parallel: bool = True):
     cmds = [
         "cloudtik",
         "head",
@@ -3272,9 +3270,29 @@ def _stop_node_from_head(config: Dict[str, Any],
     with_verbose_option(cmds, call_context)
     final_cmd = " ".join(cmds)
 
-    _exec_cmd_on_cluster(config,
-                         call_context=call_context,
-                         cmd=final_cmd)
+    _exec_cmd_on_cluster(
+        config,
+        call_context=call_context,
+        cmd=final_cmd)
+
+
+def _stop_cluster_controller(
+        config: Dict[str, Any],
+        call_context: CallContext):
+    cmds = [
+        "cloudtik",
+        "node",
+        "stop",
+        "--controller",
+    ]
+
+    with_verbose_option(cmds, call_context)
+    final_cmd = " ".join(cmds)
+
+    _exec_cmd_on_cluster(
+        config,
+        call_context=call_context,
+        cmd=final_cmd)
 
 
 def get_nodes_of(config,

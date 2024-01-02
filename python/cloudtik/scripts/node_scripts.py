@@ -406,7 +406,7 @@ def stop(force, state, controller):
         cli_logger.print("Did not find any active processes.")
     else:
         if total_stopped == total_found:
-            cli_logger.success("Stopped all {} processes.", total_stopped)
+            cli_logger.success("Stopped {} processes.", total_stopped)
         else:
             cli_logger.warning(
                 "Stopped only {} out of {} processes. "
