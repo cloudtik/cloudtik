@@ -83,15 +83,15 @@ debug_execute() {
 # Retries a command a given number of times
 # Arguments:
 #   $1 - cmd (as a string)
-#   $2 - max retries. Default: 12
-#   $3 - sleep between retries (in seconds). Default: 5
+#   $2 - max retries. Default: 20
+#   $3 - sleep between retries (in seconds). Default: 3
 # Returns:
 #   Boolean
 #########################
 retry_while() {
     local cmd="${1:?cmd is missing}"
-    local retries="${2:-12}"
-    local sleep_time="${3:-5}"
+    local retries="${2:-20}"
+    local sleep_time="${3:-3}"
     local return_value=1
 
     read -r -a command <<<"$cmd"

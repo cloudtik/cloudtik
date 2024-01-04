@@ -18,7 +18,7 @@ _is_sourced() {
 }
 
 _main() {
-    if [ "${POSTGRES_MASTER_NODE}" == "true" ]; then
+    if [ "${POSTGRES_ROLE}" == "primary" ]; then
         # check whether this is first time
         POSTGRES_REPMGR_INIT_FILE=${POSTGRES_REPMGR_DATA_DIR}/.initialized
         if [ ! -f "${POSTGRES_REPMGR_INIT_FILE}" ]; then

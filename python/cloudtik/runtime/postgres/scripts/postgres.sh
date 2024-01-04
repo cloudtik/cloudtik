@@ -358,7 +358,7 @@ postgres_set_synchronous_standby_names() {
 }
 
 postgres_setup_synchronous_standby(){
-  if [ "${POSTGRES_MASTER_NODE}" == "true" ] \
+  if [ "${POSTGRES_ROLE}" == "primary" ] \
       && [ "${POSTGRES_CLUSTER_MODE}" == "replication" ] \
       && [ "${POSTGRES_SYNCHRONOUS_MODE}" != "none" ]; then
       postgres_set_synchronous_standby_names
@@ -463,5 +463,23 @@ postgresql_remote_execute_ex() {
         "postgresql_remote_execute" "$@" 2>/dev/null
     else
         "postgresql_remote_execute" "$@"
+    fi
+}
+
+########################
+# Retrieves the WAL directory in use by PostgreSQL / to use if not initialized yet
+# Globals:
+#   POSTGRES_*
+# Arguments:
+#   None
+# Returns:
+#   the path to the WAL directory, or empty if not set
+#########################
+postgres_get_waldir() {
+    if [[ -L "$PGDATA/pg_wal" && -d "$PGDATA/pg_wal" ]]; then
+        readlink -f "$PGDATA/pg_wal"
+    else
+        # Uninitialized - using value from $POSTGRES_INITDB_WAL_DIR if set
+        echo "$POSTGRES_INITDB_WAL_DIR"
     fi
 }

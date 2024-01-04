@@ -16,6 +16,7 @@ eval set -- "${args}"
 set_head_option "$@"
 set_service_command "$@"
 set_node_address
+set_head_address
 
 USER_HOME=/home/$(whoami)
 RUNTIME_PATH=$USER_HOME/runtime
@@ -28,12 +29,27 @@ start_repmgrd() {
   is_regmgrd_running
 }
 
+get_seed_nodes() {
+  if [ "${IS_HEAD_NODE}" == "true" ]; then
+      local running_worker_hosts=$(cloudtik head worker-hosts --runtime=postgres --node-status=up-to-date)
+      echo "${running_worker_hosts}"
+  else
+      # TODO: use service discovery or cluster live nodes to get more nodes
+      echo "${HEAD_HOST_ADDRESS}"
+  fi
+}
+
 case "$SERVICE_COMMAND" in
 start)
     if [ "${IS_HEAD_NODE}" == "true" ] \
         || [ "${POSTGRES_CLUSTER_MODE}" != "none" ]; then
         # set the variables needed by postgres-init
         . $POSTGRES_HOME/conf/postgres
+
+        if [ "${POSTGRES_REPMGR_ENABLED}" == "true" ]; then
+            POSTGRES_REPMGR_SEED_NODES=$(get_seed_nodes)
+            repmgr_set_role
+        fi
 
         # check and initialize the database if needed
         # make sure this should work for run multiple times
@@ -57,7 +73,7 @@ start)
 
             # wait until the repmgrd started.
             # The standby node record may have some delay
-            if ! retry_while "start_repmgrd" "3"; then
+            if ! retry_while "start_repmgrd" "5"; then
                 echo "Postgres repmgrd did not start"
             fi
         fi
