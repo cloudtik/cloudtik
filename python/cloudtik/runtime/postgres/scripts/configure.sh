@@ -151,10 +151,10 @@ configure_repmgr() {
     update_in_file "${repmgr_template_file}" "{%pid.file%}" "${POSTGRES_REPMGR_PID_FILE}"
 
     # failover
-    promote_command="$(repmgr_get_env_password) repmgr standby promote -f ${POSTGRES_REPMGR_CONF_FILE} --log-level DEBUG --log-to-file --verbose"
+    promote_command="$(repmgr_get_env_password) repmgr standby promote -f ${POSTGRES_REPMGR_CONFIG_FILE} --log-level DEBUG --log-to-file --verbose"
     update_in_file "${repmgr_template_file}" \
       "{%promote.command%}" "${promote_command}"
-    follow_command="$(repmgr_get_env_password) repmgr standby follow -f "${POSTGRES_REPMGR_CONF_FILE}" --log-level DEBUG --log-to-file --verbose --upstream-node-id=%n"
+    follow_command="$(repmgr_get_env_password) repmgr standby follow -f "${POSTGRES_REPMGR_CONFIG_FILE}" --log-level DEBUG --log-to-file --verbose --upstream-node-id=%n"
     update_in_file "${repmgr_template_file}" \
       "{%follow.command%}" "${follow_command}"
 

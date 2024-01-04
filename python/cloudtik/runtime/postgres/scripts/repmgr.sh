@@ -8,6 +8,7 @@ ROOT_DIR="$(dirname "$(dirname "$BIN_DIR")")"
 . "$ROOT_DIR"/common/scripts/util-file.sh
 . "$ROOT_DIR"/common/scripts/util-log.sh
 . "$ROOT_DIR"/common/scripts/util-os.sh
+. "$ROOT_DIR"/common/scripts/util-service.sh
 
 # postgres functions
 . "$BIN_DIR"/postgres.sh
@@ -60,7 +61,7 @@ repmgr_generate_password_file(){
         if [[ -f "${POSTGRES_REPMGR_PASSFILE_PATH}" ]]; then
             rm -f "${POSTGRES_REPMGR_PASSFILE_PATH}"
         fi
-        echo "*:*:*:${POSTGRES_REPMGR_USERNAME}:${POSTGRES_REPMGR_PASSWORD}" >"${POSTGRES_REPMGR_PASSFILE_PATH}"
+        echo "*:*:*:${POSTGRES_REPMGR_USER}:${POSTGRES_REPMGR_PASSWORD}" >"${POSTGRES_REPMGR_PASSFILE_PATH}"
         chmod 600 "${POSTGRES_REPMGR_PASSFILE_PATH}"
     fi
 }
@@ -374,4 +375,38 @@ repmgr_standby_follow() {
     else
         PGPASSWORD="$POSTGRES_REPMGR_PASSWORD" debug_execute "${POSTGRES_REPMGR_BIN_DIR}/repmgr" "${flags[@]}"
     fi
+}
+
+########################
+# Check if regmgrd is running
+# Globals:
+#   POSTGRES_HOME
+# Arguments:
+#   $1 - pid file
+# Returns:
+#   Boolean
+#########################
+is_regmgrd_running() {
+    local pid_file="${1:-"${POSTGRES_HOME}/repmgrd.pid"}"
+    local pid
+    pid="$(get_pid_from_file "$pid_file")"
+
+    if [[ -z "$pid" ]]; then
+        false
+    else
+        is_service_running "$pid"
+    fi
+}
+
+########################
+# Check if regmgrd is not running
+# Globals:
+#   POSTGRES_HOME
+# Arguments:
+#   $1 - pid file
+# Returns:
+#   Boolean
+#########################
+is_regmgrd_not_running() {
+    ! is_regmgrd_running "$@"
 }
