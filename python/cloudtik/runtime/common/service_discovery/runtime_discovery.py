@@ -739,4 +739,4 @@ def discover_in_cluster_service(
     cluster_name = get_runtime_cluster_name()
     return discover_service_from_node(
         cluster_name, runtime_type, service_type,
-        discovery_type=discovery_type,address_type=address_type)
+        discovery_type=discovery_type, address_type=address_type)

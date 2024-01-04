@@ -39,7 +39,7 @@ _main() {
 			  ls ${POSTGRES_INITDB_SCRIPTS}/ > /dev/null
 			fi
 
-			if [ "${POSTGRES_MASTER_NODE}" == "true" ]; then
+			if [ "${POSTGRES_ROLE}" == "primary" ]; then
 				postgres_init_database_dir
 				pg_setup_hba_conf "$@"
 				if [ "${POSTGRES_REPMGR_ENABLED}" == "true" ]; then
@@ -99,6 +99,7 @@ _main() {
 		if [ "${POSTGRES_REPMGR_ENABLED}" == "true" ]; then
 			repmgr_configure_preload
 		fi
+		# TODO: confirm whether synchronous standby works with repmgr
 		postgres_setup_synchronous_standby
 	fi
 

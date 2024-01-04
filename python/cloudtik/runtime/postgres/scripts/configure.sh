@@ -80,9 +80,15 @@ configure_service_init() {
     configure_variable POSTGRES_CONF_FILE "${POSTGRES_CONFIG_FILE}"
     # the init script used PGDATA environment
     configure_variable PGDATA "${POSTGRES_DATA_DIR}"
-    configure_variable POSTGRES_MASTER_NODE "${IS_HEAD_NODE}"
+    configure_variable POSTGRES_HEAD_NODE "${IS_HEAD_NODE}"
+    local role="primary"
+    if [ "${IS_HEAD_NODE}" != "true" ]; then
+        role="standby"
+    fi
+    configure_variable POSTGRES_ROLE "$role"
 
     if [ "${POSTGRES_CLUSTER_MODE}" == "replication" ]; then
+        configure_variable POSTGRES_HEAD_HOST "${HEAD_HOST_ADDRESS}"
         configure_variable POSTGRES_PRIMARY_HOST "${HEAD_HOST_ADDRESS}"
         if [ "${POSTGRES_REPLICATION_SLOT}" == "true" ]; then
             configure_variable POSTGRES_REPLICATION_SLOT_NAME "postgres_${CLOUDTIK_NODE_SEQ_ID}"
@@ -133,6 +139,7 @@ get_repmgr_data_dir() {
 
 configure_repmgr() {
     repmgr_template_file=${output_dir}/repmgr.conf
+    POSTGRES_REPMGR_CONFIG_FILE=${POSTGRES_CONFIG_DIR}/repmgr.conf
 
     update_repmgr_node_id
     update_in_file "${repmgr_template_file}" "{%node.ip%}" "${NODE_IP_ADDRESS}"
@@ -172,7 +179,6 @@ configure_repmgr() {
 pg_ctl_options='-o "--config-file=\"${POSTGRES_CONFIG_FILE}\" --external_pid_file=\"${postgres_pid_file}\" --hba_file=\"${postgres_hba_file}\""'
 EOF
 
-    POSTGRES_REPMGR_CONFIG_FILE=${POSTGRES_CONFIG_DIR}/repmgr.conf
     cp ${repmgr_template_file} ${POSTGRES_REPMGR_CONFIG_FILE}
 }
 

@@ -48,7 +48,7 @@ is_service_running() {
 #########################
 stop_service_by_pid() {
     local pid="${1:?pid is missing}"
-    local signal="${15:-}"
+    local signal="${2:-}"
 
     ! is_service_running "$pid" && return
 
@@ -75,7 +75,7 @@ stop_service_by_pid() {
 #########################
 stop_service_by_pid_file() {
     local pid_file="${1:?pid file is missing}"
-    local signal="${15:-}"
+    local signal="${2:-}"
     local pid
 
     pid="$(get_pid_from_file "$pid_file")"
@@ -85,26 +85,29 @@ stop_service_by_pid_file() {
 }
 
 stop_process_by_name() {
-    local process_name=$1
+    local process_name="${1:?process name is missing}"
+    local signal="${2:-}"
     local pid=$(pgrep ${process_name})
     [[ -z "$pid" ]] && return
 
     echo "Stopping ${process_name}..."
-    stop_service_by_pid "$pid"
+    stop_service_by_pid "$pid" "$signal"
 }
 
 stop_process_by_command() {
-    local process_cmd=$1
+    local process_cmd="${1:?command is missing}"
+    local signal="${2:-}"
     local pid=$(pgrep -f ${process_cmd})
     [[ -z "$pid" ]] && return
-    stop_service_by_pid "$pid"
+    stop_service_by_pid "$pid" "$signal"
 }
 
 stop_process_by_pid_file() {
     local pid_file="${1:?pid file is missing}"
+    local signal="${2:-}"
     if sudo test -f "$pid_file"; then
         local process_name=$(basename "$pid_file")
         echo "Stopping ${process_name}..."
-        stop_service_by_pid_file "$pid_file"
+        stop_service_by_pid_file "$pid_file" "$signal"
     fi
 }
