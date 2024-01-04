@@ -364,3 +364,104 @@ postgres_setup_synchronous_standby(){
       postgres_set_synchronous_standby_names
   fi
 }
+
+########################
+# Execute an arbitrary query/queries against the running PostgreSQL service and print the output
+# Stdin:
+#   Query/queries to execute
+# Globals:
+#   POSTGRES_*
+# Arguments:
+#   $1 - Database where to run the queries
+#   $2 - User to run queries
+#   $3 - Password
+#   $4 - Extra options (eg. -tA)
+# Returns:
+#   None
+#########################
+postgres_execute() {
+    local -r db="${1:-}"
+    local -r user="${2:-postgres}"
+    local -r pass="${3:-}"
+    local opts
+    read -r -a opts <<<"${@:4}"
+
+    local args=("-U" "$user" "-p" "${POSTGRESQL_PORT_NUMBER:-5432}")
+    [[ -n "$db" ]] && args+=("-d" "$db")
+    [[ "${#opts[@]}" -gt 0 ]] && args+=("${opts[@]}")
+
+    # Execute the Query/queries from stdin
+    PGPASSWORD=$pass psql "${args[@]}"
+}
+
+########################
+# Execute an arbitrary query/queries against the running PostgreSQL service
+# Stdin:
+#   Query/queries to execute
+# Globals:
+#   POSTGRES_*
+# Arguments:
+#   $1 - Database where to run the queries
+#   $2 - User to run queries
+#   $3 - Password
+#   $4 - Extra options (eg. -tA)
+# Returns:
+#   None
+#########################
+postgresql_execute_ex() {
+    if [[ "${POSTGRES_QUITE:-false}" = true ]]; then
+        "postgresql_execute" "$@" >/dev/null 2>&1
+    elif [[ "${POSTGRES_NO_ERRORS:-false}" = true ]]; then
+        "postgresql_execute" "$@" 2>/dev/null
+    else
+        "postgresql_execute" "$@"
+    fi
+}
+
+########################
+# Execute an arbitrary query/queries against a remote PostgreSQL service and print to stdout
+# Stdin:
+#   Query/queries to execute
+# Globals:
+#   POSTGRES_*
+# Arguments:
+#   $1 - Remote PostgreSQL service hostname
+#   $2 - Remote PostgreSQL service port
+#   $3 - Database where to run the queries
+#   $4 - User to run queries
+#   $5 - Password
+#   $6 - Extra options (eg. -tA)
+# Returns:
+#   None
+postgres_remote_execute() {
+    local -r hostname="${1:?hostname is required}"
+    local -r port="${2:?port is required}"
+    local -a args=("-h" "$hostname" "-p" "$port")
+    shift 2
+    "postgres_execute" "$@" "${args[@]}"
+}
+
+########################
+# Execute an arbitrary query/queries against a remote PostgreSQL service
+# Stdin:
+#   Query/queries to execute
+# Globals:
+#   POSTGRES_*
+# Arguments:
+#   $1 - Remote PostgreSQL service hostname
+#   $2 - Remote PostgreSQL service port
+#   $3 - Database where to run the queries
+#   $4 - User to run queries
+#   $5 - Password
+#   $6 - Extra options (eg. -tA)
+# Returns:
+#   None
+postgresql_remote_execute_ex() {
+    if [[ "${POSTGRES_QUITE:-false}" = true ]]; then
+        "postgresql_remote_execute" "$@" >/dev/null 2>&1
+    elif [[ "${POSTGRES_NO_ERRORS:-false}" = true ]]; then
+        "postgresql_remote_execute" "$@" 2>/dev/null
+    else
+        "postgresql_remote_execute" "$@"
+    fi
+}

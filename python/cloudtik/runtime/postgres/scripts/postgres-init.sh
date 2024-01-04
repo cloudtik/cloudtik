@@ -5,6 +5,7 @@ BIN_DIR="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 
 # Load postgres functions
 . "$BIN_DIR"/postgres.sh
+. "$BIN_DIR"/repmgr.sh
 
 # check to see if this file is being run or sourced from another script
 _is_sourced() {
@@ -41,6 +42,9 @@ _main() {
 			if [ "${POSTGRES_MASTER_NODE}" == "true" ]; then
 				postgres_init_database_dir
 				pg_setup_hba_conf "$@"
+				if [ "${POSTGRES_REPMGR_ENABLED}" == "true" ]; then
+					repmgr_setup_hba_conf "$@"
+				fi
 
 				# PGPASSWORD is required for psql when authentication is required for 'local' connections via pg_hba.conf and is otherwise harmless
 				# e.g. when '--auth=md5' or '--auth-local=md5' is used in POSTGRES_INITDB_ARGS
@@ -49,6 +53,11 @@ _main() {
 
 				postgres_setup_db
 				postgres_setup_replication_user
+
+				if [ "${POSTGRES_REPMGR_ENABLED}" == "true" ]; then
+					repmgr_create_repmgr_user
+					repmgr_create_repmgr_db
+				fi
 
 				postgres_init_db_and_user
 				if [ ! -z "${POSTGRES_INITDB_SCRIPTS}" ]; then
@@ -86,6 +95,9 @@ _main() {
 
 			EOM
 		fi
+		if [ "${POSTGRES_REPMGR_ENABLED}" == "true" ]; then
+			repmgr_configure_preload
+		if
 		postgres_setup_synchronous_standby
 	fi
 

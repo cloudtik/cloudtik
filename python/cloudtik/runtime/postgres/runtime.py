@@ -16,7 +16,8 @@ class PostgresRuntime(RuntimeBase):
     Postgres database cluster.
     It supports the following topology:
     1. A standalone server: on head
-    2. A replication cluster: primary on head and replicas on workers
+    2. A replication cluster: primary on head and replicas on workers with optional
+    repmgr.
 
     Notice of limitations:
     1. For replication cluster, we currently don't allow to run primary on workers.
