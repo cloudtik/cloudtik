@@ -240,22 +240,22 @@ def _with_runtime_environment_variables(
             runtime_envs["POSTGRES_SYNCHRONOUS_NUM"] = synchronous_num
             runtime_envs["POSTGRES_SYNCHRONOUS_SIZE"] = synchronous_size
 
-            # repmgr
-            repmgr_config = _get_repmgr_config(postgres_config)
-            repmgr_enabled = _is_repmgr_enabled(repmgr_config)
-            runtime_envs["POSTGRES_REPMGR_ENABLED"] = repmgr_enabled
-            if repmgr_enabled:
-                repmgr_user = repmgr_config.get(
-                    POSTGRES_REPMGR_USER_CONFIG_KEY, POSTGRES_REPMGR_USER_DEFAULT)
-                runtime_envs["POSTGRES_REPMGR_USER"] = repmgr_user
+        # repmgr
+        repmgr_config = _get_repmgr_config(postgres_config)
+        repmgr_enabled = _is_repmgr_enabled(repmgr_config)
+        runtime_envs["POSTGRES_REPMGR_ENABLED"] = repmgr_enabled
+        if repmgr_enabled:
+            repmgr_user = repmgr_config.get(
+                POSTGRES_REPMGR_USER_CONFIG_KEY, POSTGRES_REPMGR_USER_DEFAULT)
+            runtime_envs["POSTGRES_REPMGR_USER"] = repmgr_user
 
-                repmgr_password = repmgr_config.get(
-                    POSTGRES_REPMGR_PASSWORD_CONFIG_KEY, POSTGRES_REPMGR_PASSWORD_DEFAULT)
-                runtime_envs["POSTGRES_REPMGR_PASSWORD"] = repmgr_password
+            repmgr_password = repmgr_config.get(
+                POSTGRES_REPMGR_PASSWORD_CONFIG_KEY, POSTGRES_REPMGR_PASSWORD_DEFAULT)
+            runtime_envs["POSTGRES_REPMGR_PASSWORD"] = repmgr_password
 
-                repmgr_database = repmgr_config.get(
-                    POSTGRES_REPMGR_DATABASE_CONFIG_KEY, POSTGRES_REPMGR_DATABASE_DEFAULT)
-                runtime_envs["POSTGRES_REPMGR_DATABASE"] = repmgr_database
+            repmgr_database = repmgr_config.get(
+                POSTGRES_REPMGR_DATABASE_CONFIG_KEY, POSTGRES_REPMGR_DATABASE_DEFAULT)
+            runtime_envs["POSTGRES_REPMGR_DATABASE"] = repmgr_database
 
     return runtime_envs
 

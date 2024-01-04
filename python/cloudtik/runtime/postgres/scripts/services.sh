@@ -41,6 +41,10 @@ start)
             >${POSTGRES_HOME}/logs/postgres.log 2>&1 &
 
         if [ "${POSTGRES_REPMGR_ENABLED}" == "true" ]; then
+            # wait for postgres service running
+            wait_for_port "${POSTGRES_SERVICE_PORT}" "${NODE_IP_ADDRESS}"
+            bash $BIN_DIR/repmgr-init.sh >${POSTGRES_HOME}/logs/repmgr-init.log 2>&1
+
             POSTGRES_REPMGR_CONF_FILE=${POSTGRES_HOME}/conf/repmgr.conf
             repmgrd \
               -f $POSTGRES_REPMGR_CONF_FILE >${POSTGRES_HOME}/logs/repmgrd-start.log 2>&1
