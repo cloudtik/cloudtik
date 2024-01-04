@@ -10,6 +10,9 @@ eval set -- "${args}"
 # import util functions
 . "$ROOT_DIR"/common/scripts/util-functions.sh
 
+# repmgr functions
+. "$BIN_DIR"/repmgr.sh
+
 set_head_option "$@"
 set_service_command "$@"
 set_node_address
@@ -17,6 +20,13 @@ set_node_address
 USER_HOME=/home/$(whoami)
 RUNTIME_PATH=$USER_HOME/runtime
 POSTGRES_HOME=$RUNTIME_PATH/postgres
+
+start_repmgrd() {
+  repmgrd \
+    -f $POSTGRES_REPMGR_CONF_FILE \
+    --daemonize >${POSTGRES_HOME}/logs/repmgrd-start.log 2>&1
+  is_regmgrd_running
+}
 
 case "$SERVICE_COMMAND" in
 start)
@@ -45,10 +55,11 @@ start)
             wait_for_port "${POSTGRES_SERVICE_PORT}" "${NODE_IP_ADDRESS}"
             bash $BIN_DIR/repmgr-init.sh >${POSTGRES_HOME}/logs/repmgr-init.log 2>&1
 
-            POSTGRES_REPMGR_CONF_FILE=${POSTGRES_HOME}/conf/repmgr.conf
-            repmgrd \
-              -f $POSTGRES_REPMGR_CONF_FILE \
-              --daemonize >${POSTGRES_HOME}/logs/repmgrd-start.log 2>&1
+            # wait until the repmgrd started.
+            # The standby node record may have some delay
+            if ! retry_while "start_repmgrd" "3"; then
+                echo "Postgres repmgrd did not start"
+            fi
         fi
     fi
     ;;

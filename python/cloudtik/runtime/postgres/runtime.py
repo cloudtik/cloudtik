@@ -25,6 +25,8 @@ class PostgresRuntime(RuntimeBase):
     Hints:
     1. Checking cluster status:
     psql <<< "SELECT client_addr, state FROM pg_stat_replication;"
+    2. Show repmgr cluster status:
+    repmgr -f repmgr.conf cluster show
     """
 
     def __init__(self, runtime_config: Dict[str, Any]) -> None:
