@@ -483,3 +483,26 @@ postgres_get_waldir() {
         echo "$POSTGRES_INITDB_WAL_DIR"
     fi
 }
+
+postgres_clone_primary(){
+    # for replica, we needs to do a pg_basebackup from master
+    # Cannot use an emtpy data directory or a data directory initialized
+    # by initdb (this method will make the data files with different identifier.
+    # This process will setup primary_conninfo in the postgres.auto.conf
+    # and the standby.signal in the data directory
+    # Clears WAL directory if existing (pg_basebackup requires the WAL dir to be empty)
+    local -r waldir=$(postgres_get_waldir)
+    if [[ -d "$waldir" ]]; then
+        rm -rf "$waldir" && ensure_dir_exists "$waldir"
+    fi
+
+    export PGPASSWORD="${POSTGRES_REPLICATION_PASSWORD:-cloudtik}"
+    local replication_slot_options=""
+    if [ ! -z "$POSTGRES_REPLICATION_SLOT_NAME" ]; then
+      replication_slot_options="-C -S $POSTGRES_REPLICATION_SLOT_NAME"
+    fi
+    pg_basebackup -h ${POSTGRES_PRIMARY_HOST} \
+      -U repl_user --no-password ${replication_slot_options} \
+      -X stream -R -D $PGDATA
+    unset PGPASSWORD
+}
