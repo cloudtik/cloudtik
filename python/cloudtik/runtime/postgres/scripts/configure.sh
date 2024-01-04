@@ -80,6 +80,7 @@ configure_service_init() {
     configure_variable POSTGRES_CONF_FILE "${POSTGRES_CONFIG_FILE}"
     # the init script used PGDATA environment
     configure_variable PGDATA "${POSTGRES_DATA_DIR}"
+    configure_variable POSTGRES_PORT "${POSTGRES_SERVICE_PORT}"
     configure_variable POSTGRES_HEAD_NODE "${IS_HEAD_NODE}"
     local role="primary"
     if [ "${IS_HEAD_NODE}" != "true" ]; then

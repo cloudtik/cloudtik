@@ -16,7 +16,7 @@ ROOT_DIR="$(dirname "$(dirname "$BIN_DIR")")"
 # Arguments:
 #   $1 - property
 #   $2 - value
-#   $3 - Path to configuration file (default: $POSTGRESQL_CONF_FILE)
+#   $3 - Path to configuration file (default: $POSTGRES_CONF_FILE)
 # Returns:
 #   None
 #########################
@@ -386,7 +386,7 @@ postgres_execute() {
     local opts
     read -r -a opts <<<"${@:4}"
 
-    local args=("-U" "$user" "-p" "${POSTGRESQL_PORT_NUMBER:-5432}")
+    local args=("-U" "$user" "-p" "${POSTGRES_PORT:-5432}")
     [[ -n "$db" ]] && args+=("-d" "$db")
     [[ "${#opts[@]}" -gt 0 ]] && args+=("${opts[@]}")
 
@@ -408,13 +408,13 @@ postgres_execute() {
 # Returns:
 #   None
 #########################
-postgresql_execute_ex() {
+postgres_execute_ex() {
     if [[ "${POSTGRES_QUITE:-false}" = true ]]; then
-        "postgresql_execute" "$@" >/dev/null 2>&1
+        "postgres_execute" "$@" >/dev/null 2>&1
     elif [[ "${POSTGRES_NO_ERRORS:-false}" = true ]]; then
-        "postgresql_execute" "$@" 2>/dev/null
+        "postgres_execute" "$@" 2>/dev/null
     else
-        "postgresql_execute" "$@"
+        "postgres_execute" "$@"
     fi
 }
 
@@ -456,13 +456,13 @@ postgres_remote_execute() {
 #   $6 - Extra options (eg. -tA)
 # Returns:
 #   None
-postgresql_remote_execute_ex() {
+postgres_remote_execute_ex() {
     if [[ "${POSTGRES_QUITE:-false}" = true ]]; then
-        "postgresql_remote_execute" "$@" >/dev/null 2>&1
+        "postgres_remote_execute" "$@" >/dev/null 2>&1
     elif [[ "${POSTGRES_NO_ERRORS:-false}" = true ]]; then
-        "postgresql_remote_execute" "$@" 2>/dev/null
+        "postgres_remote_execute" "$@" 2>/dev/null
     else
-        "postgresql_remote_execute" "$@"
+        "postgres_remote_execute" "$@"
     fi
 }
 
