@@ -89,7 +89,7 @@ stop)
         fi
 
         POSTGRES_PID_FILE=${POSTGRES_HOME}/postgres.pid
-        stop_process_by_pid_file "${POSTGRES_PID_FILE}"
+        stop_process_by_pid_file "${POSTGRES_PID_FILE}" "2"
     fi
     ;;
 -h|--help)

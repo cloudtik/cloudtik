@@ -183,10 +183,10 @@ repmgr_get_upstream_node() {
         read -r -a nodes <<<"$(tr ',;' ' ' <<<"${POSTGRES_REPMGR_SEED_NODES}")"
         for node in "${nodes[@]}"; do
             host="$node"
-            port="$POSTGRES_SERVICE_PORT"
+            port="$POSTGRES_PORT"
             debug "Checking node '$host:$port'..."
             local query="SELECT node_id, conninfo FROM repmgr.show_nodes WHERE (upstream_node_name IS NULL OR upstream_node_name = '') AND active=true"
-            if ! primary_conninfo="$(echo "$query" | POSTGRES_NO_ERRORS=true postgresql_remote_execute_ex "$host" "$port" "$POSTGRES_REPMGR_DATABASE" "$POSTGRES_REPMGR_USER" "$POSTGRES_REPMGR_PASSWORD" "-tA")"; then
+            if ! primary_conninfo="$(echo "$query" | POSTGRES_NO_ERRORS=true postgres_remote_execute_ex "$host" "$port" "$POSTGRES_REPMGR_DATABASE" "$POSTGRES_REPMGR_USER" "$POSTGRES_REPMGR_PASSWORD" "-tA")"; then
                 debug "Skipping: failed to get primary from the node '$host:$port'!"
                 continue
             elif [[ -z "$primary_conninfo" ]]; then
@@ -235,12 +235,12 @@ repmgr_get_primary_node() {
     local upstream_host
     local upstream_port
     local primary_host=""
-    local primary_port="$POSTGRES_SERVICE_PORT"
+    local primary_port="$POSTGRES_PORT"
 
     readarray -t upstream_node < <(repmgr_get_upstream_node)
     upstream_id=${upstream_node[0]}
     upstream_host=${upstream_node[1]}
-    upstream_port=${upstream_node[2]:-$POSTGRES_SERVICE_PORT}
+    upstream_port=${upstream_node[2]:-$POSTGRES_PORT}
     [[ -n "$upstream_host" ]] && info "Auto-detected primary node: '${upstream_host}:${upstream_port}'"
 
     if [[ "$POSTGRES_HEAD_NODE" = true ]]; then
@@ -256,7 +256,7 @@ repmgr_get_primary_node() {
             info "Can not find primary. Starting as standby following the head..."
             # for workers, it there is no primary found, use head
             primary_host="$POSTGRES_HEAD_HOST"
-            primary_port="$POSTGRES_SERVICE_PORT"
+            primary_port="$POSTGRES_PORT"
         else
             info "Starting as standby following '${upstream_host}:${upstream_port}'..."
             primary_host="$upstream_host"
@@ -286,7 +286,7 @@ repmgr_set_role() {
 
     readarray -t primary_node < <(repmgr_get_primary_node)
     primary_host=${primary_node[0]}
-    primary_port=${primary_node[1]:-$POSTGRES_SERVICE_PORT}
+    primary_port=${primary_node[1]:-$POSTGRES_PORT}
 
     if [[ -z "$primary_host" ]]; then
       info "There are no nodes with primary role. Assuming the primary role..."
@@ -320,7 +320,7 @@ repmgr_wait_primary_node() {
     debug "Wait for schema $POSTGRES_REPMGR_DATABASE.repmgr on '${POSTGRES_PRIMARY_HOST}:${POSTGRES_PRIMARY_PORT}', will try $max_tries times with $step delay seconds (TIMEOUT=$timeout)"
     for ((i = 0; i <= timeout; i += step)); do
         local query="SELECT 1 FROM information_schema.schemata WHERE catalog_name='$POSTGRES_REPMGR_DATABASE' AND schema_name='repmgr'"
-        if ! schemata="$(echo "$query" | POSTGRES_NO_ERRORS=true postgresql_remote_execute_ex "$POSTGRES_PRIMARY_HOST" "$POSTGRES_PRIMARY_PORT" "$POSTGRES_REPMGR_DATABASE" "$POSTGRES_REPMGR_USER" "$POSTGRES_REPMGR_PASSWORD" "-tA")"; then
+        if ! schemata="$(echo "$query" | POSTGRES_NO_ERRORS=true postgres_remote_execute_ex "$POSTGRES_PRIMARY_HOST" "$POSTGRES_PRIMARY_PORT" "$POSTGRES_REPMGR_DATABASE" "$POSTGRES_REPMGR_USER" "$POSTGRES_REPMGR_PASSWORD" "-tA")"; then
             debug "Host '${POSTGRES_PRIMARY_HOST}:${POSTGRES_PRIMARY_PORT}' is not accessible"
         else
             if [[ $schemata -ne 1 ]]; then
