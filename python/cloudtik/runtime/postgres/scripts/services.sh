@@ -39,11 +39,23 @@ start)
         nohup postgres \
             -c config_file=${POSTGRES_CONF_FILE} \
             >${POSTGRES_HOME}/logs/postgres.log 2>&1 &
+
+        if [ "${POSTGRES_REPMGR_ENABLED}" == "true" ]; then
+            POSTGRES_REPMGR_CONF_FILE=${POSTGRES_HOME}/conf/repmgr.conf
+            repmgrd \
+              -f $POSTGRES_REPMGR_CONF_FILE >${POSTGRES_HOME}/logs/repmgrd-start.log 2>&1
+        fi
     fi
     ;;
 stop)
     if [ "${IS_HEAD_NODE}" == "true" ] \
         || [ "${POSTGRES_CLUSTER_MODE}" != "none" ]; then
+
+        if [ "${POSTGRES_REPMGR_ENABLED}" == "true" ]; then
+            POSTGRES_REPMGR_PID_FILE=${POSTGRES_HOME}/repmgrd.pid
+            stop_process_by_pid_file "${POSTGRES_REPMGR_PID_FILE}"
+        fi
+
         POSTGRES_PID_FILE=${POSTGRES_HOME}/postgres.pid
         stop_process_by_pid_file "${POSTGRES_PID_FILE}"
     fi

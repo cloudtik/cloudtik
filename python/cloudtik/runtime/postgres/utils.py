@@ -20,6 +20,7 @@ RUNTIME_PROCESSES = [
         # The third element is the process name.
         # The forth element, if node, the process should on all nodes,if head, the process should on head node.
         ["postgres", True, "Postgres", "node"],
+        ["repmgrd", True, "Repmgr", "node"],
     ]
 
 POSTGRES_SERVICE_PORT_CONFIG_KEY = "port"
@@ -27,6 +28,7 @@ POSTGRES_SERVICE_PORT_CONFIG_KEY = "port"
 POSTGRES_CLUSTER_MODE_CONFIG_KEY = "cluster_mode"
 POSTGRES_ADMIN_USER_CONFIG_KEY = "admin_user"
 POSTGRES_ADMIN_PASSWORD_CONFIG_KEY = "admin_password"
+
 POSTGRES_REPLICATION_PASSWORD_CONFIG_KEY = "replication_password"
 
 POSTGRES_ARCHIVE_MODE_CONFIG_KEY = "archive_mode"
@@ -59,6 +61,18 @@ POSTGRES_REPLICATION_SYNCHRONOUS_MODE_NONE = "none"
 POSTGRES_REPLICATION_SYNCHRONOUS_MODE_DEFAULT = "default"
 POSTGRES_REPLICATION_SYNCHRONOUS_MODE_FIRST = "first"
 POSTGRES_REPLICATION_SYNCHRONOUS_MODE_ANY = "any"
+
+# repmgr
+POSTGRES_REPMGR_CONFIG_KEY = "repmgr"
+
+POSTGRES_REPMGR_ENABLED = "enabled"
+POSTGRES_REPMGR_USER_CONFIG_KEY = "repmgr_user"
+POSTGRES_REPMGR_PASSWORD_CONFIG_KEY = "repmgr_password"
+POSTGRES_REPMGR_DATABASE_CONFIG_KEY = "repmgr_database"
+
+POSTGRES_REPMGR_USER_DEFAULT = "repmgr"
+POSTGRES_REPMGR_PASSWORD_DEFAULT = POSTGRES_ADMIN_PASSWORD_DEFAULT
+POSTGRES_REPMGR_DATABASE_DEFAULT = "repmgr"
 
 
 def _get_config(runtime_config: Dict[str, Any]):
@@ -103,6 +117,15 @@ def _get_replication_synchronous_num(postgres_config: Dict[str, Any]):
         postgres_config)
     return replication_synchronous_config.get(
         POSTGRES_REPLICATION_SYNCHRONOUS_NUM_CONFIG_KEY, 1)
+
+
+def _get_repmgr_config(postgres_config: Dict[str, Any]):
+    return postgres_config.get(
+        POSTGRES_REPMGR_CONFIG_KEY, {})
+
+
+def _is_repmgr_enabled(repmgr_config):
+    return repmgr_config.get(POSTGRES_REPMGR_ENABLED, True)
 
 
 def _get_home_dir():
@@ -216,6 +239,23 @@ def _with_runtime_environment_variables(
                 synchronous_num = synchronous_size
             runtime_envs["POSTGRES_SYNCHRONOUS_NUM"] = synchronous_num
             runtime_envs["POSTGRES_SYNCHRONOUS_SIZE"] = synchronous_size
+
+            # repmgr
+            repmgr_config = _get_repmgr_config(postgres_config)
+            repmgr_enabled = _is_repmgr_enabled(repmgr_config)
+            runtime_envs["POSTGRES_REPMGR_ENABLED"] = repmgr_enabled
+            if repmgr_enabled:
+                repmgr_user = repmgr_config.get(
+                    POSTGRES_REPMGR_USER_CONFIG_KEY, POSTGRES_REPMGR_USER_DEFAULT)
+                runtime_envs["POSTGRES_REPMGR_USER"] = repmgr_user
+
+                repmgr_password = repmgr_config.get(
+                    POSTGRES_REPMGR_PASSWORD_CONFIG_KEY, POSTGRES_REPMGR_PASSWORD_DEFAULT)
+                runtime_envs["POSTGRES_REPMGR_PASSWORD"] = repmgr_password
+
+                repmgr_database = repmgr_config.get(
+                    POSTGRES_REPMGR_DATABASE_CONFIG_KEY, POSTGRES_REPMGR_DATABASE_DEFAULT)
+                runtime_envs["POSTGRES_REPMGR_DATABASE"] = repmgr_database
 
     return runtime_envs
 

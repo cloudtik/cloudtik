@@ -920,6 +920,29 @@
                             "description": "The password for the user set at the initializing process."
                         }
                     }
+                },
+                "repmgr": {
+                    "type": "object",
+                    "description": "Repmgr configurations",
+                    "properties": {
+                        "enabled": {
+                            "type": "boolean",
+                            "default": true,
+                            "description": "Whether to enable repmgr for streaming replication."
+                        },
+                        "repmgr_user": {
+                            "type": "string",
+                            "description": "The user name for repmgr."
+                        },
+                        "repmgr_password": {
+                            "type": "string",
+                            "description": "The password for the repmgr user."
+                        },
+                        "repmgr_database": {
+                            "type": "string",
+                            "description": "The database name for repmgr."
+                        }
+                    }
                 }
             }
         },

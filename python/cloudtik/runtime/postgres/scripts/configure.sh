@@ -86,7 +86,49 @@ configure_service_init() {
         if [ "${POSTGRES_REPLICATION_SLOT}" == "true" ]; then
             configure_variable POSTGRES_REPLICATION_SLOT_NAME "postgres_${CLOUDTIK_NODE_SEQ_ID}"
         fi
+
+        # repmgr
+        if [ "${POSTGRES_REPMGR_ENABLED}" == "true" ]; then
+            local repmgr_bin_dir="$( dirname -- "$(which repmgr)" )"
+            configure_variable POSTGRES_REPMGR_BIN_DIR "$repmgr_bin_dir"
+            configure_variable POSTGRES_REPMGR_CONF_FILE "${POSTGRES_REPMGR_CONFIG_FILE}"
+            configure_variable POSTGRES_REPMGR_NODE_ID "${CLOUDTIK_NODE_SEQ_ID}"
+        fi
     fi
+}
+
+update_repmgr_node_id() {
+    if [ ! -n "${CLOUDTIK_NODE_SEQ_ID}" ]; then
+        echo "Postgres repmgr needs unique node id. No node sequence id allocated for current node!"
+        exit 1
+    fi
+
+    local node_id="${CLOUDTIK_NODE_SEQ_ID}"
+    update_in_file "${repmgr_template_file}" "{%node.id%}" "${node_id}"
+
+    local node_name="node-${CLOUDTIK_NODE_SEQ_ID}"
+    update_in_file "${repmgr_template_file}" "{%node.name%}" "${node_name}"
+}
+
+configure_repmgr() {
+    repmgr_template_file=${output_dir}/repmgr.conf
+
+    update_repmgr_node_id
+    update_in_file "${repmgr_template_file}" "{%node.ip%}" "${NODE_IP_ADDRESS}"
+    update_in_file "${repmgr_template_file}" "{%repmgr.database%}" "${POSTGRES_REPMGR_DATABASE}"
+    update_in_file "${repmgr_template_file}" "{%repmgr.user%}" "${POSTGRES_REPMGR_USER}"
+    update_in_file "${config_template_file}" \
+      "{%postgres.data.dir%}" "${POSTGRES_DATA_DIR}"
+
+    # TODO: WARNING: will the log file get increasingly large
+    POSTGRES_REPMGR_LOG_FILE=${POSTGRES_HOME}/logs/repmgrd.log
+    update_in_file "${repmgr_template_file}" "{%log.file%}" "${POSTGRES_REPMGR_LOG_FILE}"
+
+    POSTGRES_REPMGR_PID_FILE=${POSTGRES_HOME}/repmgrd.pid
+    update_in_file "${repmgr_template_file}" "{%pid.file%}" "${POSTGRES_REPMGR_PID_FILE}"
+
+    POSTGRES_REPMGR_CONFIG_FILE=${POSTGRES_CONFIG_DIR}/repmgr.conf
+    cp ${repmgr_template_file} ${POSTGRES_REPMGR_CONFIG_FILE}
 }
 
 configure_postgres() {
@@ -132,6 +174,11 @@ configure_postgres() {
     mkdir -p ${POSTGRES_CONFIG_DIR}
     POSTGRES_CONFIG_FILE=${POSTGRES_CONFIG_DIR}/postgresql.conf
     cp -r ${config_template_file} ${POSTGRES_CONFIG_FILE}
+
+    # repmgr
+    if [ "${POSTGRES_REPMGR_ENABLED}" == "true" ]; then
+        configure_repmgr
+    fi
 
     # Set variables for export to postgres-init.sh
     configure_service_init

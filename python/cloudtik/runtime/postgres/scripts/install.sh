@@ -49,7 +49,8 @@ install_postgres() {
             --no-install-recommends postgresql-common >/dev/null \
           && sudo sed -ri 's/#(create_main_cluster) .*$/\1 = false/' /etc/postgresql-common/createcluster.conf \
           && sudo DEBIAN_FRONTEND=noninteractive apt-get install -qq -y \
-              --no-install-recommends "postgresql-$PG_MAJOR" "postgresql-client-$PG_MAJOR" libpq-dev >/dev/null
+              --no-install-recommends "postgresql-$PG_MAJOR" "postgresql-client-$PG_MAJOR" libpq-dev \
+              "postgresql-$PG_MAJOR-repmgr" >/dev/null
         result=$?
         sudo rm -f /etc/apt/sources.list.d/postgres.list
         if [ $result -ne 0 ]; then
