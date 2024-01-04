@@ -7,7 +7,9 @@ BIN_DIR="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 ROOT_DIR="$(dirname "$(dirname "$BIN_DIR")")"
 
 # Load generic functions
+. "$ROOT_DIR"/common/scripts/util-log.sh
 . "$ROOT_DIR"/common/scripts/util-file.sh
+. "$ROOT_DIR"/common/scripts/util-fs.sh
 
 ########################
 # Change a PostgreSQL configuration file by setting a property
@@ -493,6 +495,7 @@ postgres_clone_primary(){
     # Clears WAL directory if existing (pg_basebackup requires the WAL dir to be empty)
     local -r waldir=$(postgres_get_waldir)
     if [[ -d "$waldir" ]]; then
+        info "Deleting existing WAL directory $waldir..."
         rm -rf "$waldir" && ensure_dir_exists "$waldir"
     fi
 
