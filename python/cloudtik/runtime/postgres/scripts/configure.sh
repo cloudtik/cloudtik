@@ -113,6 +113,8 @@ update_repmgr_node_id() {
 }
 
 configure_repmgr_password() {
+    POSTGRES_REPMGR_USE_PASSFILE="${POSTGRES_REPMGR_USE_PASSFILE:-true}"
+    POSTGRES_REPMGR_PASSFILE_PATH="${POSTGRES_REPMGR_PASSFILE_PATH:-$POSTGRES_CONFIG_DIR/rpgmgr_passfile}"
     repmgr_generate_password_file
     local connection_password=$(repmgr_get_conninfo_password)
     update_in_file "${repmgr_template_file}" \
@@ -134,6 +136,7 @@ configure_repmgr() {
 
     update_repmgr_node_id
     update_in_file "${repmgr_template_file}" "{%node.ip%}" "${NODE_IP_ADDRESS}"
+    update_in_file "${repmgr_template_file}" "{%postgres.port%}" "${POSTGRES_SERVICE_PORT}"
     update_in_file "${repmgr_template_file}" "{%repmgr.database%}" "${POSTGRES_REPMGR_DATABASE}"
     update_in_file "${repmgr_template_file}" "{%repmgr.user%}" "${POSTGRES_REPMGR_USER}"
     configure_repmgr_password
@@ -147,8 +150,27 @@ configure_repmgr() {
     POSTGRES_REPMGR_PID_FILE=${POSTGRES_HOME}/repmgrd.pid
     update_in_file "${repmgr_template_file}" "{%pid.file%}" "${POSTGRES_REPMGR_PID_FILE}"
 
+    # failover
+    promote_command="$(repmgr_get_env_password) repmgr standby promote -f ${POSTGRES_REPMGR_CONF_FILE} --log-level DEBUG --log-to-file --verbose"
+    update_in_file "${repmgr_template_file}" \
+      "{%promote.command%}" "${promote_command}"
+    follow_command="$(repmgr_get_env_password) repmgr standby follow -f "${POSTGRES_REPMGR_CONF_FILE}" --log-level DEBUG --log-to-file --verbose --upstream-node-id=%n"
+    update_in_file "${repmgr_template_file}" \
+      "{%follow.command%}" "${follow_command}"
+
     POSTGRES_REPMGR_DATA_DIR=$(get_repmgr_data_dir)
-    mkdir -p POSTGRES_REPMGR_DATA_DIR
+    mkdir -p ${POSTGRES_REPMGR_DATA_DIR}
+
+    if [[ "$POSTGRES_REPMGR_USE_PASSFILE" = "true" ]]; then
+        echo "passfile='${POSTGRES_REPMGR_PASSFILE_PATH}'" >>"${repmgr_template_file}"
+    fi
+
+    # Does this replace setting up the service commands
+    local postgres_pid_file=${POSTGRES_HOME}/postgres.pid
+    local postgres_hba_file==${POSTGRES_DATA_DIR}/pg_hba.conf
+    cat <<EOF >>"${repmgr_template_file}"
+pg_ctl_options='-o "--config-file=\"${POSTGRES_CONFIG_FILE}\" --external_pid_file=\"${postgres_pid_file}\" --hba_file=\"${postgres_hba_file}\""'
+EOF
 
     POSTGRES_REPMGR_CONFIG_FILE=${POSTGRES_CONFIG_DIR}/repmgr.conf
     cp ${repmgr_template_file} ${POSTGRES_REPMGR_CONFIG_FILE}

@@ -47,7 +47,8 @@ start)
 
             POSTGRES_REPMGR_CONF_FILE=${POSTGRES_HOME}/conf/repmgr.conf
             repmgrd \
-              -f $POSTGRES_REPMGR_CONF_FILE >${POSTGRES_HOME}/logs/repmgrd-start.log 2>&1
+              -f $POSTGRES_REPMGR_CONF_FILE \
+              --daemonize >${POSTGRES_HOME}/logs/repmgrd-start.log 2>&1
         fi
     fi
     ;;
