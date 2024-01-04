@@ -95,9 +95,10 @@ _main() {
 
 			EOM
 		fi
+
 		if [ "${POSTGRES_REPMGR_ENABLED}" == "true" ]; then
 			repmgr_configure_preload
-		if
+		fi
 		postgres_setup_synchronous_standby
 	fi
 

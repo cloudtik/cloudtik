@@ -13,6 +13,7 @@ POSTGRES_HOME=$RUNTIME_PATH/postgres
 
 # Util functions
 . "$ROOT_DIR"/common/scripts/util-functions.sh
+. "$BIN_DIR"/repmgr.sh
 
 prepare_base_conf() {
     local source_dir=$(dirname "${BIN_DIR}")/conf
@@ -93,6 +94,7 @@ configure_service_init() {
             configure_variable POSTGRES_REPMGR_BIN_DIR "$repmgr_bin_dir"
             configure_variable POSTGRES_REPMGR_CONF_FILE "${POSTGRES_REPMGR_CONFIG_FILE}"
             configure_variable POSTGRES_REPMGR_NODE_ID "${CLOUDTIK_NODE_SEQ_ID}"
+            configure_variable POSTGRES_REPMGR_DATA_DIR "${POSTGRES_REPMGR_DATA_DIR}"
         fi
     fi
 }
@@ -106,8 +108,25 @@ update_repmgr_node_id() {
     local node_id="${CLOUDTIK_NODE_SEQ_ID}"
     update_in_file "${repmgr_template_file}" "{%node.id%}" "${node_id}"
 
-    local node_name="node-${CLOUDTIK_NODE_SEQ_ID}"
+    local node_name="postgres_${CLOUDTIK_NODE_SEQ_ID}"
     update_in_file "${repmgr_template_file}" "{%node.name%}" "${node_name}"
+}
+
+configure_repmgr_password() {
+    repmgr_generate_password_file
+    local connection_password=$(repmgr_get_conninfo_password)
+    update_in_file "${repmgr_template_file}" \
+      "{%repmgr.password%}" "${connection_password}"
+}
+
+get_repmgr_data_dir() {
+    local data_disk_dir=$(get_first_data_disk_dir)
+    if [ -z "$data_disk_dir" ]; then
+        repmgr_data_dir="${POSTGRES_HOME}/repmgr"
+    else
+        repmgr_data_dir="$data_disk_dir/postgres/repmgr"
+    fi
+    echo "${repmgr_data_dir}"
 }
 
 configure_repmgr() {
@@ -117,7 +136,8 @@ configure_repmgr() {
     update_in_file "${repmgr_template_file}" "{%node.ip%}" "${NODE_IP_ADDRESS}"
     update_in_file "${repmgr_template_file}" "{%repmgr.database%}" "${POSTGRES_REPMGR_DATABASE}"
     update_in_file "${repmgr_template_file}" "{%repmgr.user%}" "${POSTGRES_REPMGR_USER}"
-    update_in_file "${config_template_file}" \
+    configure_repmgr_password
+    update_in_file "${repmgr_template_file}" \
       "{%postgres.data.dir%}" "${POSTGRES_DATA_DIR}"
 
     # TODO: WARNING: will the log file get increasingly large
@@ -126,6 +146,9 @@ configure_repmgr() {
 
     POSTGRES_REPMGR_PID_FILE=${POSTGRES_HOME}/repmgrd.pid
     update_in_file "${repmgr_template_file}" "{%pid.file%}" "${POSTGRES_REPMGR_PID_FILE}"
+
+    POSTGRES_REPMGR_DATA_DIR=$(get_repmgr_data_dir)
+    mkdir -p POSTGRES_REPMGR_DATA_DIR
 
     POSTGRES_REPMGR_CONFIG_FILE=${POSTGRES_CONFIG_DIR}/repmgr.conf
     cp ${repmgr_template_file} ${POSTGRES_REPMGR_CONFIG_FILE}

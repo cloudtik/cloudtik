@@ -46,6 +46,25 @@ repmgr_get_conninfo_password() {
     fi
 }
 
+#######################
+# Generate password file if necessary
+# Globals:
+#   POSTGRES_REPMGR_*
+# Arguments:
+#   None
+# Returns:
+#   None
+#########################
+repmgr_generate_password_file(){
+    if [[ "$POSTGRES_REPMGR_USE_PASSFILE" = "true" ]]; then
+        if [[ -f "${POSTGRES_REPMGR_PASSFILE_PATH}" ]]; then
+            rm -f "${POSTGRES_REPMGR_PASSFILE_PATH}"
+        fi
+        echo "*:*:*:${POSTGRES_REPMGR_USERNAME}:${POSTGRES_REPMGR_PASSWORD}" >"${POSTGRES_REPMGR_PASSFILE_PATH}"
+        chmod 600 "${POSTGRES_REPMGR_PASSFILE_PATH}"
+    fi
+}
+
 ########################
 # Change a Repmgr configuration file by setting a property
 # Globals:
@@ -77,12 +96,12 @@ repmgr_set_property() {
 repmgr_configure_preload() {
     if [[ -n "$POSTGRES_SHARED_PRELOAD_LIBRARIES" ]]; then
         if [[ "$POSTGRES_SHARED_PRELOAD_LIBRARIES" =~ ^(repmgr|REPMGR)$ ]]; then
-            postgresql_set_property "shared_preload_libraries" "$POSTGRES_SHARED_PRELOAD_LIBRARIES"
+            postgres_set_property "shared_preload_libraries" "$POSTGRES_SHARED_PRELOAD_LIBRARIES"
         else
-            postgresql_set_property "shared_preload_libraries" "repmgr, ${POSTGRES_SHARED_PRELOAD_LIBRARIES}"
+            postgres_set_property "shared_preload_libraries" "repmgr, ${POSTGRES_SHARED_PRELOAD_LIBRARIES}"
         fi
     else
-        postgresql_set_property "shared_preload_libraries" "repmgr"
+        postgres_set_property "shared_preload_libraries" "repmgr"
     fi
 }
 
