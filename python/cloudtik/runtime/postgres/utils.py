@@ -69,6 +69,8 @@ POSTGRES_REPMGR_ENABLED = "enabled"
 POSTGRES_REPMGR_USER_CONFIG_KEY = "repmgr_user"
 POSTGRES_REPMGR_PASSWORD_CONFIG_KEY = "repmgr_password"
 POSTGRES_REPMGR_DATABASE_CONFIG_KEY = "repmgr_database"
+POSTGRES_REPMGR_USE_PGREWIND_CONFIG_KEY = "use_pgrewind"
+POSTGRES_REPMGR_USE_PASSFILE_CONFIG_KEY = "use_passfile"
 
 POSTGRES_REPMGR_USER_DEFAULT = "repmgr"
 POSTGRES_REPMGR_PASSWORD_DEFAULT = POSTGRES_ADMIN_PASSWORD_DEFAULT
@@ -256,6 +258,14 @@ def _with_runtime_environment_variables(
             repmgr_database = repmgr_config.get(
                 POSTGRES_REPMGR_DATABASE_CONFIG_KEY, POSTGRES_REPMGR_DATABASE_DEFAULT)
             runtime_envs["POSTGRES_REPMGR_DATABASE"] = repmgr_database
+
+            repmgr_use_rewind = repmgr_config.get(
+                POSTGRES_REPMGR_USE_PGREWIND_CONFIG_KEY, True)
+            runtime_envs["POSTGRES_REPMGR_USE_PGREWIND"] = repmgr_use_rewind
+
+            repmgr_use_passfile = repmgr_config.get(
+                POSTGRES_REPMGR_USE_PASSFILE_CONFIG_KEY, True)
+            runtime_envs["POSTGRES_REPMGR_USE_PASSFILE"] = repmgr_use_passfile
 
     return runtime_envs
 
