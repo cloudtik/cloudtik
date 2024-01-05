@@ -370,7 +370,6 @@ postgres_set_synchronous_standby_names() {
 
     postgres_set_property "synchronous_standby_names" "$synchronous_standby_names"
     postgres_set_property "synchronous_commit" "$POSTGRES_SYNCHRONOUS_COMMIT_MODE"
-
 }
 
 postgres_setup_synchronous_standby(){
