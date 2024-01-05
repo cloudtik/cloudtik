@@ -10,6 +10,7 @@ ROOT_DIR="$(dirname "$(dirname "$BIN_DIR")")"
 . "$ROOT_DIR"/common/scripts/util-os.sh
 . "$ROOT_DIR"/common/scripts/util-service.sh
 . "$ROOT_DIR"/common/scripts/util-fs.sh
+. "$ROOT_DIR"/common/scripts/util-value.sh
 
 # postgres functions
 . "$BIN_DIR"/postgres.sh
@@ -62,7 +63,9 @@ repmgr_generate_password_file(){
         if [[ -f "${POSTGRES_REPMGR_PASSFILE_PATH}" ]]; then
             rm -f "${POSTGRES_REPMGR_PASSFILE_PATH}"
         fi
-        echo "*:*:*:${POSTGRES_REPMGR_USER}:${POSTGRES_REPMGR_PASSWORD}" >"${POSTGRES_REPMGR_PASSFILE_PATH}"
+        local -r replication_user="${POSTGRES_REPLICATON_USER:-repl_user}"
+        echo "*:*:*:${replication_user}:${POSTGRES_REPLICATION_PASSWORD}" >"${POSTGRES_REPMGR_PASSFILE_PATH}"
+        echo "*:*:*:${POSTGRES_REPMGR_USER}:${POSTGRES_REPMGR_PASSWORD}" >>"${POSTGRES_REPMGR_PASSFILE_PATH}"
         chmod 600 "${POSTGRES_REPMGR_PASSFILE_PATH}"
     fi
 }

@@ -1,4 +1,9 @@
 #!/bin/bash
+set -eo pipefail
+
+# If set, Bash allows filename patterns which match no files
+# to expand to a null string, rather than themselves.
+shopt -s nullglob
 
 # Current bin directory
 BIN_DIR="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"

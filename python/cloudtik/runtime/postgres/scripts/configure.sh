@@ -51,8 +51,8 @@ update_server_id() {
         exit 1
     fi
 
-    local server_id="postgres_${CLOUDTIK_NODE_SEQ_ID}"
-    update_in_file "${config_template_file}" "{%server.id%}" "${server_id}"
+    POSTGRES_SERVER_NAME="postgres_${CLOUDTIK_NODE_SEQ_ID}"
+    update_in_file "${config_template_file}" "{%server.id%}" "${POSTGRES_SERVER_NAME}"
 }
 
 configure_archive() {
@@ -89,8 +89,10 @@ configure_service_init() {
     configure_variable POSTGRES_ROLE "$role"
 
     if [ "${POSTGRES_CLUSTER_MODE}" == "replication" ]; then
+        configure_variable POSTGRES_SERVER_NAME "${POSTGRES_SERVER_NAME}"
         configure_variable POSTGRES_HEAD_HOST "${HEAD_HOST_ADDRESS}"
         configure_variable POSTGRES_PRIMARY_HOST "${HEAD_HOST_ADDRESS}"
+        configure_variable POSTGRES_PRIMARY_PORT "${POSTGRES_SERVICE_PORT}"
         if [ "${POSTGRES_REPLICATION_SLOT}" == "true" ]; then
             configure_variable POSTGRES_REPLICATION_SLOT_NAME "postgres_${CLOUDTIK_NODE_SEQ_ID}"
         fi
