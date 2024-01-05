@@ -1,6 +1,4 @@
 #!/bin/bash
-set -eo pipefail
-shopt -s nullglob
 
 # Current bin directory
 BIN_DIR="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"

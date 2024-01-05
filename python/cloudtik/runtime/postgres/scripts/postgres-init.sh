@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+set -Eeo pipefail
 
 # Current bin directory
 BIN_DIR="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
@@ -69,19 +70,24 @@ _main() {
 
         cat <<-'EOM'
 
-          PostgreSQL init process complete; ready for start up.
+PostgreSQL init process complete; ready for start up.
 
-        EOM
+EOM
       else
         cat <<-'EOM'
 
-          PostgreSQL Database directory appears to contain a database; Skipping initialization
+PostgreSQL Database directory appears to contain a database; Skipping initialization
 
-        EOM
+EOM
       fi
     else
-        # standby role (wait for primary node)
+      # standby role
+      if [ "${POSTGRES_REPMGR_ENABLED}" == "true" ]; then
+        repmgr_wait_primary_node || exit 1
+        repmgr_rewind
+      else
         postgres_clone_primary
+      fi
     fi
 
     if [ "${POSTGRES_REPMGR_ENABLED}" == "true" ]; then

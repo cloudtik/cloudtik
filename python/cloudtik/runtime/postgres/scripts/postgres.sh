@@ -1,6 +1,4 @@
 #!/usr/bin/env bash
-set -Eeo pipefail
-# TODO swap to -Eeuo pipefail above (after handling all potentially-unset variables)
 
 # Current bin directory
 BIN_DIR="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
@@ -10,6 +8,19 @@ ROOT_DIR="$(dirname "$(dirname "$BIN_DIR")")"
 . "$ROOT_DIR"/common/scripts/util-log.sh
 . "$ROOT_DIR"/common/scripts/util-file.sh
 . "$ROOT_DIR"/common/scripts/util-fs.sh
+
+########################
+# Return PostgreSQL major version
+# Globals:
+#   POSTGRES_*
+# Arguments:
+#   None
+# Returns:
+#   String
+#########################
+postgres_get_major_version() {
+    psql --version | grep -oE "[0-9]+\.[0-9]+" | grep -oE "^[0-9]+"
+}
 
 ########################
 # Change a PostgreSQL configuration file by setting a property
@@ -486,17 +497,30 @@ postgres_get_waldir() {
     fi
 }
 
+#########################
+postgres_configure_recovery() {
+    info "Setting up streaming replication slave..."
+    local -r escaped_password="${POSTGRES_REPLICATION_PASSWORD//\&/\\&}"
+    local -r replication_user="${POSTGRES_REPLICATON_USER:-repl_user}"
+    local -r application_name="${POSTGRES_APP_NAME:-"${POSTGRES_SERVER_NAME}"}"
+    postgresql_set_property "primary_conninfo" \
+      "host=${POSTGRES_PRIMARY_HOST} port=${POSTGRES_PRIMARY_PORT} user=${replication_user} password=${escaped_password} application_name=${application_name}" \
+      "$POSTGRES_CONF_FILE"
+    touch "$PGDATA"/standby.signal
+}
+
 postgres_clone_primary(){
     # for replica, we needs to do a pg_basebackup from master
     # Cannot use an emtpy data directory or a data directory initialized
     # by initdb (this method will make the data files with different identifier.
     # This process will setup primary_conninfo in the postgres.auto.conf
     # and the standby.signal in the data directory
-    # Clears WAL directory if existing (pg_basebackup requires the WAL dir to be empty)
-    local -r waldir=$(postgres_get_waldir)
-    if [[ -d "$waldir" ]]; then
-        info "Deleting existing WAL directory $waldir..."
-        rm -rf "$waldir" && ensure_dir_exists "$waldir"
+    # TODO: flag to choose whether need to do this aggressively
+    if [ -s "$PGDATA/PG_VERSION" ]; then
+        info "Deleting existing data in $PGDATA..."
+        rm -rf "$PGDATA"
+        # setup data directories and permissions
+        postgres_create_db_directories
     fi
 
     export PGPASSWORD="${POSTGRES_REPLICATION_PASSWORD:-cloudtik}"
