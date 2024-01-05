@@ -160,6 +160,12 @@ configure_repmgr() {
     POSTGRES_REPMGR_PID_FILE=${POSTGRES_HOME}/repmgrd.pid
     update_in_file "${repmgr_template_file}" "{%pid.file%}" "${POSTGRES_REPMGR_PID_FILE}"
 
+    local use_replication_slots=no
+    if [ "${POSTGRES_REPLICATION_SLOT}" == "true" ]; then
+        use_replication_slots=yes
+    fi
+    update_in_file "${repmgr_template_file}" "{%use.replication.slots%}" "${use_replication_slots}"
+
     # failover
     promote_command="$(repmgr_get_env_password) repmgr standby promote -f ${POSTGRES_REPMGR_CONFIG_FILE} --log-level DEBUG --log-to-file --verbose"
     update_in_file "${repmgr_template_file}" \

@@ -95,7 +95,6 @@ EOM
     if [ "${POSTGRES_REPMGR_ENABLED}" == "true" ]; then
       repmgr_configure_preload
     fi
-    # TODO: confirm whether synchronous standby works with repmgr
     postgres_setup_synchronous_standby
   fi
 }

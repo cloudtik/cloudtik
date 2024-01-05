@@ -350,8 +350,9 @@ postgres_set_synchronous_standby_names() {
     local synchronous_standby_names=""
     local standby_names=""
     # Warning: this depends on that the head node seq id = 1
+    # all the nodes including the primary are listed
     END_SERVER_ID=$((POSTGRES_SYNCHRONOUS_SIZE+1))
-    for i in $(seq 2 $END_SERVER_ID); do
+    for i in $(seq 1 $END_SERVER_ID); do
         if [ -z "$standby_names" ]; then
             standby_names="postgres_$i"
         else
@@ -368,6 +369,8 @@ postgres_set_synchronous_standby_names() {
     fi
 
     postgres_set_property "synchronous_standby_names" "$synchronous_standby_names"
+    postgres_set_property "synchronous_commit" "$POSTGRES_SYNCHRONOUS_COMMIT_MODE"
+
 }
 
 postgres_setup_synchronous_standby(){

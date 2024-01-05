@@ -37,7 +37,7 @@ POSTGRES_REPLICATION_SYNCHRONOUS_CONFIG_KEY = "replication_synchronous"
 
 POSTGRES_REPLICATION_SYNCHRONOUS_MODE_CONFIG_KEY = "mode"
 POSTGRES_REPLICATION_SYNCHRONOUS_NUM_CONFIG_KEY = "num"
-
+POSTGRES_REPLICATION_SYNCHRONOUS_COMMIT_MODE_CONFIG_KEY = "commit_mode"
 POSTGRES_SYNCHRONOUS_SIZE_CONFIG_KEY = "synchronous_size"
 
 POSTGRES_DATABASE_CONFIG_KEY = "database"
@@ -61,6 +61,10 @@ POSTGRES_REPLICATION_SYNCHRONOUS_MODE_NONE = "none"
 POSTGRES_REPLICATION_SYNCHRONOUS_MODE_DEFAULT = "default"
 POSTGRES_REPLICATION_SYNCHRONOUS_MODE_FIRST = "first"
 POSTGRES_REPLICATION_SYNCHRONOUS_MODE_ANY = "any"
+
+POSTGRES_REPLICATION_SYNCHRONOUS_COMMIT_ON = "on"
+POSTGRES_REPLICATION_SYNCHRONOUS_COMMIT_OFF = "off"
+POSTGRES_REPLICATION_SYNCHRONOUS_COMMIT_LOCAL = "local"
 
 # repmgr
 POSTGRES_REPMGR_CONFIG_KEY = "repmgr"
@@ -106,19 +110,21 @@ def _get_replication_synchronous_config(postgres_config: Dict[str, Any]):
         POSTGRES_REPLICATION_SYNCHRONOUS_CONFIG_KEY, {})
 
 
-def _get_replication_synchronous_mode(postgres_config: Dict[str, Any]):
-    replication_synchronous_config = _get_replication_synchronous_config(
-        postgres_config)
-    return replication_synchronous_config.get(
+def _get_replication_synchronous_mode(synchronous_config: Dict[str, Any]):
+    return synchronous_config.get(
         POSTGRES_REPLICATION_SYNCHRONOUS_MODE_CONFIG_KEY,
         POSTGRES_REPLICATION_SYNCHRONOUS_MODE_NONE)
 
 
-def _get_replication_synchronous_num(postgres_config: Dict[str, Any]):
-    replication_synchronous_config = _get_replication_synchronous_config(
-        postgres_config)
-    return replication_synchronous_config.get(
+def _get_replication_synchronous_num(synchronous_config: Dict[str, Any]):
+    return synchronous_config.get(
         POSTGRES_REPLICATION_SYNCHRONOUS_NUM_CONFIG_KEY, 1)
+
+
+def _get_replication_synchronous_commit_mode(synchronous_config: Dict[str, Any]):
+    return synchronous_config.get(
+        POSTGRES_REPLICATION_SYNCHRONOUS_COMMIT_MODE_CONFIG_KEY,
+        POSTGRES_REPLICATION_SYNCHRONOUS_COMMIT_ON)
 
 
 def _get_repmgr_config(postgres_config: Dict[str, Any]):
@@ -156,8 +162,10 @@ def _bootstrap_runtime_config(
         if not is_node_seq_id_enabled(cluster_config):
             enable_node_seq_id(cluster_config)
 
+        synchronous_config = _get_replication_synchronous_config(
+            postgres_config)
         if _get_replication_synchronous_mode(
-                postgres_config) != POSTGRES_REPLICATION_SYNCHRONOUS_MODE_NONE:
+                synchronous_config) != POSTGRES_REPLICATION_SYNCHRONOUS_MODE_NONE:
             runtime_config = get_runtime_config_for_update(cluster_config)
             postgres_config = get_config_for_update(runtime_config, BUILT_IN_RUNTIME_POSTGRES)
             postgres_workers = _sum_min_workers(cluster_config)
@@ -229,18 +237,23 @@ def _with_runtime_environment_variables(
         runtime_envs["POSTGRES_REPLICATION_SLOT"] = _is_replication_slot_enabled(
             postgres_config)
 
-        replication_synchronous_mode = _get_replication_synchronous_mode(
+        synchronous_config = _get_replication_synchronous_config(
             postgres_config)
+        replication_synchronous_mode = _get_replication_synchronous_mode(
+            synchronous_config)
         runtime_envs["POSTGRES_SYNCHRONOUS_MODE"] = replication_synchronous_mode
         if replication_synchronous_mode != POSTGRES_REPLICATION_SYNCHRONOUS_MODE_NONE:
             synchronous_size = postgres_config.get(
                 POSTGRES_SYNCHRONOUS_SIZE_CONFIG_KEY, 1)
             synchronous_num = _get_replication_synchronous_num(
-                postgres_config)
+                synchronous_config)
             if synchronous_num > synchronous_size:
                 synchronous_num = synchronous_size
+            synchronous_commit_mode = _get_replication_synchronous_commit_mode(
+                synchronous_config)
             runtime_envs["POSTGRES_SYNCHRONOUS_NUM"] = synchronous_num
             runtime_envs["POSTGRES_SYNCHRONOUS_SIZE"] = synchronous_size
+            runtime_envs["POSTGRES_SYNCHRONOUS_COMMIT_MODE"] = synchronous_commit_mode
 
         # repmgr
         repmgr_config = _get_repmgr_config(postgres_config)
