@@ -62,13 +62,13 @@ get_total_memory() {
 #########################
 # Redirects output to /dev/null if debug mode is disabled
 # Globals:
-#   BITNAMI_DEBUG
+#   CLOUDTIK_SCRIPT_DEBUG
 # Arguments:
 #   $@ - Command to execute
 # Returns:
 #   None
 #########################
-debug_execute() {
+execute_command() {
     local bool="${CLOUDTIK_SCRIPT_DEBUG:-false}"
     # comparison is performed without regard to the case of alphabetic characters
     shopt -s nocasematch

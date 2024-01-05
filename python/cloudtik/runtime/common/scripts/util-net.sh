@@ -101,7 +101,7 @@ wait_for_http_connection() {
     local url="${1:?missing url}"
     local retries="${2:-}"
     local sleep_time="${3:-}"
-    if ! retry_while "debug_execute curl --silent ${url}" "$retries" "$sleep_time"; then
+    if ! retry_while "execute_command curl --silent ${url}" "$retries" "$sleep_time"; then
         error "Could not connect to ${url}"
         return 1
     fi

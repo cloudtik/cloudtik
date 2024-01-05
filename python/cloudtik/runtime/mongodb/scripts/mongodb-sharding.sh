@@ -438,9 +438,9 @@ mongodb_start_mongos() {
     is_mongos_running && returnv
 
     if am_i_root; then
-        debug_execute run_as_user "$MONGODB_DAEMON_USER" "$MONGODB_BIN_DIR/mongos" "${flags[@]}"
+        execute_command run_as_user "$MONGODB_DAEMON_USER" "$MONGODB_BIN_DIR/mongos" "${flags[@]}"
     else
-        debug_execute "$MONGODB_BIN_DIR/mongos" "${flags[@]}"
+        execute_command "$MONGODB_BIN_DIR/mongos" "${flags[@]}"
     fi
 
     # wait until the server is up and answering queries

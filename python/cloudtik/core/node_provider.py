@@ -139,10 +139,10 @@ class NodeProvider:
         if not find_node_id():
             if use_internal_ip:
                 known_msg = (
-                    f"Worker internal IPs: {list(self._internal_ip_cache)}")
+                    f"Node internal IPs: {list(self._internal_ip_cache)}")
             else:
                 known_msg = (
-                    f"Worker external IP: {list(self._external_ip_cache)}")
+                    f"Node external IP: {list(self._external_ip_cache)}")
             raise ValueError(f"ip {ip_address} not found. " + known_msg)
 
         return find_node_id()

@@ -31,6 +31,8 @@ _main() {
       exec gosu postgres "$BASH_SOURCE" "$@"
     fi
 
+    # log all commands outputs
+    CLOUDTIK_SCRIPT_DEBUG=true
     if [ "${POSTGRES_ROLE}" == "primary" ]; then
       # only run initialization on an empty data directory
       if [ -z "$DATABASE_ALREADY_EXISTS" ]; then
@@ -96,9 +98,6 @@ EOM
     # TODO: confirm whether synchronous standby works with repmgr
     postgres_setup_synchronous_standby
   fi
-
-  #  Use this as init script
-  # exec "$@"
 }
 
 if ! _is_sourced; then
