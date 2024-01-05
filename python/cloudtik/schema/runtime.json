@@ -900,6 +900,11 @@
                         "num": {
                             "type": "integer",
                             "description": "The number of synchronous for first or any mode."
+                        },
+                        "commit_mode": {
+                            "type": "string",
+                            "default": "on",
+                            "description": "The commit mode: on, off, local."
                         }
                     }
                 },

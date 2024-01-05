@@ -104,6 +104,7 @@ configure_service_init() {
             configure_variable POSTGRES_REPMGR_CONF_FILE "${POSTGRES_REPMGR_CONFIG_FILE}"
             configure_variable POSTGRES_REPMGR_NODE_ID "${CLOUDTIK_NODE_SEQ_ID}"
             configure_variable POSTGRES_REPMGR_DATA_DIR "${POSTGRES_REPMGR_DATA_DIR}"
+            configure_variable POSTGRES_REPMGR_PASSFILE_PATH "${POSTGRES_REPMGR_PASSFILE_PATH}"
         fi
     fi
 }
@@ -122,8 +123,7 @@ update_repmgr_node_id() {
 }
 
 configure_repmgr_password() {
-    POSTGRES_REPMGR_USE_PASSFILE="${POSTGRES_REPMGR_USE_PASSFILE:-true}"
-    POSTGRES_REPMGR_PASSFILE_PATH="${POSTGRES_REPMGR_PASSFILE_PATH:-$POSTGRES_CONFIG_DIR/rpgmgr_passfile}"
+    POSTGRES_REPMGR_PASSFILE_PATH="${POSTGRES_CONFIG_DIR}/repmgr_passfile"
     repmgr_generate_password_file
     local connection_password=$(repmgr_get_conninfo_password)
     update_in_file "${repmgr_template_file}" \
@@ -159,6 +159,12 @@ configure_repmgr() {
 
     POSTGRES_REPMGR_PID_FILE=${POSTGRES_HOME}/repmgrd.pid
     update_in_file "${repmgr_template_file}" "{%pid.file%}" "${POSTGRES_REPMGR_PID_FILE}"
+
+    local use_replication_slots=no
+    if [ "${POSTGRES_REPLICATION_SLOT}" == "true" ]; then
+        use_replication_slots=yes
+    fi
+    update_in_file "${repmgr_template_file}" "{%use.replication.slots%}" "${use_replication_slots}"
 
     # failover
     promote_command="$(repmgr_get_env_password) repmgr standby promote -f ${POSTGRES_REPMGR_CONFIG_FILE} --log-level DEBUG --log-to-file --verbose"
