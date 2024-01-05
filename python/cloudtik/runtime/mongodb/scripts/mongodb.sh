@@ -347,15 +347,15 @@ mongodb_start_bg() {
 
     if am_i_root; then
         if is_boolean_yes "$MONGODB_ENABLE_NUMACTL"; then
-            debug_execute run_as_user "$MONGODB_DAEMON_USER" numactl --interleave=all "$MONGODB_BIN_DIR/mongod" "${flags[@]}"
+            execute_command run_as_user "$MONGODB_DAEMON_USER" numactl --interleave=all "$MONGODB_BIN_DIR/mongod" "${flags[@]}"
         else
-            debug_execute run_as_user "$MONGODB_DAEMON_USER" "$MONGODB_BIN_DIR/mongod" "${flags[@]}"
+            execute_command run_as_user "$MONGODB_DAEMON_USER" "$MONGODB_BIN_DIR/mongod" "${flags[@]}"
         fi
     else
         if is_boolean_yes "$MONGODB_ENABLE_NUMACTL"; then
-            debug_execute numactl --interleave=all "$MONGODB_BIN_DIR/mongod" "${flags[@]}"
+            execute_command numactl --interleave=all "$MONGODB_BIN_DIR/mongod" "${flags[@]}"
         else
-            debug_execute "$MONGODB_BIN_DIR/mongod" "${flags[@]}"
+            execute_command "$MONGODB_BIN_DIR/mongod" "${flags[@]}"
         fi
     fi
 
@@ -1421,7 +1421,7 @@ mongodb_execute_print_output() {
 #   None
 ########################
 mongodb_execute() {
-    debug_execute mongodb_execute_print_output "$@"
+    execute_command mongodb_execute_print_output "$@"
 }
 
 # shellcheck disable=SC2148

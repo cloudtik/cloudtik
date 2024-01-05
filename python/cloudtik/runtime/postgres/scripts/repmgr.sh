@@ -49,6 +49,24 @@ repmgr_get_conninfo_password() {
     fi
 }
 
+########################
+# Get primary conninfo password method
+# Globals:
+#   POSTGRES_REPMGR_*
+# Arguments:
+#   None
+# Returns:
+#   String
+#########################
+repmgr_get_primary_conninfo_password() {
+    if [[ "$POSTGRES_REPMGR_USE_PASSFILE" = "true" ]]; then
+        echo "passfile=${POSTGRES_REPMGR_PASSFILE_PATH}"
+    else
+        local -r escaped_password="${POSTGRES_REPLICATION_PASSWORD//\&/\\&}"
+        echo "password=${escaped_password}"
+    fi
+}
+
 #######################
 # Generate password file if necessary
 # Globals:
@@ -360,9 +378,9 @@ repmgr_clone_primary() {
     local -r flags=("-f" "$POSTGRES_REPMGR_CONF_FILE" "-h" "$POSTGRES_PRIMARY_HOST" "-p" "$POSTGRES_PRIMARY_PORT" "-U" "$POSTGRES_REPMGR_USER" "-d" "$POSTGRES_REPMGR_DATABASE" "-D" "$PGDATA" "standby" "clone" "--fast-checkpoint" "--force")
 
     if [[ "$POSTGRES_REPMGR_USE_PASSFILE" = "true" ]]; then
-        PGPASSFILE="$POSTGRES_REPMGR_PASSFILE_PATH" debug_execute "${POSTGRES_REPMGR_BIN_DIR}/repmgr" "${flags[@]}"
+        PGPASSFILE="$POSTGRES_REPMGR_PASSFILE_PATH" execute_command "${POSTGRES_REPMGR_BIN_DIR}/repmgr" "${flags[@]}"
     else
-        PGPASSWORD="$POSTGRES_REPMGR_PASSWORD" debug_execute "${POSTGRES_REPMGR_BIN_DIR}/repmgr" "${flags[@]}"
+        PGPASSWORD="$POSTGRES_REPMGR_PASSWORD" execute_command "${POSTGRES_REPMGR_BIN_DIR}/repmgr" "${flags[@]}"
     fi
 }
 
@@ -380,9 +398,9 @@ repmgr_pgrewind() {
     local -r flags=("-D" "$PGDATA" "--source-server" "host=${POSTGRES_PRIMARY_HOST} port=${POSTGRES_PRIMARY_PORT} user=${POSTGRES_REPMGR_USER} dbname=${POSTGRES_REPMGR_DATABASE}")
 
     if [[ "$POSTGRES_REPMGR_USE_PASSFILE" = "true" ]]; then
-        PGPASSFILE="$POSTGRES_REPMGR_PASSFILE_PATH" debug_execute "${POSTGRES_BIN_DIR}/pg_rewind" "${flags[@]}"
+        PGPASSFILE="$POSTGRES_REPMGR_PASSFILE_PATH" execute_command "pg_rewind" "${flags[@]}"
     else
-        PGPASSWORD="$POSTGRES_REPMGR_PASSWORD" debug_execute "${POSTGRES_BIN_DIR}/pg_rewind" "${flags[@]}"
+        PGPASSWORD="$POSTGRES_REPMGR_PASSWORD" execute_command "pg_rewind" "${flags[@]}"
     fi
 }
 
@@ -404,6 +422,11 @@ repmgr_rewind() {
         if ! repmgr_pgrewind; then
             warn "pg_rewind failed, resorting to data cloning"
             repmgr_clone_primary
+        else
+            info "Successfully pg_rewind to primary node."
+            # pg_backup use generate recovery config while pg_rewind will not
+            local password_str=$(repmgr_get_primary_conninfo_password)
+            postgres_configure_recovery "repl_user" "$password_str"
         fi
     else
         repmgr_clone_primary
@@ -423,7 +446,7 @@ repmgr_register_primary() {
     info "Registering Primary..."
     local -r flags=("-f" "$POSTGRES_REPMGR_CONF_FILE" "master" "register" "--force")
 
-    debug_execute "${POSTGRES_REPMGR_BIN_DIR}/repmgr" "${flags[@]}"
+    execute_command "${POSTGRES_REPMGR_BIN_DIR}/repmgr" "${flags[@]}"
 }
 
 ########################
@@ -439,7 +462,7 @@ repmgr_register_standby() {
     info "Registering Standby node..."
     local -r flags=("standby" "register" "-f" "$POSTGRES_REPMGR_CONF_FILE" "--force" "--verbose")
 
-    debug_execute "${POSTGRES_REPMGR_BIN_DIR}/repmgr" "${flags[@]}"
+    execute_command "${POSTGRES_REPMGR_BIN_DIR}/repmgr" "${flags[@]}"
 }
 
 ########################
@@ -457,7 +480,7 @@ repmgr_unregister_standby() {
     local -r flags=("standby" "unregister" "-f" "$POSTGRES_REPMGR_CONF_FILE" "--node-id=$POSTGRES_REPMGR_NODE_ID")
 
     # The command below can fail when the node doesn't exist yet
-    debug_execute "${POSTGRES_REPMGR_BIN_DIR}/repmgr" "${flags[@]}" || true
+    execute_command "${POSTGRES_REPMGR_BIN_DIR}/repmgr" "${flags[@]}" || true
 }
 
 
@@ -477,9 +500,9 @@ repmgr_register_witness() {
     repmgr_wait_primary_node
 
     if [[ "$POSTGRES_REPMGR_USE_PASSFILE" = "true" ]]; then
-        PGPASSFILE="$POSTGRES_REPMGR_PASSFILE_PATH" debug_execute "${POSTGRES_REPMGR_BIN_DIR}/repmgr" "${flags[@]}"
+        PGPASSFILE="$POSTGRES_REPMGR_PASSFILE_PATH" execute_command "${POSTGRES_REPMGR_BIN_DIR}/repmgr" "${flags[@]}"
     else
-        PGPASSWORD="$POSTGRES_REPMGR_PASSWORD" debug_execute "${POSTGRES_REPMGR_BIN_DIR}/repmgr" "${flags[@]}"
+        PGPASSWORD="$POSTGRES_REPMGR_PASSWORD" execute_command "${POSTGRES_REPMGR_BIN_DIR}/repmgr" "${flags[@]}"
     fi
 }
 
@@ -498,9 +521,9 @@ repmgr_unregister_witness() {
 
     # The command below can fail when the node doesn't exist yet
     if [[ "$POSTGRES_REPMGR_USE_PASSFILE" = "true" ]]; then
-        PGPASSFILE="$POSTGRES_REPMGR_PASSFILE_PATH" debug_execute "${POSTGRES_REPMGR_BIN_DIR}/repmgr" "${flags[@]}" || true
+        PGPASSFILE="$POSTGRES_REPMGR_PASSFILE_PATH" execute_command "${POSTGRES_REPMGR_BIN_DIR}/repmgr" "${flags[@]}" || true
     else
-        PGPASSWORD="$POSTGRES_REPMGR_PASSWORD" debug_execute "${POSTGRES_REPMGR_BIN_DIR}/repmgr" "${flags[@]}" || true
+        PGPASSWORD="$POSTGRES_REPMGR_PASSWORD" execute_command "${POSTGRES_REPMGR_BIN_DIR}/repmgr" "${flags[@]}" || true
     fi
 }
 
@@ -518,9 +541,9 @@ repmgr_standby_follow() {
     local -r flags=("standby" "follow" "-f" "$POSTGRES_REPMGR_CONF_FILE" "-W" "--log-level" "DEBUG" "--verbose")
 
     if [[ "$POSTGRES_REPMGR_USE_PASSFILE" = "true" ]]; then
-        PGPASSFILE="$POSTGRES_REPMGR_PASSFILE_PATH" debug_execute "${POSTGRES_REPMGR_BIN_DIR}/repmgr" "${flags[@]}"
+        PGPASSFILE="$POSTGRES_REPMGR_PASSFILE_PATH" execute_command "${POSTGRES_REPMGR_BIN_DIR}/repmgr" "${flags[@]}"
     else
-        PGPASSWORD="$POSTGRES_REPMGR_PASSWORD" debug_execute "${POSTGRES_REPMGR_BIN_DIR}/repmgr" "${flags[@]}"
+        PGPASSWORD="$POSTGRES_REPMGR_PASSWORD" execute_command "${POSTGRES_REPMGR_BIN_DIR}/repmgr" "${flags[@]}"
     fi
 }
 

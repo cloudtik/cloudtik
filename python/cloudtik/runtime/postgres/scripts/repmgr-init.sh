@@ -18,6 +18,8 @@ _is_sourced() {
 }
 
 _main() {
+    # log all commands outputs
+    CLOUDTIK_SCRIPT_DEBUG=true
     if [ "${POSTGRES_ROLE}" == "primary" ]; then
         # check whether this is first time
         POSTGRES_REPMGR_INIT_FILE=${POSTGRES_REPMGR_DATA_DIR}/.initialized

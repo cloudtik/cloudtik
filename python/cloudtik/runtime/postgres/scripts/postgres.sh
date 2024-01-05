@@ -500,11 +500,12 @@ postgres_get_waldir() {
 #########################
 postgres_configure_recovery() {
     info "Setting up streaming replication slave..."
+    local -r replication_user="${1:-repl_user}"
     local -r escaped_password="${POSTGRES_REPLICATION_PASSWORD//\&/\\&}"
-    local -r replication_user="${POSTGRES_REPLICATON_USER:-repl_user}"
+    local -r password_str="${2:-"password=${escaped_password}"}"
     local -r application_name="${POSTGRES_APP_NAME:-"${POSTGRES_SERVER_NAME}"}"
     postgresql_set_property "primary_conninfo" \
-      "host=${POSTGRES_PRIMARY_HOST} port=${POSTGRES_PRIMARY_PORT} user=${replication_user} password=${escaped_password} application_name=${application_name}" \
+      "host=${POSTGRES_PRIMARY_HOST} port=${POSTGRES_PRIMARY_PORT} user=${replication_user} application_name=${application_name} ${password_str}" \
       "$POSTGRES_CONF_FILE"
     touch "$PGDATA"/standby.signal
 }
