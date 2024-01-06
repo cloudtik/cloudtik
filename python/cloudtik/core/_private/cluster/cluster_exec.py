@@ -69,7 +69,7 @@ def exec_cluster(
         cmd: str = None,
         run_env: str = "auto",
         with_output: bool = False,
-        _allow_uninitialized_state: bool = False) -> str:
+        _allow_uninitialized_state: bool = True) -> str:
     """Runs a command on the head of the cluster.
     """
     use_internal_ip = config.get("bootstrapped", False)
@@ -147,8 +147,7 @@ def rsync_cluster(
         config["provider"], config["cluster_name"])
     head_node = get_running_head_node(
         config,
-        _provider=provider,
-        _allow_uninitialized_state=False)
+        _provider=provider)
     _rsync_with_node(
         config, call_context, head_node, provider,
         source, target, down,

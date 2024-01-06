@@ -154,16 +154,24 @@ def runtime():
     default=None,
     help="The runtimes to start. Comma separated list.")
 @click.option(
-    "--parallel/--no-parallel", is_flag=True, default=True, help="Whether the run the commands on nodes in parallel.")
+    "--parallel/--no-parallel",
+    is_flag=True,
+    default=True,
+    help="Whether the run the commands on nodes in parallel.")
 @click.option(
     "--yes",
     "-y",
     is_flag=True,
     default=False,
     help="Don't ask for confirmation.")
+@click.option(
+    "--force",
+    is_flag=True,
+    default=False,
+    help="Do even if the head is not in healthy state.")
 @add_click_logging_options
 def start(cluster_config_file, cluster_name, no_config_cache,
-          node_ip, all_nodes, runtimes, parallel, yes):
+          node_ip, all_nodes, runtimes, parallel, yes, force):
     """Manually start the node and runtime services on head or worker node."""
     try:
         # attach to the worker node
@@ -175,7 +183,8 @@ def start(cluster_config_file, cluster_name, no_config_cache,
             override_cluster_name=cluster_name,
             no_config_cache=no_config_cache,
             parallel=parallel,
-            yes=yes)
+            yes=yes,
+            force=force)
     except RuntimeError as re:
         cli_logger.error("Start node failed. " + str(re))
         if cli_logger.verbosity == 0:
@@ -215,16 +224,24 @@ def start(cluster_config_file, cluster_name, no_config_cache,
     default=None,
     help="The runtimes to start. Comma separated list.")
 @click.option(
-    "--parallel/--no-parallel", is_flag=True, default=True, help="Whether the run the commands on nodes in parallel.")
+    "--parallel/--no-parallel",
+    is_flag=True,
+    default=True,
+    help="Whether the run the commands on nodes in parallel.")
 @click.option(
     "--yes",
     "-y",
     is_flag=True,
     default=False,
     help="Don't ask for confirmation.")
+@click.option(
+    "--force",
+    is_flag=True,
+    default=False,
+    help="Do even if the head is not in healthy state.")
 @add_click_logging_options
 def stop(cluster_config_file, cluster_name, no_config_cache,
-         node_ip, all_nodes, runtimes, parallel, yes):
+         node_ip, all_nodes, runtimes, parallel, yes, force):
     """Manually run stop commands on head or worker nodes."""
     try:
         # attach to the worker node
@@ -236,7 +253,8 @@ def stop(cluster_config_file, cluster_name, no_config_cache,
             override_cluster_name=cluster_name,
             no_config_cache=no_config_cache,
             parallel=parallel,
-            yes=yes)
+            yes=yes,
+            force=force)
     except RuntimeError as re:
         cli_logger.error("Stop node failed. " + str(re))
         if cli_logger.verbosity == 0:

@@ -132,6 +132,12 @@ class HeadNotRunningError(RuntimeError):
     pass
 
 
+class HeadNotHealthyError(RuntimeError):
+    def __init__(self, head_node, message):
+        self.head_node = head_node
+        super().__init__(message)
+
+
 class ParallelTaskSkipped(RuntimeError):
     pass
 
@@ -3033,8 +3039,15 @@ def get_running_head_node(
                 "it is recommended to restart this cluster.")
 
             return _backup_head_node
-        raise HeadNotRunningError("Head node of cluster {} not found!".format(
-            config["cluster_name"]))
+        if _backup_head_node is not None:
+            raise HeadNotHealthyError(
+                _backup_head_node,
+                "Head node of cluster {} is not healthy.".format(
+                    config["cluster_name"]))
+        else:
+            raise HeadNotRunningError(
+                "Head node of cluster {} not found.".format(
+                    config["cluster_name"]))
 
 
 def load_properties_file(properties_file, separator='=') -> Tuple[Dict[str, str], Dict[str, List[str]]]:

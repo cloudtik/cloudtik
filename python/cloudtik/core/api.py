@@ -163,7 +163,9 @@ class Cluster:
              port_forward: Optional[cluster_operator.Port_forward] = None,
              with_output: bool = False,
              parallel: bool = True,
-             job_waiter: Optional[str] = None) -> Optional[str]:
+             job_waiter: Optional[str] = None,
+             force: bool = False,
+             ) -> Optional[str]:
         """Runs a command on the specified cluster.
 
         Args:
@@ -184,6 +186,7 @@ class Cluster:
             with_output (bool): Whether to capture command output.
             parallel (bool): Whether to run the commands on nodes in parallel.
             job_waiter (str): The job waiter to use for waiting an async job to complete.
+            force (bool): Force to execute even head is not in healthy state.
         Returns:
             The output of the command as a string.
         """
@@ -206,7 +209,8 @@ class Cluster:
             with_output=with_output,
             parallel=parallel,
             yes=True,
-            job_waiter_name=job_waiter)
+            job_waiter_name=job_waiter,
+            force=force)
 
     def submit(self,
                script_file: str,
@@ -721,7 +725,8 @@ class ThisCluster:
                 available
             workers (int): Scale to number of workers.
             worker_type (str): The worker type if there were multiple workers available.
-            resources: Optional[Dict[str, int]]: The resources to scale for each resource_name:amount separated by comma.
+            resources: Optional[Dict[str, int]]: The resources to scale for each
+                resource_name:amount separated by comma.
                 For example, CPU:4,GPU:1,Custom:3
             bundles (List[ResourceDict]): Scale the cluster to ensure this set of
                 resource shapes can fit. This request is persistent until another

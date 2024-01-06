@@ -386,10 +386,16 @@ def attach(cluster_config_file, screen, tmux, cluster_name,
     required=False,
     type=str,
     help="The job waiter to be used to check the completion of the job.")
+@click.option(
+    "--force",
+    is_flag=True,
+    default=False,
+    help="Do even if the head is not in healthy state.")
 @add_click_logging_options
 def exec(cluster_config_file, cmd, cluster_name, run_env, screen, tmux, stop, start,
          force_update, wait_for_workers, min_workers, wait_timeout,
-         no_config_cache, port_forward, node_ip, all_nodes, parallel, yes, job_waiter):
+         no_config_cache, port_forward, node_ip, all_nodes, parallel, yes, job_waiter,
+         force):
     """Execute a command via SSH on a cluster or a specified node."""
     port_forward = [(port, port) for port in list(port_forward)]
 
@@ -417,7 +423,8 @@ def exec(cluster_config_file, cmd, cluster_name, run_env, screen, tmux, stop, st
             port_forward=port_forward,
             parallel=parallel,
             yes=yes,
-            job_waiter_name=job_waiter)
+            job_waiter_name=job_waiter,
+            force=force)
     except RuntimeError as re:
         cli_logger.error("Run exec failed. " + str(re))
         if cli_logger.verbosity == 0:

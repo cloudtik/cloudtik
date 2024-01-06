@@ -55,7 +55,7 @@ from cloudtik.core._private.constants import \
     CLOUDTIK_RESOURCE_REQUESTS, \
     MAX_PARALLEL_SHUTDOWN_WORKERS, \
     CLOUDTIK_REDIS_DEFAULT_PASSWORD, CLOUDTIK_CLUSTER_STATUS_STOPPED, CLOUDTIK_CLUSTER_STATUS_RUNNING, \
-    CLOUDTIK_RUNTIME_NAME, CLOUDTIK_KV_NAMESPACE_HEALTHCHECK, SESSION_LATEST
+    CLOUDTIK_RUNTIME_NAME, CLOUDTIK_KV_NAMESPACE_HEALTHCHECK, SESSION_LATEST, CLOUDTIK_CLUSTER_STATUS_UNHEALTHY
 from cloudtik.core._private.utils import hash_runtime_conf, \
     hash_launch_conf, get_proxy_process_file, get_safe_proxy_process, \
     get_head_working_ip, get_node_cluster_ip, is_use_internal_ip, \
@@ -77,7 +77,7 @@ from cloudtik.core._private.utils import hash_runtime_conf, \
     get_runtime_encryption_key, with_runtime_encryption_key, is_use_managed_cloud_storage, \
     print_dict_info, is_use_managed_cloud_database, prepare_config_for_runtime_hash, _get_sorted_nodes_info, \
     _get_number_of_node_in_status, _get_nodes_info_in_status, _get_worker_nodes, _get_worker_node_ips, \
-    _get_workers_ready
+    _get_workers_ready, HeadNotHealthyError
 
 from cloudtik.core._private.provider_factory import _get_node_provider, _NODE_PROVIDERS
 from cloudtik.core.tags import (
@@ -316,13 +316,16 @@ def create_or_update_cluster(
             _start_proxy(config, True, "localhost")
 
     provider = _get_node_provider(config["provider"], config["cluster_name"])
-    head_node = _get_running_head_node(config)
-    show_useful_commands(call_context=call_context,
-                         config=config,
-                         provider=provider,
-                         head_node=head_node,
-                         config_file=config_file,
-                         override_cluster_name=override_cluster_name)
+    head_node = _get_running_head_node(
+        config,
+        _allow_uninitialized_state=False)
+    show_useful_commands(
+        call_context=call_context,
+        config=config,
+        provider=provider,
+        head_node=head_node,
+        config_file=config_file,
+        override_cluster_name=override_cluster_name)
     return config
 
 
@@ -349,16 +352,18 @@ def _create_or_update_cluster(
         call_context.set_output_redirected(redirect_command_output)
 
     try_logging_config(config)
-    get_or_create_head_node(config, call_context, no_restart, restart_only,
-                            yes)
+    get_or_create_head_node(
+        config, call_context, no_restart, restart_only,
+        yes)
 
 
-def teardown_cluster(config_file: str, yes: bool, workers_only: bool,
-                     override_cluster_name: Optional[str],
-                     keep_min_workers: bool,
-                     proxy_stop: bool = False,
-                     hard: bool = False,
-                     deep: bool = False) -> None:
+def teardown_cluster(
+        config_file: str, yes: bool, workers_only: bool,
+        override_cluster_name: Optional[str],
+        keep_min_workers: bool,
+        proxy_stop: bool = False,
+        hard: bool = False,
+        deep: bool = False) -> None:
     """Destroys all nodes of a cluster described by a config json."""
 
     # when stop the cluster hard, we avoid runtime validate or verification errors
@@ -371,24 +376,26 @@ def teardown_cluster(config_file: str, yes: bool, workers_only: bool,
                        config["cluster_name"], _abort=True)
     cli_logger.newline()
     with cli_logger.group("Shutting down cluster: {}", config["cluster_name"]):
-        _teardown_cluster(config,
-                          call_context=cli_call_context(),
-                          workers_only=workers_only,
-                          keep_min_workers=keep_min_workers,
-                          proxy_stop=proxy_stop,
-                          hard=hard,
-                          deep=deep)
+        _teardown_cluster(
+            config,
+            call_context=cli_call_context(),
+            workers_only=workers_only,
+            keep_min_workers=keep_min_workers,
+            proxy_stop=proxy_stop,
+            hard=hard,
+            deep=deep)
 
     cli_logger.success("Successfully shut down cluster: {}.", config["cluster_name"])
 
 
-def _teardown_cluster(config: Dict[str, Any],
-                      call_context: CallContext,
-                      workers_only: bool = False,
-                      keep_min_workers: bool = False,
-                      proxy_stop: bool = False,
-                      hard: bool = False,
-                      deep: bool = False) -> None:
+def _teardown_cluster(
+        config: Dict[str, Any],
+        call_context: CallContext,
+        workers_only: bool = False,
+        keep_min_workers: bool = False,
+        proxy_stop: bool = False,
+        hard: bool = False,
+        deep: bool = False) -> None:
     current_step = 1
     total_steps = NUM_TEARDOWN_CLUSTER_STEPS_BASE
     if proxy_stop and is_proxy_needed(config):
@@ -461,22 +468,24 @@ def _teardown_cluster(config: Dict[str, Any],
         provider = _get_node_provider(config["provider"], config["cluster_name"])
         # Since head node has down the workers shutdown
         # We continue shutdown the head and remaining workers
-        teardown_cluster_nodes(config,
-                               call_context=call_context,
-                               provider=provider,
-                               workers_only=workers_only,
-                               keep_min_workers=keep_min_workers,
-                               on_head=False,
-                               hard=hard)
+        teardown_cluster_nodes(
+            config,
+            call_context=call_context,
+            provider=provider,
+            workers_only=workers_only,
+            keep_min_workers=keep_min_workers,
+            on_head=False,
+            hard=hard)
 
     with _cli_logger.group(
             "Clean up the cluster",
             _numbered=("[]", current_step, total_steps)):
         current_step += 1
-        cleanup_cluster(config,
-                        call_context=call_context,
-                        provider=provider,
-                        deep=deep)
+        cleanup_cluster(
+            config,
+            call_context=call_context,
+            provider=provider,
+            deep=deep)
 
 
 def _teardown_workers_from_head(
@@ -493,9 +502,10 @@ def _teardown_workers_from_head(
     cmd += " --indent-level={}".format(2)
 
     try:
-        _exec_cmd_on_cluster(config,
-                             call_context=call_context,
-                             cmd=cmd)
+        _exec_cmd_on_cluster(
+            config,
+            call_context=call_context,
+            cmd=cmd)
     except Exception as e:
         cli_logger.verbose_error("{}", str(e))
         cli_logger.warning(
@@ -701,7 +711,8 @@ def _kill_node_from_head(config: Dict[str, Any],
         node_ip = get_node_cluster_ip(provider, node)
 
     if hard:
-        return _kill_node(config, call_context=call_context, node_ip=node_ip, hard=hard)
+        return _kill_node(
+            config, call_context=call_context, node_ip=node_ip, hard=hard)
 
     # soft kill, we need to do on head
     cmds = [
@@ -714,9 +725,10 @@ def _kill_node_from_head(config: Dict[str, Any],
 
     with_verbose_option(cmds, call_context)
     final_cmd = " ".join(cmds)
-    _exec_cmd_on_cluster(config,
-                         call_context=call_context,
-                         cmd=final_cmd)
+    _exec_cmd_on_cluster(
+        config,
+        call_context=call_context,
+        cmd=final_cmd)
     return node_ip
 
 
@@ -1149,8 +1161,9 @@ def attach_cluster(config_file: str,
         port_forward ( (int,int) or list[(int,int)] ): port(s) to forward
         force_to_host: Force attaching to host
     """
-    config = _load_cluster_config(config_file, override_cluster_name,
-                                  no_config_cache=no_config_cache)
+    config = _load_cluster_config(
+        config_file, override_cluster_name,
+        no_config_cache=no_config_cache)
     call_context = cli_call_context()
     cmd = get_attach_command(use_screen, use_tmux, new)
     run_env = "auto"
@@ -1166,8 +1179,7 @@ def attach_cluster(config_file: str,
         tmux=False,
         stop=False,
         start=False,
-        port_forward=port_forward,
-        _allow_uninitialized_state=True)
+        port_forward=port_forward)
 
 
 def _exec_cluster(config: Dict[str, Any],
@@ -1181,7 +1193,7 @@ def _exec_cluster(config: Dict[str, Any],
                   start: bool = False,
                   port_forward: Optional[Port_forward] = None,
                   with_output: bool = False,
-                  _allow_uninitialized_state: bool = False,
+                  _allow_uninitialized_state: bool = True,
                   job_waiter: Optional[JobWaiter] = None,
                   session_name: Optional[str] = None) -> str:
     """Runs a command on the specified cluster.
@@ -1359,7 +1371,9 @@ def _rsync(config: Dict[str, Any],
         else:
             updater.sync_file_mounts(rsync)
 
-    head_node = _get_running_head_node(config, _provider=provider)
+    # Allow rsync files even if the head is not fully setup
+    head_node = _get_running_head_node(
+        config, _provider=provider)
     if not node_ip:
         # No node specified, rsync with head or rsync up with all nodes
         rsync_to_node(head_node, source, target, is_head_node=True)
@@ -1486,9 +1500,10 @@ def rsync_to_node_from_head(config: Dict[str, Any],
 
     with_verbose_option(cmds, call_context)
     final_cmd = " ".join(cmds)
-    _exec_cmd_on_cluster(config,
-                         call_context=call_context,
-                         cmd=final_cmd)
+    _exec_cmd_on_cluster(
+        config,
+        call_context=call_context,
+        cmd=final_cmd)
 
 
 def rsync_node_on_head(config: Dict[str, Any],
@@ -1655,7 +1670,7 @@ def _get_running_head_node_ex(
         call_context: CallContext = None,
         create_if_needed: bool = False,
         _provider: Optional[NodeProvider] = None,
-        _allow_uninitialized_state: bool = False,
+        _allow_uninitialized_state: bool = True,
 ) -> str:
     """Get a valid, running head node.
     Args:
@@ -1710,14 +1725,22 @@ def _get_running_head_node_ex(
                 "it is recommended to restart this cluster.")
 
             return _backup_head_node
-        raise HeadNotRunningError("Head node of cluster {} not found!".format(
-            config["cluster_name"]))
+
+        if _backup_head_node:
+            raise HeadNotHealthyError(
+                _backup_head_node,
+                "Head node of cluster {} not found!".format(
+                    config["cluster_name"]))
+        else:
+            raise HeadNotRunningError(
+                "Head node of cluster {} not found!".format(
+                    config["cluster_name"]))
 
 
 def _get_running_head_node(
         config: Dict[str, Any],
         _provider: Optional[NodeProvider] = None,
-        _allow_uninitialized_state: bool = False,
+        _allow_uninitialized_state: bool = True,
 ) -> str:
     """Get a valid, running head node. Raise error if no running head
     Args:
@@ -1728,8 +1751,9 @@ def _get_running_head_node(
             `cloudtik exec` to debug a cluster in a bad state.
 
     """
-    return get_running_head_node(config=config, _provider=_provider,
-                                 _allow_uninitialized_state=_allow_uninitialized_state)
+    return get_running_head_node(
+        config=config, _provider=_provider,
+        _allow_uninitialized_state=_allow_uninitialized_state)
 
 
 def dump_local(stream: bool = False,
@@ -2048,7 +2072,11 @@ def _show_cluster_info(config: Dict[str, Any],
 
     cluster_info = _get_cluster_info(config, provider)
 
-    cli_logger.print(cf.bold("Cluster {} is: {}"), config["cluster_name"], cluster_info["status"])
+    coloring = cf.bold
+    if cluster_info["status"] == CLOUDTIK_CLUSTER_STATUS_UNHEALTHY:
+        coloring = cf.red
+    cli_logger.print(
+        coloring("Cluster {} is: {}"), config["cluster_name"], cluster_info["status"])
     if cluster_info["status"] == CLOUDTIK_CLUSTER_STATUS_STOPPED:
         return
 
@@ -2231,36 +2259,51 @@ def _get_cluster_info(config: Dict[str, Any],
     if not simple_config:
         cluster_info["runtimes"] = get_enabled_runtimes(config)
 
-    # Check whether the head node is running
+    # Check whether the head node is running and healthy
     try:
-        head_node = _get_running_head_node(config)
+        head_node = _get_running_head_node(
+            config,
+            _allow_uninitialized_state=False)
+        head_state = 1
     except HeadNotRunningError:
         head_node = None
+        head_state = 0
+    except HeadNotHealthyError as e:
+        head_node = e.head_node
+        head_state = -1
 
-    if head_node is None:
-        cluster_info["status"] = CLOUDTIK_CLUSTER_STATUS_STOPPED
-        return cluster_info
-
-    cluster_info["status"] = CLOUDTIK_CLUSTER_STATUS_RUNNING
-    cluster_info["head-id"] = head_node
-
-    head_ssh_ip = get_head_working_ip(config, provider, head_node)
-    cluster_info["head-ssh-ip"] = head_ssh_ip
-
-    head_ip = get_node_cluster_ip(provider, head_node)
-    cluster_info["head-ip"] = head_ip
-
-    head_hostname = get_cluster_head_hostname(config)
-    if head_hostname:
-        cluster_info["head-hostname"] = head_hostname
-
-    # Check the running worker nodes
+    # running worker nodes
     workers = _get_worker_nodes(config)
     worker_count = len(workers)
 
+    if head_state == 0:
+        # head is not running, check running workers
+        if worker_count == 0:
+            cluster_info["status"] = CLOUDTIK_CLUSTER_STATUS_STOPPED
+            return cluster_info
+        else:
+            cluster_info["status"] = CLOUDTIK_CLUSTER_STATUS_UNHEALTHY
+    elif head_state == -1:
+        cluster_info["status"] = CLOUDTIK_CLUSTER_STATUS_UNHEALTHY
+    else:
+        cluster_info["status"] = CLOUDTIK_CLUSTER_STATUS_RUNNING
+
+    cluster_info["head-id"] = head_node
+
+    if head_node is not None:
+        head_ssh_ip = get_head_working_ip(config, provider, head_node)
+        cluster_info["head-ssh-ip"] = head_ssh_ip
+
+        head_ip = get_node_cluster_ip(provider, head_node)
+        cluster_info["head-ip"] = head_ip
+
+        head_hostname = get_cluster_head_hostname(config)
+        if head_hostname:
+            cluster_info["head-hostname"] = head_hostname
+
     if not simple_config:
-        workers_info = get_nodes_info(provider, workers,
-                                      True, config["available_node_types"])
+        workers_info = get_nodes_info(
+            provider, workers, True, config["available_node_types"])
     else:
         workers_info = get_nodes_info(provider, workers)
 
@@ -2323,8 +2366,9 @@ def start_ssh_proxy(config_file: str,
                     override_cluster_name: Optional[str] = None,
                     no_config_cache: bool = False,
                     bind_address: str = None):
-    config = _load_cluster_config(config_file, override_cluster_name,
-                                  no_config_cache=no_config_cache)
+    config = _load_cluster_config(
+        config_file, override_cluster_name,
+        no_config_cache=no_config_cache)
 
     if not is_proxy_needed(config):
         cli_logger.print(cf.bold(
@@ -2363,12 +2407,19 @@ def _start_proxy(config: Dict[str, Any],
     provider = _get_node_provider(config["provider"], config["cluster_name"])
     # Check whether the head node is running
     try:
-        head_node = _get_running_head_node(config)
-        head_node_ip = get_head_working_ip(config, provider, head_node)
+        head_node = _get_running_head_node(
+            config,
+            _allow_uninitialized_state=False)
     except HeadNotRunningError:
-        cli_logger.print(cf.bold("Cluster {} is not running."), cluster_name)
+        cli_logger.print(
+            cf.red("Cluster {} head is not running."), cluster_name)
         return
+    except HeadNotHealthyError as e:
+        cli_logger.print(
+            cf.red("Cluster {} head is not healthy."), cluster_name)
+        head_node = e.head_node
 
+    head_node_ip = get_head_working_ip(config, provider, head_node)
     pid, address, port = _start_proxy_process(head_node_ip, config, bind_address)
     cli_logger.print(cf.bold(
         "The SOCKS5 proxy to the cluster {} has been started."),
@@ -2446,13 +2497,28 @@ def _stop_proxy(config: Dict[str, Any]):
         cf.bold("Successfully stopped the SOCKS5 proxy of cluster {}."), cluster_name)
 
 
-def exec_cmd_on_cluster(config_file: str,
-                        cmd: str,
-                        override_cluster_name: Optional[str],
-                        no_config_cache: bool = False):
-    config = _load_cluster_config(config_file, override_cluster_name,
-                                  no_config_cache=no_config_cache)
+def exec_cmd_on_cluster(
+        config_file: str,
+        cmd: str,
+        override_cluster_name: Optional[str],
+        no_config_cache: bool = False,
+        _allow_uninitialized_state: bool = True):
+    config = _load_cluster_config(
+        config_file, override_cluster_name,
+        no_config_cache=no_config_cache)
     call_context = cli_call_context()
+    _exec_cmd_on_cluster(
+        config,
+        call_context=call_context,
+        cmd=cmd,
+        _allow_uninitialized_state=_allow_uninitialized_state)
+
+
+def _exec_cmd_on_cluster(
+        config: Dict[str, Any],
+        call_context: CallContext,
+        cmd: str,
+        _allow_uninitialized_state: bool = True):
     _exec_cluster(
         config,
         call_context=call_context,
@@ -2464,24 +2530,7 @@ def exec_cmd_on_cluster(config_file: str,
         start=False,
         port_forward=None,
         with_output=False,
-        _allow_uninitialized_state=False)
-
-
-def _exec_cmd_on_cluster(config: Dict[str, Any],
-                         call_context: CallContext,
-                         cmd: str):
-    _exec_cluster(
-        config,
-        call_context=call_context,
-        cmd=cmd,
-        run_env="auto",
-        screen=False,
-        tmux=False,
-        stop=False,
-        start=False,
-        port_forward=None,
-        with_output=False,
-        _allow_uninitialized_state=False)
+        _allow_uninitialized_state=_allow_uninitialized_state)
 
 
 def cluster_debug_status(config_file: str,
@@ -2490,8 +2539,9 @@ def cluster_debug_status(config_file: str,
     """Return the debug status of a cluster scaling from head node"""
 
     cmd = f"cloudtik head debug-status"
-    exec_cmd_on_cluster(config_file, cmd,
-                        override_cluster_name, no_config_cache)
+    exec_cmd_on_cluster(
+        config_file, cmd,
+        override_cluster_name, no_config_cache)
 
 
 def cluster_health_check(config_file: str,
@@ -2503,8 +2553,9 @@ def cluster_health_check(config_file: str,
     cmd = f"cloudtik head health-check"
     if with_details:
         cmd += " --with-details"
-    exec_cmd_on_cluster(config_file, cmd,
-                        override_cluster_name, no_config_cache)
+    exec_cmd_on_cluster(
+        config_file, cmd,
+        override_cluster_name, no_config_cache)
 
 
 def teardown_cluster_on_head(yes: bool = False,
@@ -2638,8 +2689,9 @@ def cluster_process_status(config_file: str,
     if runtimes:
         cmd += " --runtimes=" + quote(runtimes)
 
-    exec_cmd_on_cluster(config_file, cmd,
-                        override_cluster_name, no_config_cache)
+    exec_cmd_on_cluster(
+        config_file, cmd,
+        override_cluster_name, no_config_cache)
 
 
 def cluster_logs(
@@ -2657,7 +2709,8 @@ def cluster_logs(
         cmd += " --node-ips=" + quote(node_ips)
 
     exec_cmd_on_cluster(
-        config_file, cmd, override_cluster_name, no_config_cache)
+        config_file, cmd,
+        override_cluster_name, no_config_cache)
 
 
 def cluster_logs_on_head(
@@ -2687,7 +2740,8 @@ def exec_on_nodes(
         with_output: bool = False,
         parallel: bool = True,
         yes: bool = False,
-        job_waiter_name: Optional[str] = None) -> str:
+        job_waiter_name: Optional[str] = None,
+        force: bool = False) -> str:
     if not node_ip and not all_nodes:
         if (start or stop) and not yes:
             cli_logger.confirm(
@@ -2722,7 +2776,7 @@ def exec_on_nodes(
             start=False,
             port_forward=port_forward,
             with_output=with_output,
-            _allow_uninitialized_state=True,
+            _allow_uninitialized_state=True if force else False,
             job_waiter=job_waiter)
     else:
         return _exec_node_from_head(
@@ -2740,24 +2794,27 @@ def exec_on_nodes(
             port_forward=port_forward,
             with_output=with_output,
             parallel=parallel,
-            job_waiter_name=job_waiter_name)
+            job_waiter_name=job_waiter_name,
+            force=force)
 
 
-def _exec_node_from_head(config: Dict[str, Any],
-                         call_context: CallContext,
-                         node_ip: str,
-                         all_nodes: bool = False,
-                         cmd: str = None,
-                         run_env: str = "auto",
-                         screen: bool = False,
-                         tmux: bool = False,
-                         wait_for_workers: bool = False,
-                         min_workers: Optional[int] = None,
-                         wait_timeout: Optional[int] = None,
-                         port_forward: Optional[Port_forward] = None,
-                         with_output: bool = False,
-                         parallel: bool = True,
-                         job_waiter_name: Optional[str] = None) -> str:
+def _exec_node_from_head(
+        config: Dict[str, Any],
+        call_context: CallContext,
+        node_ip: str,
+        all_nodes: bool = False,
+        cmd: str = None,
+        run_env: str = "auto",
+        screen: bool = False,
+        tmux: bool = False,
+        wait_for_workers: bool = False,
+        min_workers: Optional[int] = None,
+        wait_timeout: Optional[int] = None,
+        port_forward: Optional[Port_forward] = None,
+        with_output: bool = False,
+        parallel: bool = True,
+        job_waiter_name: Optional[str] = None,
+        force: bool = False) -> str:
 
     # execute exec on head with the cmd
     cmds = [
@@ -2809,7 +2866,7 @@ def _exec_node_from_head(config: Dict[str, Any],
         start=False,
         port_forward=port_forward,
         with_output=with_output,
-        _allow_uninitialized_state=False,
+        _allow_uninitialized_state=True if force else False,
         job_waiter=job_waiter)
 
 
@@ -2835,8 +2892,9 @@ def attach_worker(config_file: str,
         port_forward ( (int,int) or list[(int,int)] ): port(s) to forward
         force_to_host: Whether attach to host even running with docker
     """
-    config = _load_cluster_config(config_file, override_cluster_name,
-                                  no_config_cache=no_config_cache)
+    config = _load_cluster_config(
+        config_file, override_cluster_name,
+        no_config_cache=no_config_cache)
     call_context = cli_call_context()
     # execute attach on head
     cmds = [
@@ -2867,8 +2925,7 @@ def attach_worker(config_file: str,
         tmux=False,
         stop=False,
         start=False,
-        port_forward=port_forward,
-        _allow_uninitialized_state=False)
+        port_forward=port_forward)
 
 
 def exec_cmd_on_head(config,
@@ -2973,9 +3030,13 @@ def _exec_node_on_head(
         port_forward: Optional[Port_forward] = None,
         with_output: bool = False,
         parallel: bool = True,
-        job_waiter_name: Optional[str] = None):
-    provider = _get_node_provider(config["provider"], config["cluster_name"])
-    head_node = _get_running_head_node(config, _provider=provider)
+        job_waiter_name: Optional[str] = None,
+        force: bool = True):
+    provider = _get_node_provider(
+        config["provider"], config["cluster_name"])
+    head_node = _get_running_head_node(
+        config, _provider=provider,
+        _allow_uninitialized_state=True if force else False)
 
     # wait for workers if needed
     if wait_for_workers:
@@ -3048,11 +3109,14 @@ def _start_node_on_head(config: Dict[str, Any],
                         node_ip: str = None,
                         all_nodes: bool = False,
                         runtimes: str = None,
-                        parallel: bool = True):
+                        parallel: bool = True,
+                        force: bool = True):
     provider = _get_node_provider(config["provider"], config["cluster_name"])
     runtime_list = get_verified_runtime_list(config, runtimes) if runtimes else None
 
-    head_node = _get_running_head_node(config, _provider=provider)
+    head_node = _get_running_head_node(
+        config, _provider=provider,
+        _allow_uninitialized_state=True if force else False)
     node_head, node_workers = get_nodes_of(
         config, provider=provider, head_node=head_node,
         node_ip=node_ip, all_nodes=all_nodes)
@@ -3157,10 +3221,12 @@ def start_node_from_head(config_file: str,
                          no_config_cache: bool = False,
                          indent_level: int = None,
                          parallel: bool = True,
-                         yes: bool = False):
+                         yes: bool = False,
+                         force: bool = False):
     """Execute start node command on head."""
-    config = _load_cluster_config(config_file, override_cluster_name,
-                                  no_config_cache=no_config_cache)
+    config = _load_cluster_config(
+        config_file, override_cluster_name,
+        no_config_cache=no_config_cache)
     call_context = cli_call_context()
     runtime_list = get_verified_runtime_list(config, runtimes) if runtimes else None
 
@@ -3170,7 +3236,7 @@ def start_node_from_head(config_file: str,
     _start_node_from_head(
         config, call_context=call_context,
         node_ip=node_ip, all_nodes=all_nodes, runtimes=runtime_list,
-        indent_level=indent_level, parallel=parallel)
+        indent_level=indent_level, parallel=parallel, force=force)
 
 
 def _start_node_from_head(config: Dict[str, Any],
@@ -3179,7 +3245,8 @@ def _start_node_from_head(config: Dict[str, Any],
                           all_nodes: bool,
                           runtimes: Optional[List[str]] = None,
                           indent_level: int = None,
-                          parallel: bool = True):
+                          parallel: bool = True,
+                          force: bool = False):
     cmds = [
         "cloudtik",
         "head",
@@ -3206,9 +3273,11 @@ def _start_node_from_head(config: Dict[str, Any],
     with_verbose_option(cmds, call_context)
     final_cmd = " ".join(cmds)
 
-    _exec_cmd_on_cluster(config,
-                         call_context=call_context,
-                         cmd=final_cmd)
+    _exec_cmd_on_cluster(
+        config,
+        call_context=call_context,
+        cmd=final_cmd,
+        _allow_uninitialized_state=True if force else False)
 
 
 def stop_node_from_head(config_file: str,
@@ -3219,11 +3288,13 @@ def stop_node_from_head(config_file: str,
                         no_config_cache: bool = False,
                         indent_level: int = None,
                         parallel: bool = True,
-                        yes: bool = False):
+                        yes: bool = False,
+                        force: bool = False):
     """Execute stop node command on head."""
 
-    config = _load_cluster_config(config_file, override_cluster_name,
-                                  no_config_cache=no_config_cache)
+    config = _load_cluster_config(
+        config_file, override_cluster_name,
+        no_config_cache=no_config_cache)
     call_context = cli_call_context()
     runtime_list = get_verified_runtime_list(config, runtimes) if runtimes else None
 
@@ -3233,7 +3304,7 @@ def stop_node_from_head(config_file: str,
     _stop_node_from_head(
         config, call_context=call_context,
         node_ip=node_ip, all_nodes=all_nodes, runtimes=runtime_list,
-        indent_level=indent_level, parallel=parallel)
+        indent_level=indent_level, parallel=parallel, force=force)
 
 
 def _stop_node_from_head(
@@ -3243,7 +3314,8 @@ def _stop_node_from_head(
         all_nodes: bool,
         runtimes: Optional[List[str]] = None,
         indent_level: int = None,
-        parallel: bool = True):
+        parallel: bool = True,
+        force: bool = False):
     cmds = [
         "cloudtik",
         "head",
@@ -3273,7 +3345,8 @@ def _stop_node_from_head(
     _exec_cmd_on_cluster(
         config,
         call_context=call_context,
-        cmd=final_cmd)
+        cmd=final_cmd,
+        _allow_uninitialized_state=True if force else False)
 
 
 def _stop_cluster_controller(
@@ -3346,12 +3419,14 @@ def _stop_node_on_head(config: Dict[str, Any],
                        node_ip: str = None,
                        all_nodes: bool = False,
                        runtimes: Optional[str] = None,
-                       parallel: bool = True):
+                       parallel: bool = True,
+                       force: bool = True):
     # Since this is running on head, the bootstrap config must exist
     provider = _get_node_provider(config["provider"], config["cluster_name"])
     runtime_list = get_verified_runtime_list(config, runtimes) if runtimes else None
-    head_node = _get_running_head_node(config, _provider=provider,
-                                       _allow_uninitialized_state=True)
+    head_node = _get_running_head_node(
+        config, _provider=provider,
+        _allow_uninitialized_state=True if force else False)
     node_head, node_workers = get_nodes_of(
         config, provider=provider, head_node=head_node,
         node_ip=node_ip, all_nodes=all_nodes)
@@ -3513,6 +3588,9 @@ def scale_cluster(config_file: str, yes: bool, override_cluster_name: Optional[s
         workers=workers, worker_type=worker_type,
         resources=resources, bundles=bundles,
     )
+    if not resource_desc:
+        cli_logger.abort("No resource parameters specified to scale.")
+
     cli_logger.confirm(yes, "Are you sure that you want to scale cluster {} to {}?",
                        config["cluster_name"], resource_desc, _abort=True)
     cli_logger.newline()
@@ -3597,9 +3675,11 @@ def scale_cluster_from_head(
 
     with_verbose_option(cmds, call_context)
     final_cmd = " ".join(cmds)
-    _exec_cmd_on_cluster(config,
-                         call_context=call_context,
-                         cmd=final_cmd)
+    _exec_cmd_on_cluster(
+        config,
+        call_context=call_context,
+        cmd=final_cmd,
+        _allow_uninitialized_state=False)
 
 
 def scale_cluster_on_head(yes: bool, cpus: int, gpus: int,
@@ -3791,6 +3871,7 @@ def _start_cluster_and_wait_for_workers(
         min_workers: Optional[int] = None,
         wait_timeout: Optional[int] = None):
 
+    head_unhealthy = False
     try:
         head_node = _get_running_head_node_ex(
             config,
@@ -3799,6 +3880,9 @@ def _start_cluster_and_wait_for_workers(
             _allow_uninitialized_state=False)
     except HeadNotRunningError:
         head_node = None
+    except HeadNotHealthyError as e:
+        head_node = e.head_node
+        head_unhealthy = True
 
     if start:
         if head_node is None or force_update:
@@ -3810,9 +3894,19 @@ def _start_cluster_and_wait_for_workers(
                 yes=True,
                 redirect_command_output=False,
                 use_login_shells=True)
+        elif head_unhealthy:
+            raise RuntimeError(
+                "Cluster {} is not healthy.".format(
+                    config["cluster_name"]))
     else:
         if head_node is None:
-            raise RuntimeError("Cluster {} is not running.".format(config["cluster_name"]))
+            raise RuntimeError(
+                "Cluster {} is not running.".format(
+                    config["cluster_name"]))
+        elif head_unhealthy:
+            raise RuntimeError(
+                "Cluster {} is not healthy.".format(
+                    config["cluster_name"]))
 
     if wait_for_workers:
         _wait_for_ready(
@@ -3850,7 +3944,8 @@ def submit_and_exec(
         _exec_cmd_on_cluster(
             config,
             call_context=call_context,
-            cmd=cmd_mkdir
+            cmd=cmd_mkdir,
+            _allow_uninitialized_state=False
         )
         cmds = []
         if urllib.parse.urlparse(script).scheme in ("http", "https"):
@@ -4023,7 +4118,8 @@ def _exec_with_prepare(
         port_forward=port_forward,
         with_output=with_output,
         job_waiter=job_waiter,
-        session_name=session_name)
+        session_name=session_name,
+        _allow_uninitialized_state=False)
 
 
 def _run_script_on_head(
@@ -4208,14 +4304,24 @@ def do_nodes_health_check(redis_address, redis_password, with_details=False):
     failed_nodes = {}
     # Check whether the head node is running
     try:
-        head_node = _get_running_head_node(config)
+        head_node = _get_running_head_node(
+            config,
+            _allow_uninitialized_state=False)
+        head_state = 1
     except HeadNotRunningError:
         head_node = None
+        head_state = 0
+    except HeadNotHealthyError as e:
+        head_node = e.head_node
+        head_state = -1
 
-    if head_node is None:
-        cli_logger.warning("Head node is not running.")
+    if head_state == 0:
         failed_nodes[head_node] = head_node
+        cli_logger.warning("Head node is not running.")
         return failed_nodes
+    elif head_state == -1:
+        failed_nodes[head_node] = head_node
+        cli_logger.warning("Head node setting up failed.")
 
     control_state = ControlState()
     _, redis_ip, redis_port = validate_redis_address(redis_address)
@@ -4349,8 +4455,9 @@ def cluster_resource_metrics(
     """Show cluster resource metrics from head node"""
 
     cmd = f"cloudtik head resource-metrics"
-    exec_cmd_on_cluster(config_file, cmd,
-                        override_cluster_name, no_config_cache)
+    exec_cmd_on_cluster(
+        config_file, cmd,
+        override_cluster_name, no_config_cache)
 
 
 def cluster_resource_metrics_on_head(
