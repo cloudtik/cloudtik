@@ -183,9 +183,12 @@ configure_repmgr() {
 
     # Does this replace setting up the service commands
     local postgres_pid_file=${POSTGRES_HOME}/postgres.pid
-    local postgres_hba_file==${POSTGRES_DATA_DIR}/pg_hba.conf
+    local postgres_hba_file=${POSTGRES_DATA_DIR}/pg_hba.conf
+    local pg_bin_dir="$( dirname -- "$(which pg_ctl)" )"
     cat <<EOF >>"${repmgr_template_file}"
 pg_ctl_options='-o "--config-file=\"${POSTGRES_CONFIG_FILE}\" --external_pid_file=\"${postgres_pid_file}\" --hba_file=\"${postgres_hba_file}\""'
+pg_bindir='${pg_bin_dir}'
+ssh_options='-o "StrictHostKeyChecking no" -p 22022 -v'
 EOF
 
     cp ${repmgr_template_file} ${POSTGRES_REPMGR_CONFIG_FILE}

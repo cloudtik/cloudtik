@@ -278,6 +278,9 @@ repmgr_get_primary_node() {
             # for workers, it there is no primary found, use head
             primary_host="$POSTGRES_HEAD_HOST"
             primary_port="$POSTGRES_PORT"
+        elif [[ "${upstream_id}" = "$POSTGRES_REPMGR_NODE_ID" ]]; then
+            # myself marked as primary. It seemed that primary failover is not happening
+            info "Failover didn't happen. Starting as primary..."
         else
             info "Starting as standby following '${upstream_host}:${upstream_port}'..."
             primary_host="$upstream_host"

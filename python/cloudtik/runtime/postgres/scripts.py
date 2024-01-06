@@ -76,7 +76,7 @@ def _get_switchover_command():
         "standby",
         "switchover",
         "--siblings-follow",
-        "-force-rewind"
+        "--force-rewind"
     ]
     return " ".join(cmds)
 
