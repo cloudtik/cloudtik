@@ -36,6 +36,7 @@ def spark():
     help="The resource endpoint for the history server rest API")
 @add_click_logging_options
 def applications(cluster_config_file, cluster_name, endpoint):
+    """Make a REST API request to list applications."""
     config = _load_cluster_config(cluster_config_file, cluster_name)
     _applications(config, endpoint)
 
@@ -61,6 +62,7 @@ def _applications(config, endpoint, on_head=False):
     help="Show the default storage of the cluster.")
 @add_click_logging_options
 def info(cluster_config_file, cluster_name, default_storage):
+    """Show info."""
     config = _load_cluster_config(cluster_config_file, cluster_name)
     _info(config, default_storage)
 
@@ -93,6 +95,7 @@ def spark_on_head():
     help="The resource endpoint for the history server rest API")
 @add_click_logging_options
 def applications_on_head(endpoint):
+    """Make a REST API request to list applications."""
     config = load_head_cluster_config()
     _applications(config, endpoint, on_head=True)
 
@@ -105,6 +108,7 @@ def applications_on_head(endpoint):
     help="Show the default storage of the cluster.")
 @add_click_logging_options
 def info_on_head(default_storage):
+    """Show info."""
     config = load_head_cluster_config()
     _info(config, default_storage)
 
