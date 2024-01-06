@@ -87,7 +87,7 @@ stop_service_by_pid_file() {
 stop_process_by_name() {
     local process_name="${1:?process name is missing}"
     local signal="${2:-}"
-    local pid=$(pgrep ${process_name})
+    local pid=$(pgrep "${process_name}")
     [[ -z "$pid" ]] && return
 
     echo "Stopping ${process_name}..."
@@ -97,7 +97,7 @@ stop_process_by_name() {
 stop_process_by_command() {
     local process_cmd="${1:?command is missing}"
     local signal="${2:-}"
-    local pid=$(pgrep -f ${process_cmd})
+    local pid=$(pgrep -f "${process_cmd}")
     [[ -z "$pid" ]] && return
     stop_service_by_pid "$pid" "$signal"
 }
