@@ -2102,6 +2102,9 @@ def _show_cluster_info(config: Dict[str, Any],
         head_hostname = cluster_info.get("head-hostname")
         if head_hostname:
             cli_logger.print(cf.bold("Head Hostname: {}"), head_hostname)
+    else:
+        cli_logger.print(
+            cf.red("Head is not running."))
 
     cli_logger.newline()
     cli_logger.print(cf.bold("Runtimes: {}"), ", ".join(cluster_info["runtimes"]))

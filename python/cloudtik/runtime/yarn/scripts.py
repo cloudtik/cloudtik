@@ -35,6 +35,7 @@ def yarn():
     help="The resource endpoint for the YARN rest API")
 @add_click_logging_options
 def rest(cluster_config_file, cluster_name, endpoint):
+    """Make a REST API request to the endpoint."""
     config = _load_cluster_config(cluster_config_file, cluster_name)
     _rest(config, endpoint)
 
@@ -64,6 +65,7 @@ def yarn_on_head():
     help="The resource endpoint for the YARN rest API")
 @add_click_logging_options
 def rest_on_head(endpoint):
+    """Make a REST API request to the endpoint."""
     config = load_head_cluster_config()
     _rest(config, endpoint, on_head=True)
 

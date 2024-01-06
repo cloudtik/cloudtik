@@ -1,12 +1,14 @@
 import logging
 from typing import Any, Dict, Optional
 
-from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_MOUNT
+from cloudtik.core._private.runtime_factory import \
+    BUILT_IN_RUNTIME_MOUNT, BUILT_IN_RUNTIME_SSHSERVER
 from cloudtik.core.node_provider import NodeProvider
 from cloudtik.runtime.common.runtime_base import RuntimeBase
 from cloudtik.runtime.postgres.utils import _get_runtime_processes, \
     _get_runtime_services, _with_runtime_environment_variables, \
-    _get_runtime_logs, _get_runtime_endpoints, _get_head_service_ports, _validate_config, _bootstrap_runtime_config
+    _get_runtime_logs, _get_runtime_endpoints, _get_head_service_ports, \
+    _validate_config, _bootstrap_runtime_config
 
 logger = logging.getLogger(__name__)
 
@@ -76,4 +78,4 @@ class PostgresRuntime(RuntimeBase):
     def get_dependencies():
         # Enable postgres archiving need the use of mount runtime to provide distributed file system
         # as local folder.
-        return [BUILT_IN_RUNTIME_MOUNT]
+        return [BUILT_IN_RUNTIME_MOUNT, BUILT_IN_RUNTIME_SSHSERVER]

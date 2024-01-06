@@ -35,6 +35,7 @@ def flink():
     help="The resource endpoint for the history server rest API")
 @add_click_logging_options
 def jobs(cluster_config_file, cluster_name, endpoint):
+    """Make a REST API request to list jobs."""
     config = _load_cluster_config(cluster_config_file, cluster_name)
     _jobs(config, endpoint)
 
@@ -60,6 +61,7 @@ def _jobs(config, endpoint, on_head=False):
     help="Show the default storage of the cluster.")
 @add_click_logging_options
 def info(cluster_config_file, cluster_name, default_storage):
+    """Show info."""
     config = _load_cluster_config(cluster_config_file, cluster_name)
     _info(config, default_storage)
 
@@ -79,7 +81,7 @@ flink.add_command(info)
 @click.group(name=BUILT_IN_RUNTIME_FLINK, cls=NaturalOrderGroup)
 def flink_on_head():
     """
-    Commands running on head for Spark runtime.
+    Commands running on head for Flink runtime.
     """
     pass
 
@@ -92,6 +94,7 @@ def flink_on_head():
     help="The resource endpoint for the history server rest API")
 @add_click_logging_options
 def jobs_on_head(endpoint):
+    """Make a REST API request to the list jobs."""
     config = load_head_cluster_config()
     _jobs(config, endpoint, on_head=True)
 
@@ -104,6 +107,7 @@ def jobs_on_head(endpoint):
     help="Show the default storage of the cluster.")
 @add_click_logging_options
 def info_on_head(default_storage):
+    """Show info."""
     config = load_head_cluster_config()
     _info(config, default_storage)
 
