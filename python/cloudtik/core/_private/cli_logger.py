@@ -420,8 +420,8 @@ class CliLogger():
 
         Args:
             msg (str): Message to print.
-            linefeed (bool):
-                If `linefeed` is `False` no linefeed is printed at the
+            _linefeed (bool):
+                If `_linefeed` is `False` no line feed is printed at the
                 end of the message.
         """
         if self.pretty:
@@ -450,7 +450,7 @@ class CliLogger():
 
         # We aren't using standard python logging convention, so we hardcode
         # the log levels for now.
-        if _level_str in ["WARNING", "ERROR", "PANIC"]:
+        if _level_str in ["WARN", "ERROR", "PANIC", "VWARN", "VERROR", "VPANIC"]:
             stream = sys.stderr
         else:
             stream = sys.stdout
@@ -554,7 +554,7 @@ class CliLogger():
         For arguments, see `_format_msg`.
         """
         if self.verbosity > 0:
-            self._error(msg, *args, _level_str="VERR", **kwargs)
+            self._error(msg, *args, _level_str="VERROR", **kwargs)
 
     def very_verbose(self, msg: str, *args: Any, **kwargs: Any):
         """Prints if verbosity is > 1.
@@ -601,7 +601,7 @@ class CliLogger():
         self.print(cf.red(msg), *args, _level_str=_level_str, **kwargs)
 
     def error(self, *args, **kwargs):
-        self._error(*args, _level_str="ERR", **kwargs)
+        self._error(*args, _level_str="ERROR", **kwargs)
 
     def panic(self, *args, **kwargs):
         self._error(*args, _level_str="PANIC", **kwargs)
@@ -771,7 +771,7 @@ class CliLogger():
         # the rendered message ends with ascii coding
         if rendered_message and not msg.endswith("\n"):
             rendered_message += " "
-        self._print(rendered_message, linefeed=False)
+        self._print(rendered_message, _linefeed=False)
 
         res = ""
         try:

@@ -1,19 +1,17 @@
 import logging
 import os
 import sys
-import traceback
 from shlex import quote
 
 import click
 
-from cloudtik.core._private.cli_logger import (add_click_logging_options,
-                                               cli_logger)
+from cloudtik.core._private.cli_logger import (add_click_logging_options)
 from cloudtik.core._private.cluster.cluster_operator import (
     start_node_from_head, stop_node_from_head)
 from cloudtik.core._private.runtime_factory import _get_runtime_home, _get_runtime
 from cloudtik.core._private.util.runtime_utils import get_runtime_config_from_node
 from cloudtik.core._private.utils import run_bash_scripts, run_system_command, with_script_args
-from cloudtik.scripts.utils import NaturalOrderGroup, add_command_alias
+from cloudtik.scripts.utils import NaturalOrderGroup, add_command_alias, fail_command
 
 logger = logging.getLogger(__name__)
 
@@ -186,11 +184,7 @@ def start(cluster_config_file, cluster_name, no_config_cache,
             yes=yes,
             force=force)
     except RuntimeError as re:
-        cli_logger.error("Start node failed. " + str(re))
-        if cli_logger.verbosity == 0:
-            cli_logger.print("For more details, please run with -v flag.")
-        else:
-            traceback.print_exc()
+        fail_command("Failed to start node.", re)
 
 
 @runtime.command()
@@ -256,11 +250,7 @@ def stop(cluster_config_file, cluster_name, no_config_cache,
             yes=yes,
             force=force)
     except RuntimeError as re:
-        cli_logger.error("Stop node failed. " + str(re))
-        if cli_logger.verbosity == 0:
-            cli_logger.print("For more details, please run with -v flag.")
-        else:
-            traceback.print_exc()
+        fail_command("Failed to stop node.", re)
 
 
 @click.command(context_settings={"ignore_unknown_options": True})
