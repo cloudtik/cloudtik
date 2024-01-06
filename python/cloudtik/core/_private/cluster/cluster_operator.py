@@ -3934,6 +3934,7 @@ def submit_and_exec(
         job_log: bool = False,
         runtime: Optional[str] = None,
         runtime_options: Optional[List[str]] = None,
+        force: bool = False,
 ):
     def prepare_submit_command():
         target_name = os.path.basename(script)
@@ -3945,7 +3946,7 @@ def submit_and_exec(
             config,
             call_context=call_context,
             cmd=cmd_mkdir,
-            _allow_uninitialized_state=False
+            _allow_uninitialized_state=True if force else False
         )
         cmds = []
         if urllib.parse.urlparse(script).scheme in ("http", "https"):
@@ -4006,6 +4007,7 @@ def submit_and_exec(
         with_output=with_output,
         yes=yes,
         job_waiter_name=job_waiter_name,
+        force=force,
     )
 
 
@@ -4026,7 +4028,8 @@ def _run_script(
         with_output: bool = False,
         yes: bool = False,
         job_waiter_name: Optional[str] = None,
-        job_log: bool = False
+        job_log: bool = False,
+        force: bool = False,
 ):
     def prepare_run_script():
         cmds = ["cloudtik", "node", "run", script]
@@ -4058,6 +4061,7 @@ def _run_script(
         with_output=with_output,
         yes=yes,
         job_waiter_name=job_waiter_name,
+        force=force,
     )
 
 
@@ -4077,7 +4081,8 @@ def _exec_with_prepare(
         port_forward: Optional[Port_forward] = None,
         with_output: bool = False,
         yes: bool = False,
-        job_waiter_name: Optional[str] = None
+        job_waiter_name: Optional[str] = None,
+        force: bool = False,
 ):
     assert not (screen and tmux), "Can specify only one of `screen` or `tmux`."
 
@@ -4119,7 +4124,7 @@ def _exec_with_prepare(
         with_output=with_output,
         job_waiter=job_waiter,
         session_name=session_name,
-        _allow_uninitialized_state=False)
+        _allow_uninitialized_state=True if force else False)
 
 
 def _run_script_on_head(
