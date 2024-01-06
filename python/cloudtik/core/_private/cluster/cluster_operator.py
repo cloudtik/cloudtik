@@ -1697,7 +1697,7 @@ def _get_running_head_node_ex(
             head_node = node
         else:
             _backup_head_node = node
-            cli_logger.warning(f"Head node ({node}) is in state {node_state}.")
+            cli_logger.verbose_warning(f"Head node ({node}) is in state {node_state}.")
 
     if head_node is not None:
         return head_node
@@ -2763,6 +2763,7 @@ def exec_on_nodes(
             wait_for_workers=wait_for_workers,
             min_workers=min_workers,
             wait_timeout=wait_timeout,
+            force=force,
         )
 
         return _exec_cluster(
@@ -3589,7 +3590,7 @@ def scale_cluster(config_file: str, yes: bool, override_cluster_name: Optional[s
         resources=resources, bundles=bundles,
     )
     if not resource_desc:
-        cli_logger.abort("No resource parameters specified to scale.")
+        cli_logger.abort("No resource parameters specified for scaling.")
 
     cli_logger.confirm(yes, "Are you sure that you want to scale cluster {} to {}?",
                        config["cluster_name"], resource_desc, _abort=True)
@@ -3695,6 +3696,9 @@ def scale_cluster_on_head(yes: bool, cpus: int, gpus: int,
             workers=workers, worker_type=worker_type,
             resources=resources, bundles=bundles,
         )
+        if not resource_desc:
+            cli_logger.abort("No resource parameters specified for scaling.")
+
         cli_logger.confirm(yes, "Are you sure that you want to scale cluster {} to {}?",
                            config["cluster_name"], resource_desc, _abort=True)
         cli_logger.newline()
@@ -3869,8 +3873,8 @@ def _start_cluster_and_wait_for_workers(
         force_update: bool = False,
         wait_for_workers: bool = False,
         min_workers: Optional[int] = None,
-        wait_timeout: Optional[int] = None):
-
+        wait_timeout: Optional[int] = None,
+        force: bool = False):
     head_unhealthy = False
     try:
         head_node = _get_running_head_node_ex(
@@ -3894,18 +3898,18 @@ def _start_cluster_and_wait_for_workers(
                 yes=True,
                 redirect_command_output=False,
                 use_login_shells=True)
-        elif head_unhealthy:
+        elif head_unhealthy and not force:
             raise RuntimeError(
-                "Cluster {} is not healthy.".format(
+                "Cluster {} head is not healthy.".format(
                     config["cluster_name"]))
     else:
         if head_node is None:
             raise RuntimeError(
-                "Cluster {} is not running.".format(
+                "Cluster {} head is not running.".format(
                     config["cluster_name"]))
-        elif head_unhealthy:
+        elif head_unhealthy and not force:
             raise RuntimeError(
-                "Cluster {} is not healthy.".format(
+                "Cluster {} head is not healthy.".format(
                     config["cluster_name"]))
 
     if wait_for_workers:
@@ -4106,6 +4110,7 @@ def _exec_with_prepare(
         wait_for_workers=wait_for_workers,
         min_workers=min_workers,
         wait_timeout=wait_timeout,
+        force=force,
     )
     cmds, session_name = prepare(
         *prepare_args,
@@ -4199,11 +4204,7 @@ def get_default_cloud_database(
 
 def do_health_check(
         address, redis_password, component, with_details):
-    if not address:
-        redis_address = get_address_to_use_or_die()
-    else:
-        redis_address = address_to_ip(address)
-
+    redis_address = address_to_ip(address)
     if not component:
         do_core_health_check(
             redis_address, redis_password, with_details)

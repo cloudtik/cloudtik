@@ -5,7 +5,9 @@ import psutil
 import redis
 
 from cloudtik.core._private import utils as utils, constants as constants
-from cloudtik.core._private.util.core_utils import address_to_ip, address_from_string
+from cloudtik.core._private.constants import CLOUDTIK_DEFAULT_PORT
+from cloudtik.core._private.util.core_utils import address_to_ip, address_from_string, get_node_ip_address, \
+    address_string
 
 
 def find_redis_address(address=None):
@@ -53,24 +55,29 @@ def find_redis_address(address=None):
     return redis_addresses
 
 
-def get_address_to_use_or_die():
+def get_address_to_use_or_die(head=False):
     """
     Attempts to find an address for an existing cluster if it is not
     already specified as an environment variable.
     Returns:
         A string to redis address
     """
-    return os.environ.get(constants.CLOUDTIK_ADDRESS_ENV,
-                          find_redis_address_or_die())
+    return os.environ.get(
+        constants.CLOUDTIK_ADDRESS_ENV,
+        find_redis_address_or_die(head=head))
 
 
-def find_redis_address_or_die():
+def find_redis_address_or_die(head=False):
     redis_addresses = find_redis_address()
     if len(redis_addresses) > 1:
         raise ConnectionError(
             f"Found multiple active Redis instances: {redis_addresses}. "
             "Please specify the one to connect to by setting `address`.")
     elif not redis_addresses:
+        if head:
+            # the cluster controller may not be started for errors
+            node_ip = get_node_ip_address()
+            return address_string(node_ip, CLOUDTIK_DEFAULT_PORT)
         raise ConnectionError(
             "Could not find any running Redis instance. "
             "Please specify the one to connect to by setting `address`.")

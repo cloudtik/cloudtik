@@ -3,7 +3,6 @@ import logging
 import os
 import pkgutil
 import shlex
-import traceback
 import urllib
 import urllib.error
 import urllib.parse
@@ -29,7 +28,7 @@ from cloudtik.core._private.utils import parse_bundles_json, parse_resources
 from cloudtik.scripts.head_scripts import head
 from cloudtik.scripts.node_scripts import node
 from cloudtik.scripts.runtime_scripts import runtime
-from cloudtik.scripts.utils import NaturalOrderGroup, add_command_alias
+from cloudtik.scripts.utils import NaturalOrderGroup, add_command_alias, fail_command
 from cloudtik.scripts.workspace import workspace
 from cloudtik.scripts.storage import storage
 from cloudtik.scripts.database import database
@@ -289,9 +288,10 @@ def attach(cluster_config_file, screen, tmux, cluster_name,
     except RuntimeError as re:
         cli_logger.error("Attach failed. " + str(re))
         if cli_logger.verbosity == 0:
-            cli_logger.print("For more details, please run with -v flag.")
+            cli_logger.warning("For more details, please run with -v flag.")
+            cli_logger.abort()
         else:
-            traceback.print_exc()
+            raise
 
 
 @cli.command()
@@ -426,11 +426,7 @@ def exec(cluster_config_file, cmd, cluster_name, run_env, screen, tmux, stop, st
             job_waiter_name=job_waiter,
             force=force)
     except RuntimeError as re:
-        cli_logger.error("Run exec failed. " + str(re))
-        if cli_logger.verbosity == 0:
-            cli_logger.print("For more details, please run with -v flag.")
-        else:
-            traceback.print_exc()
+        fail_command("Failed to exec command.", re)
 
 
 @cli.command(context_settings={"ignore_unknown_options": True})
@@ -788,11 +784,7 @@ def rsync_up(cluster_config_file, source, target, cluster_name, node_ip, all_nod
             node_ip=node_ip,
             all_nodes=all_nodes)
     except RuntimeError as re:
-        cli_logger.error("Rsync up failed. " + str(re))
-        if cli_logger.verbosity == 0:
-            cli_logger.print("For more details, please run with -v flag.")
-        else:
-            traceback.print_exc()
+        fail_command("Failed to rsync up.", re)
 
 
 @cli.command()
@@ -822,11 +814,7 @@ def rsync_down(cluster_config_file, source, target, cluster_name, node_ip):
                source=source, target=target,
                down=True, node_ip=node_ip)
     except RuntimeError as re:
-        cli_logger.error("Rsync down failed. " + str(re))
-        if cli_logger.verbosity == 0:
-            cli_logger.print("For more details, please run with -v flag.")
-        else:
-            traceback.print_exc()
+        fail_command("Failed to rsync down.", re)
 
 
 @cli.command()
@@ -928,11 +916,7 @@ def head_ip(cluster_config_file, cluster_name, public):
             cluster_config_file, cluster_name, public)
         click.echo(ip)
     except RuntimeError as re:
-        cli_logger.error("Get head IP failed. " + str(re))
-        if cli_logger.verbosity == 0:
-            cli_logger.print("For more details, please run with -v flag.")
-        else:
-            traceback.print_exc()
+        fail_command("Failed to get head IP.", re)
 
 
 @cli.command()
@@ -951,11 +935,7 @@ def head_host(cluster_config_file, cluster_name):
             cluster_config_file, cluster_name)
         click.echo(host)
     except RuntimeError as re:
-        cli_logger.error("Get head host failed. " + str(re))
-        if cli_logger.verbosity == 0:
-            cli_logger.print("For more details, please run with -v flag.")
-        else:
-            traceback.print_exc()
+        fail_command("Failed to get head host.", re)
 
 
 @cli.command()
@@ -990,14 +970,17 @@ def worker_ips(
         cluster_config_file, cluster_name,
         runtime, node_status, separator):
     """Return the list of worker IPs of a cluster."""
-    ips = get_worker_node_ips(
-        cluster_config_file, cluster_name,
-        runtime=runtime, node_status=node_status)
-    if len(ips) > 0:
-        if separator:
-            click.echo(separator.join(ips))
-        else:
-            click.echo("\n".join(ips))
+    try:
+        ips = get_worker_node_ips(
+            cluster_config_file, cluster_name,
+            runtime=runtime, node_status=node_status)
+        if len(ips) > 0:
+            if separator:
+                click.echo(separator.join(ips))
+            else:
+                click.echo("\n".join(ips))
+    except RuntimeError as re:
+        fail_command("Failed to get worker IPs.", re)
 
 
 @cli.command()
@@ -1032,14 +1015,17 @@ def worker_hosts(
         cluster_config_file, cluster_name,
         runtime, node_status, separator):
     """Return the list of worker hosts of a cluster."""
-    hosts = get_worker_node_hosts(
-        cluster_config_file, cluster_name,
-        runtime=runtime, node_status=node_status)
-    if len(hosts) > 0:
-        if separator:
-            click.echo(separator.join(hosts))
-        else:
-            click.echo("\n".join(hosts))
+    try:
+        hosts = get_worker_node_hosts(
+            cluster_config_file, cluster_name,
+            runtime=runtime, node_status=node_status)
+        if len(hosts) > 0:
+            if separator:
+                click.echo(separator.join(hosts))
+            else:
+                click.echo("\n".join(hosts))
+    except RuntimeError as re:
+        fail_command("Failed to get worker hosts.", re)
 
 
 @cli.command()
@@ -1068,11 +1054,7 @@ def monitor(cluster_config_file, lines, cluster_name, file_type):
     try:
         monitor_cluster(cluster_config_file, lines, cluster_name, file_type=file_type)
     except RuntimeError as re:
-        cli_logger.error("Monitor failed. " + str(re))
-        if cli_logger.verbosity == 0:
-            cli_logger.print("For more details, please run with -v flag.")
-        else:
-            traceback.print_exc()
+        fail_command("Failed to monitor cluster.", re)
 
 
 @cli.command()
@@ -1117,11 +1099,7 @@ def logs(
             no_config_cache, runtimes,
             node_types, node_ips)
     except RuntimeError as re:
-        cli_logger.error("Printing cluster logs failed. " + str(re))
-        if cli_logger.verbosity == 0:
-            cli_logger.print("For more details, please run with -v flag.")
-        else:
-            traceback.print_exc()
+        fail_command("Failed to print cluster logs.", re)
 
 
 @cli.command()
@@ -1263,11 +1241,7 @@ def process_status(cluster_config_file, cluster_name, no_config_cache, runtimes)
             cluster_config_file, cluster_name,
             no_config_cache, runtimes)
     except RuntimeError as re:
-        cli_logger.error("Cluster process status failed. " + str(re))
-        if cli_logger.verbosity == 0:
-            cli_logger.print("For more details, please run with -v flag.")
-        else:
-            traceback.print_exc()
+        fail_command("Failed to show cluster process status.", re)
 
 
 @cli.command()
@@ -1291,11 +1265,7 @@ def resource_metrics(cluster_config_file, cluster_name, no_config_cache):
             cluster_config_file, cluster_name,
             no_config_cache)
     except RuntimeError as re:
-        cli_logger.error("Cluster resource metrics failed. " + str(re))
-        if cli_logger.verbosity == 0:
-            cli_logger.print("For more details, please run with -v flag.")
-        else:
-            traceback.print_exc()
+        fail_command("Failed to show cluster resource metrics.", re)
 
 
 @cli.command()
@@ -1319,11 +1289,7 @@ def debug_status(cluster_config_file, cluster_name, no_config_cache):
             cluster_config_file, cluster_name,
             no_config_cache,)
     except RuntimeError as re:
-        cli_logger.error("Cluster debug status failed. " + str(re))
-        if cli_logger.verbosity == 0:
-            cli_logger.print("For more details, please run with -v flag.")
-        else:
-            traceback.print_exc()
+        fail_command("Failed to show cluster debug status.", re)
 
 
 @cli.command()
@@ -1352,11 +1318,7 @@ def health_check(cluster_config_file, cluster_name, no_config_cache, with_detail
             cluster_config_file, cluster_name,
             no_config_cache, with_details)
     except RuntimeError as re:
-        cli_logger.error("Cluster health check failed. " + str(re))
-        if cli_logger.verbosity == 0:
-            cli_logger.print("For more details, please run with -v flag.")
-        else:
-            traceback.print_exc()
+        fail_command("Failed to do cluster health check.", re)
 
 
 @cli.command()

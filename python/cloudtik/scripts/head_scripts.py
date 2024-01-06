@@ -643,7 +643,7 @@ def wait_for_ready(min_workers, timeout):
 def debug_status(address, redis_password):
     """Print cluster status, including autoscaling info."""
     if not address:
-        address = get_address_to_use_or_die()
+        address = get_address_to_use_or_die(head=True)
     kv_initialize_with_address(address, redis_password)
     status = kv_store.kv_get(
         CLOUDTIK_CLUSTER_SCALING_STATUS)
@@ -674,7 +674,7 @@ def debug_status(address, redis_password):
 def process_status(address, redis_password, runtimes):
     """Show cluster process status."""
     if not address:
-        address = get_address_to_use_or_die()
+        address = get_address_to_use_or_die(head=True)
     cluster_process_status_on_head(
         address, redis_password, runtimes)
 
@@ -715,7 +715,7 @@ def logs(
         runtimes, node_types, node_ips):
     """Print cluster logs."""
     if not address:
-        address = get_address_to_use_or_die()
+        address = get_address_to_use_or_die(head=True)
     cluster_logs_on_head(
         address, redis_password,
         runtimes, node_types, node_ips)
@@ -737,7 +737,7 @@ def logs(
 def resource_metrics(address, redis_password):
     """Show cluster resource metrics."""
     if not address:
-        address = get_address_to_use_or_die()
+        address = get_address_to_use_or_die(head=True)
     cluster_resource_metrics_on_head(
         address, redis_password)
 
@@ -770,6 +770,8 @@ def health_check(address, redis_password, component, with_details):
     """
     Health check a cluster or a specific component. Exit code 0 is healthy.
     """
+    if not address:
+        address = get_address_to_use_or_die(head=True)
     do_health_check(
         address, redis_password, component, with_details)
 

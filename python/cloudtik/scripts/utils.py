@@ -3,6 +3,8 @@ from collections import OrderedDict
 
 import click
 
+from cloudtik.core._private.cli_logger import cli_logger
+
 
 def add_command_alias(group, command, name, hidden):
     new_command = copy.deepcopy(command)
@@ -22,3 +24,12 @@ class NaturalOrderGroup(click.Group):
 
     def list_commands(self, ctx):
         return self.commands.keys()
+
+
+def fail_command(msg, e):
+    cli_logger.error(msg + " {}", str(e))
+    if cli_logger.verbosity == 0:
+        cli_logger.warning("For more details, please run with -v flag.")
+        cli_logger.abort()
+    else:
+        raise e
