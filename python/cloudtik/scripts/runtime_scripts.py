@@ -168,8 +168,9 @@ def runtime():
     default=False,
     help="Do even if the head is not in healthy state.")
 @add_click_logging_options
-def start(cluster_config_file, cluster_name, no_config_cache,
-          node_ip, all_nodes, runtimes, parallel, yes, force):
+def start(
+        cluster_config_file, cluster_name, no_config_cache,
+        node_ip, all_nodes, runtimes, parallel, yes, force):
     """Manually start the node and runtime services on head or worker node."""
     try:
         # attach to the worker node
@@ -234,8 +235,9 @@ def start(cluster_config_file, cluster_name, no_config_cache,
     default=False,
     help="Do even if the head is not in healthy state.")
 @add_click_logging_options
-def stop(cluster_config_file, cluster_name, no_config_cache,
-         node_ip, all_nodes, runtimes, parallel, yes, force):
+def stop(
+        cluster_config_file, cluster_name, no_config_cache,
+        node_ip, all_nodes, runtimes, parallel, yes, force):
     """Manually run stop commands on head or worker nodes."""
     try:
         # attach to the worker node
@@ -267,7 +269,8 @@ def stop(cluster_config_file, cluster_name, no_config_cache,
     help="If there both bash and python scripts, by default bash script run first. "
          "This flag reverse the order.")
 @click.argument("script_args", nargs=-1)
-def install(runtime, head, reverse, script_args):
+def install(
+        runtime, head, reverse, script_args):
     _run_runtime_script(
         runtime, None, head, reverse,
         script_args, RUNTIME_INSTALL_SCRIPT_NAME)
@@ -287,7 +290,8 @@ def install(runtime, head, reverse, script_args):
     help="If there both bash and python scripts, by default bash script run first. "
          "This flag reverse the order.")
 @click.argument("script_args", nargs=-1)
-def configure(runtime, head, reverse, script_args):
+def configure(
+        runtime, head, reverse, script_args):
     _run_runtime_configure(
         runtime, head)
     _run_runtime_script(
@@ -310,7 +314,8 @@ def configure(runtime, head, reverse, script_args):
     help="If there both bash and python scripts, by default bash script run first. "
          "This flag reverse the order.")
 @click.argument("script_args", nargs=-1)
-def services(runtime, command, head, reverse, script_args):
+def services(
+        runtime, command, head, reverse, script_args):
     if command == "start":
         # Call for only start command. When cluster stop, the head controller stops first
         # The redis state service is not available any longer and the runtime configuration

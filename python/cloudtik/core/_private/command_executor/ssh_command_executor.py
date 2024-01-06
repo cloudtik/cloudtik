@@ -68,9 +68,10 @@ class SSHOptions:
 
 
 class SSHCommandExecutor(HostCommandExecutor):
-    def __init__(self, call_context, log_prefix, auth_config,
-                 cluster_name, process_runner, use_internal_ip,
-                 provider, node_id, ssh_ip=None, ssh_port=None):
+    def __init__(
+            self, call_context, log_prefix, auth_config,
+            cluster_name, process_runner, use_internal_ip,
+            provider, node_id, ssh_ip=None, ssh_port=None):
         """If ssh_ip provided, the node_id and provider can be none and will not be used.
         or if ssh_ip is None and provider and node_ip will be used to retrieve ssh_ip.
         """

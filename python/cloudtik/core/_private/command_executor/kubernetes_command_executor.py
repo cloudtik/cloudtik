@@ -25,8 +25,9 @@ HOME_RETRY_DELAY_S = 5
 
 
 class KubernetesCommandExecutor(CommandExecutor):
-    def __init__(self, call_context, log_prefix, namespace, node_id, auth_config,
-                 process_runner):
+    def __init__(
+            self, call_context, log_prefix, namespace,
+            node_id, auth_config, process_runner):
         CommandExecutor.__init__(self, call_context)
         self.log_prefix = log_prefix
         self.process_runner = process_runner

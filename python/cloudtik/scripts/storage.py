@@ -41,7 +41,8 @@ def storage():
     default=False,
     help="Disable the local storage config cache.")
 @add_click_logging_options
-def create(storage_config_file, yes, storage_name, no_config_cache):
+def create(
+        storage_config_file, yes, storage_name, no_config_cache):
     """Create a storage on cloud using the storage configuration file."""
     if urllib.parse.urlparse(storage_config_file).scheme in ("http", "https"):
         try:
@@ -83,7 +84,8 @@ def create(storage_config_file, yes, storage_name, no_config_cache):
     default=False,
     help="Disable the local storage config cache.")
 @add_click_logging_options
-def delete(storage_config_file, yes, storage_name, no_config_cache):
+def delete(
+        storage_config_file, yes, storage_name, no_config_cache):
     """Delete a storage and the associated cloud resources."""
     delete_storage(
         storage_config_file, yes, storage_name,

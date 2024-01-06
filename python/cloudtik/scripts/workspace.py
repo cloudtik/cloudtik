@@ -48,10 +48,12 @@ def workspace():
     default=True,
     help="Delete in completed workspace if exists.")
 @add_click_logging_options
-def create(workspace_config_file, yes, workspace_name, no_config_cache,
-           delete_incomplete):
+def create(
+        workspace_config_file, yes, workspace_name, no_config_cache,
+        delete_incomplete):
     """Create a workspace on cloud using the workspace configuration file."""
-    if urllib.parse.urlparse(workspace_config_file).scheme in ("http", "https"):
+    if urllib.parse.urlparse(
+            workspace_config_file).scheme in ("http", "https"):
         try:
             response = urllib.request.urlopen(workspace_config_file, timeout=5)
             content = response.read()
@@ -102,8 +104,9 @@ def create(workspace_config_file, yes, workspace_name, no_config_cache,
     default=False,
     help="Whether to delete the managed database")
 @add_click_logging_options
-def update(workspace_config_file, yes, workspace_name, no_config_cache,
-           delete_managed_storage, delete_managed_database):
+def update(
+        workspace_config_file, yes, workspace_name, no_config_cache,
+        delete_managed_storage, delete_managed_database):
     """Update a workspace on cloud using the workspace configuration file.
     Only limited configurations can be updated such as firewalls IPs,
     use of cloud storage and database.
@@ -148,8 +151,9 @@ def update(workspace_config_file, yes, workspace_name, no_config_cache,
     default=False,
     help="Whether to delete the managed database")
 @add_click_logging_options
-def delete(workspace_config_file, yes, workspace_name,
-           no_config_cache, delete_managed_storage, delete_managed_database):
+def delete(
+        workspace_config_file, yes, workspace_name,
+        no_config_cache, delete_managed_storage, delete_managed_database):
     """Delete a workspace and the associated cloud resources."""
     delete_workspace(
         workspace_config_file, yes, workspace_name,
@@ -233,13 +237,17 @@ def databases(workspace_config_file, workspace_name):
     default=False,
     help="Get the managed cloud storage uri for Hadoop.")
 @add_click_logging_options
-def info(workspace_config_file, workspace_name, managed_storage, managed_storage_uri):
+def info(
+        workspace_config_file, workspace_name,
+        managed_storage, managed_storage_uri):
     """Show workspace summary information."""
     if managed_storage:
-        return show_managed_cloud_storage(workspace_config_file, workspace_name)
+        return show_managed_cloud_storage(
+            workspace_config_file, workspace_name)
 
     if managed_storage_uri:
-        return show_managed_cloud_storage_uri(workspace_config_file, workspace_name)
+        return show_managed_cloud_storage_uri(
+            workspace_config_file, workspace_name)
 
     show_workspace_info(
         workspace_config_file,

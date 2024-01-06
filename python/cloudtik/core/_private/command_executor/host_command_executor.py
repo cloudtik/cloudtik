@@ -19,9 +19,10 @@ logger = logging.getLogger(__name__)
 
 
 class HostCommandExecutor(CommandExecutor):
-    def __init__(self, call_context, log_prefix, auth_config,
-                 cluster_name, process_runner, use_internal_ip,
-                 provider, node_id):
+    def __init__(
+            self, call_context, log_prefix, auth_config,
+            cluster_name, process_runner, use_internal_ip,
+            provider, node_id):
         CommandExecutor.__init__(self, call_context)
         self.cluster_name = cluster_name
         self.log_prefix = log_prefix
@@ -59,12 +60,13 @@ class HostCommandExecutor(CommandExecutor):
 
         return None
 
-    def _run_helper(self,
-                    final_cmd,
-                    with_output=False,
-                    exit_on_fail=False,
-                    silent=False,
-                    cmd_to_print=None):
+    def _run_helper(
+            self,
+            final_cmd,
+            with_output=False,
+            exit_on_fail=False,
+            silent=False,
+            cmd_to_print=None):
         """Run a command that was already setup with SSH and `bash` settings.
 
         Args:

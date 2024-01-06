@@ -35,10 +35,11 @@ def try_reload_log_state(provider_config: Dict[str, Any],
         return reload_log_state(log_state)
 
 
-def _bootstrap_config(config: Dict[str, Any],
-                      no_config_cache: bool = False,
-                      init_config_cache: bool = False,
-                      skip_runtime_bootstrap: bool = False) -> Dict[str, Any]:
+def _bootstrap_config(
+        config: Dict[str, Any],
+        no_config_cache: bool = False,
+        init_config_cache: bool = False,
+        skip_runtime_bootstrap: bool = False) -> Dict[str, Any]:
     # Check if bootstrapped, return if it is the case
     if config.get("bootstrapped", False):
         return config
@@ -89,8 +90,9 @@ def _bootstrap_config(config: Dict[str, Any],
 
     provider_cls = importer(config["provider"])
 
-    cli_logger.print("Checking {} environment settings",
-                     _PROVIDER_PRETTY_NAMES.get(config["provider"]["type"]))
+    cli_logger.print(
+        "Checking {} environment settings",
+        _PROVIDER_PRETTY_NAMES.get(config["provider"]["type"]))
 
     config = provider_cls.post_prepare(config)
 
@@ -131,11 +133,12 @@ def _bootstrap_config(config: Dict[str, Any],
     return resolved_config
 
 
-def _load_cluster_config(config_file: str,
-                         override_cluster_name: Optional[str] = None,
-                         should_bootstrap: bool = True,
-                         no_config_cache: bool = False,
-                         skip_runtime_bootstrap: bool = False) -> Dict[str, Any]:
+def _load_cluster_config(
+        config_file: str,
+        override_cluster_name: Optional[str] = None,
+        should_bootstrap: bool = True,
+        no_config_cache: bool = False,
+        skip_runtime_bootstrap: bool = False) -> Dict[str, Any]:
     config = load_yaml_config(config_file)
     if override_cluster_name is not None:
         config["cluster_name"] = override_cluster_name

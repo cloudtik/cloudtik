@@ -41,7 +41,8 @@ def database():
     default=False,
     help="Disable the local database config cache.")
 @add_click_logging_options
-def create(database_config_file, yes, database_name, no_config_cache):
+def create(
+        database_config_file, yes, database_name, no_config_cache):
     """Create a database on cloud using the database configuration file."""
     if urllib.parse.urlparse(database_config_file).scheme in ("http", "https"):
         try:
@@ -83,7 +84,8 @@ def create(database_config_file, yes, database_name, no_config_cache):
     default=False,
     help="Disable the local database config cache.")
 @add_click_logging_options
-def delete(database_config_file, yes, database_name, no_config_cache):
+def delete(
+        database_config_file, yes, database_name, no_config_cache):
     """Delete a database and the associated cloud resources."""
     delete_database(
         database_config_file, yes, database_name,

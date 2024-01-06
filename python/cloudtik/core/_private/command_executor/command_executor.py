@@ -29,9 +29,10 @@ def _strip_quote(value):
     return value
 
 
-def _with_environment_variables(cmd: str,
-                                environment_variables: Dict[str, object],
-                                cmd_to_print: str = None):
+def _with_environment_variables(
+        cmd: str,
+        environment_variables: Dict[str, object],
+        cmd_to_print: str = None):
     """Prepend environment variables to a shell command.
 
     Args:

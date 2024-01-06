@@ -100,17 +100,18 @@ class CommandExecutor:
         interval = retry_interval if retry_interval is not None else COMMAND_RUN_DEFAULT_RETRY_DELAY_S
         while retries > 0:
             try:
-                return self.run(cmd,
-                                timeout=timeout,
-                                exit_on_fail=exit_on_fail,
-                                port_forward=port_forward,
-                                with_output=with_output,
-                                environment_variables=environment_variables,
-                                run_env=run_env,
-                                ssh_options_override_ssh_key=ssh_options_override_ssh_key,
-                                shutdown_after_run=shutdown_after_run,
-                                cmd_to_print=cmd_to_print,
-                                silent=silent)
+                return self.run(
+                    cmd,
+                    timeout=timeout,
+                    exit_on_fail=exit_on_fail,
+                    port_forward=port_forward,
+                    with_output=with_output,
+                    environment_variables=environment_variables,
+                    run_env=run_env,
+                    ssh_options_override_ssh_key=ssh_options_override_ssh_key,
+                    shutdown_after_run=shutdown_after_run,
+                    cmd_to_print=cmd_to_print,
+                    silent=silent)
             except Exception as e:
                 retries -= 1
                 if retries > 0:
@@ -126,10 +127,11 @@ class CommandExecutor:
                 else:
                     raise e
 
-    def run_rsync_up(self,
-                     source: str,
-                     target: str,
-                     options: Optional[Dict[str, Any]] = None) -> None:
+    def run_rsync_up(
+            self,
+            source: str,
+            target: str,
+            options: Optional[Dict[str, Any]] = None) -> None:
         """Rsync files up to the cluster node.
 
         Args:
@@ -138,10 +140,11 @@ class CommandExecutor:
         """
         raise NotImplementedError
 
-    def run_rsync_down(self,
-                       source: str,
-                       target: str,
-                       options: Optional[Dict[str, Any]] = None) -> None:
+    def run_rsync_down(
+            self,
+            source: str,
+            target: str,
+            options: Optional[Dict[str, Any]] = None) -> None:
         """Rsync files down from the cluster node.
 
         Args:
@@ -154,8 +157,13 @@ class CommandExecutor:
         """Return the command the user can use to open a shell."""
         raise NotImplementedError
 
-    def run_init(self, *, as_head: bool, file_mounts: Dict[str, str],
-                 shared_memory_ratio: float, sync_run_yet: bool) -> Optional[bool]:
+    def run_init(
+            self,
+            *,
+            as_head: bool,
+            file_mounts: Dict[str, str],
+            shared_memory_ratio: float,
+            sync_run_yet: bool) -> Optional[bool]:
         """Used to run extra initialization commands.
 
         Args:

@@ -20,28 +20,38 @@ class Runtime:
     provider option.
     """
 
-    def __init__(self, runtime_config: Dict[str, Any]) -> None:
+    def __init__(
+            self,
+            runtime_config: Dict[str, Any]) -> None:
         self.runtime_config = runtime_config
 
-    def prepare_config(self, cluster_config: Dict[str, Any]) -> Dict[str, Any]:
+    def prepare_config(
+            self,
+            cluster_config: Dict[str, Any]) -> Dict[str, Any]:
         """Prepare runtime specific configurations
         This happens after provider post_prepare is done.
         """
         return cluster_config
 
-    def validate_config(self, cluster_config: Dict[str, Any]):
+    def validate_config(
+            self,
+            cluster_config: Dict[str, Any]):
         """Validate cluster configuration from runtime perspective.
         This happens after runtime prepare_config is done and before provider bootstrap_config
         """
         pass
 
-    def bootstrap_config(self, cluster_config: Dict[str, Any]) -> Dict[str, Any]:
+    def bootstrap_config(
+            self,
+            cluster_config: Dict[str, Any]) -> Dict[str, Any]:
         """Final chance to update the config with runtime specific configurations
         This happens after provider bootstrap_config is done.
         """
         return cluster_config
 
-    def verify_config(self, cluster_config: Dict[str, Any]):
+    def verify_config(
+            self,
+            cluster_config: Dict[str, Any]):
         """Verify cluster configuration at the last stage of bootstrap.
         This happens after provider bootstrap_config is done.
         The verification may mean a slow process to check with a server"""
@@ -57,7 +67,8 @@ class Runtime:
         return cluster_config
 
     def with_environment_variables(
-            self, config: Dict[str, Any], provider: NodeProvider,
+            self,
+            config: Dict[str, Any], provider: NodeProvider,
             node_id: str) -> Dict[str, Any]:
         """Export necessary runtime environment variables for running node commands.
         For example: {"ENV_NAME": value}
@@ -74,7 +85,8 @@ class Runtime:
         pass
 
     def node_services(
-            self, head: bool):
+            self,
+            head: bool):
         """ This method is called on every node as the first step of executing runtime
         services command. This method can be used either to do some real service start
         work, or be used to prepare some environments for the following services
@@ -83,36 +95,45 @@ class Runtime:
         pass
 
     def get_runtime_shared_memory_ratio(
-            self, config: Dict[str, Any], node_type: str) -> float:
+            self,
+            config: Dict[str, Any],
+            node_type: str) -> float:
         """Return the shared memory ratio for /dev/shm if needed.
         """
         return 0.0
 
     def cluster_booting_completed(
-            self, cluster_config: Dict[str, Any], head_node_id: str) -> None:
+            self,
+            cluster_config: Dict[str, Any],
+            head_node_id: str) -> None:
         """This method is called after the cluster head is completed all the setup steps.
         """
         pass
 
     def get_runnable_command(
-            self, target: str, runtime_options: Optional[List[str]]):
+            self,
+            target: str,
+            runtime_options: Optional[List[str]]):
         """Return the runnable command for the target script.
         For example: ["bash", target]
         """
         return None
 
     def get_runtime_commands(
-            self, cluster_config: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+            self,
+            cluster_config: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         """Returns a copy of runtime commands to run at different stages"""
         return None
 
     def get_defaults_config(
-            self, cluster_config: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+            self,
+            cluster_config: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         """Returns a copy of runtime config"""
         return None
 
     def get_runtime_endpoints(
-            self, cluster_config: Dict[str, Any], cluster_head_ip: str):
+            self,
+            cluster_config: Dict[str, Any], cluster_head_ip: str):
         """Return the runtime service endpoints information provided by this runtime
         It's a map of dictionary of service endpoint properties
         For example:
@@ -159,7 +180,8 @@ class Runtime:
         return None
 
     def get_node_constraints(
-            self, cluster_config: Dict[str, Any],
+            self,
+            cluster_config: Dict[str, Any],
             node_type: str) -> Tuple[bool, bool, bool]:
         """Whether the runtime nodes need minimal nodes launch before going to setup.
         Usually this is because the setup of the nodes need to know each other.
@@ -172,8 +194,11 @@ class Runtime:
         return False, False, False
 
     def node_constraints_reached(
-            self, cluster_config: Dict[str, Any], node_type: str,
-            head_info: Dict[str, Any], nodes_info: Dict[str, Any],
+            self,
+            cluster_config: Dict[str, Any],
+            node_type: str,
+            head_info: Dict[str, Any],
+            nodes_info: Dict[str, Any],
             quorum_id: Optional[str] = None):
         """If the get_node_constraints method returns True and runtime will be notified on head
         When the minimal nodes are reached. Please note this may call multiple times (for example server down and up)
@@ -181,14 +206,18 @@ class Runtime:
         pass
 
     def get_scaling_policy(
-            self, cluster_config: Dict[str, Any], head_host: str) -> Optional[ScalingPolicy]:
+            self,
+            cluster_config: Dict[str, Any],
+            head_host: str) -> Optional[ScalingPolicy]:
         """
         If the runtime has a resource management and configured to act resource scaling source
         return a scaling policy object to use by the cluster scaler.
         """
         return None
 
-    def get_job_waiter(self, cluster_config: Dict[str, Any]) -> Optional[JobWaiter]:
+    def get_job_waiter(
+            self,
+            cluster_config: Dict[str, Any]) -> Optional[JobWaiter]:
         """
         If the runtime has job waiter for checking job completion, return a job waiter object.
         """

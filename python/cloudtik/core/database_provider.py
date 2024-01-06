@@ -15,8 +15,11 @@ class DatabaseProvider:
     DatabaseProvider methods from any package outside.
     """
 
-    def __init__(self, provider_config: Dict[str, Any],
-                 workspace_name: str, database_name: str) -> None:
+    def __init__(
+            self,
+            provider_config: Dict[str, Any],
+            workspace_name: str,
+            database_name: str) -> None:
         self.provider_config = provider_config
         self.workspace_name = workspace_name
         self.database_name = database_name
