@@ -286,12 +286,7 @@ def attach(cluster_config_file, screen, tmux, cluster_name,
                 port_forward=port_forward,
                 force_to_host=host)
     except RuntimeError as re:
-        cli_logger.error("Attach failed. " + str(re))
-        if cli_logger.verbosity == 0:
-            cli_logger.warning("For more details, please run with -v flag.")
-            cli_logger.abort()
-        else:
-            raise
+        fail_command("Failed to attach.", re)
 
 
 @cli.command()

@@ -2075,6 +2075,9 @@ def _show_cluster_info(config: Dict[str, Any],
     coloring = cf.bold
     if cluster_info["status"] == CLOUDTIK_CLUSTER_STATUS_UNHEALTHY:
         coloring = cf.red
+    elif cluster_info["status"] == CLOUDTIK_CLUSTER_STATUS_RUNNING:
+        coloring = cf.limeGreen
+
     cli_logger.print(
         coloring("Cluster {} is: {}"), config["cluster_name"], cluster_info["status"])
     if cluster_info["status"] == CLOUDTIK_CLUSTER_STATUS_STOPPED:
@@ -2091,11 +2094,14 @@ def _show_cluster_info(config: Dict[str, Any],
         cf.bold("The total worker memory: {}."),
         memory_to_gb_string(cluster_info["total-worker-memory"]))
 
-    cli_logger.newline()
-    cli_logger.print(cf.bold("Head IP: {}"), cluster_info["head-ip"])
-    head_hostname = cluster_info.get("head-hostname")
-    if head_hostname:
-        cli_logger.print(cf.bold("Head Hostname: {}"), head_hostname)
+    # There may be cluster with workers but head node is dead
+    head_node = cluster_info["head-id"]
+    if head_node:
+        cli_logger.newline()
+        cli_logger.print(cf.bold("Head IP: {}"), cluster_info["head-ip"])
+        head_hostname = cluster_info.get("head-hostname")
+        if head_hostname:
+            cli_logger.print(cf.bold("Head Hostname: {}"), head_hostname)
 
     cli_logger.newline()
     cli_logger.print(cf.bold("Runtimes: {}"), ", ".join(cluster_info["runtimes"]))
@@ -2120,13 +2126,14 @@ def _show_cluster_info(config: Dict[str, Any],
             with cli_logger.group("Cluster default cloud database:"):
                 print_dict_info(default_cloud_database)
 
-    head_node = cluster_info["head-id"]
-    show_useful_commands(call_context=cli_call_context(),
-                         config=config,
-                         provider=provider,
-                         head_node=head_node,
-                         config_file=config_file,
-                         override_cluster_name=override_cluster_name)
+    if head_node:
+        show_useful_commands(
+            call_context=cli_call_context(),
+            config=config,
+            provider=provider,
+            head_node=head_node,
+            config_file=config_file,
+            override_cluster_name=override_cluster_name)
 
 
 def show_useful_commands(call_context: CallContext,
