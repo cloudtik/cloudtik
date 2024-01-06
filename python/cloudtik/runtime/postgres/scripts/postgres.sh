@@ -373,8 +373,7 @@ postgres_set_synchronous_standby_names() {
 }
 
 postgres_setup_synchronous_standby(){
-  if [ "${POSTGRES_ROLE}" == "primary" ] \
-      && [ "${POSTGRES_CLUSTER_MODE}" == "replication" ] \
+  if [ "${POSTGRES_CLUSTER_MODE}" == "replication" ] \
       && [ "${POSTGRES_SYNCHRONOUS_MODE}" != "none" ]; then
       postgres_set_synchronous_standby_names
   fi
@@ -506,13 +505,13 @@ postgres_configure_recovery() {
     local -r escaped_password="${POSTGRES_REPLICATION_PASSWORD//\&/\\&}"
     local -r password_str="${2:-"password=${escaped_password}"}"
     local -r application_name="${POSTGRES_APP_NAME:-"${POSTGRES_SERVER_NAME}"}"
-    postgresql_set_property "primary_conninfo" \
+    postgres_set_property "primary_conninfo" \
       "host=${POSTGRES_PRIMARY_HOST} port=${POSTGRES_PRIMARY_PORT} user=${replication_user} application_name=${application_name} ${password_str}" \
       "$POSTGRES_CONF_FILE"
     touch "$PGDATA"/standby.signal
 }
 
-postgres_clone_primary(){
+postgres_clone_primary() {
     # for replica, we needs to do a pg_basebackup from master
     # Cannot use an emtpy data directory or a data directory initialized
     # by initdb (this method will make the data files with different identifier.

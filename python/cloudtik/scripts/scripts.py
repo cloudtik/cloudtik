@@ -386,10 +386,16 @@ def attach(cluster_config_file, screen, tmux, cluster_name,
     required=False,
     type=str,
     help="The job waiter to be used to check the completion of the job.")
+@click.option(
+    "--force",
+    is_flag=True,
+    default=False,
+    help="Do even if the head is not in healthy state.")
 @add_click_logging_options
 def exec(cluster_config_file, cmd, cluster_name, run_env, screen, tmux, stop, start,
          force_update, wait_for_workers, min_workers, wait_timeout,
-         no_config_cache, port_forward, node_ip, all_nodes, parallel, yes, job_waiter):
+         no_config_cache, port_forward, node_ip, all_nodes, parallel, yes, job_waiter,
+         force):
     """Execute a command via SSH on a cluster or a specified node."""
     port_forward = [(port, port) for port in list(port_forward)]
 
@@ -417,7 +423,8 @@ def exec(cluster_config_file, cmd, cluster_name, run_env, screen, tmux, stop, st
             port_forward=port_forward,
             parallel=parallel,
             yes=yes,
-            job_waiter_name=job_waiter)
+            job_waiter_name=job_waiter,
+            force=force)
     except RuntimeError as re:
         cli_logger.error("Run exec failed. " + str(re))
         if cli_logger.verbosity == 0:
@@ -510,13 +517,18 @@ def exec(cluster_config_file, cmd, cluster_name, run_env, screen, tmux, stop, st
     type=str,
     default="",
     help="The runtime options of the job.")
+@click.option(
+    "--force",
+    is_flag=True,
+    default=False,
+    help="Do even if the head is not in healthy state.")
 @click.argument("script", required=True, type=str)
 @click.argument("script_args", nargs=-1)
 @add_click_logging_options
 def submit(cluster_config_file, cluster_name, screen, tmux, stop, start,
            force_update, wait_for_workers, min_workers, wait_timeout,
            no_config_cache, port_forward, yes, job_waiter, job_log,
-           runtime, runtime_options,
+           runtime, runtime_options, force,
            script, script_args):
     """Uploads and runs a script on the specified cluster.
 
@@ -550,6 +562,7 @@ def submit(cluster_config_file, cluster_name, screen, tmux, stop, start,
         job_log=job_log,
         runtime=runtime,
         runtime_options=runtime_options,
+        force=force,
         )
 
 
@@ -626,13 +639,18 @@ def submit(cluster_config_file, cluster_name, screen, tmux, stop, start,
     is_flag=True,
     default=False,
     help="Whether redirect the output of the job to log file in ~/user/logs.")
+@click.option(
+    "--force",
+    is_flag=True,
+    default=False,
+    help="Do even if the head is not in healthy state.")
 @click.argument("script", required=True, type=str)
 @click.argument("script_args", nargs=-1)
 @add_click_logging_options
 def run(
         cluster_config_file, cluster_name, screen, tmux, stop, start,
         force_update, wait_for_workers, min_workers, wait_timeout,
-        no_config_cache, port_forward, yes, job_waiter, job_log,
+        no_config_cache, port_forward, yes, job_waiter, job_log, force,
         script, script_args):
     """Runs a built-in script (bash or python or a registered command).
 
@@ -660,7 +678,8 @@ def run(
         port_forward=port_forward,
         yes=yes,
         job_waiter_name=job_waiter,
-        job_log=job_log
+        job_log=job_log,
+        force=force
         )
 
 

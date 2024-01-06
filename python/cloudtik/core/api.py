@@ -163,7 +163,9 @@ class Cluster:
              port_forward: Optional[cluster_operator.Port_forward] = None,
              with_output: bool = False,
              parallel: bool = True,
-             job_waiter: Optional[str] = None) -> Optional[str]:
+             job_waiter: Optional[str] = None,
+             force: bool = False,
+             ) -> Optional[str]:
         """Runs a command on the specified cluster.
 
         Args:
@@ -184,6 +186,7 @@ class Cluster:
             with_output (bool): Whether to capture command output.
             parallel (bool): Whether to run the commands on nodes in parallel.
             job_waiter (str): The job waiter to use for waiting an async job to complete.
+            force (bool): Do even head is not in healthy state.
         Returns:
             The output of the command as a string.
         """
@@ -206,7 +209,8 @@ class Cluster:
             with_output=with_output,
             parallel=parallel,
             yes=True,
-            job_waiter_name=job_waiter)
+            job_waiter_name=job_waiter,
+            force=force)
 
     def submit(self,
                script_file: str,
@@ -222,7 +226,9 @@ class Cluster:
                port_forward: Optional[cluster_operator.Port_forward] = None,
                with_output: bool = False,
                job_waiter: Optional[str] = None,
-               job_log: bool = False) -> Optional[str]:
+               job_log: bool = False,
+               force: bool = False,
+               ) -> Optional[str]:
         """Submit a script file to cluster and run.
 
         Args:
@@ -240,6 +246,7 @@ class Cluster:
             with_output (bool): Whether to capture command output.
             job_waiter (str): The job waiter to use for waiting an async job to complete.
             job_log (bool): Send the output of the job to log file in ~/user/logs.
+            force (bool): Do even head is not in healthy state.
         Returns:
             The output of the command as a string.
         """
@@ -260,7 +267,8 @@ class Cluster:
             with_output=with_output,
             yes=True,
             job_waiter_name=job_waiter,
-            job_log=job_log
+            job_log=job_log,
+            force=force,
         )
 
     def run(
@@ -278,7 +286,9 @@ class Cluster:
             port_forward: Optional[cluster_operator.Port_forward] = None,
             with_output: bool = False,
             job_waiter: Optional[str] = None,
-            job_log: bool = False) -> Optional[str]:
+            job_log: bool = False,
+            force: bool = False,
+    ) -> Optional[str]:
         """Runs a built-in script (bash or python or a registered command)
 
         Args:
@@ -296,6 +306,7 @@ class Cluster:
             with_output (bool): Whether to capture command output.
             job_waiter (str): The job waiter to use for waiting an async job to complete.
             job_log (bool): Send the output of the job to log file in ~/user/logs.
+            force (bool): Do even head is not in healthy state.
         Returns:
             The output of the command as a string.
         """
@@ -316,7 +327,8 @@ class Cluster:
             with_output=with_output,
             yes=True,
             job_waiter_name=job_waiter,
-            job_log=job_log
+            job_log=job_log,
+            force=force,
         )
 
     def rsync(self,
@@ -404,13 +416,15 @@ class Cluster:
                    node_ip: str = None,
                    all_nodes: bool = False,
                    runtimes: Optional[List[str]] = None,
-                   parallel: bool = True) -> None:
+                   parallel: bool = True,
+                   force: bool = False) -> None:
         """Start services on a node.
         Args:
             node_ip (str): The node_ip to run on
             all_nodes (bool): Run on all nodes
             runtimes (Optional[List[str]]): Optional list of runtime services to start
             parallel (bool): Run the command in parallel if there are more than one node
+            force (bool): Do even head is not in healthy state.
         """
         verify_runtime_list(self.config, runtimes)
         return cluster_operator._start_node_from_head(
@@ -419,20 +433,23 @@ class Cluster:
             node_ip=node_ip,
             all_nodes=all_nodes,
             runtimes=runtimes,
-            parallel=parallel
+            parallel=parallel,
+            force=force,
             )
 
     def stop_node(self,
                   node_ip: str = None,
                   all_nodes: bool = False,
                   runtimes: Optional[List[str]] = None,
-                  parallel: bool = True) -> None:
+                  parallel: bool = True,
+                  force: bool = False) -> None:
         """Run stop commands on a node.
         Args:
             node_ip (str): The node_ip to run on
             all_nodes(bool): Run on all nodes
             runtimes (Optional[List[str]]): Optional list of runtime services to start
             parallel (bool): Run the command in parallel if there are more than one node
+            force (bool): Do even head is not in healthy state.
         """
         verify_runtime_list(self.config, runtimes)
         return cluster_operator._stop_node_from_head(
@@ -441,7 +458,8 @@ class Cluster:
             node_ip=node_ip,
             all_nodes=all_nodes,
             runtimes=runtimes,
-            parallel=parallel
+            parallel=parallel,
+            force=force,
             )
 
     def kill_node(self,
@@ -721,7 +739,8 @@ class ThisCluster:
                 available
             workers (int): Scale to number of workers.
             worker_type (str): The worker type if there were multiple workers available.
-            resources: Optional[Dict[str, int]]: The resources to scale for each resource_name:amount separated by comma.
+            resources: Optional[Dict[str, int]]: The resources to scale for each
+                resource_name:amount separated by comma.
                 For example, CPU:4,GPU:1,Custom:3
             bundles (List[ResourceDict]): Scale the cluster to ensure this set of
                 resource shapes can fit. This request is persistent until another

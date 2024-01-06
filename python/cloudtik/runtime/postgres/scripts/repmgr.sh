@@ -417,7 +417,8 @@ repmgr_rewind() {
     info "Rejoining node..."
 
     ensure_dir_exists "$PGDATA"
-    if is_boolean_yes "$POSTGRES_REPMGR_USE_PGREWIND"; then
+    if is_boolean_yes "$POSTGRES_REPMGR_USE_PGREWIND" \
+        && [[ "${POSTGRES_REPLICATION_SLOT}" != "true" ]]; then
         info "Using pg_rewind to primary node..."
         if ! repmgr_pgrewind; then
             warn "pg_rewind failed, resorting to data cloning"
