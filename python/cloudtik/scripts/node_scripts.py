@@ -161,12 +161,13 @@ def node():
          "for this command",
 )
 @add_click_logging_options
-def start(node_ip_address, address, port, head,
-          redis_password, redis_shard_ports, redis_max_memory,
-          memory, num_cpus, num_gpus, resources,
-          cluster_config, home_dir, no_redirect_output,
-          runtimes, node_type, node_seq_id,
-          state, controller):
+def start(
+        node_ip_address, address, port, head,
+        redis_password, redis_shard_ports, redis_max_memory,
+        memory, num_cpus, num_gpus, resources,
+        cluster_config, home_dir, no_redirect_output,
+        runtimes, node_type, node_seq_id,
+        state, controller):
     """Start the main daemon processes on the local machine."""
     # Convert hostnames to numerical IP address.
     if not node_ip_address:
@@ -507,9 +508,10 @@ def resources(cpu, memory, in_mb):
     default=False,
     help="Do not redirect stdout and stderr to files")
 @click.argument("script_args", nargs=-1)
-def pull(identifier, command,
-         pull_class, pull_script,
-         interval, logs_dir, no_redirect_output, script_args):
+def pull(
+        identifier, command,
+        pull_class, pull_script,
+        interval, logs_dir, no_redirect_output, script_args):
     redirect_output = None if not no_redirect_output else True
     pull_server(
         identifier, command,

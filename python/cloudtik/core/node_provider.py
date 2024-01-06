@@ -66,14 +66,18 @@ class NodeProvider:
     immediately to terminated when `terminate_node` is called.
     """
 
-    def __init__(self, provider_config: Dict[str, Any],
-                 cluster_name: str) -> None:
+    def __init__(
+            self,
+            provider_config: Dict[str, Any],
+            cluster_name: str) -> None:
         self.provider_config = provider_config
         self.cluster_name = cluster_name
         self._internal_ip_cache: Dict[str, str] = {}
         self._external_ip_cache: Dict[str, str] = {}
 
-    def non_terminated_nodes(self, tag_filters: Dict[str, str]) -> List[str]:
+    def non_terminated_nodes(
+            self,
+            tag_filters: Dict[str, str]) -> List[str]:
         """Return a list of node ids filtered by the specified tags dict.
 
         This list must not include terminated nodes. For performance reasons,
@@ -108,8 +112,10 @@ class NodeProvider:
         """Returns the internal ip of the given node."""
         raise NotImplementedError
 
-    def get_node_id(self, ip_address: str,
-                    use_internal_ip: bool = False) -> str:
+    def get_node_id(
+            self,
+            ip_address: str,
+            use_internal_ip: bool = False) -> str:
         """Returns the node_id given an IP address.
 
         Assumes ip-address is unique per node.
@@ -147,8 +153,11 @@ class NodeProvider:
 
         return find_node_id()
 
-    def create_node(self, node_config: Dict[str, Any], tags: Dict[str, str],
-                    count: int) -> Optional[Dict[str, Any]]:
+    def create_node(
+            self,
+            node_config: Dict[str, Any],
+            tags: Dict[str, str],
+            count: int) -> Optional[Dict[str, Any]]:
         """Creates a number of nodes within the namespace.
 
         Optionally returns a mapping from created node ids to node metadata.
@@ -157,7 +166,9 @@ class NodeProvider:
         raise NotImplementedError
 
     def create_node_with_resources(
-            self, node_config: Dict[str, Any], tags: Dict[str, str],
+            self,
+            node_config: Dict[str, Any],
+            tags: Dict[str, str],
             count: int,
             resources: Dict[str, float]) -> Optional[Dict[str, Any]]:
         """Create nodes with a given resource config.
@@ -210,16 +221,17 @@ class NodeProvider:
         """
         return None
 
-    def get_command_executor(self,
-                             call_context: CallContext,
-                             log_prefix: str,
-                             node_id: str,
-                             auth_config: Dict[str, Any],
-                             cluster_name: str,
-                             process_runner: ModuleType,
-                             use_internal_ip: bool,
-                             docker_config: Optional[Dict[str, Any]] = None
-                             ) -> CommandExecutor:
+    def get_command_executor(
+            self,
+            call_context: CallContext,
+            log_prefix: str,
+            node_id: str,
+            auth_config: Dict[str, Any],
+            cluster_name: str,
+            process_runner: ModuleType,
+            use_internal_ip: bool,
+            docker_config: Optional[Dict[str, Any]] = None
+    ) -> CommandExecutor:
         """Returns the CommandRunner class used to perform SSH commands.
 
         Args:
@@ -253,27 +265,32 @@ class NodeProvider:
             return SSHCommandExecutor(call_context, **common_args)
 
     def prepare_config_for_head(
-            self, cluster_config: Dict[str, Any], remote_config: Dict[str, Any]) -> Dict[str, Any]:
+            self,
+            cluster_config: Dict[str, Any],
+            remote_config: Dict[str, Any]) -> Dict[str, Any]:
         """Returns a new remote cluster config with custom configs for head node.
         The cluster config may also be updated for setting up the head"""
         return remote_config
 
     def prepare_node_config_for_launch_hash(
-            self, node_config: Dict[str, Any]) -> Dict[str, Any]:
+            self,
+            node_config: Dict[str, Any]) -> Dict[str, Any]:
         """If a provider need to update or remove any node config key values from launch hash,
         this is the place to return a modified copy.
         """
         return node_config
 
     def prepare_config_for_runtime_hash(
-            self, cluster_config: Dict[str, Any]) -> Dict[str, Any]:
+            self,
+            cluster_config: Dict[str, Any]) -> Dict[str, Any]:
         """If a provider need to update or remove any cluster config key values
         from runtime hash, this is the place to return a modified copy.
         """
         return cluster_config
 
     def cleanup_cluster(
-            self, cluster_config: Dict[str, Any], deep: bool = False):
+            self,
+            cluster_config: Dict[str, Any], deep: bool = False):
         """Cleanup the cluster by deleting additional resources other than the nodes.
         If deep flag is true, do a deep clean up all the resources
         """
@@ -300,7 +317,10 @@ class NodeProvider:
         """
         raise NotImplementedError
 
-    def with_environment_variables(self, node_type_config: Dict[str, Any], node_id: str):
+    def with_environment_variables(
+            self,
+            node_type_config: Dict[str, Any],
+            node_id: str):
         """Export necessary environment variables for running node commands"""
         raise NotImplementedError
 
@@ -313,7 +333,8 @@ class NodeProvider:
         return None
 
     @staticmethod
-    def prepare_config(cluster_config: Dict[str, Any]) -> Dict[str, Any]:
+    def prepare_config(
+            cluster_config: Dict[str, Any]) -> Dict[str, Any]:
         """Prepare the necessary configs for user before merge with system defaults
         This is the first process after the config is loaded.
         """
@@ -336,14 +357,16 @@ class NodeProvider:
         return None
 
     @staticmethod
-    def bootstrap_config(cluster_config: Dict[str, Any]) -> Dict[str, Any]:
+    def bootstrap_config(
+            cluster_config: Dict[str, Any]) -> Dict[str, Any]:
         """Bootstraps the cluster config by adding env defaults if needed.
         This happens after validate_config is done.
         """
         return cluster_config
 
     @staticmethod
-    def bootstrap_config_for_api(cluster_config: Dict[str, Any]) -> Dict[str, Any]:
+    def bootstrap_config_for_api(
+            cluster_config: Dict[str, Any]) -> Dict[str, Any]:
         """Bootstraps the cluster config for node provider api access.
         This happens after validate_config is done.
         """

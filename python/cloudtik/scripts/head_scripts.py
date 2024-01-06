@@ -90,15 +90,17 @@ def head():
 @click.option(
     "--host", is_flag=True, default=False, help="Attach to the host even running with docker.")
 @add_click_logging_options
-def attach(node_ip, screen, tmux, new, port_forward, host):
+def attach(
+        node_ip, screen, tmux, new, port_forward, host):
     """Attach to worker node from head."""
     port_forward = [(port, port) for port in list(port_forward)]
-    attach_node_on_head(node_ip,
-                        screen,
-                        tmux,
-                        new,
-                        port_forward,
-                        force_to_host=host)
+    attach_node_on_head(
+        node_ip,
+        screen,
+        tmux,
+        new,
+        port_forward,
+        force_to_host=host)
 
 
 @head.command()
@@ -164,9 +166,10 @@ def attach(node_ip, screen, tmux, new, port_forward, host):
     type=str,
     help="The job waiter to be used to check the completion of the job.")
 @add_click_logging_options
-def exec(cmd, node_ip, all_nodes, run_env, screen, tmux,
-         wait_for_workers, min_workers, wait_timeout,
-         port_forward, with_output, parallel, job_waiter):
+def exec(
+        cmd, node_ip, all_nodes, run_env, screen, tmux,
+        wait_for_workers, min_workers, wait_timeout,
+        port_forward, with_output, parallel, job_waiter):
     """Execute command on the worker node from head."""
     port_forward = [(port, port) for port in list(port_forward)]
     config = load_head_cluster_config()
@@ -214,7 +217,8 @@ def exec(cmd, node_ip, all_nodes, run_env, screen, tmux,
 @click.argument("script", required=True, type=str)
 @click.argument("script_args", nargs=-1)
 @add_click_logging_options
-def run(wait_for_workers, min_workers, wait_timeout,
+def run(
+        wait_for_workers, min_workers, wait_timeout,
         with_output, script, script_args):
     """Runs a built-in script (bash or python or a registered command).
 
@@ -279,8 +283,9 @@ def run(wait_for_workers, min_workers, wait_timeout,
     default=False,
     help="Scale up if resources is not enough. No scale down.")
 @add_click_logging_options
-def scale(yes, cpus, gpus, workers, worker_type,
-          resources, bundles, up_only):
+def scale(
+        yes, cpus, gpus, workers, worker_type,
+        resources, bundles, up_only):
     """Scale the cluster with a specific number cpus or nodes."""
     if bundles:
         bundles = parse_bundles_json(bundles)
@@ -312,7 +317,8 @@ def scale(yes, cpus, gpus, workers, worker_type,
     default=False,
     help="Whether to sync the file to all workers.")
 @add_click_logging_options
-def rsync_up(source, target, node_ip, all_workers):
+def rsync_up(
+        source, target, node_ip, all_workers):
     """Rsync up specific file from or to the worker node."""
     config = load_head_cluster_config()
     call_context = cli_call_context()
@@ -407,10 +413,11 @@ def info(
     """Show cluster summary information and useful links to use the cluster."""
     cluster_config_file = get_head_bootstrap_config()
     config = load_head_cluster_config()
-    show_info(config, cluster_config_file,
-              worker_cpus, worker_gpus, worker_memory,
-              cpus_per_worker, gpus_per_worker, memory_per_worker,
-              sockets_per_worker, total_workers)
+    show_info(
+        config, cluster_config_file,
+        worker_cpus, worker_gpus, worker_memory,
+        cpus_per_worker, gpus_per_worker, memory_per_worker,
+        sockets_per_worker, total_workers)
 
 
 @head.command()
@@ -555,13 +562,16 @@ def monitor(lines, file_type):
     hidden=True,
     help="The indent level for showing messages during this command.")
 @add_click_logging_options
-def teardown(yes, keep_min_workers, hard, indent_level):
+def teardown(
+        yes, keep_min_workers, hard, indent_level):
     """Tear down a cluster."""
     if indent_level is not None:
         with cli_logger.indented_by(indent_level):
-            teardown_cluster_on_head(yes, keep_min_workers, hard=hard)
+            teardown_cluster_on_head(
+                yes, keep_min_workers, hard=hard)
     else:
-        teardown_cluster_on_head(yes, keep_min_workers, hard=hard)
+        teardown_cluster_on_head(
+            yes, keep_min_workers, hard=hard)
 
 
 @head.command()
@@ -590,7 +600,8 @@ def teardown(yes, keep_min_workers, hard, indent_level):
     hidden=True,
     help="The indent level for showing messages during this command.")
 @add_click_logging_options
-def kill_node(yes, hard, node_ip, indent_level):
+def kill_node(
+        yes, hard, node_ip, indent_level):
     """Kills a specified worker node and a random worker node."""
 
     def do_kill_node():
@@ -624,7 +635,8 @@ def wait_for_ready(min_workers, timeout):
     """Wait for the minimum number of workers to be ready."""
     config = load_head_cluster_config()
     call_context = cli_call_context()
-    _wait_for_ready(config, call_context, min_workers, timeout)
+    _wait_for_ready(
+        config, call_context, min_workers, timeout)
 
 
 @head.command()
@@ -766,7 +778,8 @@ def resource_metrics(address, redis_password):
     default=False,
     help="Whether to show detailed information.")
 @add_click_logging_options
-def health_check(address, redis_password, component, with_details):
+def health_check(
+        address, redis_password, component, with_details):
     """
     Health check a cluster or a specific component. Exit code 0 is healthy.
     """
@@ -838,16 +851,17 @@ def health_check(address, redis_password, component, with_details):
     default=False,
     help="Whether print a warning message for cluster dump.")
 @add_click_logging_options
-def cluster_dump(hosts: Optional[str] = None,
-                 stream: bool = False,
-                 output: Optional[str] = None,
-                 logs: bool = True,
-                 debug_state: bool = True,
-                 pip: bool = True,
-                 processes: bool = True,
-                 processes_verbose: bool = False,
-                 tempfile: Optional[str] = None,
-                 silent: bool = False,):
+def cluster_dump(
+        hosts: Optional[str] = None,
+        stream: bool = False,
+        output: Optional[str] = None,
+        logs: bool = True,
+        debug_state: bool = True,
+        pip: bool = True,
+        processes: bool = True,
+        processes_verbose: bool = False,
+        tempfile: Optional[str] = None,
+        silent: bool = False,):
     """Collect cluster data and package into an archive on head.
 
         Usage:
@@ -930,7 +944,8 @@ def runtime():
     default=False,
     help="Don't ask for confirmation.")
 @add_click_logging_options
-def start(node_ip, all_nodes, runtimes, indent_level, parallel, yes):
+def start(
+        node_ip, all_nodes, runtimes, indent_level, parallel, yes):
     """Run start commands on the specific node or all nodes."""
     def do_start_node():
         start_node_on_head(
@@ -982,7 +997,8 @@ def start(node_ip, all_nodes, runtimes, indent_level, parallel, yes):
     default=False,
     help="Don't ask for confirmation.")
 @add_click_logging_options
-def stop(node_ip, all_nodes, runtimes, indent_level, parallel, yes):
+def stop(
+        node_ip, all_nodes, runtimes, indent_level, parallel, yes):
     """Run stop commands on the specific node or all nodes."""
     def do_stop_node():
         stop_node_on_head(

@@ -67,8 +67,12 @@ def serialize_config(config):
     return base64.b64encode(json.dumps(config).encode("utf-8")).decode("utf-8")
 
 
-def propagate_jemalloc_env_var(*, jemalloc_path: str, jemalloc_conf: str,
-                               jemalloc_comps: List[str], process_type: str):
+def propagate_jemalloc_env_var(
+        *,
+        jemalloc_path: str,
+        jemalloc_conf: str,
+        jemalloc_comps: List[str],
+        process_type: str):
     """Read the jemalloc memory profiling related
         env var and return the dictionary that translates
         them to proper jemalloc related env vars.
@@ -151,10 +155,11 @@ def new_port(lower_bound=10000, upper_bound=65535, denylist=None):
     return port
 
 
-def wait_for_node(redis_address,
-                  node_ip_address,
-                  redis_password=None,
-                  timeout=30):
+def wait_for_node(
+        redis_address,
+        node_ip_address,
+        redis_password=None,
+        timeout=30):
     """Wait until this node has appeared in the client table.
 
     Args:
@@ -189,19 +194,20 @@ def wait_for_node(redis_address,
     raise TimeoutError("Timed out while waiting for node to startup.")
 
 
-def start_cloudtik_process(command,
-                           process_type,
-                           fate_share,
-                           env_updates=None,
-                           cwd=None,
-                           use_valgrind=False,
-                           use_gdb=False,
-                           use_valgrind_profiler=False,
-                           use_perftools_profiler=False,
-                           use_tmux=False,
-                           stdout_file=None,
-                           stderr_file=None,
-                           pipe_stdin=False):
+def start_cloudtik_process(
+        command,
+        process_type,
+        fate_share,
+        env_updates=None,
+        cwd=None,
+        use_valgrind=False,
+        use_gdb=False,
+        use_valgrind_profiler=False,
+        use_perftools_profiler=False,
+        use_tmux=False,
+        stdout_file=None,
+        stderr_file=None,
+        pipe_stdin=False):
     """Start one of the service processes.
 
     TODO(rkn): We need to figure out how these commands interact. For example,

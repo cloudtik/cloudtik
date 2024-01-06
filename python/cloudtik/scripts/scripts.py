@@ -215,11 +215,16 @@ def start(
     default=False,
     help="Do deep clean of all the resources such as permanent data volumes.")
 @add_click_logging_options
-def stop(cluster_config_file, yes, workers_only, cluster_name,
-         keep_min_workers, hard, deep):
+def stop(
+        cluster_config_file, yes, workers_only, cluster_name,
+        keep_min_workers, hard, deep):
     """Stop a cluster."""
-    teardown_cluster(cluster_config_file, yes, workers_only, cluster_name,
-                     keep_min_workers, proxy_stop=True, hard=hard, deep=deep)
+    teardown_cluster(
+        cluster_config_file, yes, workers_only,
+        cluster_name, keep_min_workers,
+        proxy_stop=True,
+        hard=hard,
+        deep=deep)
 
 
 @cli.command()
@@ -257,8 +262,9 @@ def stop(cluster_config_file, yes, workers_only, cluster_name,
 @click.option(
     "--host", is_flag=True, default=False, help="Attach to the host even running with docker.")
 @add_click_logging_options
-def attach(cluster_config_file, screen, tmux, cluster_name,
-           no_config_cache, new, port_forward, node_ip, host):
+def attach(
+        cluster_config_file, screen, tmux, cluster_name,
+        no_config_cache, new, port_forward, node_ip, host):
     """Create or attach to SH session to a cluster or a worker node."""
     port_forward = [(port, port) for port in list(port_forward)]
     try:
@@ -387,10 +393,11 @@ def attach(cluster_config_file, screen, tmux, cluster_name,
     default=False,
     help="Do even if the head is not in healthy state.")
 @add_click_logging_options
-def exec(cluster_config_file, cmd, cluster_name, run_env, screen, tmux, stop, start,
-         force_update, wait_for_workers, min_workers, wait_timeout,
-         no_config_cache, port_forward, node_ip, all_nodes, parallel, yes, job_waiter,
-         force):
+def exec(
+        cluster_config_file, cmd, cluster_name, run_env, screen, tmux, stop, start,
+        force_update, wait_for_workers, min_workers, wait_timeout,
+        no_config_cache, port_forward, node_ip, all_nodes, parallel, yes, job_waiter,
+        force):
     """Execute a command via SSH on a cluster or a specified node."""
     port_forward = [(port, port) for port in list(port_forward)]
 
@@ -398,8 +405,9 @@ def exec(cluster_config_file, cmd, cluster_name, run_env, screen, tmux, stop, st
         # Don't use config cache so that we will run a full bootstrap needed for start
         if start:
             no_config_cache = True
-        config = _load_cluster_config(cluster_config_file, cluster_name,
-                                      no_config_cache=no_config_cache)
+        config = _load_cluster_config(
+            cluster_config_file, cluster_name,
+            no_config_cache=no_config_cache)
         exec_on_nodes(
             config,
             call_context=cli_call_context(),
@@ -516,11 +524,12 @@ def exec(cluster_config_file, cmd, cluster_name, run_env, screen, tmux, stop, st
 @click.argument("script", required=True, type=str)
 @click.argument("script_args", nargs=-1)
 @add_click_logging_options
-def submit(cluster_config_file, cluster_name, screen, tmux, stop, start,
-           force_update, wait_for_workers, min_workers, wait_timeout,
-           no_config_cache, port_forward, yes, job_waiter, job_log,
-           runtime, runtime_options, force,
-           script, script_args):
+def submit(
+        cluster_config_file, cluster_name, screen, tmux, stop, start,
+        force_update, wait_for_workers, min_workers, wait_timeout,
+        no_config_cache, port_forward, yes, job_waiter, job_log,
+        runtime, runtime_options, force,
+        script, script_args):
     """Uploads and runs a script on the specified cluster.
 
     The script is automatically synced to the following location:
@@ -533,7 +542,8 @@ def submit(cluster_config_file, cluster_name, screen, tmux, stop, start,
     config = _load_cluster_config(
         cluster_config_file, cluster_name, no_config_cache=no_config_cache)
     port_forward = [(port, port) for port in list(port_forward)]
-    runtime_options = shlex.split(runtime_options) if runtime_options is not None else None
+    runtime_options = shlex.split(
+        runtime_options) if runtime_options is not None else None
     submit_and_exec(
         config,
         call_context=cli_call_context(),
@@ -726,9 +736,10 @@ def run(
     default=False,
     help="Scale up if resources is not enough. No scale down.")
 @add_click_logging_options
-def scale(cluster_config_file, yes, cluster_name,
-          cpus, gpus, workers, worker_type,
-          resources, bundles, up_only):
+def scale(
+        cluster_config_file, yes, cluster_name,
+        cpus, gpus, workers, worker_type,
+        resources, bundles, up_only):
     """Scale the cluster with a specific number cpus or nodes."""
     if bundles:
         bundles = parse_bundles_json(bundles)
@@ -764,7 +775,8 @@ def scale(cluster_config_file, yes, cluster_name,
     default=False,
     help="Whether to sync the file to all nodes.")
 @add_click_logging_options
-def rsync_up(cluster_config_file, source, target, cluster_name, node_ip, all_nodes):
+def rsync_up(
+        cluster_config_file, source, target, cluster_name, node_ip, all_nodes):
     """Upload specific files to a cluster or a specified node."""
 
     try:
@@ -799,15 +811,17 @@ def rsync_up(cluster_config_file, source, target, cluster_name, node_ip, all_nod
     default=None,
     help="The node ip address of the node to rsync with")
 @add_click_logging_options
-def rsync_down(cluster_config_file, source, target, cluster_name, node_ip):
+def rsync_down(
+        cluster_config_file, source, target, cluster_name, node_ip):
     """Download specific files from a cluster or a specified node."""
     try:
         config = _load_cluster_config(
             cluster_config_file, cluster_name)
-        _rsync(config,
-               call_context=cli_call_context(),
-               source=source, target=target,
-               down=True, node_ip=node_ip)
+        _rsync(
+            config,
+            call_context=cli_call_context(),
+            source=source, target=target,
+            down=True, node_ip=node_ip)
     except RuntimeError as re:
         fail_command("Failed to rsync down.", re)
 
@@ -884,10 +898,11 @@ def info(
         sockets_per_worker, total_workers):
     """Show cluster summary information and useful links to use the cluster."""
     config = _load_cluster_config(cluster_config_file, cluster_name)
-    show_info(config, cluster_config_file,
-              worker_cpus, worker_gpus, worker_memory,
-              cpus_per_worker, gpus_per_worker, memory_per_worker,
-              sockets_per_worker, total_workers)
+    show_info(
+        config, cluster_config_file,
+        worker_cpus, worker_gpus, worker_memory,
+        cpus_per_worker, gpus_per_worker, memory_per_worker,
+        sockets_per_worker, total_workers)
 
 
 @cli.command()
@@ -1044,10 +1059,12 @@ def worker_hosts(
     default=None,
     help="The type of information to check: log, out, err")
 @add_click_logging_options
-def monitor(cluster_config_file, lines, cluster_name, file_type):
+def monitor(
+        cluster_config_file, lines, cluster_name, file_type):
     """Tails the monitor logs of a cluster."""
     try:
-        monitor_cluster(cluster_config_file, lines, cluster_name, file_type=file_type)
+        monitor_cluster(
+            cluster_config_file, lines, cluster_name, file_type=file_type)
     except RuntimeError as re:
         fail_command("Failed to monitor cluster.", re)
 
@@ -1117,8 +1134,9 @@ def logs(
     default=None,
     help="The address to bind on local node.")
 @add_click_logging_options
-def start_proxy(cluster_config_file, no_config_cache, cluster_name,
-                bind_address):
+def start_proxy(
+        cluster_config_file, no_config_cache, cluster_name,
+        bind_address):
     """Start the SOCKS5 proxy to the cluster through SSH tunnel forwarding to the head."""
     start_ssh_proxy(
         cluster_config_file,
@@ -1167,7 +1185,8 @@ def stop_proxy(cluster_config_file, cluster_name):
     default=None,
     help="The node ip address of the node to kill")
 @add_click_logging_options
-def kill_node(cluster_config_file, yes, hard, cluster_name, node_ip):
+def kill_node(
+        cluster_config_file, yes, hard, cluster_name, node_ip):
     """Kills a specified node or a random node."""
     kill_node_from_head(
         cluster_config_file, yes, hard, cluster_name,
@@ -1200,11 +1219,13 @@ def kill_node(cluster_config_file, yes, hard, cluster_name, node_ip):
     type=int,
     help="The maximum number of seconds to wait.")
 @add_click_logging_options
-def wait_for_ready(cluster_config_file, cluster_name, no_config_cache,
-                   min_workers, timeout):
+def wait_for_ready(
+        cluster_config_file, cluster_name, no_config_cache,
+        min_workers, timeout):
     """Wait for the minimum number of workers to be ready."""
-    config = _load_cluster_config(cluster_config_file, cluster_name,
-                                  no_config_cache=no_config_cache)
+    config = _load_cluster_config(
+        cluster_config_file, cluster_name,
+        no_config_cache=no_config_cache)
     call_context = cli_call_context()
     _wait_for_ready(config, call_context, min_workers, timeout)
 
@@ -1229,7 +1250,8 @@ def wait_for_ready(cluster_config_file, cluster_name, no_config_cache,
     default=None,
     help="The list of runtimes to show process status for. If not specified, will all.")
 @add_click_logging_options
-def process_status(cluster_config_file, cluster_name, no_config_cache, runtimes):
+def process_status(
+        cluster_config_file, cluster_name, no_config_cache, runtimes):
     """Show process status of cluster nodes."""
     try:
         cluster_process_status(
@@ -1253,7 +1275,8 @@ def process_status(cluster_config_file, cluster_name, no_config_cache, runtimes)
     default=False,
     help="Disable the local cluster config cache.")
 @add_click_logging_options
-def resource_metrics(cluster_config_file, cluster_name, no_config_cache):
+def resource_metrics(
+        cluster_config_file, cluster_name, no_config_cache):
     """Show cluster resource metrics and the metrics for each node."""
     try:
         cluster_resource_metrics(
@@ -1277,7 +1300,8 @@ def resource_metrics(cluster_config_file, cluster_name, no_config_cache):
     default=False,
     help="Disable the local cluster config cache.")
 @add_click_logging_options
-def debug_status(cluster_config_file, cluster_name, no_config_cache):
+def debug_status(
+        cluster_config_file, cluster_name, no_config_cache):
     """Show debug status of cluster scaling."""
     try:
         cluster_debug_status(
@@ -1306,7 +1330,9 @@ def debug_status(cluster_config_file, cluster_name, no_config_cache):
     default=False,
     help="Whether to show detailed information.")
 @add_click_logging_options
-def health_check(cluster_config_file, cluster_name, no_config_cache, with_details):
+def health_check(
+        cluster_config_file, cluster_name, no_config_cache,
+        with_details):
     """Do cluster health check."""
     try:
         cluster_health_check(
@@ -1389,19 +1415,20 @@ def health_check(cluster_config_file, cluster_name, no_config_cache, with_detail
     default=False,
     help="Whether print a warning message for cluster dump.")
 @add_click_logging_options
-def cluster_dump(cluster_config_file: Optional[str] = None,
-                 cluster_name: str = None,
-                 hosts: Optional[str] = None,
-                 head_only: Optional[bool] = None,
-                 output: Optional[str] = None,
-                 logs: bool = True,
-                 debug_state: bool = True,
-                 pip: bool = True,
-                 processes: bool = True,
-                 processes_verbose: bool = False,
-                 tempfile: Optional[str] = None,
-                 no_config_cache=False,
-                 silent=False):
+def cluster_dump(
+        cluster_config_file: Optional[str] = None,
+        cluster_name: str = None,
+        hosts: Optional[str] = None,
+        head_only: Optional[bool] = None,
+        output: Optional[str] = None,
+        logs: bool = True,
+        debug_state: bool = True,
+        pip: bool = True,
+        processes: bool = True,
+        processes_verbose: bool = False,
+        tempfile: Optional[str] = None,
+        no_config_cache=False,
+        silent=False):
     """Get log data from one or more nodes.
 
     Best used with cluster configs:
@@ -1415,8 +1442,9 @@ def cluster_dump(cluster_config_file: Optional[str] = None,
     You can also manually specify a list of hosts using the
     ``--hosts <host1,host2,...>`` parameter.
     """
-    config = _load_cluster_config(cluster_config_file, cluster_name,
-                                  no_config_cache=no_config_cache)
+    config = _load_cluster_config(
+        cluster_config_file, cluster_name,
+        no_config_cache=no_config_cache)
     dump_cluster(
         config=config,
         call_context=cli_call_context(),

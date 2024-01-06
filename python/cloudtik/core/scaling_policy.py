@@ -8,10 +8,11 @@ logger = logging.getLogger(__name__)
 
 @DeveloperAPI
 class ScalingState:
-    def __init__(self,
-                 autoscaling_instructions=None,
-                 node_resource_states=None,
-                 lost_nodes=None):
+    def __init__(
+            self,
+            autoscaling_instructions=None,
+            node_resource_states=None,
+            lost_nodes=None):
         self.autoscaling_instructions = autoscaling_instructions
         self.node_resource_states = node_resource_states
         self.lost_nodes = lost_nodes
@@ -47,9 +48,10 @@ class ScalingPolicy:
     policy option.
     """
 
-    def __init__(self,
-                 config: Dict[str, Any],
-                 head_host: str) -> None:
+    def __init__(
+            self,
+            config: Dict[str, Any],
+            head_host: str) -> None:
         self.config = config
         self.head_host = head_host
 

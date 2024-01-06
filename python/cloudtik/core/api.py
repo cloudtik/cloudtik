@@ -33,7 +33,8 @@ class Workspace:
                 workspace_config, no_config_cache=True)
         else:
             if not os.path.exists(workspace_config):
-                raise ValueError("Workspace config file not found: {}".format(workspace_config))
+                raise ValueError(
+                    "Workspace config file not found: {}".format(workspace_config))
             self.config = workspace_operator._load_workspace_config(
                 workspace_config, no_config_cache=True)
 
@@ -87,7 +88,8 @@ class Cluster:
                 self.config = cluster_config
         else:
             if not os.path.exists(cluster_config):
-                raise ValueError("Cluster config file not found: {}".format(cluster_config))
+                raise ValueError(
+                    "Cluster config file not found: {}".format(cluster_config))
             self.config = _load_cluster_config(
                 cluster_config,
                 should_bootstrap=should_bootstrap,
@@ -102,9 +104,10 @@ class Cluster:
         self.call_context = CallContext(_cli_logger=_cli_logger)
         self.call_context.set_call_from_api(True)
 
-    def start(self,
-              no_restart: bool = False,
-              restart_only: bool = False) -> None:
+    def start(
+            self,
+            no_restart: bool = False,
+            restart_only: bool = False) -> None:
         """Create or updates an autoscaling cluster.
 
         Args:
@@ -123,11 +126,12 @@ class Cluster:
             redirect_command_output=None,
             use_login_shells=True)
 
-    def stop(self,
-             workers_only: bool = False,
-             keep_min_workers: bool = False,
-             hard: bool = False,
-             deep: bool = False) -> None:
+    def stop(
+            self,
+            workers_only: bool = False,
+            keep_min_workers: bool = False,
+            hard: bool = False,
+            deep: bool = False) -> None:
         """Destroys all nodes of a cluster.
 
         Args:
@@ -146,26 +150,27 @@ class Cluster:
             hard=hard,
             deep=deep)
 
-    def exec(self,
-             cmd: str,
-             *,
-             node_ip: str = None,
-             all_nodes: bool = False,
-             run_env: str = "auto",
-             screen: bool = False,
-             tmux: bool = False,
-             stop: bool = False,
-             start: bool = False,
-             force_update: bool = False,
-             wait_for_workers: bool = False,
-             min_workers: Optional[int] = None,
-             wait_timeout: Optional[int] = None,
-             port_forward: Optional[cluster_operator.Port_forward] = None,
-             with_output: bool = False,
-             parallel: bool = True,
-             job_waiter: Optional[str] = None,
-             force: bool = False,
-             ) -> Optional[str]:
+    def exec(
+            self,
+            cmd: str,
+            *,
+            node_ip: str = None,
+            all_nodes: bool = False,
+            run_env: str = "auto",
+            screen: bool = False,
+            tmux: bool = False,
+            stop: bool = False,
+            start: bool = False,
+            force_update: bool = False,
+            wait_for_workers: bool = False,
+            min_workers: Optional[int] = None,
+            wait_timeout: Optional[int] = None,
+            port_forward: Optional[cluster_operator.Port_forward] = None,
+            with_output: bool = False,
+            parallel: bool = True,
+            job_waiter: Optional[str] = None,
+            force: bool = False,
+    ) -> Optional[str]:
         """Runs a command on the specified cluster.
 
         Args:
@@ -212,23 +217,24 @@ class Cluster:
             job_waiter_name=job_waiter,
             force=force)
 
-    def submit(self,
-               script_file: str,
-               script_args: Optional[List[str]] = None,
-               screen: bool = False,
-               tmux: bool = False,
-               stop: bool = False,
-               start: bool = False,
-               force_update: bool = False,
-               wait_for_workers: bool = False,
-               min_workers: Optional[int] = None,
-               wait_timeout: Optional[int] = None,
-               port_forward: Optional[cluster_operator.Port_forward] = None,
-               with_output: bool = False,
-               job_waiter: Optional[str] = None,
-               job_log: bool = False,
-               force: bool = False,
-               ) -> Optional[str]:
+    def submit(
+            self,
+            script_file: str,
+            script_args: Optional[List[str]] = None,
+            screen: bool = False,
+            tmux: bool = False,
+            stop: bool = False,
+            start: bool = False,
+            force_update: bool = False,
+            wait_for_workers: bool = False,
+            min_workers: Optional[int] = None,
+            wait_timeout: Optional[int] = None,
+            port_forward: Optional[cluster_operator.Port_forward] = None,
+            with_output: bool = False,
+            job_waiter: Optional[str] = None,
+            job_log: bool = False,
+            force: bool = False,
+    ) -> Optional[str]:
         """Submit a script file to cluster and run.
 
         Args:
@@ -331,14 +337,15 @@ class Cluster:
             force=force,
         )
 
-    def rsync(self,
-              *,
-              source: Optional[str],
-              target: Optional[str],
-              down: bool,
-              node_ip: str = None,
-              all_nodes: bool = False,
-              use_internal_ip: bool = False):
+    def rsync(
+            self,
+            *,
+            source: Optional[str],
+            target: Optional[str],
+            down: bool,
+            node_ip: str = None,
+            all_nodes: bool = False,
+            use_internal_ip: bool = False):
         """Rsyncs files to or from the cluster.
 
         Args:
@@ -363,13 +370,15 @@ class Cluster:
             all_nodes=all_nodes,
             use_internal_ip=use_internal_ip)
 
-    def scale(self, num_cpus: Optional[int] = None,
-              num_gpus: Optional[int] = None,
-              workers: Optional[int] = None,
-              worker_type: Optional[str] = None,
-              resources: Optional[Dict[str, int]] = None,
-              up_only: bool = False,
-              bundles: Optional[List[dict]] = None) -> None:
+    def scale(
+            self,
+            num_cpus: Optional[int] = None,
+            num_gpus: Optional[int] = None,
+            workers: Optional[int] = None,
+            worker_type: Optional[str] = None,
+            resources: Optional[Dict[str, int]] = None,
+            up_only: bool = False,
+            bundles: Optional[List[dict]] = None) -> None:
         """Reqeust to scale to accommodate the specified requests.
 
         The cluster will immediately attempt to scale to accommodate the requested
@@ -412,12 +421,13 @@ class Cluster:
             bundles=bundles,
             up_only=up_only)
 
-    def start_node(self,
-                   node_ip: str = None,
-                   all_nodes: bool = False,
-                   runtimes: Optional[List[str]] = None,
-                   parallel: bool = True,
-                   force: bool = False) -> None:
+    def start_node(
+            self,
+            node_ip: str = None,
+            all_nodes: bool = False,
+            runtimes: Optional[List[str]] = None,
+            parallel: bool = True,
+            force: bool = False) -> None:
         """Start services on a node.
         Args:
             node_ip (str): The node_ip to run on
@@ -437,12 +447,13 @@ class Cluster:
             force=force,
             )
 
-    def stop_node(self,
-                  node_ip: str = None,
-                  all_nodes: bool = False,
-                  runtimes: Optional[List[str]] = None,
-                  parallel: bool = True,
-                  force: bool = False) -> None:
+    def stop_node(
+            self,
+            node_ip: str = None,
+            all_nodes: bool = False,
+            runtimes: Optional[List[str]] = None,
+            parallel: bool = True,
+            force: bool = False) -> None:
         """Run stop commands on a node.
         Args:
             node_ip (str): The node_ip to run on
@@ -462,9 +473,10 @@ class Cluster:
             force=force,
             )
 
-    def kill_node(self,
-                  node_ip: str = None,
-                  hard: bool = False) -> str:
+    def kill_node(
+            self,
+            node_ip: str = None,
+            hard: bool = False) -> str:
         """Kill a node or a random node
         Args:
             node_ip (str): The node_ip to run on
@@ -488,8 +500,10 @@ class Cluster:
         """
         return get_cluster_head_ip(config=self.config, public=public)
 
-    def get_worker_node_ips(self,
-                            runtime: str = None, node_status: str = None) -> List[str]:
+    def get_worker_node_ips(
+            self,
+            runtime: str = None,
+            node_status: str = None) -> List[str]:
         """Returns worker node IPs for given configuration file.
         Args:
             runtime (str): The nodes with the specified runtime.
@@ -501,7 +515,9 @@ class Cluster:
             RuntimeError if the cluster is not found.
         """
         return _get_worker_node_ips(
-            config=self.config, runtime=runtime, node_status=node_status)
+            config=self.config,
+            runtime=runtime,
+            node_status=node_status)
 
     def get_head_node_host(self) -> str:
         """Returns head node host for given configuration file if exists.
@@ -514,7 +530,9 @@ class Cluster:
         return get_cluster_head_host(config=self.config)
 
     def get_worker_node_hosts(
-            self, runtime: str = None, node_status: str = None) -> List[str]:
+            self,
+            runtime: str = None,
+            node_status: str = None) -> List[str]:
         """Returns worker node hosts for given configuration file.
         Args:
             runtime (str): The nodes with the specified runtime.
@@ -526,7 +544,9 @@ class Cluster:
             RuntimeError if the cluster is not found.
         """
         return _get_worker_node_hosts(
-            config=self.config, runtime=runtime, node_status=node_status)
+            config=self.config,
+            runtime=runtime,
+            node_status=node_status)
 
     def get_nodes(
             self,
@@ -540,7 +560,9 @@ class Cluster:
             A list of Dict object for each node with the information
         """
         return cluster_operator._get_cluster_nodes_info(
-            config=self.config, runtime=runtime, node_status=node_status)
+            config=self.config,
+            runtime=runtime,
+            node_status=node_status)
 
     def get_info(self) -> Dict[str, Any]:
         """Returns the general information of the cluster
@@ -549,29 +571,35 @@ class Cluster:
         """
         return cluster_operator._get_cluster_info(config=self.config)
 
-    def wait_for_ready(self, min_workers: int = None,
-                       timeout: int = None) -> None:
+    def wait_for_ready(
+            self,
+            min_workers: int = None,
+            timeout: int = None) -> None:
         """Wait for to the min_workers to be ready.
         Args:
             min_workers (int): If min_workers is not specified, the min_workers of cluster will be used.
             timeout (int): The maximum time to wait
         """
-        return cluster_operator._wait_for_ready(config=self.config,
-                                                call_context=self.call_context,
-                                                min_workers=min_workers,
-                                                timeout=timeout)
+        return cluster_operator._wait_for_ready(
+            config=self.config,
+            call_context=self.call_context,
+            min_workers=min_workers,
+            timeout=timeout)
 
     def get_default_cloud_storage(self):
         """Get the managed cloud storage information."""
-        return cluster_operator.get_default_cloud_storage(config=self.config)
+        return cluster_operator.get_default_cloud_storage(
+            config=self.config)
 
     def get_default_cloud_database(self):
         """Get configured cloud database information."""
-        return cluster_operator.get_default_cloud_database(config=self.config)
+        return cluster_operator.get_default_cloud_database(
+            config=self.config)
 
-    def register_callback(self,
-                          event_name: str,
-                          callback: Union[Callable[[Dict], None], List[Callable[[Dict], None]]]) -> None:
+    def register_callback(
+            self,
+            event_name: str,
+            callback: Union[Callable[[Dict], None], List[Callable[[Dict], None]]]) -> None:
         """Registers a callback handler for scaling events.
 
         Args:
@@ -582,7 +610,8 @@ class Cluster:
                 when specified event occurs.
         """
         cluster_uri = utils.get_cluster_uri(self.config)
-        global_event_system.add_callback_handler(cluster_uri, event_name, callback)
+        global_event_system.add_callback_handler(
+            cluster_uri, event_name, callback)
 
 
 @PublicAPI
@@ -599,21 +628,22 @@ class ThisCluster:
         self.call_context = CallContext(_cli_logger=_cli_logger)
         self.call_context.set_call_from_api(True)
 
-    def exec(self,
-             cmd: str,
-             *,
-             node_ip: str = None,
-             all_nodes: bool = False,
-             run_env: str = "auto",
-             screen: bool = False,
-             tmux: bool = False,
-             wait_for_workers: bool = False,
-             min_workers: Optional[int] = None,
-             wait_timeout: Optional[int] = None,
-             port_forward: Optional[cluster_operator.Port_forward] = None,
-             with_output: bool = False,
-             parallel: bool = True,
-             job_waiter: Optional[str] = None) -> Optional[str]:
+    def exec(
+            self,
+            cmd: str,
+            *,
+            node_ip: str = None,
+            all_nodes: bool = False,
+            run_env: str = "auto",
+            screen: bool = False,
+            tmux: bool = False,
+            wait_for_workers: bool = False,
+            min_workers: Optional[int] = None,
+            wait_timeout: Optional[int] = None,
+            port_forward: Optional[cluster_operator.Port_forward] = None,
+            with_output: bool = False,
+            parallel: bool = True,
+            job_waiter: Optional[str] = None) -> Optional[str]:
         """Runs a command on the specified cluster.
 
         Args:
@@ -682,13 +712,14 @@ class ThisCluster:
             with_output=with_output
         )
 
-    def rsync(self,
-              *,
-              source: Optional[str],
-              target: Optional[str],
-              down: bool,
-              node_ip: str = None,
-              all_workers: bool = False):
+    def rsync(
+            self,
+            *,
+            source: Optional[str],
+            target: Optional[str],
+            down: bool,
+            node_ip: str = None,
+            all_workers: bool = False):
         """Rsyncs files to or from the cluster.
 
         Args:
@@ -709,13 +740,15 @@ class ThisCluster:
             node_ip=node_ip,
             all_workers=all_workers)
 
-    def scale(self, num_cpus: Optional[int] = None,
-              num_gpus: Optional[int] = None,
-              workers: Optional[int] = None,
-              worker_type: Optional[str] = None,
-              resources: Optional[Dict[str, int]] = None,
-              up_only: bool = False,
-              bundles: Optional[List[dict]] = None) -> None:
+    def scale(
+            self,
+            num_cpus: Optional[int] = None,
+            num_gpus: Optional[int] = None,
+            workers: Optional[int] = None,
+            worker_type: Optional[str] = None,
+            resources: Optional[Dict[str, int]] = None,
+            up_only: bool = False,
+            bundles: Optional[List[dict]] = None) -> None:
         """Reqeust to scale to accommodate the specified requests.
 
         The cluster will immediately attempt to scale to accommodate the requested
@@ -759,11 +792,12 @@ class ThisCluster:
             bundles=bundles,
             up_only=up_only)
 
-    def start_node(self,
-                   node_ip: str = None,
-                   all_nodes: bool = False,
-                   runtimes: Optional[List[str]] = None,
-                   parallel: bool = True) -> None:
+    def start_node(
+            self,
+            node_ip: str = None,
+            all_nodes: bool = False,
+            runtimes: Optional[List[str]] = None,
+            parallel: bool = True) -> None:
         """Start services on a node.
         Args:
             node_ip (str): The node_ip to run on
@@ -781,11 +815,12 @@ class ThisCluster:
             parallel=parallel
             )
 
-    def stop_node(self,
-                  node_ip: str = None,
-                  all_nodes: bool = False,
-                  runtimes: Optional[List[str]] = None,
-                  parallel: bool = True) -> None:
+    def stop_node(
+            self,
+            node_ip: str = None,
+            all_nodes: bool = False,
+            runtimes: Optional[List[str]] = None,
+            parallel: bool = True) -> None:
         """Run stop commands on a node.
         Args:
             node_ip (str): The node_ip to run on
@@ -803,9 +838,10 @@ class ThisCluster:
             parallel=parallel
             )
 
-    def kill_node(self,
-                  node_ip: str = None,
-                  hard: bool = False) -> str:
+    def kill_node(
+            self,
+            node_ip: str = None,
+            hard: bool = False) -> str:
         """Kill a node or a random node
         Args:
             node_ip (str): The node_ip to run on
@@ -829,8 +865,10 @@ class ThisCluster:
         """
         return get_cluster_head_ip(config=self.config, public=public)
 
-    def get_worker_node_ips(self,
-                            runtime: str = None, node_status: str = None) -> List[str]:
+    def get_worker_node_ips(
+            self,
+            runtime: str = None,
+            node_status: str = None) -> List[str]:
         """Returns worker node IPs for given configuration file.
         Args:
             runtime (str): The workers with the specified runtime.
@@ -842,7 +880,9 @@ class ThisCluster:
             RuntimeError if the cluster is not found.
         """
         return _get_worker_node_ips(
-            config=self.config, runtime=runtime, node_status=node_status)
+            config=self.config,
+            runtime=runtime,
+            node_status=node_status)
 
     def get_head_node_host(self) -> str:
         """Returns head node host for given configuration file if exists.
@@ -855,7 +895,9 @@ class ThisCluster:
         return get_cluster_head_host(config=self.config)
 
     def get_worker_node_hosts(
-            self, runtime: str = None, node_status: str = None) -> List[str]:
+            self,
+            runtime: str = None,
+            node_status: str = None) -> List[str]:
         """Returns worker node hosts for given configuration file.
         Args:
             runtime (str): The nodes with the specified runtime.
@@ -867,7 +909,9 @@ class ThisCluster:
             RuntimeError if the cluster is not found.
         """
         return _get_worker_node_hosts(
-            config=self.config, runtime=runtime, node_status=node_status)
+            config=self.config,
+            runtime=runtime,
+            node_status=node_status)
 
     def get_nodes(
             self,
@@ -881,7 +925,9 @@ class ThisCluster:
             A list of Dict object for each node with the information
         """
         return cluster_operator._get_cluster_nodes_info(
-            config=self.config, runtime=runtime, node_status=node_status)
+            config=self.config,
+            runtime=runtime,
+            node_status=node_status)
 
     def get_info(self) -> Dict[str, Any]:
         """Returns the general information of the cluster
@@ -890,30 +936,36 @@ class ThisCluster:
         """
         return cluster_operator._get_cluster_info(config=self.config)
 
-    def wait_for_ready(self, min_workers: int = None,
-                       timeout: int = None) -> None:
+    def wait_for_ready(
+            self,
+            min_workers: int = None,
+            timeout: int = None) -> None:
         """Wait for to the min_workers to be ready.
         Args:
             min_workers (int): If min_workers is not specified, the min_workers of cluster will be used.
             timeout (int): The maximum time to wait
         """
-        return cluster_operator._wait_for_ready(config=self.config,
-                                                call_context=self.call_context,
-                                                min_workers=min_workers,
-                                                timeout=timeout)
+        return cluster_operator._wait_for_ready(
+            config=self.config,
+            call_context=self.call_context,
+            min_workers=min_workers,
+            timeout=timeout)
 
     def get_default_cloud_storage(self):
         """Get the default cloud storage information."""
-        return cluster_operator.get_default_cloud_storage(config=self.config)
+        return cluster_operator.get_default_cloud_storage(
+            config=self.config)
 
     def get_default_cloud_database(self):
         """Get the default cloud storage information."""
-        return cluster_operator.get_default_cloud_database(config=self.config)
+        return cluster_operator.get_default_cloud_database(
+            config=self.config)
 
 
-def configure_logging(log_style: Optional[str] = None,
-                      color_mode: Optional[str] = None,
-                      verbosity: Optional[int] = None):
+def configure_logging(
+        log_style: Optional[str] = None,
+        color_mode: Optional[str] = None,
+        verbosity: Optional[int] = None):
     """Configures logging for cluster command calls.
 
     Args:

@@ -21,5 +21,10 @@ class JobWaiter:
                  config: Dict[str, Any]) -> None:
         self.config = config
 
-    def wait_for_completion(self, node_id: str, cmd: str, session_name: str, timeout: Optional[int] = None):
+    def wait_for_completion(
+            self,
+            node_id: str,
+            cmd: str,
+            session_name: str,
+            timeout: Optional[int] = None):
         raise NotImplementedError
