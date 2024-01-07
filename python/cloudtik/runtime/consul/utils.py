@@ -193,7 +193,8 @@ def _with_runtime_environment_variables(
 
 
 def _get_home_dir():
-    return os.path.join(os.getenv("HOME"), "runtime", "consul")
+    return os.path.join(
+        os.getenv("HOME"), "runtime", "consul")
 
 
 def _get_runtime_logs():
