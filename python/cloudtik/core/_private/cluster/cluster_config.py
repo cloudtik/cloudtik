@@ -49,8 +49,9 @@ def _bootstrap_config(
 
     config_hash = get_json_object_hash([config])
     config_cache_dir = os.path.join(get_cloudtik_temp_dir(), "configs")
-    cache_key = os.path.join(config_cache_dir,
-                             "cloudtik-config-{}".format(config_hash))
+    cache_key = os.path.join(
+        config_cache_dir,
+        "cloudtik-config-{}".format(config_hash))
 
     if os.path.exists(cache_key) and not no_config_cache:
         with open(cache_key) as f:
@@ -61,8 +62,9 @@ def _bootstrap_config(
             # but this seems overcomplicated given that resolving is
             # relatively cheap
             cached_config = decrypt_config(config_cache["config"])
-            try_reload_log_state(cached_config["provider"],
-                                 config_cache.get("provider_log_info"))
+            try_reload_log_state(
+                cached_config["provider"],
+                config_cache.get("provider_log_info"))
 
             if log_once("_printed_cached_config_warning"):
                 cli_logger.verbose_warning(

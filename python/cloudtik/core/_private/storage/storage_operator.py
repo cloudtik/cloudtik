@@ -37,10 +37,12 @@ def _delete_storage(
         config["provider"], workspace_name, storage_name)
     storage_info = provider.get_info(config)
     if not storage_info:
-        raise RuntimeError(f"Storage with the name {storage_name} doesn't exist!")
+        raise RuntimeError(
+            f"Storage with the name {storage_name} doesn't exist!")
     else:
-        cli_logger.confirm(yes, "Are you sure that you want to delete storage {}?",
-                           storage_name, _abort=True)
+        cli_logger.confirm(
+            yes, "Are you sure that you want to delete storage {}?",
+            storage_name, _abort=True)
         provider.delete(config)
 
 
@@ -66,7 +68,8 @@ def create_storage(
     if overrides:
         cli_logger.newline()
 
-    cli_logger.labeled_value("Storage", config["storage_name"])
+    cli_logger.labeled_value(
+        "Storage", config["storage_name"])
     cli_logger.newline()
 
     config = _bootstrap_storage_config(
@@ -82,10 +85,12 @@ def _create_storage(
         config["provider"], workspace_name, storage_name)
     storage_info = provider.get_info(config)
     if storage_info:
-        raise RuntimeError(f"A storage with the name {storage_name} already exists!")
+        raise RuntimeError(
+            f"A storage with the name {storage_name} already exists!")
     else:
-        cli_logger.confirm(yes, "Are you sure that you want to create storage {}?",
-                           storage_name, _abort=True)
+        cli_logger.confirm(
+            yes, "Are you sure that you want to create storage {}?",
+            storage_name, _abort=True)
         provider.create(config)
 
 
@@ -109,7 +114,8 @@ def show_storage_info(
     config = _load_storage_config(config_file, override_storage_name)
     storage_info = _get_storage_info(config)
     if not storage_info:
-        cli_logger.print("Object storage {} doesn't exist.", config["storage_name"])
+        cli_logger.print(
+            "Object storage {} doesn't exist.", config["storage_name"])
     else:
         print_dict_info(storage_info)
 
@@ -123,15 +129,17 @@ def _bootstrap_storage_config(
 
     config_hash = get_json_object_hash([config])
     config_cache_dir = os.path.join(get_cloudtik_temp_dir(), "configs")
-    cache_key = os.path.join(config_cache_dir,
-                             "cloudtik-storage-config-{}".format(config_hash))
+    cache_key = os.path.join(
+        config_cache_dir,
+        "cloudtik-storage-config-{}".format(config_hash))
     cached_config = load_config_from_cache(
         cache_key, CONFIG_CACHE_VERSION, no_config_cache)
     if cached_config is not None:
         return cached_config
 
-    cli_logger.print("Checking {} environment settings",
-                     _PROVIDER_PRETTY_NAMES.get(config["provider"]["type"]))
+    cli_logger.print(
+        "Checking {} environment settings",
+        _PROVIDER_PRETTY_NAMES.get(config["provider"]["type"]))
 
     try:
         validate_storage_config(config)
@@ -156,7 +164,8 @@ def _load_storage_config(
     if override_storage_name is not None:
         config["storage_name"] = override_storage_name
     if should_bootstrap:
-        config = _bootstrap_storage_config(config, no_config_cache=no_config_cache)
+        config = _bootstrap_storage_config(
+            config, no_config_cache=no_config_cache)
     return config
 
 
@@ -165,7 +174,8 @@ def prepare_storage_config(config: Dict[str, Any]) -> Dict[str, Any]:
     return with_defaults
 
 
-def fill_with_storage_defaults(config: Dict[str, Any]) -> Dict[str, Any]:
+def fill_with_storage_defaults(
+        config: Dict[str, Any]) -> Dict[str, Any]:
     # Merge the config with user inheritance hierarchy and system defaults hierarchy
     merged_config = merge_config_hierarchy(
         config["provider"], config, False, "storage-defaults")
@@ -175,7 +185,8 @@ def fill_with_storage_defaults(config: Dict[str, Any]) -> Dict[str, Any]:
 def validate_storage_config(config: Dict[str, Any]) -> None:
     """Required Dicts indicate that no extra fields can be introduced."""
     if not isinstance(config, dict):
-        raise ValueError("Config {} is not a dictionary".format(config))
+        raise ValueError(
+            "Config {} is not a dictionary".format(config))
 
     validate_schema_by_name(config, STORAGE_SCHEMA_NAME, STORAGE_SCHEMA_REFS)
     provider = _get_storage_provider(

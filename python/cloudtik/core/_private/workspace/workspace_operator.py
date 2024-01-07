@@ -55,15 +55,17 @@ def delete_workspace(
         config, yes, delete_managed_storage, delete_managed_database)
 
 
-def _delete_workspace(config: Dict[str, Any],
-                      yes: bool = False,
-                      delete_managed_storage: bool = False,
-                      delete_managed_database: bool = False):
+def _delete_workspace(
+        config: Dict[str, Any],
+        yes: bool = False,
+        delete_managed_storage: bool = False,
+        delete_managed_database: bool = False):
     workspace_name = config["workspace_name"]
     provider = _get_workspace_provider(config["provider"], workspace_name)
     existence = provider.check_workspace_existence(config)
     if existence == Existence.NOT_EXIST:
-        raise RuntimeError(f"Workspace with the name {workspace_name} doesn't exist!")
+        raise RuntimeError(
+            f"Workspace with the name {workspace_name} doesn't exist!")
     else:
         if existence == Existence.COMPLETED:
             # Only check the running cluster when the workspace is at completed status
@@ -78,8 +80,9 @@ def _delete_workspace(config: Dict[str, Any],
         managed_cloud_storage = is_managed_cloud_storage(config)
         if managed_cloud_storage:
             if delete_managed_storage:
-                cli_logger.warning("WARNING: The managed cloud storage associated with this workspace "
-                                   "and the data in it will all be deleted!")
+                cli_logger.warning(
+                    "WARNING: The managed cloud storage associated with this workspace "
+                    "and the data in it will all be deleted!")
             else:
                 cli_logger.print(
                     cf.bold("The managed cloud storage associated with this workspace will not be deleted."))
@@ -87,8 +90,9 @@ def _delete_workspace(config: Dict[str, Any],
         managed_cloud_database = is_managed_cloud_database(config)
         if managed_cloud_database:
             if delete_managed_database:
-                cli_logger.warning("WARNING: The managed cloud database associated with this workspace "
-                                   "and the data in it will all be deleted!")
+                cli_logger.warning(
+                    "WARNING: The managed cloud database associated with this workspace "
+                    "and the data in it will all be deleted!")
             else:
                 # check whether there are managed database instances
                 # cannot delete workspace if there is any
@@ -100,9 +104,11 @@ def _delete_workspace(config: Dict[str, Any],
                             workspace_name, managed_database_names
                         ))
 
-        cli_logger.confirm(yes, "Are you sure that you want to delete workspace {}?",
-                           config["workspace_name"], _abort=True)
-        provider.delete_workspace(config, delete_managed_storage, delete_managed_database)
+        cli_logger.confirm(
+            yes, "Are you sure that you want to delete workspace {}?",
+            config["workspace_name"], _abort=True)
+        provider.delete_workspace(
+            config, delete_managed_storage, delete_managed_database)
 
 
 def create_workspace(
@@ -131,31 +137,39 @@ def create_workspace(
     cli_logger.labeled_value("Workspace", config["workspace_name"])
     cli_logger.newline()
 
-    config = _bootstrap_workspace_config(config,
-                                         no_config_cache=no_config_cache)
-    _create_workspace(config, yes=yes, delete_incomplete=delete_incomplete)
+    config = _bootstrap_workspace_config(
+        config,
+        no_config_cache=no_config_cache)
+    _create_workspace(
+        config, yes=yes, delete_incomplete=delete_incomplete)
 
 
-def _create_workspace(config: Dict[str, Any], yes: bool = False,
-                      delete_incomplete: bool = False):
+def _create_workspace(
+        config: Dict[str, Any], yes: bool = False,
+        delete_incomplete: bool = False):
     workspace_name = config["workspace_name"]
     provider = _get_workspace_provider(config["provider"], workspace_name)
     existence = provider.check_workspace_existence(config)
     if existence == Existence.COMPLETED:
-        raise RuntimeError(f"A completed workspace with the name {workspace_name} already exists!")
+        raise RuntimeError(
+            f"A completed workspace with the name {workspace_name} already exists!")
     elif existence == Existence.IN_COMPLETED:
         if delete_incomplete:
-            cli_logger.confirm(yes, "An incomplete workspace with the same name exists.\n"
-                                    "Do you want to delete and then create workspace {}?",
-                               config["workspace_name"], _abort=True)
-            provider.delete_workspace(config, delete_managed_storage=False)
+            cli_logger.confirm(
+                yes, "An incomplete workspace with the same name exists.\n"
+                     "Do you want to delete and then create workspace {}?",
+                config["workspace_name"], _abort=True)
+            provider.delete_workspace(
+                config, delete_managed_storage=False)
             cli_logger.newline()
             provider.create_workspace(config)
         else:
-            raise RuntimeError(f"A workspace with the name {workspace_name} already exists but not completed!")
+            raise RuntimeError(
+                f"A workspace with the name {workspace_name} already exists but not completed!")
     else:
-        cli_logger.confirm(yes, "Are you sure that you want to create workspace {}?",
-                           config["workspace_name"], _abort=True)
+        cli_logger.confirm(
+            yes, "Are you sure that you want to create workspace {}?",
+            config["workspace_name"], _abort=True)
         provider.create_workspace(config)
 
 
@@ -177,16 +191,18 @@ def update_workspace(
     )
 
 
-def _update_workspace(config: Dict[str, Any],
-                      yes: bool = False,
-                      delete_managed_storage: bool = False,
-                      delete_managed_database: bool = False
-                      ):
+def _update_workspace(
+        config: Dict[str, Any],
+        yes: bool = False,
+        delete_managed_storage: bool = False,
+        delete_managed_database: bool = False
+):
     workspace_name = config["workspace_name"]
     provider = _get_workspace_provider(config["provider"], workspace_name)
     existence = provider.check_workspace_existence(config)
     if existence == Existence.NOT_EXIST:
-        raise RuntimeError(f"Workspace with the name {workspace_name} doesn't exist!")
+        raise RuntimeError(
+            f"Workspace with the name {workspace_name} doesn't exist!")
     else:
         # Only workspace in completed or in-completed status can be possibly updated.
         if existence != Existence.COMPLETED and existence != Existence.IN_COMPLETED:
@@ -196,8 +212,9 @@ def _update_workspace(config: Dict[str, Any],
                     workspace_name, status_name
                 ))
 
-        cli_logger.confirm(yes, "Are you sure that you want to update workspace {}?",
-                           config["workspace_name"], _abort=True)
+        cli_logger.confirm(
+            yes, "Are you sure that you want to update workspace {}?",
+            config["workspace_name"], _abort=True)
         provider.update_workspace(
             config, delete_managed_storage, delete_managed_database)
 
@@ -209,11 +226,13 @@ def list_workspace_clusters(
     config = _load_workspace_config(config_file, override_workspace_name)
     clusters = _list_workspace_clusters(config)
     if clusters is None:
-        cli_logger.error("Workspace {} is not correctly configured.",
-                         config["workspace_name"])
+        cli_logger.error(
+            "Workspace {} is not correctly configured.",
+            config["workspace_name"])
     elif len(clusters) == 0:
-        cli_logger.print(cf.bold("Workspace {} has no cluster in running."),
-                         config["workspace_name"])
+        cli_logger.print(
+            cf.bold("Workspace {} has no cluster in running."),
+            config["workspace_name"])
     else:
         # Get cluster info by the cluster name
         clusters_info = _get_clusters_info(config, clusters)
@@ -223,8 +242,9 @@ def list_workspace_clusters(
 def _get_clusters_info(config: Dict[str, Any], clusters):
     clusters_info = []
     for cluster_name in clusters:
-        cluster_info = {"cluster_name": cluster_name,
-                        "head_node": clusters[cluster_name]}
+        cluster_info = {
+            "cluster_name": cluster_name,
+            "head_node": clusters[cluster_name]}
 
         # Retrieve other information through cluster operator
         # This is a trick that use the workspace config to act some part of cluster config
@@ -253,21 +273,26 @@ def _get_clusters_info(config: Dict[str, Any], clusters):
 
 def _show_clusters(clusters_info):
     tb = pt.PrettyTable()
-    tb.field_names = ["cluster-name", "head-node-ip", "head-status", "head-public-ip",
-                      "total-workers", "workers-ready", "workers-failed"]
+    tb.field_names = [
+        "cluster-name", "head-node-ip", "head-status", "head-public-ip",
+        "total-workers", "workers-ready", "workers-failed"]
     for cluster_info in clusters_info:
-        tb.add_row([cluster_info["cluster_name"], cluster_info["head_node"][NODE_INFO_NODE_IP],
-                    cluster_info["head_node"][CLOUDTIK_TAG_NODE_STATUS], cluster_info["head_node"]["public_ip"],
-                    cluster_info["total-workers"], cluster_info["total-workers-ready"],
-                    cluster_info["total-workers-failed"]
-                    ])
+        tb.add_row(
+            [cluster_info["cluster_name"], cluster_info["head_node"][NODE_INFO_NODE_IP],
+             cluster_info["head_node"][CLOUDTIK_TAG_NODE_STATUS], cluster_info["head_node"]["public_ip"],
+             cluster_info["total-workers"], cluster_info["total-workers-ready"],
+             cluster_info["total-workers-failed"]
+             ])
 
-    cli_logger.print(cf.bold("{} cluster(s) are running."), len(clusters_info))
+    cli_logger.print(
+        cf.bold("{} cluster(s) are running."), len(clusters_info))
     cli_logger.print(tb)
 
 
-def _list_workspace_clusters(config: Dict[str, Any]) -> Optional[Dict[str, Any]]:
-    provider = _get_workspace_provider(config["provider"], config["workspace_name"])
+def _list_workspace_clusters(
+        config: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    provider = _get_workspace_provider(
+        config["provider"], config["workspace_name"])
     existence = provider.check_workspace_existence(config)
     if existence == Existence.NOT_EXIST:
         return None
@@ -287,17 +312,21 @@ def list_workspace_storages(
     config = _load_workspace_config(config_file, override_workspace_name)
     storages = _list_workspace_storages(config)
     if storages is None:
-        cli_logger.error("Workspace {} is not correctly configured.",
-                         config["workspace_name"])
+        cli_logger.error(
+            "Workspace {} is not correctly configured.",
+            config["workspace_name"])
     elif len(storages) == 0:
-        cli_logger.print(cf.bold("Workspace {} has no managed cloud storages."),
-                         config["workspace_name"])
+        cli_logger.print(
+            cf.bold("Workspace {} has no managed cloud storages."),
+            config["workspace_name"])
     else:
         _show_storages(storages)
 
 
-def _list_workspace_storages(config: Dict[str, Any]) -> Optional[Dict[str, Any]]:
-    provider = _get_workspace_provider(config["provider"], config["workspace_name"])
+def _list_workspace_storages(
+        config: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    provider = _get_workspace_provider(
+        config["provider"], config["workspace_name"])
     existence = provider.check_workspace_existence(config)
     if existence == Existence.NOT_EXIST:
         return None
@@ -317,7 +346,8 @@ def _show_storages(storages):
         tb.add_row([storage_name, storage_info[CLOUDTIK_MANAGED_CLOUD_STORAGE_URI]
                     ])
 
-    cli_logger.print(cf.bold("{} object storage(s)."), len(storages))
+    cli_logger.print(
+        cf.bold("{} object storage(s)."), len(storages))
     cli_logger.print(tb)
 
 
@@ -328,17 +358,21 @@ def list_workspace_databases(
     config = _load_workspace_config(config_file, override_workspace_name)
     databases = _list_workspace_databases(config)
     if databases is None:
-        cli_logger.error("Workspace {} is not correctly configured.",
-                         config["workspace_name"])
+        cli_logger.error(
+            "Workspace {} is not correctly configured.",
+            config["workspace_name"])
     elif len(databases) == 0:
-        cli_logger.print(cf.bold("Workspace {} has no managed cloud databases."),
-                         config["workspace_name"])
+        cli_logger.print(
+            cf.bold("Workspace {} has no managed cloud databases."),
+            config["workspace_name"])
     else:
         _show_databases(databases)
 
 
-def _list_workspace_databases(config: Dict[str, Any]) -> Optional[Dict[str, Any]]:
-    provider = _get_workspace_provider(config["provider"], config["workspace_name"])
+def _list_workspace_databases(
+        config: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    provider = _get_workspace_provider(
+        config["provider"], config["workspace_name"])
     existence = provider.check_workspace_existence(config)
     if existence == Existence.NOT_EXIST:
         return None
@@ -353,18 +387,21 @@ def _list_workspace_databases(config: Dict[str, Any]) -> Optional[Dict[str, Any]
 
 def _show_databases(databases):
     tb = pt.PrettyTable()
-    tb.field_names = ["instance-name", "engine", "host", "port", "admin-user"]
+    tb.field_names = [
+        "instance-name", "engine", "host", "port", "admin-user"]
     for database_name, database_info in databases.items():
         instance_name = database_info.get(CLOUDTIK_MANAGED_CLOUD_DATABASE_NAME)
         if not instance_name:
             instance_name = database_name
-        tb.add_row([instance_name, database_info[CLOUDTIK_MANAGED_CLOUD_DATABASE_ENGINE],
-                    database_info[CLOUDTIK_MANAGED_CLOUD_DATABASE_ENDPOINT],
-                    database_info[CLOUDTIK_MANAGED_CLOUD_DATABASE_PORT],
-                    database_info.get(CLOUDTIK_MANAGED_CLOUD_DATABASE_ADMIN_USER, "-")
-                    ])
+        tb.add_row(
+            [instance_name, database_info[CLOUDTIK_MANAGED_CLOUD_DATABASE_ENGINE],
+             database_info[CLOUDTIK_MANAGED_CLOUD_DATABASE_ENDPOINT],
+             database_info[CLOUDTIK_MANAGED_CLOUD_DATABASE_PORT],
+             database_info.get(CLOUDTIK_MANAGED_CLOUD_DATABASE_ADMIN_USER, "-")
+             ])
 
-    cli_logger.print(cf.bold("{} database instance(s)."), len(databases))
+    cli_logger.print(
+        cf.bold("{} database instance(s)."), len(databases))
     cli_logger.print(tb)
 
 
@@ -376,7 +413,8 @@ def show_status(
     workspace_name = config["workspace_name"]
     existence = _get_workspace_status(config)
     existence_name = _get_existence_name(existence)
-    cli_logger.labeled_value(f"Workspace {workspace_name}", existence_name)
+    cli_logger.labeled_value(
+        f"Workspace {workspace_name}", existence_name)
 
 
 def _get_workspace_status(config):
@@ -394,7 +432,8 @@ def get_workspace_info(
 
 def _get_workspace_info(
         config: Dict[str, Any]):
-    provider = _get_workspace_provider(config["provider"], config["workspace_name"])
+    provider = _get_workspace_provider(
+        config["provider"], config["workspace_name"])
     return provider.get_workspace_info(config)
 
 
@@ -402,7 +441,8 @@ def show_workspace_info(
         config_file: str,
         override_workspace_name: Optional[str] = None):
     show_status(config_file, override_workspace_name)
-    workspace_info = get_workspace_info(config_file, override_workspace_name)
+    workspace_info = get_workspace_info(
+        config_file, override_workspace_name)
     print_dict_info(workspace_info)
 
 
@@ -424,23 +464,26 @@ def show_managed_cloud_storage_uri(
         cli_logger.print(managed_cloud_storage[CLOUDTIK_MANAGED_CLOUD_STORAGE_URI])
 
 
-def _bootstrap_workspace_config(config: Dict[str, Any],
-                                no_config_cache: bool = False) -> Dict[str, Any]:
+def _bootstrap_workspace_config(
+        config: Dict[str, Any],
+        no_config_cache: bool = False) -> Dict[str, Any]:
     config = prepare_workspace_config(config)
     # Note: delete workspace only need to contain workspace_name
     provider_cls = _get_workspace_provider_cls(config["provider"])
 
     config_hash = get_json_object_hash([config])
     config_cache_dir = os.path.join(get_cloudtik_temp_dir(), "configs")
-    cache_key = os.path.join(config_cache_dir,
-                             "cloudtik-workspace-config-{}".format(config_hash))
+    cache_key = os.path.join(
+        config_cache_dir,
+        "cloudtik-workspace-config-{}".format(config_hash))
     cached_config = load_config_from_cache(
         cache_key, CONFIG_CACHE_VERSION, no_config_cache)
     if cached_config is not None:
         return cached_config
 
-    cli_logger.print("Checking {} environment settings",
-                     _PROVIDER_PRETTY_NAMES.get(config["provider"]["type"]))
+    cli_logger.print(
+        "Checking {} environment settings",
+        _PROVIDER_PRETTY_NAMES.get(config["provider"]["type"]))
 
     try:
         validate_workspace_config(config)
@@ -456,15 +499,17 @@ def _bootstrap_workspace_config(config: Dict[str, Any],
     return resolved_config
 
 
-def _load_workspace_config(config_file: str,
-                           override_workspace_name: Optional[str] = None,
-                           should_bootstrap: bool = True,
-                           no_config_cache: bool = False) -> Dict[str, Any]:
+def _load_workspace_config(
+        config_file: str,
+        override_workspace_name: Optional[str] = None,
+        should_bootstrap: bool = True,
+        no_config_cache: bool = False) -> Dict[str, Any]:
     config = load_yaml_config(config_file)
     if override_workspace_name is not None:
         config["workspace_name"] = override_workspace_name
     if should_bootstrap:
-        config = _bootstrap_workspace_config(config, no_config_cache=no_config_cache)
+        config = _bootstrap_workspace_config(
+            config, no_config_cache=no_config_cache)
     return config
 
 
@@ -473,7 +518,8 @@ def prepare_workspace_config(config: Dict[str, Any]) -> Dict[str, Any]:
     return with_defaults
 
 
-def fill_with_workspace_defaults(config: Dict[str, Any]) -> Dict[str, Any]:
+def fill_with_workspace_defaults(
+        config: Dict[str, Any]) -> Dict[str, Any]:
     # Merge the config with user inheritance hierarchy and system defaults hierarchy
     merged_config = merge_config_hierarchy(
         config["provider"], config, False, "workspace-defaults")
@@ -483,9 +529,11 @@ def fill_with_workspace_defaults(config: Dict[str, Any]) -> Dict[str, Any]:
 def validate_workspace_config(config: Dict[str, Any]) -> None:
     """Required Dicts indicate that no extra fields can be introduced."""
     if not isinstance(config, dict):
-        raise ValueError("Config {} is not a dictionary".format(config))
+        raise ValueError(
+            "Config {} is not a dictionary".format(config))
 
     validate_schema_by_name(
         config, WORKSPACE_SCHEMA_NAME, WORKSPACE_SCHEMA_REFS)
-    provider = _get_workspace_provider(config["provider"], config["workspace_name"])
+    provider = _get_workspace_provider(
+        config["provider"], config["workspace_name"])
     provider.validate_config(config["provider"])

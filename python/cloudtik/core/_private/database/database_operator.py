@@ -37,10 +37,12 @@ def _delete_database(
         config["provider"], workspace_name, database_name)
     database_info = provider.get_info(config)
     if not database_info:
-        raise RuntimeError(f"Database with the name {database_name} doesn't exist!")
+        raise RuntimeError(
+            f"Database with the name {database_name} doesn't exist!")
     else:
-        cli_logger.confirm(yes, "Are you sure that you want to delete database {}?",
-                           config["database_name"], _abort=True)
+        cli_logger.confirm(
+            yes, "Are you sure that you want to delete database {}?",
+            config["database_name"], _abort=True)
         provider.delete(config)
 
 
@@ -82,10 +84,12 @@ def _create_database(
         config["provider"], workspace_name, database_name)
     database_info = provider.get_info(config)
     if database_info:
-        raise RuntimeError(f"A database with the name {database_name} already exists!")
+        raise RuntimeError(
+            f"A database with the name {database_name} already exists!")
     else:
-        cli_logger.confirm(yes, "Are you sure that you want to create database {}?",
-                           database_name, _abort=True)
+        cli_logger.confirm(
+            yes, "Are you sure that you want to create database {}?",
+            database_name, _abort=True)
         provider.create(config)
 
 
@@ -109,7 +113,8 @@ def show_database_info(
     config = _load_database_config(config_file, override_database_name)
     database_info = _get_database_info(config)
     if not database_info:
-        cli_logger.print("Database instance {} doesn't exist.", config["database_name"])
+        cli_logger.print(
+            "Database instance {} doesn't exist.", config["database_name"])
     else:
         print_dict_info(database_info)
 
@@ -123,15 +128,17 @@ def _bootstrap_database_config(
 
     config_hash = get_json_object_hash([config])
     config_cache_dir = os.path.join(get_cloudtik_temp_dir(), "configs")
-    cache_key = os.path.join(config_cache_dir,
-                             "cloudtik-database-config-{}".format(config_hash))
+    cache_key = os.path.join(
+        config_cache_dir,
+        "cloudtik-database-config-{}".format(config_hash))
     cached_config = load_config_from_cache(
         cache_key, CONFIG_CACHE_VERSION, no_config_cache)
     if cached_config is not None:
         return cached_config
 
-    cli_logger.print("Checking {} environment settings",
-                     _PROVIDER_PRETTY_NAMES.get(config["provider"]["type"]))
+    cli_logger.print(
+        "Checking {} environment settings",
+        _PROVIDER_PRETTY_NAMES.get(config["provider"]["type"]))
 
     try:
         validate_database_config(config)
@@ -156,7 +163,8 @@ def _load_database_config(
     if override_database_name is not None:
         config["database_name"] = override_database_name
     if should_bootstrap:
-        config = _bootstrap_database_config(config, no_config_cache=no_config_cache)
+        config = _bootstrap_database_config(
+            config, no_config_cache=no_config_cache)
     return config
 
 
@@ -175,9 +183,11 @@ def fill_with_database_defaults(config: Dict[str, Any]) -> Dict[str, Any]:
 def validate_database_config(config: Dict[str, Any]) -> None:
     """Required Dicts indicate that no extra fields can be introduced."""
     if not isinstance(config, dict):
-        raise ValueError("Config {} is not a dictionary".format(config))
+        raise ValueError(
+            "Config {} is not a dictionary".format(config))
 
-    validate_schema_by_name(config, DATABASE_SCHEMA_NAME, DATABASE_SCHEMA_REFS)
+    validate_schema_by_name(
+        config, DATABASE_SCHEMA_NAME, DATABASE_SCHEMA_REFS)
     provider = _get_database_provider(
         config["provider"], config["workspace_name"], config["database_name"])
     provider.validate_config(config["provider"])
