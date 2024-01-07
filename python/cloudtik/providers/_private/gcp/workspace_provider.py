@@ -18,20 +18,23 @@ logger = logging.getLogger(__name__)
 
 class GCPWorkspaceProvider(WorkspaceProvider):
     def __init__(self, provider_config, workspace_name):
-        WorkspaceProvider.__init__(self, provider_config, workspace_name)
+        WorkspaceProvider.__init__(
+            self, provider_config, workspace_name)
 
     def create_workspace(self, config):
         create_gcp_workspace(config)
 
-    def delete_workspace(self, config,
-                         delete_managed_storage: bool = False,
-                         delete_managed_database: bool = False):
+    def delete_workspace(
+            self, config,
+            delete_managed_storage: bool = False,
+            delete_managed_database: bool = False):
         delete_gcp_workspace(
             config, delete_managed_storage, delete_managed_database)
 
-    def update_workspace(self, config: Dict[str, Any],
-                         delete_managed_storage: bool = False,
-                         delete_managed_database: bool = False):
+    def update_workspace(
+            self, config: Dict[str, Any],
+            delete_managed_storage: bool = False,
+            delete_managed_database: bool = False):
         update_gcp_workspace(
             config, delete_managed_storage, delete_managed_database)
 
@@ -53,8 +56,9 @@ class GCPWorkspaceProvider(WorkspaceProvider):
             self, config: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         return list_gcp_databases(config)
 
-    def publish_global_variables(self, cluster_config: Dict[str, Any],
-                                 global_variables: Dict[str, Any]):
+    def publish_global_variables(
+            self, cluster_config: Dict[str, Any],
+            global_variables: Dict[str, Any]):
         """
         The global variables implements as labels. The following basic restrictions apply to labels:
         Each resource can have multiple labels, up to a maximum of 64.
@@ -73,13 +77,15 @@ class GCPWorkspaceProvider(WorkspaceProvider):
             global_variables_prefixed[prefixed_name] = string_to_hex_string(
                 global_variables[name])
 
-        provider = _get_node_provider(cluster_config["provider"], cluster_config["cluster_name"])
+        provider = _get_node_provider(
+            cluster_config["provider"], cluster_config["cluster_name"])
         head_node_id = get_running_head_node(cluster_config, provider)
         provider.set_node_tags(head_node_id, global_variables_prefixed)
 
     def subscribe_global_variables(self, cluster_config: Dict[str, Any]):
         global_variables = {}
-        head_nodes = get_workspace_head_nodes(self.provider_config, self.workspace_name)
+        head_nodes = get_workspace_head_nodes(
+            self.provider_config, self.workspace_name)
         for head in head_nodes:
             for key, value in head.get("labels", {}).items():
                 if key.startswith(CLOUDTIK_GLOBAL_VARIABLE_KEY_PREFIX):
@@ -92,9 +98,11 @@ class GCPWorkspaceProvider(WorkspaceProvider):
     def validate_config(self, provider_config: Dict[str, Any]):
         if len(self.workspace_name) > GCP_WORKSPACE_NAME_MAX_LEN or \
                 not check_workspace_name_format(self.workspace_name):
-            raise RuntimeError("{} workspace name is between 1 and {} characters, "
-                               "and can only contain lowercase alphanumeric "
-                               "characters and dashes".format(provider_config["type"], GCP_WORKSPACE_NAME_MAX_LEN))
+            raise RuntimeError(
+                "{} workspace name is between 1 and {} characters, "
+                "and can only contain lowercase alphanumeric "
+                "characters and dashes".format(
+                    provider_config["type"], GCP_WORKSPACE_NAME_MAX_LEN))
 
     def get_workspace_info(self, config: Dict[str, Any]):
         return get_gcp_workspace_info(config)

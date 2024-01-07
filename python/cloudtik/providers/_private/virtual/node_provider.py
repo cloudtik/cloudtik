@@ -77,16 +77,17 @@ class VirtualNodeProvider(NodeProvider):
             self, node_type_config: Dict[str, Any], node_id: str):
         return {}
 
-    def get_command_executor(self,
-                             call_context: CallContext,
-                             log_prefix: str,
-                             node_id: str,
-                             auth_config: Dict[str, Any],
-                             cluster_name: str,
-                             process_runner: ModuleType,
-                             use_internal_ip: bool,
-                             docker_config: Optional[Dict[str, Any]] = None
-                             ) -> CommandExecutor:
+    def get_command_executor(
+            self,
+            call_context: CallContext,
+            log_prefix: str,
+            node_id: str,
+            auth_config: Dict[str, Any],
+            cluster_name: str,
+            process_runner: ModuleType,
+            use_internal_ip: bool,
+            docker_config: Optional[Dict[str, Any]] = None
+    ) -> CommandExecutor:
 
         return self.virtual_scheduler.get_command_executor(
             call_context=call_context,
@@ -156,7 +157,8 @@ class VirtualNodeProvider(NodeProvider):
         return bootstrap_virtual(cluster_config)
 
     @staticmethod
-    def bootstrap_config_for_api(cluster_config: Dict[str, Any]) -> Dict[str, Any]:
+    def bootstrap_config_for_api(
+            cluster_config: Dict[str, Any]) -> Dict[str, Any]:
         return bootstrap_virtual_for_api(cluster_config)
 
     @staticmethod

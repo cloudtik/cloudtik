@@ -172,14 +172,16 @@ def get_cluster_name_from_node(node_info) -> Optional[str]:
 
 def get_available_nodes(provider_config: Dict[str, Any]):
     if CONFIG_KEY_NODES not in provider_config:
-        raise RuntimeError("No 'nodes' defined in provider configuration.")
+        raise RuntimeError(
+            "No 'nodes' defined in provider configuration.")
 
     return provider_config[CONFIG_KEY_NODES]
 
 
 def _get_request_instance_type(node_config):
     if "instance_type" not in node_config:
-        raise ValueError("Invalid node request. 'instance_type' is required.")
+        raise ValueError(
+            "Invalid node request. 'instance_type' is required.")
     return node_config["instance_type"]
 
 
@@ -191,7 +193,8 @@ def _get_node_id_mapping(provider_config: Dict[str, Any]):
 def _get_node_instance_type(node_id_mapping, node_id):
     node = node_id_mapping.get(node_id)
     if node is None:
-        raise RuntimeError(f"Node with ip {node_id} is not found in the original node list.")
+        raise RuntimeError(
+            f"Node with ip {node_id} is not found in the original node list.")
     return node["instance_type"]
 
 
@@ -213,7 +216,8 @@ def set_node_types_resources(
             "instance_type", LOCAL_INSTANCE_TYPE)
         instance_type = instance_types.get(instance_type_name)
         if not instance_type:
-            raise RuntimeError("Instance type: {} is not defined.".format(instance_type_name))
+            raise RuntimeError(
+                "Instance type: {} is not defined.".format(instance_type_name))
         resource_spec = ResourceSpec().resolve(available_memory=True)
         detected_resources = {}
 

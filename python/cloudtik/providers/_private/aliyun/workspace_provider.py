@@ -22,14 +22,16 @@ class AliyunWorkspaceProvider(WorkspaceProvider):
     def create_workspace(self, config):
         create_aliyun_workspace(config)
 
-    def delete_workspace(self, config,
-                         delete_managed_storage: bool = False,
-                         delete_managed_database:bool = False):
+    def delete_workspace(
+            self, config,
+            delete_managed_storage: bool = False,
+            delete_managed_database: bool = False):
         delete_aliyun_workspace(config, delete_managed_storage)
 
-    def update_workspace(self, config: Dict[str, Any],
-                         delete_managed_storage: bool = False,
-                         delete_managed_database: bool = False):
+    def update_workspace(
+            self, config: Dict[str, Any],
+            delete_managed_storage: bool = False,
+            delete_managed_database: bool = False):
         update_aliyun_workspace(
             config, delete_managed_storage, delete_managed_database)
 
@@ -47,8 +49,9 @@ class AliyunWorkspaceProvider(WorkspaceProvider):
             self, config: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         return list_aliyun_storages(config)
 
-    def publish_global_variables(self, cluster_config: Dict[str, Any],
-                                 global_variables: Dict[str, Any]):
+    def publish_global_variables(
+            self, cluster_config: Dict[str, Any],
+            global_variables: Dict[str, Any]):
         """
         The global variables implements as tags. The following basic restrictions apply to tags:
         Maximum number of tags that can be added to a single resource: 20
@@ -64,7 +67,8 @@ class AliyunWorkspaceProvider(WorkspaceProvider):
             prefixed_name = CLOUDTIK_GLOBAL_VARIABLE_KEY.format(name)
             global_variables_prefixed[prefixed_name] = global_variables[name]
 
-        provider = _get_node_provider(cluster_config["provider"], cluster_config["cluster_name"])
+        provider = _get_node_provider(
+            cluster_config["provider"], cluster_config["cluster_name"])
         head_node_id = get_running_head_node(cluster_config, provider)
         provider.set_node_tags(head_node_id, global_variables_prefixed)
 
@@ -84,9 +88,11 @@ class AliyunWorkspaceProvider(WorkspaceProvider):
     def validate_config(self, provider_config: Dict[str, Any]):
         if len(self.workspace_name) > ALIYUN_WORKSPACE_NAME_MAX_LEN or \
                 not check_workspace_name_format(self.workspace_name):
-            raise RuntimeError("{} workspace name is between 1 and {} characters, "
-                               "and can only contain lowercase alphanumeric "
-                               "characters and dashes".format(provider_config["type"], ALIYUN_WORKSPACE_NAME_MAX_LEN))
+            raise RuntimeError(
+                "{} workspace name is between 1 and {} characters, "
+                "and can only contain lowercase alphanumeric "
+                "characters and dashes".format(
+                    provider_config["type"], ALIYUN_WORKSPACE_NAME_MAX_LEN))
 
     def get_workspace_info(self, config: Dict[str, Any]):
         return get_aliyun_workspace_info(config)

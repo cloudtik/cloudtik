@@ -26,25 +26,30 @@ class HUAWEICLOUDWorkspaceProvider(WorkspaceProvider):
     this features depends on some new tags created on each resource
     but the number of tags for the resource may exceed and cannot be tagged.
     """
-    def __init__(self, provider_config: Dict[str, Any],
-                 workspace_name: str) -> None:
-        WorkspaceProvider.__init__(self, provider_config, workspace_name)
+    def __init__(
+            self, provider_config: Dict[str, Any],
+            workspace_name: str) -> None:
+        WorkspaceProvider.__init__(
+            self, provider_config, workspace_name)
 
     def create_workspace(self, config: Dict[str, Any]):
         create_huaweicloud_workspace(config)
 
-    def delete_workspace(self, config: Dict[str, Any],
-                         delete_managed_storage: bool = False,
-                         delete_managed_database:bool = False):
+    def delete_workspace(
+            self, config: Dict[str, Any],
+            delete_managed_storage: bool = False,
+            delete_managed_database: bool = False):
         delete_huaweicloud_workspace(config, delete_managed_storage)
 
-    def update_workspace(self, config: Dict[str, Any],
-                         delete_managed_storage: bool = False,
-                         delete_managed_database: bool = False):
+    def update_workspace(
+            self, config: Dict[str, Any],
+            delete_managed_storage: bool = False,
+            delete_managed_database: bool = False):
         update_huaweicloud_workspace(
             config, delete_managed_storage, delete_managed_database)
 
-    def check_workspace_existence(self, config: Dict[str, Any]) -> Existence:
+    def check_workspace_existence(
+            self, config: Dict[str, Any]) -> Existence:
         return check_huaweicloud_workspace_existence(config)
 
     def check_workspace_integrity(self, config: Dict[str, Any]) -> bool:
@@ -58,8 +63,9 @@ class HUAWEICLOUDWorkspaceProvider(WorkspaceProvider):
             self, config: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         return list_huaweicloud_storages(config)
 
-    def publish_global_variables(self, cluster_config: Dict[str, Any],
-                                 global_variables: Dict[str, Any]):
+    def publish_global_variables(
+            self, cluster_config: Dict[str, Any],
+            global_variables: Dict[str, Any]):
         """
         The global variables implements as tags. The following basic restrictions apply to tags:
         Each resource supports up to 10 key-value pairs.
@@ -75,15 +81,18 @@ class HUAWEICLOUDWorkspaceProvider(WorkspaceProvider):
             prefixed_name = CLOUDTIK_GLOBAL_VARIABLE_KEY.format(name)
             global_variables_prefixed[prefixed_name] = global_variables[name]
 
-        provider = _get_node_provider(cluster_config['provider'],
-                                      cluster_config['cluster_name'])
+        provider = _get_node_provider(
+            cluster_config['provider'],
+            cluster_config['cluster_name'])
         head_node_id = get_running_head_node(cluster_config, provider)
         provider.set_node_tags(head_node_id, global_variables_prefixed)
 
-    def subscribe_global_variables(self, cluster_config: Dict[str, Any]):
+    def subscribe_global_variables(
+            self, cluster_config: Dict[str, Any]):
         global_variables = {}
-        head_nodes = _get_workspace_head_nodes(self.provider_config,
-                                               self.workspace_name)
+        head_nodes = _get_workspace_head_nodes(
+            self.provider_config,
+            self.workspace_name)
         for head in head_nodes:
             # Huawei Cloud server tags format:
             # ['key1=value1', 'key2=value2', 'key3=value3']
@@ -97,8 +106,8 @@ class HUAWEICLOUDWorkspaceProvider(WorkspaceProvider):
         return global_variables
 
     def validate_config(self, provider_config: Dict[str, Any]):
-        if len(self.workspace_name) > HUAWEICLOUD_WORKSPACE_NAME_MAX_LEN or \
-                not check_workspace_name_format(self.workspace_name):
+        if (len(self.workspace_name) > HUAWEICLOUD_WORKSPACE_NAME_MAX_LEN
+                or not check_workspace_name_format(self.workspace_name)):
             raise RuntimeError(
                 "{} workspace name is between 1 and {} characters, "
                 "and can only contain lowercase alphanumeric "

@@ -13,7 +13,9 @@ def validate_config_dict(provider_type, config_dict: Dict[str, Any]) -> None:
     for key, value in config_dict.items():
         if value is None:
             provider_config_failed = True
-            logger.info("{} must be define in your yaml, please refer to the config schema.".format(key))
+            logger.info(
+                "{} must be define in your yaml, please refer to the config schema.".format(key))
     if provider_config_failed:
-        raise RuntimeError("{} provider must be provided the right config, "
-                           "please refer to the config schema.".format(provider_type))
+        raise RuntimeError(
+            "{} provider must be provided the right config, "
+            "please refer to the config schema.".format(provider_type))

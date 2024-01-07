@@ -8,8 +8,10 @@ logger = logging.getLogger(__name__)
 
 class VirtualDockerCommandExecutor(DockerCommandExecutor):
     def __init__(
-            self, call_context, docker_config, remote_host: bool = True, **common_args):
-        super().__init__(call_context, docker_config, remote_host, **common_args)
+            self, call_context, docker_config,
+            remote_host: bool = True, **common_args):
+        super().__init__(
+            call_context, docker_config, remote_host, **common_args)
 
     def run_rsync_up(self, source, target, options=None):
         # since docker has been started as part of node creation
@@ -19,8 +21,9 @@ class VirtualDockerCommandExecutor(DockerCommandExecutor):
             options["docker_mount_if_possible"] = False
         super().run_rsync_up(source, target, options)
 
-    def run_init(self, *, as_head: bool, file_mounts: Dict[str, str],
-                 shared_memory_ratio: float, sync_run_yet: bool) -> Optional[bool]:
+    def run_init(
+            self, *, as_head: bool, file_mounts: Dict[str, str],
+            shared_memory_ratio: float, sync_run_yet: bool) -> Optional[bool]:
         pass
 
     def run_terminate(self):

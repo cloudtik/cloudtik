@@ -20,7 +20,8 @@ from cloudtik.providers._private._kubernetes import core_api, log_prefix, \
     networking_api
 from cloudtik.providers._private._kubernetes.config import bootstrap_kubernetes, \
     post_prepare_kubernetes, _add_service_name_to_service_port, head_service_selector, \
-    bootstrap_kubernetes_for_api, cleanup_kubernetes_cluster, with_kubernetes_environment_variables, get_head_hostname, \
+    bootstrap_kubernetes_for_api, cleanup_kubernetes_cluster, \
+    with_kubernetes_environment_variables, get_head_hostname, \
     get_worker_hostname, prepare_kubernetes_config, _get_node_info, \
     _get_node_public_ip, get_default_kubernetes_cloud_storage, get_default_kubernetes_cloud_database
 from cloudtik.providers._private._kubernetes.utils import to_label_selector, \
@@ -47,9 +48,11 @@ class KubernetesNodeProvider(NodeProvider):
         self.cluster_name = cluster_name
         self.namespace = provider_config["namespace"]
 
-    def with_environment_variables(self, node_type_config: Dict[str, Any], node_id: str):
+    def with_environment_variables(
+            self, node_type_config: Dict[str, Any], node_id: str):
         """Export necessary environment variables for running node commands"""
-        return with_kubernetes_environment_variables(self.provider_config, node_type_config, node_id)
+        return with_kubernetes_environment_variables(
+            self.provider_config, node_type_config, node_id)
 
     def non_terminated_nodes(self, tag_filters):
         # Match pods that are in the 'Pending' or 'Running' phase.
@@ -78,7 +81,8 @@ class KubernetesNodeProvider(NodeProvider):
 
     def get_node_info(self, node_id):
         pod = core_api().read_namespaced_pod(node_id, self.namespace)
-        return _get_node_info(pod, self.provider_config, self.namespace, self.cluster_name)
+        return _get_node_info(
+            pod, self.provider_config, self.namespace, self.cluster_name)
 
     def is_running(self, node_id):
         pod = core_api().read_namespaced_pod(node_id, self.namespace)
@@ -107,7 +111,8 @@ class KubernetesNodeProvider(NodeProvider):
 
     def get_node_id(self, ip_address, use_internal_ip=True) -> str:
         if not use_internal_ip:
-            raise ValueError("Must use internal IPs with Kubernetes.")
+            raise ValueError(
+                "Must use internal IPs with Kubernetes.")
         return super().get_node_id(ip_address, use_internal_ip=use_internal_ip)
 
     def set_node_tags(self, node_ids, tags):
@@ -117,8 +122,8 @@ class KubernetesNodeProvider(NodeProvider):
                 return
             except ApiException as e:
                 if e.status == 409:
-                    logger.info(log_prefix + "Caught a 409 error while setting"
-                                " node tags. Retrying...")
+                    logger.info(
+                        log_prefix + "Caught a 409 error while setting node tags. Retrying...")
                     time.sleep(DELAY_BEFORE_TAG_RETRY)
                     continue
                 else:
@@ -168,14 +173,16 @@ class KubernetesNodeProvider(NodeProvider):
                 pod = core_api().create_namespaced_pod(self.namespace, _pod_spec)
                 new_nodes.append(pod)
             except ApiException:
-                logger.error("Error happened when creating the pod. Try clean up its PVCs...")
+                logger.error(
+                    "Error happened when creating the pod. Try clean up its PVCs...")
                 delete_persistent_volume_claims(created_pvcs, self.namespace)
                 raise
 
         new_svcs = []
         if service_spec is not None:
-            logger.debug(log_prefix + "calling create_namespaced_service "
-                                      "(count={}).".format(count))
+            logger.debug(
+                log_prefix + "calling create_namespaced_service "
+                             "(count={}).".format(count))
 
             for new_node in new_nodes:
                 metadata = service_spec.get("metadata", {})
@@ -187,40 +194,50 @@ class KubernetesNodeProvider(NodeProvider):
                 new_svcs.append(svc)
 
         if ingress_spec is not None:
-            logger.debug(log_prefix + "calling create_namespaced_ingress "
-                         "(count={}).".format(count))
+            logger.debug(
+                log_prefix + "calling create_namespaced_ingress "
+                             "(count={}).".format(count))
             for new_svc in new_svcs:
                 metadata = ingress_spec.get("metadata", {})
                 metadata["name"] = new_svc.metadata.name
                 ingress_spec["metadata"] = metadata
                 ingress_spec = _add_service_name_to_service_port(
                     ingress_spec, new_svc.metadata.name)
-                networking_api().create_namespaced_ingress(self.namespace, ingress_spec)
+                networking_api().create_namespaced_ingress(
+                    self.namespace, ingress_spec)
 
     def terminate_node(self, node_id):
-        logger.debug(log_prefix + f"Deleting PVCs for pod: {node_id}.")
+        logger.debug(
+            log_prefix + f"Deleting PVCs for pod: {node_id}.")
 
-        pod_pvcs = get_pod_persistent_volume_claims(node_id, self.cluster_name, self.namespace)
+        pod_pvcs = get_pod_persistent_volume_claims(
+            node_id, self.cluster_name, self.namespace)
 
-        logger.debug(log_prefix + "Calling delete_namespaced_pod")
+        logger.debug(
+            log_prefix + "Calling delete_namespaced_pod")
         try:
             core_api().delete_namespaced_pod(node_id, self.namespace)
         except ApiException as e:
             if e.status == 404:
-                logger.warning(log_prefix + f"Tried to delete pod {node_id},"
-                               " but the pod was not found (404).")
+                logger.warning(
+                    log_prefix + f"Tried to delete pod {node_id},"
+                                 " but the pod was not found (404).")
             else:
                 raise
 
         try:
-            if not _is_permanent_data_volumes(self.provider_config):
-                delete_persistent_volume_claims_by_name(pod_pvcs, self.namespace)
+            if not _is_permanent_data_volumes(
+                    self.provider_config):
+                delete_persistent_volume_claims_by_name(
+                    pod_pvcs, self.namespace)
         except ApiException:
-            logger.warning(log_prefix + f"Error happened when deleting PVCs of pod {node_id}.")
+            logger.warning(
+                log_prefix + f"Error happened when deleting PVCs of pod {node_id}.")
             pass
 
         try:
-            core_api().delete_namespaced_service(node_id, self.namespace)
+            core_api().delete_namespaced_service(
+                node_id, self.namespace)
         except ApiException:
             pass
 
@@ -236,20 +253,24 @@ class KubernetesNodeProvider(NodeProvider):
         for node_id in node_ids:
             self.terminate_node(node_id)
 
-    def get_command_executor(self,
-                             call_context: CallContext,
-                             log_prefix,
-                             node_id,
-                             auth_config,
-                             cluster_name,
-                             process_runner,
-                             use_internal_ip,
-                             docker_config=None):
-        return KubernetesCommandExecutor(call_context, log_prefix, self.namespace,
-                                         node_id, auth_config, process_runner)
+    def get_command_executor(
+            self,
+            call_context: CallContext,
+            log_prefix,
+            node_id,
+            auth_config,
+            cluster_name,
+            process_runner,
+            use_internal_ip,
+            docker_config=None):
+        return KubernetesCommandExecutor(
+            call_context, log_prefix, self.namespace,
+            node_id, auth_config, process_runner)
 
     def prepare_config_for_head(
-            self, cluster_config: Dict[str, Any], remote_config: Dict[str, Any]) -> Dict[str, Any]:
+            self,
+            cluster_config: Dict[str, Any],
+            remote_config: Dict[str, Any]) -> Dict[str, Any]:
         # rsync ssh_public_key to head node authorized_keys,
         if not is_use_internal_ip(cluster_config):
             cluster_config["file_mounts"].update({
@@ -273,20 +294,24 @@ class KubernetesNodeProvider(NodeProvider):
             self, cluster_config: Dict[str, Any], deep: bool = False):
         """Finalize the cluster by cleanup additional resources other than the nodes."""
         cleanup_kubernetes_cluster(
-            self.provider_config, self.cluster_name, self.namespace,
+            self.provider_config,
+            self.cluster_name, self.namespace,
             cluster_config, deep)
 
     @staticmethod
-    def bootstrap_config_for_api(cluster_config: Dict[str, Any]) -> Dict[str, Any]:
+    def bootstrap_config_for_api(
+            cluster_config: Dict[str, Any]) -> Dict[str, Any]:
         return bootstrap_kubernetes_for_api(cluster_config)
 
     @staticmethod
-    def prepare_config(cluster_config: Dict[str, Any]) -> Dict[str, Any]:
+    def prepare_config(
+            cluster_config: Dict[str, Any]) -> Dict[str, Any]:
         return prepare_kubernetes_config(cluster_config)
 
     @staticmethod
     def post_prepare(cluster_config):
-        """Fills out missing fields after the user config is merged with defaults and before validate"""
+        """Fills out missing fields after the user config
+        is merged with defaults and before validate"""
         return post_prepare_kubernetes(cluster_config)
 
     @staticmethod
@@ -295,5 +320,4 @@ class KubernetesNodeProvider(NodeProvider):
         config_dict = {
             "namespace": provider_config.get("namespace"),
             }
-
         validate_config_dict(provider_config["type"], config_dict)

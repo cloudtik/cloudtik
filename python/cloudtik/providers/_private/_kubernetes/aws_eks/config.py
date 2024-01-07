@@ -62,10 +62,12 @@ AWS_KUBERNETES_TARGET_RESOURCES = 4
 
 def _check_eks_cluster_name(cloud_provider):
     if "eks_cluster_name" not in cloud_provider:
-        raise ValueError("Must specify 'eks_cluster_name' in cloud provider for AWS.")
+        raise ValueError(
+            "Must specify 'eks_cluster_name' in cloud provider for AWS.")
 
 
-def create_configurations_for_aws(config: Dict[str, Any], namespace, cloud_provider):
+def create_configurations_for_aws(
+        config: Dict[str, Any], namespace, cloud_provider):
     workspace_name = config["workspace_name"]
     managed_cloud_storage = _is_managed_cloud_storage(cloud_provider)
     managed_cloud_database = _is_managed_cloud_database(cloud_provider)
@@ -82,7 +84,8 @@ def create_configurations_for_aws(config: Dict[str, Any], namespace, cloud_provi
             "Creating IAM based access for Kubernetes",
             _numbered=("[]", current_step, total_steps)):
         current_step += 1
-        _create_iam_based_access_for_kubernetes(config, namespace, cloud_provider)
+        _create_iam_based_access_for_kubernetes(
+            config, namespace, cloud_provider)
 
     # Optionally, create managed cloud storage (s3 bucket) if user choose to
     if managed_cloud_storage:
@@ -90,7 +93,8 @@ def create_configurations_for_aws(config: Dict[str, Any], namespace, cloud_provi
                 "Creating S3 bucket",
                 _numbered=("[]", current_step, total_steps)):
             current_step += 1
-            _create_managed_cloud_storage(cloud_provider, workspace_name)
+            _create_managed_cloud_storage(
+                cloud_provider, workspace_name)
 
     if managed_cloud_database:
         with cli_logger.group(
@@ -127,7 +131,8 @@ def _create_managed_cloud_database_for_eks(cloud_provider, workspace_name):
 
 
 def _get_database_security_group_id(cloud_provider, workspace_name, vpc_id):
-    group_name = AWS_KUBERNETES_SECURITY_GROUP_TEMPLATE.format(workspace_name)
+    group_name = AWS_KUBERNETES_SECURITY_GROUP_TEMPLATE.format(
+        workspace_name)
     security_group = _get_security_group(
         cloud_provider, vpc_id, group_name)
     if security_group is None:
@@ -156,12 +161,14 @@ def _create_database_security_group(cloud_provider, workspace_name, vpc_id):
 
 
 def _add_security_group_rules(cloud_provider, security_group):
-    cli_logger.print("Updating rules for security group: {}...".format(
-        security_group.id))
+    cli_logger.print(
+        "Updating rules for security group: {}...",
+        security_group.id)
     security_group_ids = {security_group.id}
     ip_permissions = _create_default_intra_cluster_inbound_rules(security_group_ids)
     _update_inbound_rules(security_group, ip_permissions)
-    cli_logger.print("Successfully updated rules for security group.")
+    cli_logger.print(
+        "Successfully updated rules for security group.")
 
 
 def get_eks_vpc_and_subnet_ids(cloud_provider):
@@ -174,20 +181,23 @@ def get_eks_vpc_and_subnet_ids(cloud_provider):
 
     eks_cluster = eks_cluster_info["cluster"]
     if "resourcesVpcConfig" not in eks_cluster:
-        raise RuntimeError("No VPC config found for EKS cluster: {}".format(
-            eks_cluster_name))
+        raise RuntimeError(
+            "No VPC config found for EKS cluster: {}".format(
+                eks_cluster_name))
 
     vpc_config = eks_cluster["resourcesVpcConfig"]
     if "subnetIds" not in vpc_config or "vpcId" not in vpc_config:
-        raise RuntimeError("No vpc or subnets information found for EKS cluster: {}".format(
-            eks_cluster_name))
+        raise RuntimeError(
+            "No VPC or subnets information found for EKS cluster: {}".format(
+                eks_cluster_name))
 
     return vpc_config["vpcId"], vpc_config["subnetIds"]
 
 
-def delete_configurations_for_aws(config: Dict[str, Any], namespace, cloud_provider,
-                                  delete_managed_storage: bool = False,
-                                  delete_managed_database: bool = False):
+def delete_configurations_for_aws(
+        config: Dict[str, Any], namespace, cloud_provider,
+        delete_managed_storage: bool = False,
+        delete_managed_database: bool = False):
     workspace_name = config["workspace_name"]
     managed_cloud_storage = _is_managed_cloud_storage(cloud_provider)
     managed_cloud_database = _is_managed_cloud_database(cloud_provider)
@@ -205,21 +215,24 @@ def delete_configurations_for_aws(config: Dict[str, Any], namespace, cloud_provi
                 "Deleting managed cloud database",
                 _numbered=("[]", current_step, total_steps)):
             current_step += 1
-            _delete_managed_cloud_database_for_eks(cloud_provider, workspace_name)
+            _delete_managed_cloud_database_for_eks(
+                cloud_provider, workspace_name)
 
     if managed_cloud_storage and delete_managed_storage:
         with cli_logger.group(
                 "Deleting S3 bucket",
                 _numbered=("[]", current_step, total_steps)):
             current_step += 1
-            _delete_managed_cloud_storage(cloud_provider, workspace_name)
+            _delete_managed_cloud_storage(
+                cloud_provider, workspace_name)
 
     # Delete S3 IAM role based access for Kubernetes service accounts
     with cli_logger.group(
             "Deleting IAM based access for Kubernetes",
             _numbered=("[]", current_step, total_steps)):
         current_step += 1
-        _delete_iam_based_access_for_kubernetes(config, namespace, cloud_provider)
+        _delete_iam_based_access_for_kubernetes(
+            config, namespace, cloud_provider)
 
 
 def _delete_managed_cloud_database_for_eks(cloud_provider, workspace_name):
@@ -245,7 +258,8 @@ def _delete_managed_cloud_database_for_eks(cloud_provider, workspace_name):
 
 def _delete_database_security_group(
         cloud_provider, workspace_name, vpc_id):
-    security_group_name = AWS_KUBERNETES_SECURITY_GROUP_TEMPLATE.format(workspace_name)
+    security_group_name = AWS_KUBERNETES_SECURITY_GROUP_TEMPLATE.format(
+        workspace_name)
     _delete_security_group(
         cloud_provider, vpc_id, security_group_name
     )
@@ -267,7 +281,8 @@ def update_configurations_for_aws(
         total_steps += 1
 
     if total_steps == 0:
-        cli_logger.print("No configurations needed for update. Skip update.")
+        cli_logger.print(
+            "No configurations needed for update. Skip update.")
         return
 
     if managed_cloud_storage:
@@ -275,14 +290,16 @@ def update_configurations_for_aws(
                 "Creating managed cloud storage...",
                 _numbered=("[]", current_step, total_steps)):
             current_step += 1
-            _create_managed_cloud_storage(cloud_provider, workspace_name)
+            _create_managed_cloud_storage(
+                cloud_provider, workspace_name)
     else:
         if delete_managed_storage:
             with cli_logger.group(
                     "Deleting managed cloud storage",
                     _numbered=("[]", current_step, total_steps)):
                 current_step += 1
-                _delete_managed_cloud_storage(cloud_provider, workspace_name)
+                _delete_managed_cloud_storage(
+                    cloud_provider, workspace_name)
 
     if managed_cloud_database:
         with cli_logger.group(
@@ -301,10 +318,12 @@ def update_configurations_for_aws(
                     cloud_provider, workspace_name)
 
 
-def _create_iam_based_access_for_kubernetes(config: Dict[str, Any], namespace, cloud_provider):
+def _create_iam_based_access_for_kubernetes(
+        config: Dict[str, Any], namespace, cloud_provider):
     # 1. Create an IAM OIDC provider for your cluster
-    # 2. Create an IAM role and attach an IAM policy to it with the permissions that your service accounts need
-    #    We recommend creating separate roles for each unique collection of permissions that pods need.
+    # 2. Create an IAM role and attach an IAM policy to it with the permissions
+    # that your service accounts need. We recommend creating separate roles for
+    # each unique collection of permissions that pods need.
     # 3. Associate an IAM role with a service account
     workspace_name = config["workspace_name"]
 
@@ -327,23 +346,29 @@ def _create_iam_based_access_for_kubernetes(config: Dict[str, Any], namespace, c
             "Associating IAM role with Kubernetes service account",
             _numbered=("[]", current_step, total_steps)):
         current_step += 1
-        _associate_oidc_iam_role_with_service_account(config, cloud_provider, namespace)
+        _associate_oidc_iam_role_with_service_account(
+            config, cloud_provider, namespace)
 
 
 def _create_oidc_identity_provider(cloud_provider, workspace_name):
     _check_eks_cluster_name(cloud_provider)
     eks_cluster_name = cloud_provider["eks_cluster_name"]
-    oidc_provider_url = _get_eks_cluster_oidc_identity_issuer(cloud_provider, eks_cluster_name)
+    oidc_provider_url = _get_eks_cluster_oidc_identity_issuer(
+        cloud_provider, eks_cluster_name)
 
-    oidc_identity_provider = _get_oidc_identity_provider(cloud_provider, oidc_provider_url)
+    oidc_identity_provider = _get_oidc_identity_provider(
+        cloud_provider, oidc_provider_url)
     if oidc_identity_provider is not None:
-        cli_logger.print("Open ID Identity Provider already exists for : {}. Skip creation.", eks_cluster_name)
+        cli_logger.print(
+            "Open ID Identity Provider already exists for : {}. Skip creation.",
+            eks_cluster_name)
         return
 
     client_id = "sts.amazonaws.com"
     thumbprint = get_oidc_provider_thumbprint(oidc_provider_url)
 
-    cli_logger.print("Creating OIDC Identity Provider for: {}...", eks_cluster_name)
+    cli_logger.print(
+        "Creating OIDC Identity Provider for: {}...", eks_cluster_name)
 
     iam_client = _make_resource_client("iam", cloud_provider)
     response = iam_client.create_open_id_connect_provider(
@@ -362,12 +387,15 @@ def _create_oidc_identity_provider(cloud_provider, workspace_name):
         ]
     )
 
-    cli_logger.print("Successfully created OIDC Identity Provider for: {}.", eks_cluster_name)
+    cli_logger.print(
+        "Successfully created OIDC Identity Provider for: {}.",
+        eks_cluster_name)
     return response['OpenIDConnectProviderArn']
 
 
 def get_oidc_provider_thumbprint(oidc_provider_url):
-    server_name, server_port = _get_oidc_provider_server_name_and_port(oidc_provider_url)
+    server_name, server_port = _get_oidc_provider_server_name_and_port(
+        oidc_provider_url)
     thumbprint = get_root_ca_cert_thumbprint(server_name, server_port)
     return thumbprint
 
@@ -379,12 +407,14 @@ def _get_oidc_provider_server_name_and_port(oidc_provider_url):
         response = urllib.request.urlopen(openid_config_url, timeout=10)
         content = response.read()
     except urllib.error.HTTPError as e:
-        cli_logger.error("Failed to retrieve open id configuration. {}", str(e))
+        cli_logger.error(
+            "Failed to retrieve open id configuration. {}", str(e))
         raise e
 
     openid_configuration = json.loads(content)
     if "jwks_uri" not in openid_configuration:
-        raise RuntimeError("No jwks_uri property found for openid configuration.")
+        raise RuntimeError(
+            "No jwks_uri property found for openid configuration.")
 
     jwks_uri = openid_configuration["jwks_uri"]
     server_name, server_port = get_server_name_and_port(jwks_uri)
@@ -395,7 +425,8 @@ def get_server_name_and_port(uri):
     url_components = urllib.parse.urlparse(uri)
     netloc = url_components.netloc
     if netloc is None:
-        raise RuntimeError("No server component found for OIDC provider URL.")
+        raise RuntimeError(
+            "No server component found for OIDC provider URL.")
 
     server_parts = netloc.split(":")
     if len(server_parts) <= 1:
@@ -406,7 +437,8 @@ def get_server_name_and_port(uri):
     return netloc[0], int(netloc[1])
 
 
-def _get_eks_cluster_oidc_identity_issuer(cloud_provider, eks_cluster_name):
+def _get_eks_cluster_oidc_identity_issuer(
+        cloud_provider, eks_cluster_name):
     eks_client = _make_client("eks", cloud_provider)
 
     eks_cluster_info = eks_client.describe_cluster(
@@ -417,7 +449,8 @@ def _get_eks_cluster_oidc_identity_issuer(cloud_provider, eks_cluster_name):
     if "identity" not in eks_cluster or \
             "oidc" not in eks_cluster["identity"] or \
             "issuer" not in eks_cluster["identity"]["oidc"]:
-        raise RuntimeError("No OIDC provider found for EKS cluster: {}".format(eks_cluster_name))
+        raise RuntimeError(
+            "No OIDC provider found for EKS cluster: {}".format(eks_cluster_name))
 
     return eks_cluster["identity"]["oidc"]["issuer"]
 
@@ -437,19 +470,22 @@ def get_oidc_provider_role_name(eks_cluster_name, namespace):
 def _create_oidc_iam_role_and_policy(cloud_provider, namespace):
     _check_eks_cluster_name(cloud_provider)
     eks_cluster_name = cloud_provider["eks_cluster_name"]
-    oidc_provider_url = _get_eks_cluster_oidc_identity_issuer(cloud_provider, eks_cluster_name)
+    oidc_provider_url = _get_eks_cluster_oidc_identity_issuer(
+        cloud_provider, eks_cluster_name)
 
     account_id = get_current_account_id(cloud_provider)
     oidc_provider = get_oidc_provider_from_url(oidc_provider_url)
     role_name = get_oidc_provider_role_name(eks_cluster_name, namespace)
 
-    cli_logger.print("Creating IAM role and policy for: {}...", eks_cluster_name)
+    cli_logger.print(
+        "Creating IAM role and policy for: {}...", eks_cluster_name)
     _create_iam_role_and_policy(
         cloud_provider, role_name,
         account_id=account_id,
         oidc_provider=oidc_provider,
         namespace=namespace)
-    cli_logger.print("Successfully created IAM role and policy for: {}.", eks_cluster_name)
+    cli_logger.print(
+        "Successfully created IAM role and policy for: {}.", eks_cluster_name)
 
 
 def _create_iam_role_and_policy(
@@ -461,7 +497,8 @@ def _create_iam_role_and_policy(
             {
                 "Effect": "Allow",
                 "Principal": {
-                    "Federated": AWS_KUBERNETES_OPEN_ID_IDENTITY_PROVIDER_ARN.format(account_id, oidc_provider)
+                    "Federated": AWS_KUBERNETES_OPEN_ID_IDENTITY_PROVIDER_ARN.format(
+                        account_id, oidc_provider)
                 },
                 "Action": "sts:AssumeRoleWithWebIdentity",
                 "Condition": {
@@ -469,7 +506,8 @@ def _create_iam_role_and_policy(
                         "{}:aud".format(oidc_provider): "sts.amazonaws.com",
                     },
                     "StringLike": {
-                        "{}:sub".format(oidc_provider): "system:serviceaccount:{}:*".format(namespace)
+                        "{}:sub".format(
+                            oidc_provider): "system:serviceaccount:{}:*".format(namespace)
                     }
                 }
             }
@@ -490,7 +528,8 @@ def _create_iam_role_and_policy(
         role.attach_policy(PolicyArn=policy_arn)
 
 
-def _associate_oidc_iam_role_with_service_account(config, cloud_provider, namespace):
+def _associate_oidc_iam_role_with_service_account(
+        config, cloud_provider, namespace):
     # Patch head service account and worker service account
     eks_cluster_name = cloud_provider["eks_cluster_name"]
     account_id = get_current_account_id(cloud_provider)
@@ -504,7 +543,8 @@ def _associate_oidc_iam_role_with_service_account(config, cloud_provider, namesp
             "Patching head service account with IAM role",
             _numbered=("[]", current_step, total_steps)):
         current_step += 1
-        head_service_account_name = _get_head_service_account_name(provider_config)
+        head_service_account_name = _get_head_service_account_name(
+            provider_config)
         _patch_service_account_with_iam_role(
             namespace,
             head_service_account_name,
@@ -516,7 +556,8 @@ def _associate_oidc_iam_role_with_service_account(config, cloud_provider, namesp
             "Patching head service account with IAM role",
             _numbered=("[]", current_step, total_steps)):
         current_step += 1
-        worker_service_account_name = _get_worker_service_account_name(provider_config)
+        worker_service_account_name = _get_worker_service_account_name(
+            provider_config)
         _patch_service_account_with_iam_role(
             namespace,
             worker_service_account_name,
@@ -528,26 +569,31 @@ def _associate_oidc_iam_role_with_service_account(config, cloud_provider, namesp
 def _patch_service_account_with_iam_role(namespace, name, account_id, role_name):
     service_account = _get_service_account(namespace=namespace, name=name)
     if service_account is None:
-        cli_logger.print(log_prefix + "No service account {} found. Skip patching.".format(name))
+        cli_logger.print(
+            log_prefix + "No service account {} found. Skip patching.".format(name))
         return
 
     patch = {
         "metadata": {
             "annotations": {
-                AWS_KUBERNETES_ANNOTATION_NAME: AWS_KUBERNETES_ANNOTATION_VALUE.format(account_id, role_name)
+                AWS_KUBERNETES_ANNOTATION_NAME: AWS_KUBERNETES_ANNOTATION_VALUE.format(
+                    account_id, role_name)
             }
         }
     }
 
-    cli_logger.print(log_prefix + "Patching service account {} with IAM role...".format(name))
+    cli_logger.print(
+        log_prefix + "Patching service account {} with IAM role...".format(name))
     core_api().patch_namespaced_service_account(name, namespace, patch)
-    cli_logger.print(log_prefix + "Successfully patched service account {} with IAM role.".format(name))
+    cli_logger.print(
+        log_prefix + "Successfully patched service account {} with IAM role.".format(name))
 
 
 def _patch_service_account_without_iam_role(namespace, name):
     service_account = _get_service_account(namespace=namespace, name=name)
     if service_account is None:
-        cli_logger.print(log_prefix + "No service account {} found. Skip patching.".format(name))
+        cli_logger.print(
+            log_prefix + "No service account {} found. Skip patching.".format(name))
         return
 
     patch = {
@@ -558,16 +604,20 @@ def _patch_service_account_without_iam_role(namespace, name):
         }
     }
 
-    cli_logger.print(log_prefix + "Patching service account {} removing IAM role...".format(name))
+    cli_logger.print(
+        log_prefix + "Patching service account {} removing IAM role...".format(name))
     core_api().patch_namespaced_service_account(name, namespace, patch)
-    cli_logger.print(log_prefix + "Successfully patched service account {} removing IAM role.".format(name))
+    cli_logger.print(
+        log_prefix + "Successfully patched service account {} removing IAM role.".format(name))
 
 
 def get_oidc_identity_provider(cloud_provider):
     _check_eks_cluster_name(cloud_provider)
     eks_cluster_name = cloud_provider["eks_cluster_name"]
-    oidc_provider_url = _get_eks_cluster_oidc_identity_issuer(cloud_provider, eks_cluster_name)
-    oidc_identity_provider = _get_oidc_identity_provider(cloud_provider, oidc_provider_url)
+    oidc_provider_url = _get_eks_cluster_oidc_identity_issuer(
+        cloud_provider, eks_cluster_name)
+    oidc_identity_provider = _get_oidc_identity_provider(
+        cloud_provider, oidc_provider_url)
     if oidc_identity_provider is None:
         return None
 
@@ -577,15 +627,18 @@ def get_oidc_identity_provider(cloud_provider):
 def _get_oidc_identity_provider(cloud_provider, oidc_provider_url):
     account_id = get_current_account_id(cloud_provider)
     oidc_provider = get_oidc_provider_from_url(oidc_provider_url)
-    oidc_identity_provider_arn = AWS_KUBERNETES_OPEN_ID_IDENTITY_PROVIDER_ARN.format(account_id, oidc_provider)
+    oidc_identity_provider_arn = AWS_KUBERNETES_OPEN_ID_IDENTITY_PROVIDER_ARN.format(
+        account_id, oidc_provider)
     iam_client = _make_resource_client("iam", cloud_provider)
 
     try:
-        cli_logger.verbose("Getting Open ID identity provider for: {}.", oidc_provider_url)
+        cli_logger.verbose(
+            "Getting Open ID identity provider for: {}.", oidc_provider_url)
         response = iam_client.get_open_id_connect_provider(
             OpenIDConnectProviderArn=oidc_identity_provider_arn
         )
-        cli_logger.verbose("Successfully got Open ID identity provider for: {}.", oidc_provider_url)
+        cli_logger.verbose(
+            "Successfully got Open ID identity provider for: {}.", oidc_provider_url)
     except botocore.exceptions.ClientError as exc:
         if exc.response.get("Error", {}).get("Code") == "NoSuchEntity":
             return None
@@ -598,7 +651,8 @@ def _get_oidc_identity_provider(cloud_provider, oidc_provider_url):
     return response
 
 
-def _delete_iam_based_access_for_kubernetes(config: Dict[str, Any], namespace, cloud_provider):
+def _delete_iam_based_access_for_kubernetes(
+        config: Dict[str, Any], namespace, cloud_provider):
     # 1. Dissociate an IAM role with service accounts
     # 2. Delete the IAM role
     current_step = 1
@@ -608,7 +662,8 @@ def _delete_iam_based_access_for_kubernetes(config: Dict[str, Any], namespace, c
             "Dissociating IAM role with Kubernetes service account",
             _numbered=("[]", current_step, total_steps)):
         current_step += 1
-        _dissociate_oidc_iam_role_with_service_account(config, cloud_provider, namespace)
+        _dissociate_oidc_iam_role_with_service_account(
+            config, cloud_provider, namespace)
 
     with cli_logger.group(
             "Deleting IAM role and policy",
@@ -617,7 +672,8 @@ def _delete_iam_based_access_for_kubernetes(config: Dict[str, Any], namespace, c
         _delete_oidc_iam_role_and_policy(cloud_provider, namespace)
 
 
-def _dissociate_oidc_iam_role_with_service_account(config, cloud_provider, namespace):
+def _dissociate_oidc_iam_role_with_service_account(
+        config, cloud_provider, namespace):
     # Patch head service account and worker service account
     eks_cluster_name = cloud_provider["eks_cluster_name"]
     provider_config = config["provider"]
@@ -629,7 +685,8 @@ def _dissociate_oidc_iam_role_with_service_account(config, cloud_provider, names
             "Patching head service account without IAM role",
             _numbered=("[]", current_step, total_steps)):
         current_step += 1
-        head_service_account_name = _get_head_service_account_name(provider_config)
+        head_service_account_name = _get_head_service_account_name(
+            provider_config)
         _patch_service_account_without_iam_role(
             namespace,
             head_service_account_name
@@ -639,7 +696,8 @@ def _dissociate_oidc_iam_role_with_service_account(config, cloud_provider, names
             "Patching head service account without IAM role",
             _numbered=("[]", current_step, total_steps)):
         current_step += 1
-        worker_service_account_name = _get_worker_service_account_name(provider_config)
+        worker_service_account_name = _get_worker_service_account_name(
+            provider_config)
         _patch_service_account_without_iam_role(
             namespace,
             worker_service_account_name
@@ -651,10 +709,12 @@ def _delete_oidc_iam_role_and_policy(cloud_provider, namespace):
     eks_cluster_name = cloud_provider["eks_cluster_name"]
     role_name = get_oidc_provider_role_name(eks_cluster_name, namespace)
 
-    cli_logger.print("Deleting IAM role and policy for: {}...", eks_cluster_name)
+    cli_logger.print(
+        "Deleting IAM role and policy for: {}...", eks_cluster_name)
     _delete_iam_role(
         cloud_provider, role_name)
-    cli_logger.print("Successfully deleted IAM role and policy for: {}.", eks_cluster_name)
+    cli_logger.print(
+        "Successfully deleted IAM role and policy for: {}.", eks_cluster_name)
 
 
 def _get_oidc_iam_role(cloud_provider, namespace):
@@ -662,36 +722,45 @@ def _get_oidc_iam_role(cloud_provider, namespace):
     eks_cluster_name = cloud_provider["eks_cluster_name"]
     role_name = get_oidc_provider_role_name(eks_cluster_name, namespace)
 
-    cli_logger.verbose("Getting Open ID IAM role: {}.", role_name)
+    cli_logger.verbose(
+        "Getting Open ID IAM role: {}.", role_name)
     role = _get_iam_role(role_name, cloud_provider)
     if role is None:
-        cli_logger.verbose("Open ID IAM role with the name doesn't exist: {}.", role_name)
+        cli_logger.verbose(
+            "Open ID IAM role with the name doesn't exist: {}.", role_name)
     else:
-        cli_logger.verbose("Successfully get Open ID IAM role: {}.", role_name)
+        cli_logger.verbose(
+            "Successfully get Open ID IAM role: {}.", role_name)
     return role
 
 
 def _is_head_service_account_associated(config, cloud_provider, namespace):
     provider_config = config["provider"]
-    head_service_account_name = _get_head_service_account_name(provider_config)
+    head_service_account_name = _get_head_service_account_name(
+        provider_config)
     associated = _is_service_account_associated(
         cloud_provider,
         namespace,
         head_service_account_name,
     )
-    cli_logger.verbose("Is service account {} associated with IAM role: {}.", head_service_account_name, associated)
+    cli_logger.verbose(
+        "Is service account {} associated with IAM role: {}.",
+        head_service_account_name, associated)
     return associated
 
 
 def _is_worker_service_account_associated(config, cloud_provider, namespace):
     provider_config = config["provider"]
-    worker_service_account_name = _get_worker_service_account_name(provider_config)
+    worker_service_account_name = _get_worker_service_account_name(
+        provider_config)
     associated = _is_service_account_associated(
         cloud_provider,
         namespace,
         worker_service_account_name,
     )
-    cli_logger.verbose("Is service account {} associated with IAM role: {}.", worker_service_account_name, associated)
+    cli_logger.verbose(
+        "Is service account {} associated with IAM role: {}.",
+        worker_service_account_name, associated)
     return associated
 
 
@@ -706,7 +775,8 @@ def _is_service_account_associated(cloud_provider, namespace, name):
     role_name = get_oidc_provider_role_name(eks_cluster_name, namespace)
 
     annotation_name = AWS_KUBERNETES_ANNOTATION_NAME
-    annotation_value = AWS_KUBERNETES_ANNOTATION_VALUE.format(account_id, role_name)
+    annotation_value = AWS_KUBERNETES_ANNOTATION_VALUE.format(
+        account_id, role_name)
 
     annotations = service_account.metadata.annotations
     if annotations is None:
@@ -717,7 +787,8 @@ def _is_service_account_associated(cloud_provider, namespace, name):
     return True
 
 
-def check_existence_for_aws(config: Dict[str, Any], namespace, cloud_provider):
+def check_existence_for_aws(
+        config: Dict[str, Any], namespace, cloud_provider):
     workspace_name = config["workspace_name"]
     managed_cloud_storage = _is_managed_cloud_storage(cloud_provider)
     managed_cloud_database = _is_managed_cloud_database(cloud_provider)
@@ -737,7 +808,8 @@ def check_existence_for_aws(config: Dict[str, Any], namespace, cloud_provider):
          4. worker service association
     """
     oidc_identity_provider_existence = False
-    oidc_identity_provider = get_oidc_identity_provider(cloud_provider)
+    oidc_identity_provider = get_oidc_identity_provider(
+        cloud_provider)
     if oidc_identity_provider is not None:
         existing_resources += 1
         oidc_identity_provider_existence = True
@@ -747,21 +819,25 @@ def check_existence_for_aws(config: Dict[str, Any], namespace, cloud_provider):
         if _get_oidc_iam_role(cloud_provider, namespace) is not None:
             existing_resources += 1
 
-        if _is_head_service_account_associated(config, cloud_provider, namespace):
+        if _is_head_service_account_associated(
+                config, cloud_provider, namespace):
             existing_resources += 1
 
-        if _is_worker_service_account_associated(config, cloud_provider, namespace):
+        if _is_worker_service_account_associated(
+                config, cloud_provider, namespace):
             existing_resources += 1
 
     cloud_storage_existence = False
     if managed_cloud_storage:
-        if get_managed_s3_bucket(cloud_provider, workspace_name) is not None:
+        if get_managed_s3_bucket(
+                cloud_provider, workspace_name) is not None:
             existing_resources += 1
             cloud_storage_existence = True
 
     cloud_database_existence = False
     if managed_cloud_database:
-        if get_managed_database_instance(cloud_provider, workspace_name) is not None:
+        if get_managed_database_instance(
+                cloud_provider, workspace_name) is not None:
             existing_resources += 1
             cloud_database_existence = True
 
@@ -823,9 +899,10 @@ def list_storages_for_aws(
 
 
 class AWSKubernetesDatabaseProvider(AWSDatabaseProvider):
-    def __init__(self, provider_config: Dict[str, Any],
-                 workspace_name: str, database_name: str,
-                 database_subnet_ids, database_security_group_id) -> None:
+    def __init__(
+            self, provider_config: Dict[str, Any],
+            workspace_name: str, database_name: str,
+            database_subnet_ids, database_security_group_id) -> None:
         super().__init__(provider_config, workspace_name, database_name)
         self.database_subnet_ids = database_subnet_ids
         self.database_security_group_id = database_security_group_id
@@ -858,24 +935,31 @@ def list_databases_for_aws(
 ######################
 
 
-def configure_kubernetes_for_aws(config: Dict[str, Any], namespace, cloud_provider):
+def configure_kubernetes_for_aws(
+        config: Dict[str, Any], namespace, cloud_provider):
     # Optionally, if user choose to use managed cloud storage (s3 bucket)
     # Configure the s3 bucket under cloud storage
     _configure_cloud_storage_for_aws(config, cloud_provider)
     _configure_cloud_database_for_aws(config, cloud_provider)
 
 
-def _configure_cloud_storage_for_aws(config: Dict[str, Any], cloud_provider):
-    use_managed_cloud_storage = _is_use_managed_cloud_storage(cloud_provider)
+def _configure_cloud_storage_for_aws(
+        config: Dict[str, Any], cloud_provider):
+    use_managed_cloud_storage = _is_use_managed_cloud_storage(
+        cloud_provider)
     if use_managed_cloud_storage:
-        _configure_managed_cloud_storage_from_workspace(config, cloud_provider)
+        _configure_managed_cloud_storage_from_workspace(
+            config, cloud_provider)
 
     return config
 
 
-def _configure_cloud_database_for_aws(config: Dict[str, Any], cloud_provider):
-    use_managed_cloud_database = _is_use_managed_cloud_database(cloud_provider)
+def _configure_cloud_database_for_aws(
+        config: Dict[str, Any], cloud_provider):
+    use_managed_cloud_database = _is_use_managed_cloud_database(
+        cloud_provider)
     if use_managed_cloud_database:
-        _configure_managed_cloud_database_from_workspace(config, cloud_provider)
+        _configure_managed_cloud_database_from_workspace(
+            config, cloud_provider)
 
     return config

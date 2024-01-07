@@ -23,7 +23,8 @@ class OnPremiseNodeProvider(NodeProvider):
 
     def __init__(self, provider_config, cluster_name):
         NodeProvider.__init__(self, provider_config, cluster_name)
-        self.cloud_simulator_address = _get_cloud_simulator_address(provider_config)
+        self.cloud_simulator_address = _get_cloud_simulator_address(
+            provider_config)
 
         self.lock = RLock()
         # Cache of node objects from the last list nodes call. This avoids
@@ -31,7 +32,8 @@ class OnPremiseNodeProvider(NodeProvider):
         self.cached_nodes: Dict[str, Any] = {}
 
     def _get_http_response(self, request):
-        return _get_http_response_from_simulator(self.cloud_simulator_address, request)
+        return _get_http_response_from_simulator(
+            self.cloud_simulator_address, request)
 
     def non_terminated_nodes(self, tag_filters):
         # Only get the non terminated nodes associated with this cluster name.
@@ -119,7 +121,8 @@ class OnPremiseNodeProvider(NodeProvider):
     @staticmethod
     def post_prepare(
             cluster_config: Dict[str, Any]) -> Dict[str, Any]:
-        """Fills out missing fields after the user config is merged with defaults and before validate"""
+        """Fills out missing fields after the user config
+        is merged with defaults and before validate"""
         return post_prepare_onpremise(cluster_config)
 
     def _get_cached_node(self, node_id: str):
@@ -135,7 +138,8 @@ class OnPremiseNodeProvider(NodeProvider):
                 return self.cached_nodes[node_id]
             node = self._describe_node(node_id)
             if node is None:
-                raise RuntimeError("No node found with id: {}.".format(node_id))
+                raise RuntimeError(
+                    "No node found with id: {}.".format(node_id))
             return node
 
     def _describe_node(self, node_id: str):

@@ -21,8 +21,9 @@ class AliyunStorageProvider(StorageProvider):
     """Provider for creating or deleting cloud storage services for Alibaba Cloud.
     """
 
-    def __init__(self, provider_config: Dict[str, Any],
-                 workspace_name: str, storage_name: str) -> None:
+    def __init__(
+            self, provider_config: Dict[str, Any],
+            workspace_name: str, storage_name: str) -> None:
         super().__init__(provider_config, workspace_name, storage_name)
 
     def create(self, config: Dict[str, Any]):
@@ -54,7 +55,9 @@ class AliyunStorageProvider(StorageProvider):
                 "{} storage name is between {} and {} characters, "
                 "and can only contain lowercase alphanumeric "
                 "characters, and dashes (-)".format(
-                    provider_config["type"], ALIYUN_STORAGE_NAME_MIN_LEN, ALIYUN_STORAGE_NAME_MAX_LEN))
+                    provider_config["type"],
+                    ALIYUN_STORAGE_NAME_MIN_LEN,
+                    ALIYUN_STORAGE_NAME_MAX_LEN))
 
     @staticmethod
     def bootstrap_config(config: Dict[str, Any]) -> Dict[str, Any]:

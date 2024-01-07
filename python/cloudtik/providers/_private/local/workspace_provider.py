@@ -22,17 +22,19 @@ class LocalWorkspaceProvider(WorkspaceProvider):
         """Create a workspace and all the resources needed for the workspace based on the config."""
         create_local_workspace(config)
 
-    def delete_workspace(self, config: Dict[str, Any],
-                         delete_managed_storage: bool = False,
-                         delete_managed_database: bool = False):
+    def delete_workspace(
+            self, config: Dict[str, Any],
+            delete_managed_storage: bool = False,
+            delete_managed_database: bool = False):
         """Delete all the resources created for the workspace.
         Managed cloud storage is not deleted by default unless delete_managed_storage is specified.
         """
         delete_local_workspace(config)
 
-    def update_workspace(self, config: Dict[str, Any],
-                         delete_managed_storage: bool = False,
-                         delete_managed_database: bool = False):
+    def update_workspace(
+            self, config: Dict[str, Any],
+            delete_managed_storage: bool = False,
+            delete_managed_database: bool = False):
         update_local_workspace(config)
 
     def check_workspace_integrity(self, config: Dict[str, Any]) -> bool:
@@ -45,24 +47,30 @@ class LocalWorkspaceProvider(WorkspaceProvider):
         """
         return check_local_workspace_existence(config)
 
-    def list_clusters(self, config: Dict[str, Any]) -> Optional[Dict[str, Any]]:
-        return list_local_clusters(self.workspace_name, self.provider_config)
+    def list_clusters(
+            self, config: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        return list_local_clusters(
+            self.workspace_name, self.provider_config)
 
-    def publish_global_variables(self, cluster_config: Dict[str, Any],
-                                 global_variables: Dict[str, Any]):
+    def publish_global_variables(
+            self, cluster_config: Dict[str, Any],
+            global_variables: Dict[str, Any]):
         # Add prefix to the variables
         global_variables_prefixed = {}
         for name in global_variables:
             prefixed_name = CLOUDTIK_GLOBAL_VARIABLE_KEY.format(name)
             global_variables_prefixed[prefixed_name] = global_variables[name]
 
-        provider = _get_node_provider(cluster_config["provider"], cluster_config["cluster_name"])
+        provider = _get_node_provider(
+            cluster_config["provider"], cluster_config["cluster_name"])
         head_node_id = get_running_head_node(cluster_config, provider)
         provider.set_node_tags(head_node_id, global_variables_prefixed)
 
-    def subscribe_global_variables(self, cluster_config: Dict[str, Any]):
+    def subscribe_global_variables(
+            self, cluster_config: Dict[str, Any]):
         global_variables = {}
-        head_nodes = get_workspace_head_nodes(self.workspace_name, self.provider_config)
+        head_nodes = get_workspace_head_nodes(
+            self.workspace_name, self.provider_config)
         for head in head_nodes:
             node_tags = _get_tags(head)
             for key, value in node_tags.items():

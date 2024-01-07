@@ -157,7 +157,8 @@ class LocalScheduler:
         with self.lock:
             node = self._get_cached_node(node_id)
             if node["state"] != "running":
-                raise RuntimeError("Node with id {} is not running.".format(node_id))
+                raise RuntimeError(
+                    "Node with id {} is not running.".format(node_id))
 
             node["state"] = "terminated"
             self.state.put_node(node_id, node)
@@ -167,16 +168,17 @@ class LocalScheduler:
             node = self._get_cached_node(node_id)
             return _get_node_info(node)
 
-    def get_command_executor(self,
-                             call_context: CallContext,
-                             log_prefix: str,
-                             node_id: str,
-                             auth_config: Dict[str, Any],
-                             cluster_name: str,
-                             process_runner: ModuleType,
-                             use_internal_ip: bool,
-                             docker_config: Optional[Dict[str, Any]] = None
-                             ) -> CommandExecutor:
+    def get_command_executor(
+            self,
+            call_context: CallContext,
+            log_prefix: str,
+            node_id: str,
+            auth_config: Dict[str, Any],
+            cluster_name: str,
+            process_runner: ModuleType,
+            use_internal_ip: bool,
+            docker_config: Optional[Dict[str, Any]] = None
+    ) -> CommandExecutor:
         common_args = {
             "log_prefix": log_prefix,
             "auth_config": auth_config,
@@ -272,7 +274,8 @@ class LocalScheduler:
 
             node = self.state.get_node(node_id)
             if node is None:
-                raise RuntimeError("No node found with id: {}.")
+                raise RuntimeError(
+                    "No node found with id: {}.")
             return node
 
     def _get_local_node_id(self):

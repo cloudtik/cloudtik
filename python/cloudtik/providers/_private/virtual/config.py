@@ -38,7 +38,8 @@ def _get_provider_bridge_address(provider_config):
 def bootstrap_virtual(config):
     workspace_name = config.get("workspace_name")
     if not workspace_name:
-        raise RuntimeError("Workspace name is not specified in cluster configuration.")
+        raise RuntimeError(
+            "Workspace name is not specified in cluster configuration.")
 
     config["provider"]["workspace_name"] = workspace_name
 
@@ -57,7 +58,8 @@ def bootstrap_virtual(config):
 def bootstrap_virtual_for_api(config):
     workspace_name = config.get("workspace_name")
     if not workspace_name:
-        raise RuntimeError("Workspace name is not specified.")
+        raise RuntimeError(
+            "Workspace name is not specified.")
 
     config["provider"]["workspace_name"] = workspace_name
 
@@ -69,7 +71,8 @@ def _configure_bridge_address(config):
     workspace_name = config.get("workspace_name")
     bridge_address = get_workspace_bridge_address(workspace_name)
     if not bridge_address:
-        raise RuntimeError("Workspace bridge SSH is not running. Please update workspace.")
+        raise RuntimeError(
+            "Workspace bridge SSH is not running. Please update workspace.")
 
     config["provider"]["bridge_address"] = bridge_address
     return config
@@ -153,8 +156,9 @@ def _get_port_mapping_base(provider, service_ports):
             return port_mapping_base
         port_mapping_base += 1000
 
-    raise RuntimeError("Failed to find a free port mapping base. "
-                       "You need specific port_mapping_base in provider configuration.")
+    raise RuntimeError(
+        "Failed to find a free port mapping base. "
+        "You need specific port_mapping_base in provider configuration.")
 
 
 def _get_mapping(mapping):
@@ -304,7 +308,8 @@ def get_virtual_scheduler_state_file_name() -> str:
 
 def _get_request_instance_type(node_config):
     if "instance_type" not in node_config:
-        raise ValueError("Invalid node request. 'instance_type' is required.")
+        raise ValueError(
+            "Invalid node request. 'instance_type' is required.")
 
     return node_config["instance_type"]
 
@@ -314,8 +319,10 @@ def set_node_types_resources(
     # Update the instance information to node type
     available_node_types = config["available_node_types"]
     for node_type in available_node_types:
-        instance_type = available_node_types[node_type]["node_config"].get("instance_type", {})
-        resource_spec = ResourceSpec().resolve(available_memory=True)
+        instance_type = available_node_types[node_type]["node_config"].get(
+            "instance_type", {})
+        resource_spec = ResourceSpec().resolve(
+            available_memory=True)
         detected_resources = {}
 
         num_cpus = instance_type.get("CPU", 0)
@@ -380,7 +387,7 @@ def is_rootless_docker():
     try:
         exec_with_output("docker image list 2>&1")
         return True
-    except:
+    except Exception:
         return False
 
 
@@ -401,7 +408,8 @@ def _get_network_name(workspace_name):
 
 
 def _get_bridge_interface_name(network_name):
-    interface_suffix = str(uuid.uuid3(uuid.NAMESPACE_OID, network_name))[:8]
+    interface_suffix = str(uuid.uuid3(
+        uuid.NAMESPACE_OID, network_name))[:8]
     return "tik-{}".format(interface_suffix)
 
 
@@ -494,9 +502,11 @@ def delete_cluster_disks(
                     disk_path = disk["path"]
                     exec_with_call("sudo rm -rf '{path}'".format(path=disk_path))
                     num_deleted_disks += 1
-                    cli_logger.print("Successfully deleted.")
+                    cli_logger.print(
+                        "Successfully deleted.")
                 except Exception as e:
-                    cli_logger.error("Failed to delete disk: {}", str(e))
+                    cli_logger.error(
+                        "Failed to delete disk: {}", str(e))
 
         cli_logger.print(
             "Successfully deleted {} disks.", num_deleted_disks)

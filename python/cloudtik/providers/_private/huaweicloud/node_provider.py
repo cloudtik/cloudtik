@@ -63,12 +63,14 @@ class HUAWEICLOUDNodeProvider(NodeProvider):
         # excessive listServerDetails() requests.
         self.cached_nodes = {}
 
-    def with_environment_variables(self, node_type_config: Dict[str, Any],
-                                   node_id: str):
+    def with_environment_variables(
+            self, node_type_config: Dict[str, Any],
+            node_id: str):
         """Export necessary environment variables for running node commands"""
-        return with_huaweicloud_environment_variables(self.provider_config,
-                                                      node_type_config,
-                                                      node_id)
+        return with_huaweicloud_environment_variables(
+            self.provider_config,
+            node_type_config,
+            node_id)
 
     def get_default_cloud_storage(self):
         """Return the managed cloud storage if configured."""
@@ -115,11 +117,13 @@ class HUAWEICLOUDNodeProvider(NodeProvider):
         """Verify provider configuration. Verification usually means to check
         it is working. This happens after bootstrap_config is done.
         """
-        verify_cloud_storage = provider_config.get("verify_cloud_storage",
-                                                   True)
+        verify_cloud_storage = provider_config.get(
+            "verify_cloud_storage",
+            True)
         cloud_storage = get_huaweicloud_obs_storage_config(provider_config)
         if verify_cloud_storage and cloud_storage is not None:
-            cli_logger.verbose("Verifying OBS storage configurations...")
+            cli_logger.verbose(
+                "Verifying OBS storage configurations...")
             verify_obs_storage(provider_config)
             cli_logger.verbose(
                 "Successfully verified OBS storage configurations.")
@@ -146,8 +150,9 @@ class HUAWEICLOUDNodeProvider(NodeProvider):
         _tags.update(tags)
         return _tags
 
-    def create_node(self, node_config: Dict[str, Any], tags: Dict[str, str],
-                    count: int) -> Optional[Dict[str, Any]]:
+    def create_node(
+            self, node_config: Dict[str, Any], tags: Dict[str, str],
+            count: int) -> Optional[Dict[str, Any]]:
         """Creates servers.
 
         Returns dict mapping server id to ecs.Server object for the created
@@ -164,11 +169,13 @@ class HUAWEICLOUDNodeProvider(NodeProvider):
         _node_config['root_volume'] = PostPaidServerRootVolume(
             **root_vol_args)
         data_vols_args = _node_config.pop('data_volumes', [])
-        _node_config['data_volumes'] = [PostPaidServerDataVolume(**data_vol)
-                                        for data_vol in data_vols_args]
+        _node_config['data_volumes'] = [
+            PostPaidServerDataVolume(**data_vol)
+            for data_vol in data_vols_args]
         nics = _node_config.pop('nics')
-        _node_config['nics'] = [PostPaidServerNic(subnet_id=nic['subnet_id'])
-                                for nic in nics]
+        _node_config['nics'] = [
+            PostPaidServerNic(subnet_id=nic['subnet_id'])
+            for nic in nics]
         publicip = _node_config.pop('publicip')
         if publicip:
             bandwidth = get_cluster_node_public_ip_bandwidth_conf(
@@ -176,8 +183,9 @@ class HUAWEICLOUDNodeProvider(NodeProvider):
             _node_config['publicip'] = PostPaidServerPublicip(
                 eip=PostPaidServerEip(
                     iptype='5_bgp',
-                    bandwidth=PostPaidServerEipBandwidth(sharetype='PER',
-                                                         size=bandwidth)
+                    bandwidth=PostPaidServerEipBandwidth(
+                        sharetype='PER',
+                        size=bandwidth)
                 ),
                 delete_on_termination=True
             )
@@ -190,12 +198,14 @@ class HUAWEICLOUDNodeProvider(NodeProvider):
             _node_config['extendparam'] = PostPaidServerExtendParam(
                 **extendparam)
         if _tags:
-            _node_config['server_tags'] = [PostPaidServerTag(key=k, value=v)
-                                           for k, v in _tags.items()]
+            _node_config['server_tags'] = [
+                PostPaidServerTag(key=k, value=v)
+                for k, v in _tags.items()]
 
         server_ids = self.ecs_client.create_post_paid_servers(
-            CreatePostPaidServersRequest(body=CreatePostPaidServersRequestBody(
-                server=PostPaidServer(**_node_config)))).server_ids
+            CreatePostPaidServersRequest(
+                body=CreatePostPaidServersRequestBody(
+                    server=PostPaidServer(**_node_config)))).server_ids
         created_nodes_dict = {}
         for server_id in server_ids:
             created_server = self.ecs_client.list_servers_details(
@@ -233,8 +243,9 @@ class HUAWEICLOUDNodeProvider(NodeProvider):
             if kv_str not in node.tags:
                 need_create_tags.append(ServerTag(k, v))
         if need_create_tags:
-            _body = BatchCreateServerTagsRequestBody(action='create',
-                                                     tags=need_create_tags)
+            _body = BatchCreateServerTagsRequestBody(
+                action='create',
+                tags=need_create_tags)
             self.ecs_client.batch_create_server_tags(
                 BatchCreateServerTagsRequest(server_id=node.id, body=_body)
             )
@@ -315,17 +326,21 @@ class HUAWEICLOUDNodeProvider(NodeProvider):
                 batch_delete.append(ServerId(server_id))
                 # handle one batch
                 if len(batch_delete) % batch_delete_num == 0:
-                    self.ecs_client.delete_servers(DeleteServersRequest(
-                        DeleteServersRequestBody(delete_publicip=True,
-                                                 delete_volume=True,
-                                                 servers=batch_delete)))
+                    self.ecs_client.delete_servers(
+                        DeleteServersRequest(
+                            DeleteServersRequestBody(
+                                delete_publicip=True,
+                                delete_volume=True,
+                                servers=batch_delete)))
                     batch_delete.clear()
             # handle reminder
             if batch_delete:
-                self.ecs_client.delete_servers(DeleteServersRequest(
-                    DeleteServersRequestBody(delete_publicip=True,
-                                             delete_volume=True,
-                                             servers=batch_delete)))
+                self.ecs_client.delete_servers(
+                    DeleteServersRequest(
+                        DeleteServersRequestBody(
+                            delete_publicip=True,
+                            delete_volume=True,
+                            servers=batch_delete)))
         except Exception as e:
             cli_logger.warning(
                 "Failed to delete servers {}: {}".format(node_ids, e))

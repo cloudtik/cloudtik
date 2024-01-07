@@ -20,9 +20,11 @@ def check_database_name_format(workspace_name):
 class GCPDatabaseProvider(DatabaseProvider):
     """Provider for creating or deleting cloud database services for GCP."""
 
-    def __init__(self, provider_config: Dict[str, Any],
-                 workspace_name: str, database_name: str) -> None:
-        super().__init__(provider_config, workspace_name, database_name)
+    def __init__(
+            self, provider_config: Dict[str, Any],
+            workspace_name: str, database_name: str) -> None:
+        super().__init__(
+            provider_config, workspace_name, database_name)
 
     def get_vpc_name(self):
         return get_gcp_vpc_name(
@@ -59,7 +61,9 @@ class GCPDatabaseProvider(DatabaseProvider):
                 "{} database instance name is between {} and {} characters, "
                 "and can only contain lowercase alphanumeric "
                 "characters, and dashes (-)".format(
-                    provider_config["type"], GCP_DATABASE_NAME_MIN_LEN, GCP_DATABASE_NAME_MAX_LEN))
+                    provider_config["type"],
+                    GCP_DATABASE_NAME_MIN_LEN,
+                    GCP_DATABASE_NAME_MAX_LEN))
 
     @staticmethod
     def bootstrap_config(config: Dict[str, Any]) -> Dict[str, Any]:

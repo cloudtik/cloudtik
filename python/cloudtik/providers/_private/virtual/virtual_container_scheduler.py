@@ -212,7 +212,8 @@ class VirtualContainerScheduler:
                 try:
                     node_id = future.result()
                 except Exception as e:
-                    cli_logger.error("Create node {} failed: {}", index, str(e))
+                    cli_logger.error(
+                        "Create node {} failed: {}", index, str(e))
                 else:
                     launched_nodes[index] = node_id
 
@@ -232,7 +233,8 @@ class VirtualContainerScheduler:
 
             # Cannot do cleanup if the tag filters has filters other than cluster name and workspace
             if len(tag_filters) == 2 and (
-                    CLOUDTIK_TAG_CLUSTER_NAME in tag_filters and CLOUDTIK_TAG_WORKSPACE_NAME in tag_filters):
+                    CLOUDTIK_TAG_CLUSTER_NAME in tag_filters
+                    and CLOUDTIK_TAG_WORKSPACE_NAME in tag_filters):
                 all_node_ids = {container["name"] for container in containers}
                 self.state.cleanup(all_node_ids)
 
@@ -319,7 +321,8 @@ class VirtualContainerScheduler:
                     r = future.result()
                 except Exception as e:
                     result[node_id] = e
-                    cli_logger.error("Terminate node {} failed: {}", node_id, str(e))
+                    cli_logger.error(
+                        "Terminate node {} failed: {}", node_id, str(e))
                 else:
                     result[node_id] = r
         return result
@@ -329,16 +332,17 @@ class VirtualContainerScheduler:
             node = self._get_cached_node(node_id)
             return _get_node_info(node)
 
-    def get_command_executor(self,
-                             call_context: CallContext,
-                             log_prefix: str,
-                             node_id: str,
-                             auth_config: Dict[str, Any],
-                             cluster_name: str,
-                             process_runner: ModuleType,
-                             use_internal_ip: bool,
-                             docker_config: Optional[Dict[str, Any]] = None
-                             ) -> DockerCommandExecutor:
+    def get_command_executor(
+            self,
+            call_context: CallContext,
+            log_prefix: str,
+            node_id: str,
+            auth_config: Dict[str, Any],
+            cluster_name: str,
+            process_runner: ModuleType,
+            use_internal_ip: bool,
+            docker_config: Optional[Dict[str, Any]] = None
+    ) -> DockerCommandExecutor:
         # for container scheduler, the node id is container name
         # we should avoid non-provider code handling docker "container_name" in config
         # for command executor that is not specific container related, node_id is None
@@ -359,7 +363,8 @@ class VirtualContainerScheduler:
         }
         if self._is_in_cluster():
             if not self.bridge_ip:
-                raise RuntimeError("Missing Docker bridge SSH server IP.")
+                raise RuntimeError(
+                    "Missing Docker bridge SSH server IP.")
             common_args["ssh_ip"] = self.bridge_ip
             common_args["ssh_port"] = self.bridge_port
             return VirtualDockerCommandExecutor(
@@ -420,7 +425,8 @@ class VirtualContainerScheduler:
                 return container_name
             retry += 1
 
-        raise RuntimeError("Failed to allocate a container name.")
+        raise RuntimeError(
+            "Failed to allocate a container name.")
 
     def _get_random_container_name(self):
         # the container name prefix with workspace and cluster name
@@ -487,7 +493,8 @@ class VirtualContainerScheduler:
             # node name for disk is in the format of cloudtik-{cluster_name}-{seq_id}
             seq_id = tags.get(CLOUDTIK_TAG_NODE_SEQ_ID) if tags else None
             if not seq_id:
-                raise RuntimeError("No node sequence id assigned for using permanent data volumes.")
+                raise RuntimeError(
+                    "No node sequence id assigned for using permanent data volumes.")
             workspace_name = self.provider_config["workspace_name"]
             node_name_for_disk = "{}-{}-node-{}".format(
                 workspace_name, self.cluster_name, seq_id)
@@ -576,7 +583,8 @@ class VirtualContainerScheduler:
 
             node = self._get_container(container_name=node_id)
             if node is None:
-                raise RuntimeError("No node found with id: {}.".format(node_id))
+                raise RuntimeError(
+                    "No node found with id: {}.".format(node_id))
             tags = self._get_node_tags(node_id, node)
             node["tags"] = tags
             return node

@@ -3,7 +3,8 @@ import re
 from typing import Any, Dict
 
 from cloudtik.core.storage_provider import StorageProvider
-from cloudtik.providers._private.huaweicloud.config import _create_managed_cloud_storage, _delete_managed_cloud_storage, \
+from cloudtik.providers._private.huaweicloud.config import \
+    _create_managed_cloud_storage, _delete_managed_cloud_storage, \
     _get_managed_cloud_storage_info
 from cloudtik.providers._private.huaweicloud.utils import make_obs_client
 
@@ -22,9 +23,11 @@ class HUAWEICLOUDStorageProvider(StorageProvider):
     """Provider for creating or deleting cloud storage services for HUAWEI CLOUD.
     """
 
-    def __init__(self, provider_config: Dict[str, Any],
-                 workspace_name: str, storage_name: str) -> None:
-        super().__init__(provider_config, workspace_name, storage_name)
+    def __init__(
+            self, provider_config: Dict[str, Any],
+            workspace_name: str, storage_name: str) -> None:
+        super().__init__(
+            provider_config, workspace_name, storage_name)
 
     def create(self, config: Dict[str, Any]):
         """Create the object storage in the workspace based on the config."""
@@ -57,7 +60,9 @@ class HUAWEICLOUDStorageProvider(StorageProvider):
                 "{} storage name is between {} and {} characters, "
                 "and can only contain lowercase alphanumeric "
                 "characters, dashes (-) and dots (.)".format(
-                    provider_config["type"], HUAWEICLOUD_STORAGE_NAME_MIN_LEN, HUAWEICLOUD_STORAGE_NAME_MAX_LEN))
+                    provider_config["type"],
+                    HUAWEICLOUD_STORAGE_NAME_MIN_LEN,
+                    HUAWEICLOUD_STORAGE_NAME_MAX_LEN))
 
     @staticmethod
     def bootstrap_config(config: Dict[str, Any]) -> Dict[str, Any]:

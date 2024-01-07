@@ -56,10 +56,9 @@ def _get_http_response_from_simulator(cloud_simulator_address, request):
     request_message = json.dumps(request).encode()
     cloud_simulator_endpoint = "http://" + cloud_simulator_address
 
+    import requests  # `requests` is not part of stdlib.
+    from requests.exceptions import ConnectionError
     try:
-        import requests  # `requests` is not part of stdlib.
-        from requests.exceptions import ConnectionError
-
         r = requests.get(
             cloud_simulator_endpoint,
             data=request_message,
@@ -67,10 +66,11 @@ def _get_http_response_from_simulator(cloud_simulator_address, request):
             timeout=None,
         )
     except (RemoteDisconnected, ConnectionError):
-        logger.exception("Could not connect to: " +
-                         cloud_simulator_endpoint +
-                         ". Did you launched the Cloud Simulator by running cloudtik-simulator " +
-                         " --config nodes-config-file --port <PORT>?")
+        logger.exception(
+            "Could not connect to: " +
+            cloud_simulator_endpoint +
+            ". Did you launched the Cloud Simulator by running cloudtik-simulator " +
+            " --config nodes-config-file --port <PORT>?")
         raise
     except ImportError:
         logger.exception(
@@ -85,7 +85,8 @@ def _get_http_response_from_simulator(cloud_simulator_address, request):
 def bootstrap_onpremise(config):
     workspace_name = config.get("workspace_name")
     if not workspace_name:
-        raise RuntimeError("Workspace name is not specified in cluster configuration.")
+        raise RuntimeError(
+            "Workspace name is not specified in cluster configuration.")
 
     config["provider"]["workspace_name"] = workspace_name
     config = _configure_cloud_simulator(config)
@@ -107,11 +108,13 @@ def prepare_onpremise(config: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def get_cloud_simulator_lock_path() -> str:
-    return os.path.join(get_cloudtik_temp_dir(), "cloudtik-cloud-simulator.lock")
+    return os.path.join(
+        get_cloudtik_temp_dir(), "cloudtik-cloud-simulator.lock")
 
 
 def get_cloud_simulator_state_path() -> str:
-    return os.path.join(_get_data_path(), "cloudtik-cloud-simulator.state")
+    return os.path.join(
+        _get_data_path(), "cloudtik-cloud-simulator.state")
 
 
 def _get_data_path():
@@ -126,14 +129,16 @@ def _make_sure_data_path():
 
 def get_available_nodes(provider_config: Dict[str, Any]):
     if "nodes" not in provider_config:
-        raise RuntimeError("No 'nodes' defined in cloud simulator configuration.")
+        raise RuntimeError(
+            "No 'nodes' defined in cloud simulator configuration.")
 
     return provider_config["nodes"]
 
 
 def _get_request_instance_type(node_config):
     if "instance_type" not in node_config:
-        raise ValueError("Invalid node request. 'instance_type' is required.")
+        raise ValueError(
+            "Invalid node request. 'instance_type' is required.")
 
     return node_config["instance_type"]
 
@@ -146,7 +151,8 @@ def _get_node_id_mapping(provider_config: Dict[str, Any]):
 def _get_node_instance_type(node_id_mapping, node_id):
     node = node_id_mapping.get(node_id)
     if node is None:
-        raise RuntimeError(f"Node with ip {node_id} is not found in the original node list.")
+        raise RuntimeError(
+            f"Node with ip {node_id} is not found in the original node list.")
     return node["instance_type"]
 
 
@@ -199,17 +205,21 @@ def set_node_types_resources(
                     available_node_types[node_type].get("resources", {}):
                 available_node_types[node_type][
                     "resources"] = detected_resources
-                logger.debug("Updating the resources of {} to {}.".format(
-                    node_type, detected_resources))
+                logger.debug(
+                    "Updating the resources of {} to {}.".format(
+                        node_type, detected_resources))
         else:
-            raise ValueError("Instance type " + instance_type +
-                             " is not available in onpremise configuration.")
+            raise ValueError(
+                "Instance type " + instance_type +
+                " is not available in onpremise configuration.")
 
 
-def _get_instance_types(provider_config: Dict[str, Any]) -> Dict[str, Any]:
+def _get_instance_types(
+        provider_config: Dict[str, Any]) -> Dict[str, Any]:
     if "instance_types" not in provider_config:
-        cli_logger.warning("No instance types definition found. No node can be created!"
-                           "Please supply the instance types definition in the config.")
+        cli_logger.warning(
+            "No instance types definition found. No node can be created!"
+            "Please supply the instance types definition in the config.")
     instance_types = provider_config.get("instance_types", {})
     return instance_types
 
@@ -230,7 +240,9 @@ def fill_available_node_types_resources(
         cluster_config: Dict[str, Any]) -> Dict[str, Any]:
     """Fills out missing "resources" field for available_node_types."""
     request = {"type": "get_instance_types", "args": ()}
-    cloud_simulator_address = _get_cloud_simulator_address(cluster_config["provider"])
-    instance_types = _get_http_response_from_simulator(cloud_simulator_address, request)
+    cloud_simulator_address = _get_cloud_simulator_address(
+        cluster_config["provider"])
+    instance_types = _get_http_response_from_simulator(
+        cloud_simulator_address, request)
     set_node_types_resources(cluster_config, instance_types)
     return cluster_config

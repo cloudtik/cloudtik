@@ -140,167 +140,204 @@ def create_huaweicloud_workspace(config):
         total_steps += 1
 
     try:
-        with cli_logger.group("Creating workspace: {}",
-                              cf.bold(workspace_name)):
+        with cli_logger.group(
+                "Creating workspace: {}",
+                cf.bold(workspace_name)):
             # Step1: create vpc
-            with cli_logger.group("Creating VPC",
-                                  _numbered=("[]", current_step, total_steps)):
+            with cli_logger.group(
+                    "Creating VPC",
+                    _numbered=("[]", current_step, total_steps)):
                 current_step += 1
                 vpc_client = make_vpc_client(config)
                 use_working_vpc = is_use_working_vpc(config)
                 if use_working_vpc:
                     vpc = _get_current_vpc(config)
-                    cli_logger.print("Use working workspace VPC: {}...",
-                                     vpc.name)
+                    cli_logger.print(
+                        "Use working workspace VPC: {}...",
+                        vpc.name)
                 else:
                     vpc = _check_and_create_vpc(vpc_client, workspace_name)
 
             # Step2: create subnet
-            with cli_logger.group("Creating subnets",
-                                  _numbered=("[]", current_step, total_steps)):
+            with cli_logger.group(
+                    "Creating subnets",
+                    _numbered=("[]", current_step, total_steps)):
                 current_step += 1
-                subnets = _check_and_create_subnets(vpc, vpc_client,
-                                                    workspace_name)
+                subnets = _check_and_create_subnets(
+                    vpc, vpc_client,
+                    workspace_name)
             # Step3: create NAT and SNAT rules
-            with cli_logger.group("Creating NAT gateway for subnets",
-                                  _numbered=("[]", current_step, total_steps)):
+            with cli_logger.group(
+                    "Creating NAT gateway for subnets",
+                    _numbered=("[]", current_step, total_steps)):
                 current_step += 1
                 _check_and_create_nat_gateway_and_eip(
                     config, subnets, vpc, workspace_name)
             # Step4: create security group
-            with cli_logger.group("Creating security group",
-                                  _numbered=("[]", current_step, total_steps)):
+            with cli_logger.group(
+                    "Creating security group",
+                    _numbered=("[]", current_step, total_steps)):
                 current_step += 1
-                _check_and_create_security_group(config, vpc, vpc_client,
-                                                 workspace_name)
+                _check_and_create_security_group(
+                    config, vpc, vpc_client,
+                    workspace_name)
             if use_peering_vpc:
                 # Step5: create peering VPC
-                with cli_logger.group("Creating VPC peering connection",
-                                      _numbered=("[]", current_step,
-                                                 total_steps)):
+                with cli_logger.group(
+                        "Creating VPC peering connection",
+                        _numbered=("[]", current_step,
+                                   total_steps)):
                     current_step += 1
-                    _create_and_accept_vpc_peering(config, vpc, vpc_client,
-                                                   workspace_name)
+                    _create_and_accept_vpc_peering(
+                        config, vpc, vpc_client,
+                        workspace_name)
 
             # Step6: create instance profile
-            with cli_logger.group("Creating instance profile",
-                                  _numbered=("[]", current_step, total_steps)):
+            with cli_logger.group(
+                    "Creating instance profile",
+                    _numbered=("[]", current_step, total_steps)):
                 current_step += 1
-                _create_workspace_instance_profile(config, workspace_name)
+                _create_workspace_instance_profile(
+                    config, workspace_name)
 
             if managed_cloud_storage:
                 # Step7: create OBS(Object Storage Service) bucket
-                with cli_logger.group("Creating OBS bucket",
-                                      _numbered=("[]", current_step,
-                                                 total_steps)):
+                with cli_logger.group(
+                        "Creating OBS bucket",
+                        _numbered=("[]", current_step,
+                                   total_steps)):
                     current_step += 1
-                    _create_workspace_cloud_storage(config, workspace_name)
+                    _create_workspace_cloud_storage(
+                        config, workspace_name)
     except Exception as e:
-        cli_logger.error("Failed to create workspace with the name {} at step"
-                         "{}. \n{}", workspace_name, current_step - 1, str(e))
+        cli_logger.error(
+            "Failed to create workspace with the name {} at step"
+            "{}. \n{}", workspace_name, current_step - 1, str(e))
         raise e
 
-    cli_logger.success("Successfully created workspace: {}.",
-                       cf.bold(workspace_name))
+    cli_logger.success(
+        "Successfully created workspace: {}.",
+        cf.bold(workspace_name))
 
 
 def _create_workspace_instance_profile(config, workspace_name):
     current_step = 1
     total_steps = 2
 
-    with cli_logger.group("Creating instance profile for head",
-                          _numbered=("()", current_step, total_steps)):
+    with cli_logger.group(
+            "Creating instance profile for head",
+            _numbered=("()", current_step, total_steps)):
         current_step += 1
-        _create_instance_profile(config, workspace_name, for_head=True)
+        _create_instance_profile(
+            config, workspace_name, for_head=True)
 
-    with cli_logger.group("Creating instance profile for worker",
-                          _numbered=("()", current_step, total_steps)):
+    with cli_logger.group(
+            "Creating instance profile for worker",
+            _numbered=("()", current_step, total_steps)):
         current_step += 1
-        _create_instance_profile(config, workspace_name, for_head=False)
+        _create_instance_profile(
+            config, workspace_name, for_head=False)
 
 
-def _create_instance_profile(config, workspace_name, for_head):
+def _create_instance_profile(
+        config, workspace_name, for_head):
     iam_client = make_iam_client(config)
     _prefix = 'head' if for_head else 'worker'
-    profile_name = HWC_WORKSPACE_INSTANCE_PROFILE_NAME.format(workspace_name,
-                                                              _prefix)
+    profile_name = HWC_WORKSPACE_INSTANCE_PROFILE_NAME.format(
+        workspace_name,
+        _prefix)
     cli_logger.print(
         "Creating instance profile: {}...", profile_name)
     domain_id = _get_current_domain_id(iam_client)
     # Instance profile is named as IAM agency in Huawei Cloud
     target_agency = iam_client.create_agency(
         CreateAgencyRequest(CreateAgencyRequestBody(
-            CreateAgencyOption(name=profile_name, domain_id=domain_id,
-                               duration='FOREVER',
-                               trust_domain_name='op_svc_ecs')))
+            CreateAgencyOption(
+                name=profile_name,
+                domain_id=domain_id,
+                duration='FOREVER',
+                trust_domain_name='op_svc_ecs')))
     ).agency
 
-    _associate_instance_profile_with_permission(for_head, iam_client,
-                                                target_agency)
+    _associate_instance_profile_with_permission(
+        for_head, iam_client,
+        target_agency)
     cli_logger.print(
         "Successfully created instance profile: {}.", profile_name)
 
 
-def _associate_instance_profile_with_permission(for_head, iam_client,
-                                                target_agency):
-    ECS_access_role = "ECS FullAccess"
-    ECS_role_id = _get_cloud_services_access_role_id(iam_client,
-                                                     ECS_access_role)
-    OBS_access_role = "OBS OperateAccess"
-    OBS_role_id = _get_cloud_services_access_role_id(iam_client,
-                                                     OBS_access_role)
+def _associate_instance_profile_with_permission(
+        for_head, iam_client,
+        target_agency):
+    ecs_access_role = "ECS FullAccess"
+    ecs_role_id = _get_cloud_services_access_role_id(
+        iam_client,
+        ecs_access_role)
+    obs_access_role = "OBS OperateAccess"
+    obs_role_id = _get_cloud_services_access_role_id(
+        iam_client,
+        obs_access_role)
     if for_head:
         iam_client.associate_agency_with_all_projects_permission(
             AssociateAgencyWithAllProjectsPermissionRequest(
                 agency_id=target_agency.id,
-                role_id=ECS_role_id))
+                role_id=ecs_role_id))
     iam_client.associate_agency_with_all_projects_permission(
         AssociateAgencyWithAllProjectsPermissionRequest(
             agency_id=target_agency.id,
-            role_id=OBS_role_id))
+            role_id=obs_role_id))
 
 
 def _delete_workspace_instance_profile(config, workspace_name):
     current_step = 1
     total_steps = 2
 
-    with cli_logger.group("Deleting instance profile for head",
-                          _numbered=("()", current_step, total_steps)):
+    with cli_logger.group(
+            "Deleting instance profile for head",
+            _numbered=("()", current_step, total_steps)):
         current_step += 1
-        _delete_instance_profile(config, workspace_name, for_head=True)
+        _delete_instance_profile(
+            config, workspace_name, for_head=True)
 
-    with cli_logger.group("Deleting instance profile for worker",
-                          _numbered=("()", current_step, total_steps)):
+    with cli_logger.group(
+            "Deleting instance profile for worker",
+            _numbered=("()", current_step, total_steps)):
         current_step += 1
-        _delete_instance_profile(config, workspace_name, for_head=False)
+        _delete_instance_profile(
+            config, workspace_name, for_head=False)
 
 
 def _delete_instance_profile(config, workspace_name, for_head):
     iam_client = make_iam_client(config)
     _prefix = 'head' if for_head else 'worker'
-    profile_name = HWC_WORKSPACE_INSTANCE_PROFILE_NAME.format(workspace_name,
-                                                              _prefix)
+    profile_name = HWC_WORKSPACE_INSTANCE_PROFILE_NAME.format(
+        workspace_name,
+        _prefix)
     domain_id = _get_current_domain_id(iam_client)
     target_agencies = iam_client.list_agencies(
-        ListAgenciesRequest(name=profile_name, domain_id=domain_id)
+        ListAgenciesRequest(
+            name=profile_name, domain_id=domain_id)
     ).agencies
 
     if not target_agencies:
-        cli_logger.print("No instance profile found for {}. Skip deletion.", _prefix)
+        cli_logger.print(
+            "No instance profile found for {}. Skip deletion.", _prefix)
         return
 
     for _agency in target_agencies:
         cli_logger.print(
             "Deleting instance profile: {}...", _agency.name)
-        iam_client.delete_agency(DeleteAgencyRequest(agency_id=_agency.id))
+        iam_client.delete_agency(
+            DeleteAgencyRequest(agency_id=_agency.id))
         cli_logger.print(
             "Successfully deleted instance profile: {}.", _agency.name)
 
 
 def _get_current_domain_id(iam_client):
     domain_id = iam_client.keystone_list_projects(
-        KeystoneListProjectsRequest(enabled=True, page=1,
-                                    per_page=1)).projects[0].domain_id
+        KeystoneListProjectsRequest(
+            enabled=True, page=1,
+            per_page=1)).projects[0].domain_id
     return domain_id
 
 
@@ -324,8 +361,9 @@ def get_default_workspace_object_storage_name(
 
 def _create_workspace_cloud_storage(config, workspace_name):
     obs_client = make_obs_client(config)
-    _create_managed_cloud_storage(obs_client,
-                                  workspace_name)
+    _create_managed_cloud_storage(
+        obs_client,
+        workspace_name)
 
 
 def _create_managed_cloud_storage(
@@ -340,19 +378,22 @@ def _create_managed_cloud_storage(
         obs_client, workspace_name,
         object_storage_name=object_storage_name)
     if bucket_name:
-        cli_logger.print("OBS bucket {} already exists in workspace. Skip creation.",
-                         object_storage_name)
+        cli_logger.print(
+            "OBS bucket {} already exists in workspace. Skip creation.",
+            object_storage_name)
         return
 
     # Create new bucket with parallel file system enable
-    resp = obs_client.createBucket(object_storage_name,
-                                   header=CreateBucketHeader(isPFS=True),
-                                   location=obs_client.region)
+    resp = obs_client.createBucket(
+        object_storage_name,
+        header=CreateBucketHeader(isPFS=True),
+        location=obs_client.region)
     if resp.status < 300:
         # Set Bucket tags
         tag_info = TagInfo()
         tag_info.addTag(CLOUDTIK_TAG_WORKSPACE_NAME, workspace_name)
-        tagging_resp = obs_client.setBucketTagging(object_storage_name, tag_info)
+        tagging_resp = obs_client.setBucketTagging(
+            object_storage_name, tag_info)
         if tagging_resp.status < 300:
             cli_logger.print(
                 "Successfully created OBS bucket: {}.".format(object_storage_name))
@@ -361,10 +402,12 @@ def _create_managed_cloud_storage(
                 "Failed to set OBS bucket tag. Error: {}".format(
                     str(tagging_resp)))
     else:
-        cli_logger.abort("Failed to create OBS bucket. {}", str(resp))
+        cli_logger.abort(
+            "Failed to create OBS bucket. {}", str(resp))
 
 
-def _get_managed_obs_bucket(obs_client, workspace_name=None, object_storage_name=None):
+def _get_managed_obs_bucket(
+        obs_client, workspace_name=None, object_storage_name=None):
     if not object_storage_name:
         object_storage_name = get_default_workspace_object_storage_name(
             workspace_name)
@@ -374,7 +417,8 @@ def _get_managed_obs_bucket(obs_client, workspace_name=None, object_storage_name
     elif resp.status == 404:
         return None
     else:
-        raise Exception("HUAWEI CLOUD OBS service error {}".format(resp))
+        raise Exception(
+            "HUAWEI CLOUD OBS service error {}".format(resp))
 
 
 def _is_workspace_tagged(tags, workspace_name):
@@ -402,15 +446,18 @@ def _get_managed_obs_buckets(obs_client, workspace_name):
                     workspace_buckets.append(bucket)
         return workspace_buckets
     else:
-        raise RuntimeError("HUAWEI CLOUD OBS service error {}".format(resp))
+        raise RuntimeError(
+            "HUAWEI CLOUD OBS service error {}".format(resp))
 
 
-def _create_and_accept_vpc_peering(config, _workspace_vpc, vpc_client,
-                                   workspace_name):
+def _create_and_accept_vpc_peering(
+        config, _workspace_vpc, vpc_client,
+        workspace_name):
     current_step = 1
     total_steps = 3
-    with cli_logger.group("Creating VPC peering connection",
-                          _numbered=("()", current_step, total_steps)):
+    with cli_logger.group(
+            "Creating VPC peering connection",
+            _numbered=("()", current_step, total_steps)):
         current_step += 1
         _current_vpc = _get_current_vpc(config)
         _vpc_peering_name = HWC_WORKSPACE_VPC_PEERING_NAME.format(
@@ -418,26 +465,30 @@ def _create_and_accept_vpc_peering(config, _workspace_vpc, vpc_client,
         vpc_peering = vpc_client.create_vpc_peering(
             CreateVpcPeeringRequest(
                 CreateVpcPeeringRequestBody(
-                    CreateVpcPeeringOption(name=_vpc_peering_name,
-                                           request_vpc_info=VpcInfo(
-                                               _current_vpc.id),
-                                           accept_vpc_info=VpcInfo(
-                                               _workspace_vpc.id))))
+                    CreateVpcPeeringOption(
+                        name=_vpc_peering_name,
+                        request_vpc_info=VpcInfo(
+                            _current_vpc.id),
+                        accept_vpc_info=VpcInfo(
+                            _workspace_vpc.id))))
         ).peering
 
-    with cli_logger.group("Accepting VPC peering connection",
-                          _numbered=("()", current_step, total_steps)):
+    with cli_logger.group(
+            "Accepting VPC peering connection",
+            _numbered=("()", current_step, total_steps)):
         current_step += 1
         # If VPC peering is built between different tenants, need to accept.
         if _current_vpc.tenant_id != _workspace_vpc.tenant_id:
             vpc_peering_status = vpc_client.accept_vpc_peering(
                 AcceptVpcPeeringRequest(vpc_peering.id)).status
             cli_logger.print(
-                "VPC peering {} status is {}".format(vpc_peering.id,
-                                                     vpc_peering_status))
+                "VPC peering {} status is {}".format(
+                    vpc_peering.id,
+                    vpc_peering_status))
 
-    with cli_logger.group("Updating route table for peering connection",
-                          _numbered=("()", current_step, total_steps)):
+    with cli_logger.group(
+            "Updating route table for peering connection",
+            _numbered=("()", current_step, total_steps)):
         current_step += 1
         _current_vpc_rts = vpc_client.list_route_tables(
             ListRouteTablesRequest(vpc_id=_current_vpc.id)
@@ -459,9 +510,10 @@ def _create_and_accept_vpc_peering(config, _workspace_vpc, vpc_client,
                     )
                 )
             )
-            cli_logger.print("Successfully add route destination to current "
-                             "VPC route table {} with workspace VPC CIDR "
-                             "block.".format(_current_vpc_rt.id))
+            cli_logger.print(
+                "Successfully add route destination to current "
+                "VPC route table {} with workspace VPC CIDR "
+                "block.".format(_current_vpc_rt.id))
 
         for _workspace_vpc_rt in _workspace_vpc_rts:
             vpc_client.update_route_table(
@@ -477,12 +529,14 @@ def _create_and_accept_vpc_peering(config, _workspace_vpc, vpc_client,
                     )
                 )
             )
-            cli_logger.print("Successfully add route destination to "
-                             "workspace VPC route table {} with current "
-                             "VPC CIDR block.".format(_workspace_vpc_rt.id))
+            cli_logger.print(
+                "Successfully add route destination to "
+                "workspace VPC route table {} with current "
+                "VPC CIDR block.".format(_workspace_vpc_rt.id))
 
 
-def _check_and_create_security_group(config, vpc, vpc_client, workspace_name):
+def _check_and_create_security_group(
+        config, vpc, vpc_client, workspace_name):
     # Create security group
     sg_name = HWC_WORKSPACE_SG_NAME.format(workspace_name)
 
@@ -511,36 +565,40 @@ def _update_security_group_rules(config, sg, vpc, vpc_client):
         vpc_client.create_security_group_rule(
             CreateSecurityGroupRuleRequest(
                 CreateSecurityGroupRuleRequestBody(
-                    CreateSecurityGroupRuleOption(sg.id,
-                                                  direction='ingress',
-                                                  **_ext_rule)))
+                    CreateSecurityGroupRuleOption(
+                        sg.id,
+                        direction='ingress',
+                        **_ext_rule)))
         )
     # Create default ingress rule in security group
     vpc_client.create_security_group_rule(
         CreateSecurityGroupRuleRequest(
             CreateSecurityGroupRuleRequestBody(
-                CreateSecurityGroupRuleOption(sg.id,
-                                              direction='ingress',
-                                              remote_group_id=sg.id)))
+                CreateSecurityGroupRuleOption(
+                    sg.id,
+                    direction='ingress',
+                    remote_group_id=sg.id)))
     )
     # Create default ingress SSH rule in VPC
     vpc_client.create_security_group_rule(
         CreateSecurityGroupRuleRequest(
             CreateSecurityGroupRuleRequestBody(
-                CreateSecurityGroupRuleOption(sg.id,
-                                              direction='ingress',
-                                              port_range_min=22,
-                                              port_range_max=22,
-                                              protocol='tcp',
-                                              remote_ip_prefix=vpc.cidr)))
+                CreateSecurityGroupRuleOption(
+                    sg.id,
+                    direction='ingress',
+                    port_range_min=22,
+                    port_range_max=22,
+                    protocol='tcp',
+                    remote_ip_prefix=vpc.cidr)))
     )
     # Create egress rule
     vpc_client.create_security_group_rule(
         CreateSecurityGroupRuleRequest(
             CreateSecurityGroupRuleRequestBody(
-                CreateSecurityGroupRuleOption(sg.id,
-                                              direction='egress',
-                                              remote_ip_prefix='0.0.0.0/0')))
+                CreateSecurityGroupRuleOption(
+                    sg.id,
+                    direction='egress',
+                    remote_ip_prefix='0.0.0.0/0')))
     )
 
     # Create peering vpc rule
@@ -554,12 +612,13 @@ def _update_security_group_rules(config, sg, vpc, vpc_client):
         vpc_client.create_security_group_rule(
             CreateSecurityGroupRuleRequest(
                 CreateSecurityGroupRuleRequestBody(
-                    CreateSecurityGroupRuleOption(sg.id,
-                                                  direction='ingress',
-                                                  port_range_min=_port_min,
-                                                  port_range_max=_port_max,
-                                                  protocol='tcp',
-                                                  remote_ip_prefix=_vpc_cidr)))
+                    CreateSecurityGroupRuleOption(
+                        sg.id,
+                        direction='ingress',
+                        port_range_min=_port_min,
+                        port_range_max=_port_max,
+                        protocol='tcp',
+                        remote_ip_prefix=_vpc_cidr)))
         )
 
 
@@ -572,43 +631,51 @@ def _clean_security_group_rules(sg, vpc_client):
             DeleteSecurityGroupRuleRequest(_rule.id))
 
 
-def _check_and_create_nat_gateway_and_eip(config, subnets, vpc, workspace_name):
+def _check_and_create_nat_gateway_and_eip(
+        config, subnets, vpc, workspace_name):
     current_step = 1
     total_steps = 3
-    with cli_logger.group("Creating NAT gateway",
-                          _numbered=("()", current_step, total_steps)):
+    with cli_logger.group(
+            "Creating NAT gateway",
+            _numbered=("()", current_step, total_steps)):
         current_step += 1
         nat_gateway = _check_and_create_nat_gateway(
             config, subnets, vpc, workspace_name)
 
-    with cli_logger.group("Creating NAT EIP",
-                          _numbered=("()", current_step, total_steps)):
+    with cli_logger.group(
+            "Creating NAT EIP",
+            _numbered=("()", current_step, total_steps)):
         current_step += 1
         eip = _check_and_create_eip(config, workspace_name)
 
-    with cli_logger.group("Creating SNAT Rules",
-                          _numbered=("()", current_step, total_steps)):
+    with cli_logger.group(
+            "Creating SNAT Rules",
+            _numbered=("()", current_step, total_steps)):
         current_step += 1
         _check_and_create_snat_rules(
             config, subnets, nat_gateway, eip
         )
 
 
-def _check_and_create_nat_gateway(config, subnets, vpc, workspace_name):
+def _check_and_create_nat_gateway(
+        config, subnets, vpc, workspace_name):
     nat_client = make_nat_client(config)
     nat_name = HWC_WORKSPACE_NAT_NAME.format(workspace_name)
     pub_net = subnets[0].id
 
-    cli_logger.print("Creating NAT gateway: {}...", nat_name)
+    cli_logger.print(
+        "Creating NAT gateway: {}...", nat_name)
     nat_gateway = nat_client.create_nat_gateway(
         CreateNatGatewayRequest(
             CreateNatGatewayRequestBody(
-                CreateNatGatewayOption(name=nat_name,
-                                       router_id=vpc.id,
-                                       internal_network_id=pub_net,
-                                       spec='1')))
+                CreateNatGatewayOption(
+                    name=nat_name,
+                    router_id=vpc.id,
+                    internal_network_id=pub_net,
+                    spec='1')))
     ).nat_gateway
-    cli_logger.print("Successfully created NAT gateway: {}.", nat_name)
+    cli_logger.print(
+        "Successfully created NAT gateway: {}.", nat_name)
     return nat_gateway
 
 
@@ -618,20 +685,24 @@ def _check_and_create_eip(config, workspace_name):
     _eip_name = HWC_WORKSPACE_EIP_NAME.format(workspace_name)
     eip_client = make_eip_client(config) \
 
-    cli_logger.print("Creating elastic IP: {}...", _eip_name)
+    cli_logger.print(
+        "Creating elastic IP: {}...", _eip_name)
     bandwidth = get_workspace_nat_public_ip_bandwidth_conf(config)
     eip = eip_client.create_publicip(
         CreatePublicipRequest(
             CreatePublicipRequestBody(
                 # Dedicated bandwidth 5 Mbit
-                bandwidth=CreatePublicipBandwidthOption(name=_bw_name,
-                                                        share_type='PER',
-                                                        size=bandwidth),
-                publicip=CreatePublicipOption(type='5_bgp',
-                                              alias=_eip_name)))
+                bandwidth=CreatePublicipBandwidthOption(
+                    name=_bw_name,
+                    share_type='PER',
+                    size=bandwidth),
+                publicip=CreatePublicipOption(
+                    type='5_bgp',
+                    alias=_eip_name)))
     ).publicip
-    cli_logger.print("Successfully created elastic IP: {}.",
-                     eip.public_ip_address)
+    cli_logger.print(
+        "Successfully created elastic IP: {}.",
+        eip.public_ip_address)
     return eip
 
 
@@ -659,7 +730,8 @@ def _check_and_create_snat_rules(config, subnets, nat_gateway, eip):
 def _wait_util_nat_gateway_active(nat_client, nat_gateway):
     _retry = 0
     while True:
-        nat_gateway = _get_workspace_nat(nat_client, nat_id=nat_gateway.id)[0]
+        nat_gateway = _get_workspace_nat(
+            nat_client, nat_id=nat_gateway.id)[0]
         if nat_gateway.status == 'ACTIVE' or _retry > 5:
             break
         else:
@@ -671,16 +743,18 @@ def _get_available_subnet_cidr(vpc, vpc_client, workspace_name):
     cidr_list = []
     current_vpc_subnets = vpc_client.list_subnets(
         ListSubnetsRequest(vpc_id=vpc.id)).subnets
-    current_subnet_cidr = [_subnet.cidr for _subnet in
-                           current_vpc_subnets]
+    current_subnet_cidr = [
+        _subnet.cidr for _subnet in
+        current_vpc_subnets]
     vpc_cidr_block = vpc.cidr
     ip_range = vpc_cidr_block.split('/')[0].split('.')
     for i in range(0, 256):
         tmp_cidr_block = '{}.{}.{}.0/24'.format(ip_range[0],
                                                 ip_range[1],
                                                 i)
-        if check_cidr_conflict(tmp_cidr_block,
-                               current_subnet_cidr):
+        if check_cidr_conflict(
+                tmp_cidr_block,
+                current_subnet_cidr):
             cidr_list.append(tmp_cidr_block)
         if len(cidr_list) >= HWC_WORKSPACE_VPC_SUBNETS_COUNT:
             break
@@ -698,52 +772,62 @@ def _check_and_create_vpc(vpc_client, workspace_name):
     response = vpc_client.list_vpcs(ListVpcsRequest())
     for _vpc in response.vpcs:
         if _vpc.name == vpc_name:
-            raise RuntimeError("There is a same name VPC for workspace: {}, "
-                               "if you want to create a new workspace with "
-                               "the same name, you need to execute workspace "
-                               "delete first!".format(workspace_name))
+            raise RuntimeError(
+                "There is a same name VPC for workspace: {}, "
+                "if you want to create a new workspace with "
+                "the same name, you need to execute workspace "
+                "delete first!".format(workspace_name))
     # Create new vpc
-    cli_logger.print("Creating workspace VPC: {}...",
-                     vpc_name)
+    cli_logger.print(
+        "Creating workspace VPC: {}...",
+        vpc_name)
     default_cidr = HWC_WORKSPACE_VPC_DEFAULT_CIDR
     request = CreateVpcRequest(
         CreateVpcRequestBody(
-            vpc=CreateVpcOption(name=vpc_name,
-                                cidr=default_cidr)))
+            vpc=CreateVpcOption(
+                name=vpc_name,
+                cidr=default_cidr)))
     vpc = vpc_client.create_vpc(request).vpc
-    cli_logger.print("Successfully created workspace VPC: {}.",
-                     vpc.name)
+    cli_logger.print(
+        "Successfully created workspace VPC: {}.",
+        vpc.name)
     return vpc
 
 
 def _check_and_create_subnets(vpc, vpc_client, workspace_name):
     subnets = []
-    subnet_cidr_list = _get_available_subnet_cidr(vpc, vpc_client,
-                                                  workspace_name)
+    subnet_cidr_list = _get_available_subnet_cidr(
+        vpc, vpc_client,
+        workspace_name)
     for i, _cidr in enumerate(subnet_cidr_list, start=1):
         subnet_type = 'public' if i == 1 else 'private'
         subnet_name = HWC_WORKSPACE_SUBNET_NAME.format(
             workspace_name, subnet_type)
         _gateway_ip = _cidr.replace('.0/24', '.1')
-        with cli_logger.group("Creating {} subnet", subnet_type,
-                              _numbered=("()", i,
-                                         len(subnet_cidr_list))):
+        with cli_logger.group(
+                "Creating {} subnet", subnet_type,
+                _numbered=("()", i,
+                           len(subnet_cidr_list))):
             try:
-                cli_logger.print("Creating subnet: {}...", subnet_name)
+                cli_logger.print(
+                    "Creating subnet: {}...", subnet_name)
                 _subnet = vpc_client.create_subnet(
                     CreateSubnetRequest(
                         CreateSubnetRequestBody(
-                            CreateSubnetOption(name=subnet_name,
-                                               cidr=_cidr,
-                                               primary_dns='114.114.114.114',
-                                               secondary_dns='8.8.8.8',
-                                               gateway_ip=_gateway_ip,
-                                               vpc_id=vpc.id)))
+                            CreateSubnetOption(
+                                name=subnet_name,
+                                cidr=_cidr,
+                                primary_dns='114.114.114.114',
+                                secondary_dns='8.8.8.8',
+                                gateway_ip=_gateway_ip,
+                                vpc_id=vpc.id)))
                 ).subnet
-                cli_logger.print("Successfully created subnet: {}.", subnet_name)
+                cli_logger.print(
+                    "Successfully created subnet: {}.", subnet_name)
             except Exception as e:
-                cli_logger.error("Failed to create {} subnet. {}",
-                                 subnet_type, str(e))
+                cli_logger.error(
+                    "Failed to create {} subnet. {}",
+                    subnet_type, str(e))
                 raise e
             subnets.append(_subnet)
     return subnets
@@ -772,12 +856,14 @@ def _get_current_vpc(config):
         vpc = vpc_client.show_vpc(ShowVpcRequest(vpc_id=vpc_id)).vpc
         return vpc
     except Exception as e:
-        raise RuntimeError("Failed to get the VPC for the current machine. "
-                           "Please make sure your current machine is"
-                           "a HUAWEICLOUD virtual machine. {}".format(e))
+        raise RuntimeError(
+            "Failed to get the VPC for the current machine. "
+            "Please make sure your current machine is"
+            "a HUAWEICLOUD virtual machine. {}".format(e))
 
 
-def delete_huaweicloud_workspace(config, delete_managed_storage):
+def delete_huaweicloud_workspace(
+        config, delete_managed_storage):
     workspace_name = config['workspace_name']
     managed_cloud_storage = is_managed_cloud_storage(config)
     use_peering_vpc = is_use_peering_vpc(config)
@@ -790,65 +876,82 @@ def delete_huaweicloud_workspace(config, delete_managed_storage):
         total_steps += 1
 
     try:
-        with cli_logger.group("Deleting workspace: {}",
-                              cf.bold(workspace_name)):
+        with cli_logger.group(
+                "Deleting workspace: {}",
+                cf.bold(workspace_name)):
             vpc_client = make_vpc_client(config)
             if use_peering_vpc:
                 # Step1: delete peering vpc connection
-                with cli_logger.group("Deleting peering VPC connection",
-                                      _numbered=("[]",
-                                                 current_step, total_steps)):
+                with cli_logger.group(
+                        "Deleting peering VPC connection",
+                        _numbered=("[]",
+                                   current_step, total_steps)):
                     current_step += 1
-                    _check_and_delete_vpc_peering_connection(config,
-                                                             vpc_client,
-                                                             workspace_name)
+                    _check_and_delete_vpc_peering_connection(
+                        config,
+                        vpc_client,
+                        workspace_name)
 
             # Step2: delete security group
-            with cli_logger.group("Deleting security group",
-                                  _numbered=("[]", current_step, total_steps)):
+            with cli_logger.group(
+                    "Deleting security group",
+                    _numbered=("[]", current_step, total_steps)):
                 current_step += 1
-                _check_and_delete_security_group(vpc_client, workspace_name)
+                _check_and_delete_security_group(
+                    vpc_client, workspace_name)
 
             # Step3: delete NAT and SNAT rules
-            with cli_logger.group("Deleting NAT, SNAT rules and EIP",
-                                  _numbered=("[]", current_step, total_steps)):
+            with cli_logger.group(
+                    "Deleting NAT, SNAT rules and EIP",
+                    _numbered=("[]", current_step, total_steps)):
                 current_step += 1
-                _check_and_delete_nat_gateway_and_eip(config, workspace_name)
+                _check_and_delete_nat_gateway_and_eip(
+                    config, workspace_name)
 
             # Step4: delete subnets
-            with cli_logger.group("Deleting private and public subnets",
-                                  _numbered=("[]", current_step, total_steps)):
+            with cli_logger.group(
+                    "Deleting private and public subnets",
+                    _numbered=("[]", current_step, total_steps)):
                 current_step += 1
-                _workspace_vpc = _check_and_delete_subnets(vpc_client,
-                                                           workspace_name)
+                _workspace_vpc = _check_and_delete_subnets(
+                    vpc_client,
+                    workspace_name)
             # Step5: delete VPC
-            with cli_logger.group("Deleting VPC",
-                                  _numbered=("[]", current_step, total_steps)):
+            with cli_logger.group(
+                    "Deleting VPC",
+                    _numbered=("[]", current_step, total_steps)):
                 current_step += 1
                 use_working_vpc = is_use_working_vpc(config)
-                _check_and_delete_vpc(config, use_working_vpc, vpc_client,
-                                      _workspace_vpc)
+                _check_and_delete_vpc(
+                    config, use_working_vpc, vpc_client,
+                    _workspace_vpc)
 
             # Step6: delete instance profile
-            with cli_logger.group("Deleting instance profile",
-                                  _numbered=("[]", current_step, total_steps)):
+            with cli_logger.group(
+                    "Deleting instance profile",
+                    _numbered=("[]", current_step, total_steps)):
                 current_step += 1
-                _delete_workspace_instance_profile(config, workspace_name)
+                _delete_workspace_instance_profile(
+                    config, workspace_name)
 
             if managed_cloud_storage and delete_managed_storage:
                 # Step7: delete OBS(Object Storage Service) bucket
-                with cli_logger.group("Deleting OBS bucket and objects",
-                                      _numbered=("[]",
-                                                 current_step, total_steps)):
+                with cli_logger.group(
+                        "Deleting OBS bucket and objects",
+                        _numbered=("[]",
+                                   current_step, total_steps)):
                     current_step += 1
-                    _delete_workspace_cloud_storage(config, workspace_name)
+                    _delete_workspace_cloud_storage(
+                        config, workspace_name)
     except Exception as e:
-        cli_logger.error("Failed to delete workspace with the name {} at step"
-                         "{}. \n{}", workspace_name, current_step - 1, str(e))
+        cli_logger.error(
+            "Failed to delete workspace with the name {} at step"
+            "{}. \n{}", workspace_name, current_step - 1, str(e))
         raise e
 
-    cli_logger.success("Successfully deleted workspace: {}.",
-                     cf.bold(workspace_name))
+    cli_logger.success(
+        "Successfully deleted workspace: {}.",
+        cf.bold(workspace_name))
 
 
 def _delete_workspace_cloud_storage(config, workspace_name):
@@ -868,7 +971,8 @@ def _delete_managed_cloud_storage(
         object_storage_name=object_storage_name)
     if not bucket_name:
         cli_logger.warning(
-            "No OBS bucket with the name {} found. Skip deletion.", object_storage_name)
+            "No OBS bucket with the name {} found. Skip deletion.",
+            object_storage_name)
         return
     # List and delete all objects in bucket
     _check_and_delete_bucket_objects(obs_client, bucket_name)
@@ -878,7 +982,8 @@ def _delete_managed_cloud_storage(
         cli_logger.print(
             "Successfully deleted OBS bucket: {}.".format(bucket_name))
     else:
-        cli_logger.abort("Failed to delete OBS bucket. {}".format(bucket_name))
+        cli_logger.abort(
+            "Failed to delete OBS bucket. {}".format(bucket_name))
 
 
 def _check_and_delete_bucket_objects(obs_client, bucket_name):
@@ -892,27 +997,33 @@ def _check_and_delete_bucket_objects(obs_client, bucket_name):
         time.sleep(1)
 
 
-def _check_and_delete_vpc(config, use_working_vpc, vpc_client, _workspace_vpc):
+def _check_and_delete_vpc(
+        config, use_working_vpc, vpc_client, _workspace_vpc):
     if not use_working_vpc:
         if _workspace_vpc:
             cli_logger.print(
                 "Deleting VPC: {}...", _workspace_vpc.name)
-            vpc_client.delete_vpc(DeleteVpcRequest(vpc_id=_workspace_vpc.id))
+            vpc_client.delete_vpc(
+                DeleteVpcRequest(vpc_id=_workspace_vpc.id))
             cli_logger.print(
                 "Successfully deleted VPC: {}.", _workspace_vpc.name)
         else:
-            cli_logger.print("Can't find workspace VPC")
+            cli_logger.print(
+                "Can't find workspace VPC")
     else:
         _current_vpc = _get_current_vpc(config)
-        cli_logger.print("Skip to delete working VPC {}", _current_vpc.name)
+        cli_logger.error(
+            "Skip to delete working VPC {}", _current_vpc.name)
 
 
 def _check_and_delete_subnets(vpc_client, workspace_name):
     _workspace_vpc = get_workspace_vpc(vpc_client, workspace_name)
     if _workspace_vpc:
-        _delete_subnets_until_empty(vpc_client, _workspace_vpc, workspace_name)
+        _delete_subnets_until_empty(
+            vpc_client, _workspace_vpc, workspace_name)
     else:
-        cli_logger.print("Can't find workspace VPC")
+        cli_logger.error(
+            "Can't find workspace VPC")
     return _workspace_vpc
 
 
@@ -920,8 +1031,9 @@ def _delete_subnets_until_empty(vpc_client, workspace_vpc, workspace_name):
     cli_logger.print(
         "Deleting subnets for VPC: {}...", workspace_vpc.name)
     while True:
-        subnets = _get_workspace_vpc_subnets(vpc_client, workspace_vpc,
-                                             workspace_name)
+        subnets = _get_workspace_vpc_subnets(
+            vpc_client, workspace_vpc,
+            workspace_name)
         # quick pass if no subnets in VPC
         if not subnets:
             break
@@ -929,8 +1041,9 @@ def _delete_subnets_until_empty(vpc_client, workspace_vpc, workspace_name):
         for _subnet in subnets:
             try:
                 vpc_client.delete_subnet(
-                    DeleteSubnetRequest(vpc_id=workspace_vpc.id,
-                                        subnet_id=_subnet.id))
+                    DeleteSubnetRequest(
+                        vpc_id=workspace_vpc.id,
+                        subnet_id=_subnet.id))
             except ServiceResponseException:
                 # if delete a subnet in deleting workflow,
                 # maybe raise exception, try to delete in next time.
@@ -940,8 +1053,9 @@ def _delete_subnets_until_empty(vpc_client, workspace_vpc, workspace_name):
         "Successfully deleted subnets for VPC: {}.", workspace_vpc.name)
 
 
-def _get_workspace_vpc_subnets(vpc_client, _workspace_vpc, workspace_name,
-                               category=None):
+def _get_workspace_vpc_subnets(
+        vpc_client, _workspace_vpc, workspace_name,
+        category=None):
     subnets = vpc_client.list_subnets(
         ListSubnetsRequest(vpc_id=_workspace_vpc.id)
     ).subnets
@@ -964,7 +1078,8 @@ def _get_workspace_vpc_subnets(vpc_client, _workspace_vpc, workspace_name,
 def _check_and_delete_security_group(vpc_client, workspace_name):
     workspace_vpc = get_workspace_vpc(vpc_client, workspace_name)
     if workspace_vpc:
-        target_sgs = _get_workspace_security_group(vpc_client, workspace_name)
+        target_sgs = _get_workspace_security_group(
+            vpc_client, workspace_name)
         if len(target_sgs) == 0:
             cli_logger.print(
                 "No security groups for workspace were found under this VPC: {}. Skip deletion.",
@@ -994,7 +1109,8 @@ def _get_workspace_security_group(vpc_client, workspace_name):
 def _check_and_delete_eip(config, workspace_name):
     eip_client = make_eip_client(config)
     _eip_name = HWC_WORKSPACE_EIP_NAME.format(workspace_name)
-    public_ips = eip_client.list_publicips(ListPublicipsRequest()).publicips
+    public_ips = eip_client.list_publicips(
+        ListPublicipsRequest()).publicips
     _found = False
     for _public_ip in public_ips:
         if _public_ip.alias == _eip_name:
@@ -1010,8 +1126,9 @@ def _check_and_delete_eip(config, workspace_name):
             "No elastic IP with the name found: {}. Skip deletion.", _eip_name)
 
 
-def _check_and_delete_vpc_peering_connection(config, vpc_client,
-                                             workspace_name):
+def _check_and_delete_vpc_peering_connection(
+        config, vpc_client,
+        workspace_name):
     peerings = _get_vpc_peering_conn(vpc_client, workspace_name)
     for _peering_conn in peerings:
         vpc_client.delete_vpc_peering(
@@ -1074,18 +1191,21 @@ def _check_and_delete_nat_gateway_and_eip(config, workspace_name):
     current_step = 1
     total_steps = 3
 
-    with cli_logger.group("Deleting SNAT rules",
-                          _numbered=("()", current_step, total_steps)):
+    with cli_logger.group(
+            "Deleting SNAT rules",
+            _numbered=("()", current_step, total_steps)):
         current_step += 1
         _check_and_delete_snat_rules(config, workspace_name)
 
-    with cli_logger.group("Deleting NAT gateway",
-                          _numbered=("()", current_step, total_steps)):
+    with cli_logger.group(
+            "Deleting NAT gateway",
+            _numbered=("()", current_step, total_steps)):
         current_step += 1
         _check_and_delete_nat_gateway(config, workspace_name)
 
-    with cli_logger.group("Deleting elastic IP",
-                          _numbered=("()", current_step, total_steps)):
+    with cli_logger.group(
+            "Deleting elastic IP",
+            _numbered=("()", current_step, total_steps)):
         current_step += 1
         # Delete EIP
         _check_and_delete_eip(config, workspace_name)
@@ -1093,15 +1213,17 @@ def _check_and_delete_nat_gateway_and_eip(config, workspace_name):
 
 def _check_and_delete_snat_rules(config, workspace_name):
     nat_client = make_nat_client(config)
-    nat_gateways = _get_workspace_nat(nat_client, workspace_name)
+    nat_gateways = _get_workspace_nat(
+        nat_client, workspace_name)
     if not nat_gateways:
         cli_logger.print(
-            "No NAT gateway found for workspace: {}. Skip deletion.".format(
-                workspace_name))
+            "No NAT gateway found for workspace: {}. Skip deletion.",
+            workspace_name)
         return
 
     for _nat_gateway in nat_gateways:
-        _check_and_delete_snat_rules_of_nat_gateway(nat_client, _nat_gateway)
+        _check_and_delete_snat_rules_of_nat_gateway(
+            nat_client, _nat_gateway)
 
 
 def _check_and_delete_nat_gateway(config, workspace_name):
@@ -1109,15 +1231,17 @@ def _check_and_delete_nat_gateway(config, workspace_name):
     nat_gateways = _get_workspace_nat(nat_client, workspace_name)
     if not nat_gateways:
         cli_logger.print(
-            "No NAT gateway found for workspace: {}. Skip deletion.", workspace_name)
+            "No NAT gateway found for workspace: {}. Skip deletion.",
+            workspace_name)
         return
 
     for _nat_gateway in nat_gateways:
         # Delete NAT
         cli_logger.print(
             "Deleting NAT gateway: {}...", _nat_gateway.name)
-        nat_client.delete_nat_gateway(DeleteNatGatewayRequest(
-            nat_gateway_id=_nat_gateway.id))
+        nat_client.delete_nat_gateway(
+            DeleteNatGatewayRequest(
+                nat_gateway_id=_nat_gateway.id))
         cli_logger.print(
             "Successfully deleted NAT gateway: {}.", _nat_gateway.name)
 
@@ -1128,7 +1252,8 @@ def _check_and_delete_snat_rules_of_nat_gateway(nat_client, nat_gateway):
         "Deleting SNAT rules for NAT gateway: {}...", nat_gateway.name)
     while True:
         _snat_rules = nat_client.list_nat_gateway_snat_rules(
-            ListNatGatewaySnatRulesRequest(nat_gateway_id=[nat_gateway.id])
+            ListNatGatewaySnatRulesRequest(
+                nat_gateway_id=[nat_gateway.id])
         ).snat_rules
         if not _snat_rules:
             break
@@ -1140,7 +1265,8 @@ def _check_and_delete_snat_rules_of_nat_gateway(nat_client, nat_gateway):
             )
         time.sleep(1)
     cli_logger.print(
-        "Successfully deleted SNAT rules for NAT gateway: {}.", nat_gateway.name)
+        "Successfully deleted SNAT rules for NAT gateway: {}.",
+        nat_gateway.name)
 
 
 def _get_workspace_nat(nat_client, workspace_name=None, nat_id=None):
@@ -1165,7 +1291,8 @@ def update_huaweicloud_workspace(
         total_steps += 1
 
     try:
-        with cli_logger.group("Updating workspace: {}", workspace_name):
+        with cli_logger.group(
+                "Updating workspace: {}", workspace_name):
             with cli_logger.group(
                     "Updating workspace firewalls",
                     _numbered=("[]", current_step, total_steps)):
@@ -1193,8 +1320,10 @@ def update_huaweicloud_workspace(
                         current_step += 1
                         _delete_workspace_cloud_storage(config, workspace_name)
     except Exception as e:
-        cli_logger.error("Failed to update workspace with the name {}. "
-                         "You need to delete and try create again. {}", workspace_name, str(e))
+        cli_logger.error(
+            "Failed to update workspace with the name {}. "
+            "You need to delete and try create again. {}",
+            workspace_name, str(e))
         raise e
 
     cli_logger.success(
@@ -1207,10 +1336,12 @@ def update_workspace_firewalls(config):
     workspace_name = config["workspace_name"]
     workspace_vpc = get_workspace_vpc(vpc_client, workspace_name)
     if not workspace_vpc:
-        raise RuntimeError("The workspace: {} doesn't exist!".format(workspace_name))
+        raise RuntimeError(
+            "The workspace: {} doesn't exist!".format(workspace_name))
 
     try:
-        cli_logger.print("Updating the firewalls of workspace...")
+        cli_logger.print(
+            "Updating the firewalls of workspace...")
         _sgs = vpc_client.list_security_groups(
             ListSecurityGroupsRequest()).security_groups
         _sg_name = HWC_WORKSPACE_SG_NAME.format(workspace_name)
@@ -1219,8 +1350,9 @@ def update_workspace_firewalls(config):
                 _update_security_group_rules(config, _sg, workspace_vpc,
                                              vpc_client)
     except Exception as e:
-        cli_logger.error("Failed to update the firewalls of workspace {}. {}",
-                         workspace_name, str(e))
+        cli_logger.error(
+            "Failed to update the firewalls of workspace {}. {}",
+            workspace_name, str(e))
         raise e
 
     cli_logger.print(
@@ -1292,16 +1424,18 @@ def check_huaweicloud_workspace_existence(config):
 
         # private subnets check
         _private_subnets_count = len(
-            _get_workspace_vpc_subnets(vpc_client, workspace_vpc,
-                                       workspace_name, 'private')
+            _get_workspace_vpc_subnets(
+                vpc_client, workspace_vpc,
+                workspace_name, 'private')
         )
         if _private_subnets_count >= HWC_WORKSPACE_VPC_SUBNETS_COUNT - 1:
             existing_resources += 1
 
         # public subnet check
         _public_subnets_count = len(
-            _get_workspace_vpc_subnets(vpc_client, workspace_vpc,
-                                       workspace_name, 'public')
+            _get_workspace_vpc_subnets(
+                vpc_client, workspace_vpc,
+                workspace_name, 'public')
         )
         if _public_subnets_count >= 0:
             existing_resources += 1
@@ -1350,8 +1484,9 @@ def check_huaweicloud_workspace_integrity(config):
 def _get_instance_profile(config, workspace_name, for_head):
     iam_client = make_iam_client(config)
     _prefix = 'head' if for_head else 'worker'
-    profile_name = HWC_WORKSPACE_INSTANCE_PROFILE_NAME.format(workspace_name,
-                                                              _prefix)
+    profile_name = HWC_WORKSPACE_INSTANCE_PROFILE_NAME.format(
+        workspace_name,
+        _prefix)
     domain_id = _get_current_domain_id(iam_client)
     target_agencies = iam_client.list_agencies(
         ListAgenciesRequest(name=profile_name, domain_id=domain_id)
@@ -1372,10 +1507,12 @@ def list_huaweicloud_clusters(config):
     return clusters
 
 
-def list_huaweicloud_storages(config: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+def list_huaweicloud_storages(
+        config: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     provider_config = config["provider"]
     workspace_name = config["workspace_name"]
-    buckets = _get_managed_obs_buckets(provider_config, workspace_name)
+    buckets = _get_managed_obs_buckets(
+        provider_config, workspace_name)
     object_storages = {}
     if buckets is None:
         return object_storages
@@ -1395,8 +1532,9 @@ def get_cluster_name_from_head(head_node) -> Optional[str]:
 
 
 def get_workspace_head_nodes(config):
-    return _get_workspace_head_nodes(config['provider'],
-                                     config['workspace_name'])
+    return _get_workspace_head_nodes(
+        config['provider'],
+        config['workspace_name'])
 
 
 def _get_workspace_head_nodes(provider_config, workspace_name):
@@ -1455,9 +1593,10 @@ def _configure_allowed_ssh_sources(config):
         rules.append(rule)
 
 
-def with_huaweicloud_environment_variables(provider_config,
-                                           node_type_config: Dict[str, Any],
-                                           node_id: str):
+def with_huaweicloud_environment_variables(
+        provider_config,
+        node_type_config: Dict[str, Any],
+        node_id: str):
     config_dict = {}
     export_huaweicloud_obs_storage_config(provider_config, config_dict)
 
@@ -1526,12 +1665,14 @@ def fill_available_node_types_resources(
             # Merge back when find new resources
             if detected_resources != config_resources:
                 node_type['resources'] = detected_resources
-                logger.debug('Updating the resources of {} to {}.'.format(
-                    key, detected_resources))
+                logger.debug(
+                    'Updating the resources of {} to {}.'.format(
+                        key, detected_resources))
         else:
             region = cluster_config['provider']['region']
-            raise ValueError('Server flavor {} is not available in Huawei '
-                             'Cloud {}'.format(flavor_ref, region))
+            raise ValueError(
+                'Server flavor {} is not available in Huawei '
+                'Cloud {}'.format(flavor_ref, region))
 
     return cluster_config
 
@@ -1544,19 +1685,22 @@ def verify_obs_storage(provider_config: Dict[str, Any]):
     obs_storage = get_huaweicloud_obs_storage_config(provider_config)
     if obs_storage is None:
         return
-    obs_client = make_obs_client_aksk(obs_storage.get('obs.access.key'),
-                                      obs_storage.get('obs.secret.key'),
-                                      region=provider_config.get('region'))
+    obs_client = make_obs_client_aksk(
+        obs_storage.get('obs.access.key'),
+        obs_storage.get('obs.secret.key'),
+        region=provider_config.get('region'))
     bucket_name = obs_storage.get(HWC_OBS_BUCKET)
     try:
-        _get_managed_obs_bucket(obs_client, object_storage_name=bucket_name)
+        _get_managed_obs_bucket(
+            obs_client, object_storage_name=bucket_name)
     except Exception as e:
-        raise StorageTestingError("Error happens when verifying OBS storage "
-                                  "configurations. If you want to go without "
-                                  "passing the verification, set "
-                                  "'verify_cloud_storage' to False under "
-                                  "provider config. Error: {}.".format(
-            e.message)) from None
+        raise StorageTestingError(
+            "Error happens when verifying OBS storage "
+            "configurations. If you want to go without "
+            "passing the verification, set "
+            "'verify_cloud_storage' to False under "
+            "provider config. Error: {}.".format(
+                e.message)) from None
 
 
 def bootstrap_huaweicloud_from_workspace(config):
@@ -1617,10 +1761,11 @@ def _get_default_image(config, flavor_ref):
     try:
         ims_client = make_ims_client(config)
         image_list = ims_client.list_images(
-            ListImagesRequest(flavor_id=flavor_ref,
-                              os_type='Linux', platform='Ubuntu', os_bit='64',
-                              imagetype='gold', isregistered='true',
-                              sort_key='created_at', limit=1)).images
+            ListImagesRequest(
+                flavor_id=flavor_ref,
+                os_type='Linux', platform='Ubuntu', os_bit='64',
+                imagetype='gold', isregistered='true',
+                sort_key='created_at', limit=1)).images
         if image_list:
             default_image_ref = image_list[0].id
     except Exception as e:
@@ -1629,14 +1774,16 @@ def _get_default_image(config, flavor_ref):
 
     if not default_image_ref:
         region = config['provider']['region']
-        cli_logger.warning("Can not get latest image information in this "
-                           "region: {}. Will use default image id".format(
-                            region))
+        cli_logger.warning(
+            "Can not get latest image information in this "
+            "region: {}. Will use default image id".format(
+                region))
         default_image_ref = DEFAULT_IMAGE.get(region)
         if not default_image_ref:
-            cli_logger.abort("Not support on this region: {}. Please use one "
-                             "of these regions {}".format(
-                              region, sorted(DEFAULT_IMAGE.keys())))
+            cli_logger.abort(
+                "Not support on this region: {}. Please use one "
+                "of these regions {}".format(
+                    region, sorted(DEFAULT_IMAGE.keys())))
 
     return default_image_ref
 
@@ -1692,17 +1839,21 @@ def _configure_subnet_from_workspace(config):
         error_msg = "Can't find workspace VPC in {}".format(workspace_name)
         cli_logger.abort(msg=error_msg, exc=RuntimeError(error_msg))
 
-    private_subnets = _get_workspace_vpc_subnets(vpc_client, workspace_vpc,
-                                                 workspace_name,
-                                                 category='private')
-    public_subnets = _get_workspace_vpc_subnets(vpc_client, workspace_vpc,
-                                                workspace_name,
-                                                category='public')
+    private_subnets = _get_workspace_vpc_subnets(
+        vpc_client, workspace_vpc,
+        workspace_name,
+        category='private')
+    public_subnets = _get_workspace_vpc_subnets(
+        vpc_client, workspace_vpc,
+        workspace_name,
+        category='public')
 
-    public_subnet_ids = [{"subnet_id": public_subnet.id} for public_subnet
-                         in public_subnets]
-    private_subnet_ids = [{"subnet_id": private_subnet.id} for private_subnet
-                          in private_subnets]
+    public_subnet_ids = [
+        {"subnet_id": public_subnet.id} for public_subnet
+        in public_subnets]
+    private_subnet_ids = [
+        {"subnet_id": private_subnet.id} for private_subnet
+        in private_subnets]
 
     for key, node_type in config["available_node_types"].items():
         node_config = node_type["node_config"]
@@ -1763,8 +1914,8 @@ def _configure_key_pair(config):
 def _get_available_key_pair(config):
     key_name = key_path = None
     ecs_client = make_ecs_client(config)
-    MAX_NUM_KEYS = 30
-    for i in range(MAX_NUM_KEYS):
+    max_num_keys = 30
+    for i in range(max_num_keys):
         key_name = HWC_KEY_PAIR_NAME.format(i)
         key_path = os.path.expanduser(
             HWC_KEY_PATH_TEMPLATE.format(key_name))
@@ -1817,9 +1968,11 @@ def _configure_cloud_storage_from_workspace(config):
     return config
 
 
-def _configure_managed_cloud_storage_from_workspace(config, cloud_provider):
+def _configure_managed_cloud_storage_from_workspace(
+        config, cloud_provider):
     workspace_name = config["workspace_name"]
-    managed_cloud_storage_name = _get_managed_cloud_storage_name(cloud_provider)
+    managed_cloud_storage_name = _get_managed_cloud_storage_name(
+        cloud_provider)
     obs_client = _make_obs_client(cloud_provider)
     obs_bucket_name = _get_managed_obs_bucket(
         obs_client, workspace_name,
@@ -1838,18 +1991,22 @@ def _configure_managed_cloud_storage_from_workspace(config, cloud_provider):
 def _configure_instance_profile_from_workspace(config):
     worker_for_cloud_storage = is_worker_role_for_cloud_storage(config)
     workspace_name = config["workspace_name"]
-    head_profile = _get_instance_profile(config,
-                                         workspace_name=workspace_name,
-                                         for_head=True)
+    head_profile = _get_instance_profile(
+        config,
+        workspace_name=workspace_name,
+        for_head=True)
     if not head_profile:
-        raise RuntimeError("Workspace head instance profile not found!")
+        raise RuntimeError(
+            "Workspace head instance profile not found!")
 
     if worker_for_cloud_storage:
-        worker_profile = _get_instance_profile(config,
-                                               workspace_name=workspace_name,
-                                               for_head=False)
+        worker_profile = _get_instance_profile(
+            config,
+            workspace_name=workspace_name,
+            for_head=False)
         if not worker_profile:
-            raise RuntimeError("Workspace worker instance profile not found!")
+            raise RuntimeError(
+                "Workspace worker instance profile not found!")
 
     for key, node_type in config["available_node_types"].items():
         node_config = node_type["node_config"]
