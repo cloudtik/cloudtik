@@ -60,8 +60,9 @@ class AWSNodeProvider(NodeProvider):
 
     def __init__(self, provider_config, cluster_name):
         NodeProvider.__init__(self, provider_config, cluster_name)
-        self.cache_stopped_nodes = provider_config.get("cache_stopped_nodes",
-                                                       False)
+        self.cache_stopped_nodes = provider_config.get(
+            "cache_stopped_nodes",
+            False)
         aws_credentials = get_aws_credentials(provider_config)
 
         self.ec2 = make_ec2_resource(
@@ -90,8 +91,10 @@ class AWSNodeProvider(NodeProvider):
         # excessive DescribeInstances requests.
         self.cached_nodes = {}
 
-    def with_environment_variables(self, node_type_config: Dict[str, Any], node_id: str):
-        return with_aws_environment_variables(self.provider_config, node_type_config, node_id)
+    def with_environment_variables(
+            self, node_type_config: Dict[str, Any], node_id: str):
+        return with_aws_environment_variables(
+            self.provider_config, node_type_config, node_id)
 
     def non_terminated_nodes(self, tag_filters):
         # Note that these filters are acceptable because they are set on
@@ -268,14 +271,16 @@ class AWSNodeProvider(NodeProvider):
                     cli_logger.render_list(reuse_node_ids))
 
                 # todo: timed?
-                with cli_logger.group("Stopping instances to reuse"):
+                with cli_logger.group(
+                        "Stopping instances to reuse"):
                     for node in reuse_nodes:
                         self.tag_cache[node.id] = from_aws_format(
                             {x["Key"]: x["Value"]
                              for x in node.tags})
                         if node.state["Name"] == "stopping":
-                            cli_logger.print("Waiting for instance {} to stop",
-                                             node.id)
+                            cli_logger.print(
+                                "Waiting for instance {} to stop",
+                                node.id)
                             node.wait_until_stopped()
 
                 self.ec2.meta.client.start_instances(
@@ -293,8 +298,9 @@ class AWSNodeProvider(NodeProvider):
         return all_created_nodes
 
     @staticmethod
-    def _merge_tag_specs(tag_specs: List[Dict[str, Any]],
-                         user_tag_specs: List[Dict[str, Any]]) -> None:
+    def _merge_tag_specs(
+            tag_specs: List[Dict[str, Any]],
+            user_tag_specs: List[Dict[str, Any]]) -> None:
         """
         Merges user-provided node config tag specifications into a base
         list of node provider tag specifications. The base list of
@@ -439,7 +445,8 @@ class AWSNodeProvider(NodeProvider):
                         error_code == "InsufficientInstanceCapacity" and
                         "InstanceMarketOptions" in conf):
                     # If failed with insufficient capacity, we retry once to request on-demand if it requested spot
-                    cli_logger.warning("Retrying request for on-demand instance instead of spot.")
+                    cli_logger.warning(
+                        "Retrying request for on-demand instance instead of spot.")
                     conf.pop("InstanceMarketOptions")
                 else:
                     if volume_availability_zone:
@@ -449,7 +456,8 @@ class AWSNodeProvider(NodeProvider):
 
                     subnet_idx += 1
                     if attempt == max_tries:
-                        self._fail_node_creation(exc, "Max attempts exceeded.")
+                        self._fail_node_creation(
+                            exc, "Max attempts exceeded.")
                     else:
                         cli_logger.warning(
                             "Create instances attempt failed: {}. Retrying...",
@@ -475,18 +483,19 @@ class AWSNodeProvider(NodeProvider):
                     created_nodes.pop(node_id, None)
                 except Exception as e:
                     logger.warning(
-                        "Error terminating node after node creation failure: {}".format(
-                            str(e)))
+                        "Error terminating node after node creation failure: {}",
+                        str(e))
             try:
                 # clean up new created volumes
                 rollback_volumes_for_node(
                     self.ec2, volumes_for_node)
             except Exception as e:
                 logger.warning(
-                    "Error cleaning up the volumes after node creation failure: {}".format(
-                        str(e)))
+                    "Error cleaning up the volumes after node creation failure: {}",
+                    str(e))
 
-            self._fail_node_creation(exc, "Error attaching volumes.")
+            self._fail_node_creation(
+                exc, "Error attaching volumes.")
 
     @staticmethod
     def _get_subnet_of_zone(subnet_zone_mapping, subnet_ids, availability_zone):
@@ -494,7 +503,8 @@ class AWSNodeProvider(NodeProvider):
             if availability_zone == zone and subnet_id in subnet_ids:
                 return subnet_id
         raise RuntimeError(
-            "Failed to get subnet id of availability zone: {}".format(availability_zone))
+            "Failed to get subnet id of availability zone: {}".format(
+                availability_zone))
 
     @staticmethod
     def _fail_node_creation(exc, reason):
@@ -525,11 +535,12 @@ class AWSNodeProvider(NodeProvider):
                     node_id)  # todo: show node name?
                 node.terminate()
             else:
-                cli_logger.print("Stopping instance {} " + cf.dimmed(
-                    "(to terminate instead, "
-                    "set `cache_stopped_nodes: False` "
-                    "under `provider` in the cluster configuration)"),
-                                 node_id)  # todo: show node name?
+                cli_logger.print(
+                    "Stopping instance {} " + cf.dimmed(
+                        "(to terminate instead, "
+                        "set `cache_stopped_nodes: False` "
+                        "under `provider` in the cluster configuration)"),
+                    node_id)  # todo: show node name?
                 node.stop()
         else:
             node.terminate()
@@ -618,7 +629,8 @@ class AWSNodeProvider(NodeProvider):
         return self._get_node(node_id)
 
     def prepare_config_for_head(
-            self, cluster_config: Dict[str, Any], remote_config: Dict[str, Any]) -> Dict[str, Any]:
+            self, cluster_config: Dict[str, Any],
+            remote_config: Dict[str, Any]) -> Dict[str, Any]:
         """Returns a new cluster config with custom configs for head node."""
         # Since the head will use the instance profile and role to access cloud,
         # remove the client credentials from config
@@ -648,7 +660,8 @@ class AWSNodeProvider(NodeProvider):
     @staticmethod
     def post_prepare(
             cluster_config: Dict[str, Any]) -> Dict[str, Any]:
-        """Fills out missing fields after the user config is merged with defaults and before validate"""
+        """Fills out missing fields after the user config
+        is merged with defaults and before validate"""
         return post_prepare_aws(cluster_config)
 
     @staticmethod
@@ -673,9 +686,12 @@ class AWSNodeProvider(NodeProvider):
     @staticmethod
     def verify_config(
             provider_config: Dict[str, Any]) -> None:
-        verify_cloud_storage = provider_config.get("verify_cloud_storage", True)
+        verify_cloud_storage = provider_config.get(
+            "verify_cloud_storage", True)
         cloud_storage = get_aws_s3_storage_config(provider_config)
         if verify_cloud_storage and cloud_storage is not None:
-            cli_logger.verbose("Verifying S3 storage configurations...")
+            cli_logger.verbose(
+                "Verifying S3 storage configurations...")
             verify_s3_storage(provider_config)
-            cli_logger.verbose("Successfully verified S3 storage configurations.")
+            cli_logger.verbose(
+                "Successfully verified S3 storage configurations.")

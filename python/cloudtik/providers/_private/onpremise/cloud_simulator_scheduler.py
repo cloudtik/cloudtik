@@ -60,7 +60,8 @@ class CloudSimulatorScheduler:
         with self.state.transaction():
             node = self.state.get_node_safe(node_id)
             if node is None:
-                raise RuntimeError("Node with id {} doesn't exist.".format(node_id))
+                raise RuntimeError(
+                    "Node with id {} doesn't exist.".format(node_id))
             node["tags"].update(tags)
             self.state.put_node_safe(node_id, node)
 
@@ -113,7 +114,8 @@ class CloudSimulatorScheduler:
                 return launched
         return launched
 
-    def terminate_nodes(self, node_ids: List[str]) -> Optional[Dict[str, Any]]:
+    def terminate_nodes(
+            self, node_ids: List[str]) -> Optional[Dict[str, Any]]:
         """Terminates a set of nodes.
         May be overridden with a batch method, which optionally may return a
         mapping from deleted node ids to node metadata.
@@ -126,9 +128,11 @@ class CloudSimulatorScheduler:
         with self.state.transaction():
             node = self.state.get_node_safe(node_id)
             if node is None:
-                raise RuntimeError("Node with id {} doesn't exist.".format(node_id))
+                raise RuntimeError(
+                    "Node with id {} doesn't exist.".format(node_id))
             if node["state"] != "running":
-                raise RuntimeError("Node with id {} is not running.".format(node_id))
+                raise RuntimeError(
+                    "Node with id {} is not running.".format(node_id))
             node["state"] = "terminated"
             self.state.put_node_safe(node_id, node)
 

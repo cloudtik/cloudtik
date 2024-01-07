@@ -19,7 +19,8 @@ class KubernetesDatabaseProvider(DatabaseProvider):
 
     def check_cloud_database_provider(self):
         if self.cloud_database_provider is None:
-            raise RuntimeError("No database provider available with current configuration.")
+            raise RuntimeError(
+                "No database provider available with current configuration.")
 
     def create(self, config: Dict[str, Any]):
         """Create the database instance in the workspace based on the config."""

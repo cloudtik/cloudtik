@@ -20,7 +20,8 @@ def _create_local_scheduler(provider_config):
     return LocalScheduler(provider_config, None)
 
 
-def get_workspace_head_nodes(workspace_name, provider_config: Dict[str, Any]):
+def get_workspace_head_nodes(
+        workspace_name, provider_config: Dict[str, Any]):
     tag_filters = {CLOUDTIK_TAG_NODE_KIND: NODE_KIND_HEAD}
     # The provider config is workspace provider
     # while scheduler expect cluster provider with bootstrap
@@ -55,13 +56,16 @@ def _create_workspace(config):
     workspace_name = config["workspace_name"]
 
     try:
-        with cli_logger.group("Creating workspace: {}", workspace_name):
+        with cli_logger.group(
+                "Creating workspace: {}", workspace_name):
             cli_logger.print(
                 "No creation needed for local workspace. It's default.")
 
     except Exception as e:
-        cli_logger.error("Failed to update workspace with the name {}. "
-                         "You need to delete and try create again. {}", workspace_name, str(e))
+        cli_logger.error(
+            "Failed to update workspace with the name {}. "
+            "You need to delete and try create again. {}",
+            workspace_name, str(e))
         raise e
 
     cli_logger.success(
@@ -75,7 +79,8 @@ def delete_local_workspace(
     workspace_name = config["workspace_name"]
 
     try:
-        with cli_logger.group("Deleting workspace: {}", workspace_name):
+        with cli_logger.group(
+                "Deleting workspace: {}", workspace_name):
             raise RuntimeError(
                 "Cannot delete local workspace. It's default.")
     except Exception as e:
@@ -119,12 +124,15 @@ def update_local_workspace(
         config):
     workspace_name = config["workspace_name"]
     try:
-        with cli_logger.group("Updating workspace: {}", workspace_name):
+        with cli_logger.group(
+                "Updating workspace: {}", workspace_name):
             cli_logger.print(
                 "No update operation needed for local workspace.")
     except Exception as e:
-        cli_logger.error("Failed to update workspace with the name {}. "
-                         "You need to delete and try create again. {}", workspace_name, str(e))
+        cli_logger.error(
+            "Failed to update workspace with the name {}. "
+            "You need to delete and try create again. {}",
+            workspace_name, str(e))
         raise e
 
     cli_logger.success(

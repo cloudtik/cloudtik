@@ -54,7 +54,9 @@ class AWSStorageProvider(StorageProvider):
                 "{} storage name is between {} and {} characters, "
                 "and can only contain lowercase alphanumeric "
                 "characters, dashes (-) and dots (.)".format(
-                    provider_config["type"], AWS_STORAGE_NAME_MIN_LEN, AWS_STORAGE_NAME_MAX_LEN))
+                    provider_config["type"],
+                    AWS_STORAGE_NAME_MIN_LEN,
+                    AWS_STORAGE_NAME_MAX_LEN))
 
     @staticmethod
     def bootstrap_config(config: Dict[str, Any]) -> Dict[str, Any]:

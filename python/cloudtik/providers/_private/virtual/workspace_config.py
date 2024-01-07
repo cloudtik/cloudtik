@@ -40,7 +40,8 @@ def _create_virtual_scheduler(provider_config):
     return VirtualContainerScheduler(provider_config, None)
 
 
-def get_workspace_head_nodes(workspace_name, provider_config: Dict[str, Any]):
+def get_workspace_head_nodes(
+        workspace_name, provider_config: Dict[str, Any]):
     tag_filters = {CLOUDTIK_TAG_NODE_KIND: NODE_KIND_HEAD}
     # The provider config is workspace provider
     # while scheduler expect cluster provider with bootstrap
@@ -78,7 +79,8 @@ def _create_workspace(config):
     total_steps = VIRTUAL_WORKSPACE_NUM_CREATION_STEPS
 
     try:
-        with cli_logger.group("Creating workspace: {}", workspace_name):
+        with cli_logger.group(
+                "Creating workspace: {}", workspace_name):
             with cli_logger.group(
                     "Creating docker bridge network",
                     _numbered=("[]", current_step, total_steps)):
@@ -91,8 +93,10 @@ def _create_workspace(config):
                 current_step += 1
                 _create_bridge_ssh_server(config, workspace_name)
     except Exception as e:
-        cli_logger.error("Failed to create workspace with the name {}. "
-                         "You need to delete and try create again. {}", workspace_name, str(e))
+        cli_logger.error(
+            "Failed to create workspace with the name {}. "
+            "You need to delete and try create again. {}",
+            workspace_name, str(e))
         raise e
 
     cli_logger.success(
@@ -103,7 +107,8 @@ def _create_workspace(config):
 
 def _create_docker_bridge_network(config, workspace_name):
     if _is_bridge_network_exists(workspace_name):
-        cli_logger.print("Docker bridge network for the workspace already exists. Skip creation.")
+        cli_logger.print(
+            "Docker bridge network for the workspace already exists. Skip creation.")
         return
 
     network_name = _get_network_name(workspace_name)
@@ -114,11 +119,14 @@ def _create_docker_bridge_network(config, workspace_name):
         network_name=network_name, interface_name=interface_name)
     cmd = with_sudo(docker_cmd)
     try:
-        cli_logger.print("Creating docker bridge network: {}.", network_name)
+        cli_logger.print(
+            "Creating docker bridge network: {}.", network_name)
         exec_with_output(cmd)
-        cli_logger.print("Successfully created docker bridge network.")
+        cli_logger.print(
+            "Successfully created docker bridge network.")
     except subprocess.CalledProcessError as e:
-        cli_logger.error("Failed to create bridge network: {}", str(e))
+        cli_logger.error(
+            "Failed to create bridge network: {}", str(e))
         raise e
 
 
@@ -157,7 +165,8 @@ def _prepare_ssh_server_keys_and_config(config, workspace_name):
             f"-f {ssh_private_key_file} "
             f"&& chmod 600 {ssh_private_key_file}"
         )
-        cli_logger.print("Successfully created SSH control key.")
+        cli_logger.print(
+            "Successfully created SSH control key.")
     if not os.path.exists(authorized_keys_file):
         exec_with_output(
             f"ssh-keygen -y "
@@ -165,19 +174,22 @@ def _prepare_ssh_server_keys_and_config(config, workspace_name):
             f"> {authorized_keys_file} "
             f"&& chmod 600 {authorized_keys_file}"
         )
-        cli_logger.print("Successfully created SSH authorized keys.")
+        cli_logger.print(
+            "Successfully created SSH authorized keys.")
     if not os.path.exists(host_key_file):
         exec_with_output(
             f'ssh-keygen -b 2048 -t rsa -q -N "" '
             f"-f {host_key_file} "
             f"&& chmod 600 {host_key_file}"
         )
-        cli_logger.print("Successfully created SSH host key.")
+        cli_logger.print(
+            "Successfully created SSH host key.")
 
     sshd_config = _get_sshd_config_file(workspace_name)
     src_sshd_config = os.path.join(os.path.dirname(__file__), "sshd_config")
     shutil.copyfile(src_sshd_config, sshd_config)
-    cli_logger.print("Successfully prepared SSH server configurations.")
+    cli_logger.print(
+        "Successfully prepared SSH server configurations.")
 
 
 def _start_bridge_ssh_server(config, workspace_name):
@@ -197,16 +209,20 @@ def _start_bridge_ssh_server(config, workspace_name):
            f"-o AuthorizedKeysFile={authorized_keys_file}"
            )
     try:
-        cli_logger.print("Starting bridge SSH server: {}.", network_name)
+        cli_logger.print(
+            "Starting bridge SSH server: {}.", network_name)
 
         p = subprocess.Popen(cmd, shell=True, stderr=subprocess.DEVNULL)
 
-        ssh_server_process = {"pid": p.pid, "bind_address": bridge_address, "port": ssh_server_port}
+        ssh_server_process = {
+            "pid": p.pid, "bind_address": bridge_address, "port": ssh_server_port}
         save_server_process(ssh_server_process_file, ssh_server_process)
 
-        cli_logger.print("Successfully started bridge SSH server.")
+        cli_logger.print(
+            "Successfully started bridge SSH server.")
     except subprocess.CalledProcessError as e:
-        cli_logger.error("Failed to start bridge SSH server: {}", str(e))
+        cli_logger.error(
+            "Failed to start bridge SSH server: {}", str(e))
         raise e
 
 
@@ -243,7 +259,8 @@ def _get_host_bridge_address():
         # use public IP
         public_addresses = get_host_address(address_type="public")
         if not public_addresses:
-            raise RuntimeError("No proper ip address found for the host.")
+            raise RuntimeError(
+                "No proper ip address found for the host.")
         return sorted(public_addresses)[0]
 
 
@@ -264,7 +281,8 @@ def delete_virtual_workspace(config):
     current_step = 1
     total_steps = VIRTUAL_WORKSPACE_NUM_DELETION_STEPS
     try:
-        with cli_logger.group("Deleting workspace: {}", workspace_name):
+        with cli_logger.group(
+                "Deleting workspace: {}", workspace_name):
             with cli_logger.group(
                     "Deleting bridge SSH server",
                     _numbered=("[]", current_step, total_steps)):
@@ -288,7 +306,8 @@ def delete_virtual_workspace(config):
 
 def _delete_docker_bridge_network(config, workspace_name):
     if not _is_bridge_network_exists(workspace_name):
-        cli_logger.print("Docker bridge network for the workspace not found. Skip deletion.")
+        cli_logger.print(
+            "Docker bridge network for the workspace not found. Skip deletion.")
         return
 
     network_name = _get_network_name(workspace_name)
@@ -296,11 +315,14 @@ def _delete_docker_bridge_network(config, workspace_name):
     docker_cmd = "docker network rm {network_name} ".format(network_name=network_name)
     cmd = with_sudo(docker_cmd)
     try:
-        cli_logger.print("Deleting docker bridge network: {}.", network_name)
+        cli_logger.print(
+            "Deleting docker bridge network: {}.", network_name)
         exec_with_output(cmd)
-        cli_logger.print("Successfully deleted docker bridge network.")
+        cli_logger.print(
+            "Successfully deleted docker bridge network.")
     except subprocess.CalledProcessError as e:
-        cli_logger.error("Failed to delete docker bridge network: {}", str(e))
+        cli_logger.error(
+            "Failed to delete docker bridge network: {}", str(e))
         raise e
 
 
@@ -331,16 +353,20 @@ def _stop_bridge_ssh_server(config, workspace_name):
     ssh_server_process_file = get_ssh_server_process_file(workspace_name)
     pid = _find_ssh_server_process_for_workspace(workspace_name)
     if pid is None:
-        cli_logger.print("Bridge SSH server {} not started.", network_name)
+        cli_logger.print(
+            "Bridge SSH server {} not started.", network_name)
         return
 
     try:
-        cli_logger.print("Stopping bridge SSH server: {}.", network_name)
+        cli_logger.print(
+            "Stopping bridge SSH server: {}.", network_name)
         stop_process_tree(pid)
         save_server_process(ssh_server_process_file, {})
-        cli_logger.print("Successfully stopped bridge SSH server.")
+        cli_logger.print(
+            "Successfully stopped bridge SSH server.")
     except subprocess.CalledProcessError as e:
-        cli_logger.error("Failed to stop bridge SSH server: {}", str(e))
+        cli_logger.error(
+            "Failed to stop bridge SSH server: {}", str(e))
         raise e
 
 
@@ -352,11 +378,13 @@ def _delete_ssh_server_keys_and_config(config, workspace_name):
     _safe_remove_file(ssh_private_key_file)
     _safe_remove_file(authorized_keys_file)
     _safe_remove_file(host_key_file)
-    cli_logger.print("Successfully deleted all the workspace SSH keys.")
+    cli_logger.print(
+        "Successfully deleted all the workspace SSH keys.")
 
     sshd_config = _get_sshd_config_file(workspace_name)
     _safe_remove_file(sshd_config)
-    cli_logger.print("Successfully delete SSH server configurations.")
+    cli_logger.print(
+        "Successfully delete SSH server configurations.")
 
 
 def check_virtual_workspace_integrity(config):
@@ -390,11 +418,14 @@ def update_virtual_workspace(
         config):
     workspace_name = config["workspace_name"]
     try:
-        with cli_logger.group("Updating workspace: {}", workspace_name):
+        with cli_logger.group(
+                "Updating workspace: {}", workspace_name):
             update_docker_workspace(config, workspace_name)
     except Exception as e:
-        cli_logger.error("Failed to update workspace with the name {}. "
-                         "You need to delete and try create again. {}", workspace_name, str(e))
+        cli_logger.error(
+            "Failed to update workspace with the name {}. "
+            "You need to delete and try create again. {}",
+            workspace_name, str(e))
         raise e
 
     cli_logger.success(

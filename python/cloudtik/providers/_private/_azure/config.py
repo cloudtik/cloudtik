@@ -107,8 +107,8 @@ def get_workspace_vnet_peering_name(workspace_name):
     return AZURE_WORKSPACE_VNET_PEERING_NAME.format(workspace_name)
 
 
-def get_workspace_subnet_name(workspace_name, isPrivate=True):
-    return AZURE_WORKSPACE_SUBNET_NAME.format(workspace_name, 'private') if isPrivate \
+def get_workspace_subnet_name(workspace_name, is_private=True):
+    return AZURE_WORKSPACE_SUBNET_NAME.format(workspace_name, 'private') if is_private \
         else AZURE_WORKSPACE_SUBNET_NAME.format(workspace_name, 'public')
 
 
@@ -218,7 +218,8 @@ def check_azure_workspace_existence(config):
             existing_resources += 1
 
             # Below resources are all depends on the virtual network
-            if get_network_security_group(config, network_client, resource_group_name) is not None:
+            if get_network_security_group(
+                    config, network_client, resource_group_name) is not None:
                 existing_resources += 1
 
             if get_public_ip_address(config, network_client, resource_group_name) is not None:
@@ -227,17 +228,23 @@ def check_azure_workspace_existence(config):
             if get_nat_gateway(config, network_client, resource_group_name) is not None:
                 existing_resources += 1
 
-            private_subnet_name = get_workspace_subnet_name(workspace_name, isPrivate=True)
-            if get_subnet(network_client, resource_group_name, virtual_network_name, private_subnet_name) is not None:
+            private_subnet_name = get_workspace_subnet_name(workspace_name, is_private=True)
+            if get_subnet(
+                    network_client, resource_group_name,
+                    virtual_network_name, private_subnet_name) is not None:
                 existing_resources += 1
 
-            public_subnet_name = get_workspace_subnet_name(workspace_name, isPrivate=False)
-            if get_subnet(network_client, resource_group_name, virtual_network_name, public_subnet_name) is not None:
+            public_subnet_name = get_workspace_subnet_name(workspace_name, is_private=False)
+            if get_subnet(
+                    network_client, resource_group_name,
+                    virtual_network_name, public_subnet_name) is not None:
                 existing_resources += 1
 
             if use_peering_vpc:
                 virtual_network_peering_name = get_workspace_vnet_peering_name(workspace_name)
-                if get_virtual_network_peering(network_client, resource_group_name, virtual_network_name, virtual_network_peering_name) is not None:
+                if get_virtual_network_peering(
+                        network_client, resource_group_name,
+                        virtual_network_name, virtual_network_peering_name) is not None:
                     existing_resources += 1
 
         if get_head_user_assigned_identity(config, resource_group_name) is not None:
@@ -245,12 +252,14 @@ def check_azure_workspace_existence(config):
             if get_head_role_assignment_for_contributor(config, resource_group_name) is not None:
                 existing_resources += 1
 
-            if get_head_role_assignment_for_storage_blob_data_owner(config, resource_group_name) is not None:
+            if get_head_role_assignment_for_storage_blob_data_owner(
+                    config, resource_group_name) is not None:
                 existing_resources += 1
 
         if get_worker_user_assigned_identity(config, resource_group_name) is not None:
             existing_resources += 1
-            if get_worker_role_assignment_for_storage_blob_data_owner(config, resource_group_name) is not None:
+            if get_worker_role_assignment_for_storage_blob_data_owner(
+                    config, resource_group_name) is not None:
                 existing_resources += 1
 
         if managed_cloud_storage:
@@ -288,7 +297,8 @@ def check_azure_workspace_integrity(config):
 def get_azure_workspace_info(config):
     use_working_vpc = is_use_working_vpc(config)
     resource_client = construct_resource_client(config)
-    resource_group_name = get_resource_group_name(config, resource_client, use_working_vpc)
+    resource_group_name = get_resource_group_name(
+        config, resource_client, use_working_vpc)
     managed_cloud_storage = is_managed_cloud_storage(config)
     managed_cloud_database = is_managed_cloud_database(config)
 
@@ -415,7 +425,8 @@ def update_azure_workspace(config,
     resource_group_name = get_resource_group_name(
         config, resource_client, use_working_vpc)
     if resource_group_name is None:
-        raise RuntimeError("The workspace: {} doesn't exist!".format(config["workspace_name"]))
+        raise RuntimeError(
+            "The workspace: {} doesn't exist!".format(config["workspace_name"]))
 
     current_step = 1
     total_steps = AZURE_WORKSPACE_NUM_UPDATE_STEPS
@@ -460,8 +471,9 @@ def update_azure_workspace(config,
                         current_step += 1
                         _delete_workspace_cloud_database(config, resource_group_name)
     except Exception as e:
-        cli_logger.error("Failed to update workspace with the name {}. "
-                         "You need to delete and try create again. {}", workspace_name, str(e))
+        cli_logger.error(
+            "Failed to update workspace with the name {}. "
+            "You need to delete and try create again. {}", workspace_name, str(e))
         raise e
 
     cli_logger.success(
@@ -474,15 +486,18 @@ def update_workspace_firewalls(config):
     network_client = construct_network_client(config)
     workspace_name = config["workspace_name"]
     use_working_vpc = is_use_working_vpc(config)
-    resource_group_name = get_resource_group_name(config, resource_client, use_working_vpc)
+    resource_group_name = get_resource_group_name(
+        config, resource_client, use_working_vpc)
 
     if resource_group_name is None:
-        raise RuntimeError("The workspace: {} doesn't exist!".format(config["workspace_name"]))
+        raise RuntimeError(
+            "The workspace: {} doesn't exist!".format(config["workspace_name"]))
 
     try:
 
         cli_logger.print("Updating the firewalls of workspace...")
-        _create_or_update_network_security_group(config, network_client, resource_group_name)
+        _create_or_update_network_security_group(
+            config, network_client, resource_group_name)
     except Exception as e:
         cli_logger.error(
             "Failed to update the firewalls of workspace {}. {}", workspace_name, str(e))
@@ -506,7 +521,8 @@ def delete_azure_workspace(config,
     resource_group_name = get_resource_group_name(
         config, resource_client, use_working_vpc)
     if resource_group_name is None:
-        cli_logger.error("The workspace: {} doesn't exist!".format(config["workspace_name"]))
+        cli_logger.error(
+            "The workspace: {} doesn't exist!".format(config["workspace_name"]))
         return
 
     current_step = 1
@@ -704,12 +720,14 @@ def _get_containers_of_storage_account(
     if storage_account is None:
         return None
 
-    cli_logger.verbose("Getting the containers in the workspace: {}.".format(
-        workspace_name))
+    cli_logger.verbose(
+        "Getting the containers in the workspace: {}.".format(
+            workspace_name))
     containers = storage_client.blob_containers.list(
         resource_group_name=resource_group_name, account_name=storage_account.name)
     if containers is None:
-        cli_logger.verbose("No containers found in workspace: {}", workspace_name)
+        cli_logger.verbose(
+            "No containers found in workspace: {}", workspace_name)
         return None
 
     containers = list(containers)
@@ -728,7 +746,8 @@ def _get_storage_account(provider_config, storage_account_name, storage_client=N
     if storage_client is None:
         storage_client = _construct_storage_client(provider_config)
 
-    cli_logger.verbose("Getting the storage account: {}.".format(storage_account_name))
+    cli_logger.verbose(
+        "Getting the storage account: {}.".format(storage_account_name))
     storage_accounts = list(storage_client.storage_accounts.list())
     workspace_storage_accounts = [storage_account for storage_account in storage_accounts
                                   for key, value in storage_account.tags.items()
@@ -736,10 +755,12 @@ def _get_storage_account(provider_config, storage_account_name, storage_client=N
 
     if len(workspace_storage_accounts) > 0:
         storage_account = workspace_storage_accounts[0]
-        cli_logger.verbose("Successfully get the storage account: {}.".format(storage_account.name))
+        cli_logger.verbose(
+            "Successfully get the storage account: {}.".format(storage_account.name))
         return storage_account
 
-    cli_logger.verbose_error("Failed to get the storage account: {}.".format(storage_account_name))
+    cli_logger.verbose_error(
+        "Failed to get the storage account: {}.".format(storage_account_name))
     return None
 
 
@@ -753,7 +774,8 @@ def has_storage_account(provider_config, resource_group_name) -> bool:
     return False
 
 
-def _get_container(provider_config, resource_group_name, storage_account_name, container_name):
+def _get_container(
+        provider_config, resource_group_name, storage_account_name, container_name):
     storage_client = _construct_storage_client(provider_config)
     container = storage_client.blob_containers.get(
         resource_group_name=resource_group_name,
@@ -792,12 +814,14 @@ def _delete_storage_account(
             storage_account_name)
         return
 
-    cli_logger.print("Deleting the storage account: {}...".format(storage_account.name))
+    cli_logger.print(
+        "Deleting the storage account: {}...".format(storage_account.name))
     try:
         storage_client.storage_accounts.delete(
             resource_group_name=resource_group_name,
             account_name=storage_account.name)
-        cli_logger.print("Successfully deleted the storage account: {}.".format(storage_account.name))
+        cli_logger.print(
+            "Successfully deleted the storage account: {}.".format(storage_account.name))
     except Exception as e:
         cli_logger.error(
             "Failed to delete the storage account: {}. {}", storage_account.name, str(e))
@@ -824,15 +848,16 @@ def _delete_container_for_storage_account(
     storage_account, container = storage_and_container
     account_name = storage_account.name
 
-    cli_logger.print("Deleting storage container: {}...", object_storage_name)
+    cli_logger.print(
+        "Deleting storage container: {}...", object_storage_name)
     try:
         storage_client.blob_containers.delete(
             resource_group_name=resource_group_name,
             account_name=account_name,
             container_name=object_storage_name,
         )
-        cli_logger.print("Successfully deleted storage container: {}.".
-                         format(object_storage_name))
+        cli_logger.print(
+            "Successfully deleted storage container: {}.", object_storage_name)
     except Exception as e:
         cli_logger.error(
             "Failed to delete storage container: {}. {}", object_storage_name, str(e))
@@ -929,8 +954,8 @@ def _delete_database_instance(
     engine, db_instance = database_instance
     rdbms_client = _construct_rdbms_client(provider_config, engine=engine)
 
-    cli_logger.print("Deleting the {} instance: {}...".format(
-        engine, db_instance.name))
+    cli_logger.print(
+        "Deleting the {} instance: {}...", engine, db_instance.name)
     try:
         rdbms_client.servers.begin_delete(
             resource_group_name=resource_group_name,
@@ -974,16 +999,19 @@ def get_private_dns_zone(
     private_dns_zone_name = get_managed_database_private_dns_zone_name(
         workspace_name, engine)
 
-    cli_logger.verbose("Getting private DNS zone: {}...".format(private_dns_zone_name))
+    cli_logger.verbose(
+        "Getting private DNS zone: {}...".format(private_dns_zone_name))
     try:
         private_dns_zone = private_dns_client.private_zones.get(
             resource_group_name,
             private_dns_zone_name
         )
-        cli_logger.verbose("Successfully get private DNS zone: {}.".format(private_dns_zone_name))
+        cli_logger.verbose(
+            "Successfully get private DNS zone: {}.".format(private_dns_zone_name))
         return private_dns_zone
     except Exception as e:
-        cli_logger.verbose_error("Failed to get private DNS zone. {}", str(e))
+        cli_logger.verbose_error(
+            "Failed to get private DNS zone. {}", str(e))
         return None
 
 
@@ -1016,20 +1044,23 @@ def _delete_private_dns_zone(
     private_dns_zone = get_private_dns_zone(
         provider_config, workspace_name, resource_group_name, engine)
     if private_dns_zone is None:
-        cli_logger.print("Private DNS zone doesn't exist. Skip deletion.")
+        cli_logger.print(
+            "Private DNS zone doesn't exist. Skip deletion.")
         return
 
     private_dns_client = _construct_private_dns_client(provider_config)
     private_dns_zone_name = get_managed_database_private_dns_zone_name(
         workspace_name, engine)
 
-    cli_logger.print("Deleting the private DNS zone: {}...".format(private_dns_zone_name))
+    cli_logger.print(
+        "Deleting the private DNS zone: {}...".format(private_dns_zone_name))
     try:
         private_dns_client.private_zones.begin_delete(
             resource_group_name=resource_group_name,
             private_zone_name=private_dns_zone_name
         ).result()
-        cli_logger.print("Successfully deleted the private DNS zone: {}.".format(private_dns_zone_name))
+        cli_logger.print(
+            "Successfully deleted the private DNS zone: {}.".format(private_dns_zone_name))
     except Exception as e:
         cli_logger.error(
             "Failed to delete private DNS zone: {}. {}", private_dns_zone_name, str(e))
@@ -1045,18 +1076,21 @@ def get_private_dns_zone_link(
     link_name = get_managed_database_private_dns_zone_link_name(
         workspace_name, engine)
 
-    cli_logger.verbose("Getting private DNS zone link: {}->{}...".format(
-        private_dns_zone_name, link_name))
+    cli_logger.verbose(
+        "Getting private DNS zone link: {}->{}...".format(
+            private_dns_zone_name, link_name))
     try:
         private_dns_zone_link = private_dns_client.virtual_network_links.get(
             resource_group_name,
             private_dns_zone_name,
             link_name
         )
-        cli_logger.verbose("Successfully get private DNS zone link: {}.".format(link_name))
+        cli_logger.verbose(
+            "Successfully get private DNS zone link: {}.".format(link_name))
         return private_dns_zone_link
     except Exception as e:
-        cli_logger.verbose_error("Failed to get private DNS zone. {}", str(e))
+        cli_logger.verbose_error(
+            "Failed to get private DNS zone. {}", str(e))
         return None
 
 
@@ -1072,20 +1106,24 @@ def _delete_private_dns_zone_link(
     private_dns_zone_link = get_private_dns_zone_link(
         provider_config, workspace_name, resource_group_name, engine)
     if private_dns_zone_link is None:
-        cli_logger.print("Private DNS zone link doesn't exist. Skip deletion.")
+        cli_logger.print(
+            "Private DNS zone link doesn't exist. Skip deletion.")
         return
 
-    cli_logger.print("Deleting private DNS zone link for: {} -> {}...".format(
-        private_dns_zone_name, link_name))
+    cli_logger.print(
+        "Deleting private DNS zone link for: {} -> {}...".format(
+            private_dns_zone_name, link_name))
     try:
         private_dns_client.virtual_network_links.begin_delete(
             resource_group_name,
             private_dns_zone_name,
             link_name
         ).result()
-        cli_logger.print("Successfully deleted private DNS zone link: {}.".format(link_name))
+        cli_logger.print(
+            "Successfully deleted private DNS zone link: {}.".format(link_name))
     except Exception as e:
-        cli_logger.error("Failed to delete private DNS zone link. {}", str(e))
+        cli_logger.error(
+            "Failed to delete private DNS zone link. {}", str(e))
         raise e
 
 
@@ -1098,19 +1136,23 @@ def _delete_managed_database_delegated_subnet(
     subnet = get_subnet(network_client, resource_group_name,
                         virtual_network_name, subnet_name)
     if subnet is None:
-        cli_logger.print("Delegated subnet for database doesn't exist. Skip deletion.")
+        cli_logger.print(
+            "Delegated subnet for database doesn't exist. Skip deletion.")
         return
 
-    cli_logger.print("Deleting delegated subnet for the database: {}...".format(subnet_name))
+    cli_logger.print(
+        "Deleting delegated subnet for the database: {}...".format(subnet_name))
     try:
         network_client.subnets.begin_delete(
             resource_group_name=resource_group_name,
             virtual_network_name=virtual_network_name,
             subnet_name=subnet_name
         ).result()
-        cli_logger.print("Successfully deleted delegated subnet: {}.".format(subnet_name))
+        cli_logger.print(
+            "Successfully deleted delegated subnet: {}.".format(subnet_name))
     except Exception as e:
-        cli_logger.error("Failed to delete delegated subnet. {}", str(e))
+        cli_logger.error(
+            "Failed to delete delegated subnet. {}", str(e))
         raise e
 
 
@@ -1129,12 +1171,14 @@ def get_worker_role_assignment_for_storage_blob_data_owner(config, resource_grou
 def get_role_assignment_name_for_storage_blob_data_owner(config, role_type):
     workspace_name = config["workspace_name"]
     subscription_id = config["provider"].get("subscription_id")
-    role_assignment_name = str(uuid.uuid3(uuid.UUID(subscription_id),
-                                          workspace_name + role_type + "storage_blob_data_owner"))
+    role_assignment_name = str(uuid.uuid3(
+        uuid.UUID(subscription_id),
+        workspace_name + role_type + "storage_blob_data_owner"))
     return role_assignment_name
 
 
-def _get_role_assignment_for_storage_blob_data_owner(provider_config, resource_group_name, role_assignment_name):
+def _get_role_assignment_for_storage_blob_data_owner(
+        provider_config, resource_group_name, role_assignment_name):
     authorization_client = _construct_authorization_client(provider_config)
     subscription_id = provider_config.get("subscription_id")
     scope = "subscriptions/{subscriptionId}/resourcegroups/{resourceGroupName}".format(
@@ -1142,27 +1186,32 @@ def _get_role_assignment_for_storage_blob_data_owner(provider_config, resource_g
         resourceGroupName=resource_group_name
     )
 
-    cli_logger.verbose("Getting the existing role assignment for Storage Blob Data Owner: {}.",
-                       role_assignment_name)
+    cli_logger.verbose(
+        "Getting the existing role assignment for Storage Blob Data Owner: {}.",
+        role_assignment_name)
 
     try:
         role_assignment = authorization_client.role_assignments.get(
             scope=scope,
             role_assignment_name=role_assignment_name,
         )
-        cli_logger.verbose("Successfully get the role assignment for Storage Blob Data Owner: {}.".
-                           format(role_assignment_name))
+        cli_logger.verbose(
+            "Successfully get the role assignment for Storage Blob Data Owner: {}.".
+            format(role_assignment_name))
         return role_assignment
     except Exception as e:
-        cli_logger.verbose_error("Failed to get the role assignment. {}", str(e))
+        cli_logger.verbose_error(
+            "Failed to get the role assignment. {}", str(e))
         return None
 
 
 def get_head_role_assignment_for_contributor(config, resource_group_name):
     workspace_name = config["workspace_name"]
     subscription_id = config["provider"].get("subscription_id")
-    role_assignment_name = str(uuid.uuid3(uuid.UUID(subscription_id), workspace_name + "contributor"))
-    cli_logger.verbose("Getting the existing role assignment for Contributor: {}.", role_assignment_name)
+    role_assignment_name = str(uuid.uuid3(
+        uuid.UUID(subscription_id), workspace_name + "contributor"))
+    cli_logger.verbose(
+        "Getting the existing role assignment for Contributor: {}.", role_assignment_name)
 
     authorization_client = construct_authorization_client(config)
     scope = "subscriptions/{subscriptionId}/resourcegroups/{resourceGroupName}".format(
@@ -1174,8 +1223,9 @@ def get_head_role_assignment_for_contributor(config, resource_group_name):
             scope=scope,
             role_assignment_name=role_assignment_name,
         )
-        cli_logger.verbose("Successfully get the role assignment for Contributor: {}.".
-                           format(role_assignment_name))
+        cli_logger.verbose(
+            "Successfully get the role assignment for Contributor: {}.".
+            format(role_assignment_name))
         return role_assignment_name
     except Exception as e:
         cli_logger.verbose_error(
@@ -1183,33 +1233,40 @@ def get_head_role_assignment_for_contributor(config, resource_group_name):
         return None
 
 
-def _delete_head_role_assignment_for_storage_blob_data_owner(config, resource_group_name):
+def _delete_head_role_assignment_for_storage_blob_data_owner(
+        config, resource_group_name):
     delete_role_assignment_for_storage_blob_data_owner(
         config, resource_group_name, "head")
 
 
-def _delete_worker_role_assignment_for_storage_blob_data_owner(config, resource_group_name):
+def _delete_worker_role_assignment_for_storage_blob_data_owner(
+        config, resource_group_name):
     delete_role_assignment_for_storage_blob_data_owner(
         config, resource_group_name, "worker")
 
 
-def delete_role_assignment_for_storage_blob_data_owner(config, resource_group_name, role_type):
-    role_assignment_name = get_role_assignment_name_for_storage_blob_data_owner(config, role_type)
+def delete_role_assignment_for_storage_blob_data_owner(
+        config, resource_group_name, role_type):
+    role_assignment_name = get_role_assignment_name_for_storage_blob_data_owner(
+        config, role_type)
     _delete_role_assignment_for_storage_blob_data_owner(
         config["provider"], resource_group_name, role_assignment_name
     )
 
 
-def _delete_role_assignment_for_storage_blob_data_owner(provider_config, resource_group_name, role_assignment_name):
+def _delete_role_assignment_for_storage_blob_data_owner(
+        provider_config, resource_group_name, role_assignment_name):
     role_assignment = _get_role_assignment_for_storage_blob_data_owner(
         provider_config, resource_group_name, role_assignment_name)
     if role_assignment is None:
-        cli_logger.print("The role assignment {} doesn't exist.".format(role_assignment_name))
+        cli_logger.print(
+            "The role assignment {} doesn't exist.".format(role_assignment_name))
         return
 
     """ Delete the role_assignment """
-    cli_logger.print("Deleting the role assignment for Storage Blob Data Owner: {}...".format(
-        role_assignment_name))
+    cli_logger.print(
+        "Deleting the role assignment for Storage Blob Data Owner: {}...".format(
+            role_assignment_name))
     try:
         authorization_client = _construct_authorization_client(provider_config)
         subscription_id = provider_config.get("subscription_id")
@@ -1222,16 +1279,19 @@ def _delete_role_assignment_for_storage_blob_data_owner(provider_config, resourc
             scope=scope,
             role_assignment_name=role_assignment_name
         )
-        cli_logger.print("Successfully deleted the role assignment for Storage Blob Data Owner: {}.".format(
-            role_assignment_name))
+        cli_logger.print(
+            "Successfully deleted the role assignment for Storage Blob Data Owner: {}.".format(
+                role_assignment_name))
     except Exception as e:
         cli_logger.error(
-            "Failed to delete the role assignment for Storage Blob Data Owner: {}. {}", role_assignment_name, str(e))
+            "Failed to delete the role assignment for Storage Blob Data Owner: {}. {}",
+            role_assignment_name, str(e))
         raise e
 
 
 def _delete_head_role_assignment_for_contributor(config, resource_group_name):
-    role_assignment_name = get_head_role_assignment_for_contributor(config, resource_group_name)
+    role_assignment_name = get_head_role_assignment_for_contributor(
+        config, resource_group_name)
     if role_assignment_name is None:
         cli_logger.print("The role assignment doesn't exist.")
         return
@@ -1244,16 +1304,20 @@ def _delete_head_role_assignment_for_contributor(config, resource_group_name):
     )
 
     """ Delete the role_assignment"""
-    cli_logger.print("Deleting the role assignment for Contributor: {}...".format(role_assignment_name))
+    cli_logger.print(
+        "Deleting the role assignment for Contributor: {}...".format(role_assignment_name))
     try:
         authorization_client.role_assignments.delete(
             scope=scope,
             role_assignment_name=role_assignment_name
         )
-        cli_logger.print("Successfully deleted the role assignment for Contributor: {}.".format(role_assignment_name))
+        cli_logger.print(
+            "Successfully deleted the role assignment for Contributor: {}.".format(
+                role_assignment_name))
     except Exception as e:
         cli_logger.error(
-            "Failed to delete the role assignment for Contributor: {}. {}", role_assignment_name, str(e))
+            "Failed to delete the role assignment for Contributor: {}. {}",
+            role_assignment_name, str(e))
         raise e
 
 
@@ -1265,48 +1329,61 @@ def _delete_role_assignments(config, resource_group_name):
             "Deleting Contributor role assignment for head",
             _numbered=("()", current_step, total_steps)):
         current_step += 1
-        _delete_head_role_assignment_for_contributor(config, resource_group_name)
+        _delete_head_role_assignment_for_contributor(
+            config, resource_group_name)
 
     with cli_logger.group(
             "Deleting Storage Blob Data Owner role assignment for head",
             _numbered=("()", current_step, total_steps)):
         current_step += 1
-        _delete_head_role_assignment_for_storage_blob_data_owner(config, resource_group_name)
+        _delete_head_role_assignment_for_storage_blob_data_owner(
+            config, resource_group_name)
 
     with cli_logger.group(
             "Deleting Storage Blob Data Owner role assignment for worker",
             _numbered=("()", current_step, total_steps)):
         current_step += 1
-        _delete_worker_role_assignment_for_storage_blob_data_owner(config, resource_group_name)
+        _delete_worker_role_assignment_for_storage_blob_data_owner(
+            config, resource_group_name)
 
 
 def get_head_user_assigned_identity(config, resource_group_name):
     user_assigned_identity_name = _get_head_user_assigned_identity_name(config)
-    return get_user_assigned_identity(config, resource_group_name, user_assigned_identity_name)
+    return get_user_assigned_identity(
+        config, resource_group_name, user_assigned_identity_name)
 
 
 def get_worker_user_assigned_identity(config, resource_group_name):
     user_assigned_identity_name = _get_worker_user_assigned_identity_name(config)
-    return get_user_assigned_identity(config, resource_group_name, user_assigned_identity_name)
+    return get_user_assigned_identity(
+        config, resource_group_name, user_assigned_identity_name)
 
 
-def get_user_assigned_identity(config, resource_group_name, user_assigned_identity_name):
-    return _get_user_assigned_identity(config["provider"], resource_group_name, user_assigned_identity_name)
+def get_user_assigned_identity(
+        config, resource_group_name, user_assigned_identity_name):
+    return _get_user_assigned_identity(
+        config["provider"], resource_group_name, user_assigned_identity_name)
 
 
-def _get_user_assigned_identity(provider_config, resource_group_name, user_assigned_identity_name):
+def _get_user_assigned_identity(
+        provider_config, resource_group_name, user_assigned_identity_name):
     msi_client = _construct_manage_server_identity_client(provider_config)
-    cli_logger.verbose("Getting the existing user assigned identity: {}.".format(user_assigned_identity_name))
+    cli_logger.verbose(
+        "Getting the existing user assigned identity: {}.".format(
+            user_assigned_identity_name))
     try:
         user_assigned_identity = msi_client.user_assigned_identities.get(
             resource_group_name,
             user_assigned_identity_name
         )
-        cli_logger.verbose("Successfully get the user assigned identity: {}.".format(user_assigned_identity_name))
+        cli_logger.verbose(
+            "Successfully get the user assigned identity: {}.".format(
+                user_assigned_identity_name))
         return user_assigned_identity
     except ResourceNotFoundError as e:
         cli_logger.verbose_error(
-            "Failed to get the user assigned identity: {}. {}", user_assigned_identity_name, str(e))
+            "Failed to get the user assigned identity: {}. {}",
+            user_assigned_identity_name, str(e))
         return None
 
 
@@ -1329,146 +1406,190 @@ def _delete_user_assigned_identities(config, resource_group_name):
 
 def _delete_user_assigned_identity_for_head(config, resource_group_name):
     user_assigned_identity_name = _get_head_user_assigned_identity_name(config)
-    _delete_user_assigned_identity(config["provider"], resource_group_name, user_assigned_identity_name)
+    _delete_user_assigned_identity(
+        config["provider"], resource_group_name, user_assigned_identity_name)
 
 
 def _delete_user_assigned_identity_for_worker(config, resource_group_name):
     worker_user_assigned_identity_name = _get_worker_user_assigned_identity_name(config)
-    _delete_user_assigned_identity(config["provider"], resource_group_name, worker_user_assigned_identity_name)
+    _delete_user_assigned_identity(
+        config["provider"], resource_group_name, worker_user_assigned_identity_name)
 
 
-def _delete_user_assigned_identity(provider_config, resource_group_name, user_assigned_identity_name):
-    user_assigned_identity = _get_user_assigned_identity(provider_config, resource_group_name, user_assigned_identity_name)
+def _delete_user_assigned_identity(
+        provider_config, resource_group_name, user_assigned_identity_name):
+    user_assigned_identity = _get_user_assigned_identity(
+        provider_config, resource_group_name, user_assigned_identity_name)
     msi_client = _construct_manage_server_identity_client(provider_config)
     if user_assigned_identity is None:
-        cli_logger.print("The user assigned identity doesn't exist: {}.".format(user_assigned_identity_name))
+        cli_logger.print(
+            "The user assigned identity doesn't exist: {}.".format(
+                user_assigned_identity_name))
         return
 
     """ Delete the user_assigned_identity """
-    cli_logger.print("Deleting the user assigned identity: {}...".format(user_assigned_identity.name))
+    cli_logger.print(
+        "Deleting the user assigned identity: {}...".format(
+            user_assigned_identity.name))
     try:
         msi_client.user_assigned_identities.delete(
             resource_group_name=resource_group_name,
             resource_name=user_assigned_identity.name
         )
-        cli_logger.print("Successfully deleted the user assigned identity: {}.".format(user_assigned_identity.name))
+        cli_logger.print(
+            "Successfully deleted the user assigned identity: {}.".format(
+                user_assigned_identity.name))
     except Exception as e:
         cli_logger.error(
-            "Failed to delete the user assigned identity: {}. {}", user_assigned_identity.name, str(e))
+            "Failed to delete the user assigned identity: {}. {}",
+            user_assigned_identity.name, str(e))
         raise e
 
 
 def get_network_security_group(config, network_client, resource_group_name):
-    network_security_group_name = get_workspace_network_security_group_name(config["workspace_name"])
+    network_security_group_name = get_workspace_network_security_group_name(
+        config["workspace_name"])
 
-    cli_logger.verbose("Getting the existing network security group: {}.".format(network_security_group_name))
+    cli_logger.verbose(
+        "Getting the existing network security group: {}.".format(
+            network_security_group_name))
     try:
         network_client.network_security_groups.get(
             resource_group_name,
             network_security_group_name
         )
-        cli_logger.verbose("Successfully get the network security group: {}.".format(network_security_group_name))
+        cli_logger.verbose(
+            "Successfully get the network security group: {}.".format(
+                network_security_group_name))
         return network_security_group_name
     except ResourceNotFoundError as e:
-        cli_logger.verbose_error("Failed to get the network security group: {}. {}",
-                                 network_security_group_name, str(e))
+        cli_logger.verbose_error(
+            "Failed to get the network security group: {}. {}",
+            network_security_group_name, str(e))
         return None
 
 
 def _delete_network_security_group(config, network_client, resource_group_name):
-    network_security_group_name = get_network_security_group(config, network_client, resource_group_name)
+    network_security_group_name = get_network_security_group(
+        config, network_client, resource_group_name)
     if network_security_group_name is None:
         cli_logger.print("The network security group doesn't exist.")
         return
 
     # Delete the network security group
-    cli_logger.print("Deleting the network security group: {}...".format(network_security_group_name))
+    cli_logger.print(
+        "Deleting the network security group: {}...".format(
+            network_security_group_name))
     try:
         network_client.network_security_groups.begin_delete(
             resource_group_name=resource_group_name,
             network_security_group_name=network_security_group_name
         ).result()
-        cli_logger.print("Successfully deleted the network security group: {}.".format(network_security_group_name))
+        cli_logger.print(
+            "Successfully deleted the network security group: {}.".format(
+                network_security_group_name))
     except Exception as e:
-        cli_logger.error("Failed to delete the network security group: {}. {}", network_security_group_name, str(e))
+        cli_logger.error(
+            "Failed to delete the network security group: {}. {}",
+            network_security_group_name, str(e))
         raise e
 
 
 def get_public_ip_address(config, network_client, resource_group_name):
-    public_ip_address_name = get_workspace_public_ip_address_name(config["workspace_name"])
+    public_ip_address_name = get_workspace_public_ip_address_name(
+        config["workspace_name"])
 
-    cli_logger.verbose("Getting the existing public IP address: {}.".format(public_ip_address_name))
+    cli_logger.verbose(
+        "Getting the existing public IP address: {}.".format(
+            public_ip_address_name))
     try:
         network_client.public_ip_addresses.get(
             resource_group_name,
             public_ip_address_name
         )
-        cli_logger.verbose("Successfully get the public IP address: {}.".format(public_ip_address_name))
+        cli_logger.verbose(
+            "Successfully get the public IP address: {}.".format(
+                public_ip_address_name))
         return public_ip_address_name
     except ResourceNotFoundError as e:
-        cli_logger.verbose_error("Failed to get the public IP address: {}. {}",
-                                 public_ip_address_name, str(e))
+        cli_logger.verbose_error(
+            "Failed to get the public IP address: {}. {}",
+            public_ip_address_name, str(e))
         return None
 
 
 def _delete_public_ip_address(config, network_client, resource_group_name):
-    public_ip_address_name = get_public_ip_address(config, network_client, resource_group_name)
+    public_ip_address_name = get_public_ip_address(
+        config, network_client, resource_group_name)
     if public_ip_address_name is None:
         cli_logger.print("The public IP address doesn't exist.")
         return
 
     # Delete the public IP address
-    cli_logger.print("Deleting the public IP address: {}...".format(public_ip_address_name))
+    cli_logger.print(
+        "Deleting the public IP address: {}...".format(public_ip_address_name))
     try:
         network_client.public_ip_addresses.begin_delete(
             resource_group_name=resource_group_name,
             public_ip_address_name=public_ip_address_name
         ).result()
-        cli_logger.print("Successfully deleted the public IP address: {}.".format(public_ip_address_name))
+        cli_logger.print(
+            "Successfully deleted the public IP address: {}.".format(
+                public_ip_address_name))
     except Exception as e:
-        cli_logger.error("Failed to delete the public IP address: {}. {}", public_ip_address_name, str(e))
+        cli_logger.error(
+            "Failed to delete the public IP address: {}. {}",
+            public_ip_address_name, str(e))
         raise e
 
 
 def get_nat_gateway(config, network_client, resource_group_name):
     nat_gateway_name = get_workspace_nat_name(config["workspace_name"])
 
-    cli_logger.verbose("Getting the existing NAT gateway: {}.".format(nat_gateway_name))
+    cli_logger.verbose(
+        "Getting the existing NAT gateway: {}.".format(nat_gateway_name))
     try:
         network_client.nat_gateways.get(
             resource_group_name,
             nat_gateway_name
         )
-        cli_logger.verbose("Successfully get the NAT gateway: {}.".format(nat_gateway_name))
+        cli_logger.verbose(
+            "Successfully get the NAT gateway: {}.".format(nat_gateway_name))
         return nat_gateway_name
     except ResourceNotFoundError as e:
-        cli_logger.verbose_error("Failed to get the NAT gateway: {}. {}", nat_gateway_name, str(e))
+        cli_logger.verbose_error(
+            "Failed to get the NAT gateway: {}. {}", nat_gateway_name, str(e))
         return None
 
 
 def _delete_nat(config, network_client, resource_group_name):
-    nat_gateway_name = get_nat_gateway(config, network_client, resource_group_name)
+    nat_gateway_name = get_nat_gateway(
+        config, network_client, resource_group_name)
     if nat_gateway_name is None:
         cli_logger.print("The Nat Gateway doesn't exist.")
         return
 
     """ Delete the Nat Gateway """
-    cli_logger.print("Deleting the Nat Gateway: {}...".format(nat_gateway_name))
+    cli_logger.print(
+        "Deleting the Nat Gateway: {}...".format(nat_gateway_name))
     try:
         network_client.nat_gateways.begin_delete(
             resource_group_name=resource_group_name,
             nat_gateway_name=nat_gateway_name
         ).result()
-        cli_logger.print("Successfully deleted the Nat Gateway: {}.".format(nat_gateway_name))
+        cli_logger.print(
+            "Successfully deleted the Nat Gateway: {}.".format(nat_gateway_name))
     except Exception as e:
-        cli_logger.error("Failed to delete the Nat Gateway: {}. {}", nat_gateway_name, str(e))
+        cli_logger.error(
+            "Failed to delete the Nat Gateway: {}. {}", nat_gateway_name, str(e))
         raise e
 
 
 def _delete_vnet(config, resource_client, network_client):
     use_working_vpc = is_use_working_vpc(config)
     if use_working_vpc:
-        cli_logger.print("Will not delete the current node virtual network.")
+        cli_logger.print(
+            "Will not delete the current node virtual network.")
         return
 
     workspace_name = config["workspace_name"]
@@ -1477,27 +1598,31 @@ def _delete_vnet(config, resource_client, network_client):
     virtual_network_name = _get_virtual_network_name(
         workspace_name, resource_client, network_client, use_working_vpc)
     if virtual_network_name is None:
-        cli_logger.print("The virtual network: {} doesn't exist.".
-                         format(virtual_network_name))
+        cli_logger.print(
+            "The virtual network: {} doesn't exist.".format(virtual_network_name))
         return
 
     # Delete the virtual network
-    cli_logger.print("Deleting the virtual network: {}...".format(virtual_network_name))
+    cli_logger.print(
+        "Deleting the virtual network: {}...".format(virtual_network_name))
     try:
         network_client.virtual_networks.begin_delete(
             resource_group_name=resource_group_name,
             virtual_network_name=virtual_network_name
         ).result()
-        cli_logger.print("Successfully deleted the virtual network: {}.".format(virtual_network_name))
+        cli_logger.print(
+            "Successfully deleted the virtual network: {}.".format(virtual_network_name))
     except Exception as e:
-        cli_logger.error("Failed to delete the virtual network: {}. {}", virtual_network_name, str(e))
+        cli_logger.error(
+            "Failed to delete the virtual network: {}. {}", virtual_network_name, str(e))
         raise e
 
 
 def _delete_workspace_resource_group(config, resource_client):
     use_working_vpc = is_use_working_vpc(config)
     if use_working_vpc:
-        cli_logger.print("Will not delete the current node resource group.")
+        cli_logger.print(
+            "Will not delete the current node resource group.")
         return
 
     workspace_name = config["workspace_name"]
@@ -1513,25 +1638,30 @@ def _delete_resource_group(provider_config, resource_group_name, resource_client
     resource_group = _get_resource_group_by_name(
         resource_group_name, resource_client)
     if resource_group is None:
-        cli_logger.print("The resource group doesn't exist. Skip deletion.")
+        cli_logger.print(
+            "The resource group doesn't exist. Skip deletion.")
         return
 
     resource_group_name = resource_group.name
     if has_storage_account(provider_config, resource_group_name):
-        cli_logger.print("The resource group {} has remaining storage accounts. Will not be deleted.".
-                         format(resource_group_name))
+        cli_logger.print(
+            "The resource group {} has remaining storage accounts. Will not be deleted.".
+            format(resource_group_name))
         return
 
     # Delete the resource group
-    cli_logger.print("Deleting the resource group: {}...".format(resource_group_name))
+    cli_logger.print(
+        "Deleting the resource group: {}...".format(resource_group_name))
 
     try:
         resource_client.resource_groups.begin_delete(
             resource_group_name
         ).result()
-        cli_logger.print("Successfully deleted the resource group: {}.".format(resource_group_name))
+        cli_logger.print(
+            "Successfully deleted the resource group: {}.".format(resource_group_name))
     except Exception as e:
-        cli_logger.error("Failed to delete the resource group: {}. {}", resource_group_name, str(e))
+        cli_logger.error(
+            "Failed to delete the resource group: {}. {}", resource_group_name, str(e))
         raise e
 
 
@@ -1565,7 +1695,8 @@ def _create_workspace(config):
                 resource_group_name = _create_workspace_resource_group(config)
 
             # create network resources
-            current_step = _create_network_resources(config, resource_group_name, current_step, total_steps)
+            current_step = _create_network_resources(
+                config, resource_group_name, current_step, total_steps)
 
             # create user_assigned_identities
             with cli_logger.group(
@@ -1596,8 +1727,9 @@ def _create_workspace(config):
                     _create_workspace_cloud_database(config, resource_group_name)
 
     except Exception as e:
-        cli_logger.error("Failed to create workspace with the name {}. "
-                         "You need to delete and try create again. {}", workspace_name, str(e))
+        cli_logger.error(
+            "Failed to create workspace with the name {}. "
+            "You need to delete and try create again. {}", workspace_name, str(e))
         raise e
 
     cli_logger.success(
@@ -1616,18 +1748,23 @@ def _create_workspace_resource_group(config):
         # No need to create new resource group
         resource_group_name = get_working_node_resource_group_name(resource_client)
         if resource_group_name is None:
-            cli_logger.abort("Failed to get the resource group for the current machine. "
-                             "Please make sure your current machine is an Azure virtual machine "
-                             "to use use_internal_ips=True with use_working_vpc=True.")
+            cli_logger.abort(
+                "Failed to get the resource group for the current machine. "
+                "Please make sure your current machine is an Azure virtual machine "
+                "to use use_internal_ips=True with use_working_vpc=True.")
         else:
-            cli_logger.print("Will use the current node resource group: {}.", resource_group_name)
+            cli_logger.print(
+                "Will use the current node resource group: {}.", resource_group_name)
     else:
         # Need to create a new resource_group
-        resource_group = _get_workspace_resource_group(workspace_name, resource_client)
+        resource_group = _get_workspace_resource_group(
+            workspace_name, resource_client)
         if resource_group is None:
             resource_group = create_resource_group(config, resource_client)
         else:
-            cli_logger.print("Resource group {} for workspace already exists. Skip creation.", resource_group.name)
+            cli_logger.print(
+                "Resource group {} for workspace already exists. Skip creation.",
+                resource_group.name)
         resource_group_name = resource_group.name
     return resource_group_name
 
@@ -1673,13 +1810,17 @@ def get_working_node_resource_group(resource_client):
         return None
 
 
-def get_virtual_network_name_by_subnet(resource_client, network_client, resource_group_name, subnet):
+def get_virtual_network_name_by_subnet(
+        resource_client, network_client, resource_group_name, subnet):
     subnet_address_prefix = subnet['address'] + "/" + subnet['prefix']
-    virtual_networks_resources = list(resource_client.resources.list_by_resource_group(
-        resource_group_name=resource_group_name, filter="resourceType eq 'Microsoft.Network/virtualNetworks'"))
-    virtual_network_names = [virtual_network_resources.name for virtual_network_resources in virtual_networks_resources]
+    virtual_networks_resources = list(
+        resource_client.resources.list_by_resource_group(
+            resource_group_name=resource_group_name, filter="resourceType eq 'Microsoft.Network/virtualNetworks'"))
+    virtual_network_names = [
+        virtual_network_resources.name for virtual_network_resources in virtual_networks_resources]
     virtual_networks = [network_client.virtual_networks.get(
-        resource_group_name=resource_group_name, virtual_network_name=virtual_network_name)
+        resource_group_name=resource_group_name,
+        virtual_network_name=virtual_network_name)
         for virtual_network_name in virtual_network_names]
 
     for virtual_network in virtual_networks:
@@ -1693,27 +1834,31 @@ def get_virtual_network_name_by_subnet(resource_client, network_client, resource
 def get_working_node_virtual_network_name(resource_client, network_client):
     metadata = get_azure_instance_metadata()
     if metadata is None:
-        cli_logger.error("Failed to get the metadata of the working node. "
-                         "Please check whether the working node is a Azure instance or not!")
+        cli_logger.error(
+            "Failed to get the metadata of the working node. "
+            "Please check whether the working node is a Azure instance or not!")
         return None
     resource_group_name = metadata.get("compute", {}).get("resourceGroupName", "")
     interfaces = metadata.get("network", {}).get("interface", "")
     subnet = interfaces[0]["ipv4"]["subnet"][0]
-    virtual_network_name = get_virtual_network_name_by_subnet(resource_client, network_client, resource_group_name, subnet)
+    virtual_network_name = get_virtual_network_name_by_subnet(
+        resource_client, network_client, resource_group_name, subnet)
     if virtual_network_name is not None:
         cli_logger.print("Successfully get the VirtualNetworkName for working node.")
 
     return virtual_network_name
 
 
-def get_virtual_network(resource_group_name, virtual_network_name, network_client):
+def get_virtual_network(
+        resource_group_name, virtual_network_name, network_client):
     try:
         virtual_network = network_client.virtual_networks.get(
             resource_group_name=resource_group_name,
             virtual_network_name=virtual_network_name
         )
-        cli_logger.verbose("Successfully get the VirtualNetwork: {}.".
-                                 format(virtual_network.name))
+        cli_logger.verbose(
+            "Successfully get the VirtualNetwork: {}.".
+            format(virtual_network.name))
         return virtual_network
     except ResourceNotFoundError as e:
         cli_logger.verbose_error(
@@ -1744,7 +1889,8 @@ def _get_resource_group(
     if use_working_vpc:
         resource_group = get_working_node_resource_group(resource_client)
     else:
-        resource_group = _get_workspace_resource_group(workspace_name, resource_client)
+        resource_group = _get_workspace_resource_group(
+            workspace_name, resource_client)
 
     return resource_group
 
@@ -1754,9 +1900,11 @@ def _get_workspace_resource_group(workspace_name, resource_client):
     return _get_resource_group_by_name(resource_group_name, resource_client)
 
 
-def _get_resource_group_by_name(resource_group_name, resource_client, provider_config=None):
-    cli_logger.verbose("Getting the resource group name: {}...".
-                       format(resource_group_name))
+def _get_resource_group_by_name(
+        resource_group_name, resource_client, provider_config=None):
+    cli_logger.verbose(
+        "Getting the resource group name: {}...".
+        format(resource_group_name))
 
     if not resource_client:
         resource_client = _construct_resource_client(provider_config)
@@ -1766,7 +1914,8 @@ def _get_resource_group_by_name(resource_group_name, resource_client, provider_c
             resource_group_name
         )
         cli_logger.verbose(
-            "Successfully get the resource group name: {} for workspace.".format(resource_group_name))
+            "Successfully get the resource group name: {} for workspace.".format(
+                resource_group_name))
         return resource_group
     except ResourceNotFoundError as e:
         cli_logger.verbose_error(
@@ -1775,11 +1924,14 @@ def _get_resource_group_by_name(resource_group_name, resource_client, provider_c
 
 
 def create_resource_group(config, resource_client):
-    resource_group_name = get_workspace_resource_group_name(config["workspace_name"])
-    return _create_resource_group(config["provider"], resource_group_name, resource_client)
+    resource_group_name = get_workspace_resource_group_name(
+        config["workspace_name"])
+    return _create_resource_group(
+        config["provider"], resource_group_name, resource_client)
 
 
-def _create_resource_group(provider_config, resource_group_name, resource_client = None):
+def _create_resource_group(
+        provider_config, resource_group_name, resource_client=None):
     assert "location" in provider_config, (
         "Provider config must include location field")
     params = {"location": provider_config["location"]}
@@ -1787,13 +1939,15 @@ def _create_resource_group(provider_config, resource_group_name, resource_client
     if not resource_client:
         resource_client = _construct_resource_client(provider_config)
 
-    cli_logger.print("Creating workspace resource group: {}...", resource_group_name)
+    cli_logger.print(
+        "Creating workspace resource group: {}...", resource_group_name)
     # create resource group
     try:
         resource_group = resource_client.resource_groups.create_or_update(
             resource_group_name=resource_group_name, parameters=params)
-        cli_logger.print("Successfully created workspace resource group: {}.",
-                         resource_group_name)
+        cli_logger.print(
+            "Successfully created workspace resource group: {}.",
+            resource_group_name)
         return resource_group
     except Exception as e:
         cli_logger.error(
@@ -1801,30 +1955,38 @@ def _create_resource_group(provider_config, resource_group_name, resource_client
         raise e
 
 
-def _create_head_role_assignment_for_storage_blob_data_owner(config, resource_group_name):
-    user_assigned_identity = get_head_user_assigned_identity(config, resource_group_name)
+def _create_head_role_assignment_for_storage_blob_data_owner(
+        config, resource_group_name):
+    user_assigned_identity = get_head_user_assigned_identity(
+        config, resource_group_name)
     create_role_assignment_for_storage_blob_data_owner(
         config, resource_group_name, user_assigned_identity, "head")
 
 
-def _create_worker_role_assignment_for_storage_blob_data_owner(config, resource_group_name):
-    user_assigned_identity = get_worker_user_assigned_identity(config, resource_group_name)
+def _create_worker_role_assignment_for_storage_blob_data_owner(
+        config, resource_group_name):
+    user_assigned_identity = get_worker_user_assigned_identity(
+        config, resource_group_name)
     create_role_assignment_for_storage_blob_data_owner(
         config, resource_group_name, user_assigned_identity, "worker")
 
 
 def create_role_assignment_for_storage_blob_data_owner(
         config, resource_group_name, user_assigned_identity, role_type):
-    role_assignment_name = get_role_assignment_name_for_storage_blob_data_owner(config, role_type)
+    role_assignment_name = get_role_assignment_name_for_storage_blob_data_owner(
+        config, role_type)
     _create_role_assignment_for_storage_blob_data_owner(
-        config["provider"], resource_group_name, user_assigned_identity, role_assignment_name
+        config["provider"], resource_group_name,
+        user_assigned_identity, role_assignment_name
     )
 
 
 def _create_role_assignment_for_storage_blob_data_owner(
-        provider_config, resource_group_name, user_assigned_identity, role_assignment_name):
-    cli_logger.print("Creating role assignment for Storage Blob Data Owner: {}...",
-                     role_assignment_name)
+        provider_config, resource_group_name,
+        user_assigned_identity, role_assignment_name):
+    cli_logger.print(
+        "Creating role assignment for Storage Blob Data Owner: {}...",
+        role_assignment_name)
 
     authorization_client = _construct_authorization_client(provider_config)
     subscription_id = provider_config.get("subscription_id")
@@ -1838,23 +2000,27 @@ def _create_role_assignment_for_storage_blob_data_owner(
             scope=scope,
             role_assignment_name=role_assignment_name,
             parameters={
-                "role_definition_id": "/providers/Microsoft.Authorization/roleDefinitions/b7e6dc6d-f1e8-4753-8033-0f276bb0955b",
+                "role_definition_id":
+                    "/providers/Microsoft.Authorization/roleDefinitions/b7e6dc6d-f1e8-4753-8033-0f276bb0955b",
                 "principal_id": user_assigned_identity.principal_id,
                 "principalType": "ServicePrincipal"
             }
         )
-        cli_logger.print("Successfully created role assignment for Storage Blob Data Owner: {}.".
-                         format(role_assignment_name))
+        cli_logger.print(
+            "Successfully created role assignment for Storage Blob Data Owner: {}.".
+            format(role_assignment_name))
     except Exception as e:
         cli_logger.error(
             "Failed to create role assignment for Storage Blob Data Owner. {}", str(e))
         raise e
 
 
-def _create_head_role_assignment_for_contributor(config, resource_group_name):
+def _create_head_role_assignment_for_contributor(
+        config, resource_group_name):
     workspace_name = config["workspace_name"]
     subscription_id = config["provider"].get("subscription_id")
-    role_assignment_name = str(uuid.uuid3(uuid.UUID(subscription_id), workspace_name + "contributor"))
+    role_assignment_name = str(uuid.uuid3(
+        uuid.UUID(subscription_id), workspace_name + "contributor"))
 
     cli_logger.print("Creating role assignment: {}...", role_assignment_name)
 
@@ -1863,15 +2029,17 @@ def _create_head_role_assignment_for_contributor(config, resource_group_name):
         subscriptionId=subscription_id,
         resourceGroupName=resource_group_name
     )
-    user_assigned_identity = get_head_user_assigned_identity(config, resource_group_name)
+    user_assigned_identity = get_head_user_assigned_identity(
+        config, resource_group_name)
     # Create role assignment
     try:
         role_assignment = authorization_client.role_assignments.create(
             scope=scope,
             role_assignment_name=role_assignment_name,
             parameters={
-                "role_definition_id": "/subscriptions/{}/providers/Microsoft.Authorization/roleDefinitions/b24988ac-6180-42a0-ab88-20f7382dd24c".format(
-                    subscription_id),
+                "role_definition_id":
+                    "/subscriptions/{}/providers/Microsoft.Authorization/roleDefinitions/b24988ac-6180-42a0-ab88-20f7382dd24c".format(
+                        subscription_id),
                 "principal_id": user_assigned_identity.principal_id,
                 "principalType": "ServicePrincipal"
             }
@@ -1893,21 +2061,24 @@ def _create_role_assignments(config, resource_group_name):
             "Creating Contributor role assignment for head ",
             _numbered=("()", current_step, total_steps)):
         current_step += 1
-        _create_head_role_assignment_for_contributor(config, resource_group_name)
+        _create_head_role_assignment_for_contributor(
+            config, resource_group_name)
 
     # create Storage Blob Data Owner role assignment for head
     with cli_logger.group(
             "Creating Storage Blob Data Owner role assignment for head",
             _numbered=("()", current_step, total_steps)):
         current_step += 1
-        _create_head_role_assignment_for_storage_blob_data_owner(config, resource_group_name)
+        _create_head_role_assignment_for_storage_blob_data_owner(
+            config, resource_group_name)
 
     # create Storage Blob Data Owner role assignment for worker
     with cli_logger.group(
             "Creating Storage Blob Data Owner role assignment for worker",
             _numbered=("()", current_step, total_steps)):
         current_step += 1
-        _create_worker_role_assignment_for_storage_blob_data_owner(config, resource_group_name)
+        _create_worker_role_assignment_for_storage_blob_data_owner(
+            config, resource_group_name)
 
 
 def _create_workspace_cloud_storage(config, resource_group_name):
@@ -1953,7 +2124,8 @@ def _create_container_for_storage_account(
         provider_config, storage_account_name,
         storage_client=storage_client)
     if storage_account is None:
-        cli_logger.abort("No storage account is found. You need to make sure storage account has been created.")
+        cli_logger.abort(
+            "No storage account is found. You need to make sure storage account has been created.")
     account_name = storage_account.name
 
     # Check the container existence
@@ -1962,10 +2134,12 @@ def _create_container_for_storage_account(
         storage_client=storage_client,
         object_storage_name=object_storage_name)
     if storage_and_container is not None:
-        cli_logger.print("Storage container already exists in the workspace. Skip creation.")
+        cli_logger.print(
+            "Storage container already exists in the workspace. Skip creation.")
         return
 
-    cli_logger.print("Creating container for storage account: {}...", account_name)
+    cli_logger.print(
+        "Creating container for storage account: {}...", account_name)
     # Create container for storage account
     try:
         blob_container = storage_client.blob_containers.create(
@@ -1974,15 +2148,17 @@ def _create_container_for_storage_account(
             container_name=object_storage_name,
             blob_container={},
         )
-        cli_logger.print("Successfully created container for storage account: {}.".
-                         format(account_name))
+        cli_logger.print(
+            "Successfully created container for storage account: {}.".
+            format(account_name))
     except Exception as e:
         cli_logger.error(
             "Failed to create container for storage account. {}", str(e))
         raise e
 
 
-def _create_storage_account(provider_config, workspace_name, resource_group_name):
+def _create_storage_account(
+        provider_config, workspace_name, resource_group_name):
     storage_client = _construct_storage_client(provider_config)
 
     storage_account_name = get_workspace_storage_account_name(workspace_name)
@@ -2007,7 +2183,8 @@ def _create_storage_account(provider_config, workspace_name, resource_group_name
     storage_suffix = str(uuid.uuid3(uuid.UUID(subscription_id), resource_group.id))[-12:]
     account_name = 'storage{}'.format(storage_suffix)
 
-    cli_logger.print("Creating workspace storage account: {}...", account_name)
+    cli_logger.print(
+        "Creating workspace storage account: {}...", account_name)
     # Create storage account
     try:
         parameters = {
@@ -2047,8 +2224,9 @@ def _create_storage_account(provider_config, workspace_name, resource_group_name
         # Long-running operations return a poller object; calling poller.result()
         # waits for completion.
         account_result = poller.result()
-        cli_logger.print("Successfully created storage account: {}.".
-                         format(account_result.name))
+        cli_logger.print(
+            "Successfully created storage account: {}.".
+            format(account_result.name))
     except Exception as e:
         cli_logger.error(
             "Failed to create storage account. {}", str(e))
@@ -2109,7 +2287,8 @@ def _create_managed_database_delegated_subnet(
     subnet = get_subnet(network_client, resource_group_name,
                         virtual_network_name, subnet_name)
     if subnet is not None:
-        cli_logger.print("Delegated subnet for database already exist. Skip creation.")
+        cli_logger.print(
+            "Delegated subnet for database already exist. Skip creation.")
         return
 
     cidr_block = _configure_azure_subnet_cidr(
@@ -2126,8 +2305,9 @@ def _create_managed_database_delegated_subnet(
     )
 
     # Create subnet
-    cli_logger.print("Creating delegated subnet for the database with CIDR: {}...".
-                     format(cidr_block))
+    cli_logger.print(
+        "Creating delegated subnet for the database with CIDR: {}...".
+        format(cidr_block))
     try:
         network_client.subnets.begin_create_or_update(
             resource_group_name=resource_group_name,
@@ -2135,9 +2315,11 @@ def _create_managed_database_delegated_subnet(
             subnet_name=subnet_name,
             subnet_parameters=subnet_parameters
         ).result()
-        cli_logger.print("Successfully created delegated subnet: {}.".format(subnet_name))
+        cli_logger.print(
+            "Successfully created delegated subnet: {}.".format(subnet_name))
     except Exception as e:
-        cli_logger.error("Failed to create delegated subnet. {}", str(e))
+        cli_logger.error(
+            "Failed to create delegated subnet. {}", str(e))
         raise e
 
 
@@ -2174,10 +2356,12 @@ def _create_private_dns_zone(
     private_dns_zone = get_private_dns_zone(
         cloud_provider, workspace_name, resource_group_name, engine)
     if private_dns_zone is not None:
-        cli_logger.print("Private DNS zone already exist. Skip creation.")
+        cli_logger.print(
+            "Private DNS zone already exist. Skip creation.")
         return
 
-    cli_logger.print("Creating private DNS zone in workspace: {}...".format(workspace_name))
+    cli_logger.print(
+        "Creating private DNS zone in workspace: {}...".format(workspace_name))
     try:
         params = PrivateZone(
             location="global",
@@ -2188,9 +2372,11 @@ def _create_private_dns_zone(
             params
         )
         result = creation_poller.result()
-        cli_logger.print("Successfully created private DNS zone: {}.".format(private_dns_zone_name))
+        cli_logger.print(
+            "Successfully created private DNS zone: {}.".format(private_dns_zone_name))
     except Exception as e:
-        cli_logger.error("Failed to create private DNS zone. {}", str(e))
+        cli_logger.error(
+            "Failed to create private DNS zone. {}", str(e))
         raise e
 
 
@@ -2207,11 +2393,13 @@ def _create_private_dns_zone_link(
     private_dns_zone_link = get_private_dns_zone_link(
         cloud_provider, workspace_name, resource_group_name, engine)
     if private_dns_zone_link is not None:
-        cli_logger.print("Private DNS zone link already exist. Skip creation.")
+        cli_logger.print(
+            "Private DNS zone link already exist. Skip creation.")
         return
 
-    cli_logger.print("Creating private DNS zone link for: {} -> {}...".format(
-        private_dns_zone_name, virtual_network_name))
+    cli_logger.print(
+        "Creating private DNS zone link for: {} -> {}...".format(
+            private_dns_zone_name, virtual_network_name))
 
     network_client = _construct_network_client(cloud_provider)
     virtual_network = get_virtual_network(
@@ -2229,9 +2417,11 @@ def _create_private_dns_zone_link(
             params
         )
         result = creation_poller.result()
-        cli_logger.print("Successfully created private DNS zone link: {}.".format(link_name))
+        cli_logger.print(
+            "Successfully created private DNS zone link: {}.".format(link_name))
     except Exception as e:
-        cli_logger.error("Failed to create private DNS zone link. {}", str(e))
+        cli_logger.error(
+            "Failed to create private DNS zone link. {}", str(e))
         raise e
 
 
@@ -2264,12 +2454,15 @@ def _create_managed_database_instance(
     private_dns_zone_name = get_managed_database_private_dns_zone_name(
         workspace_name, engine)
 
-    cli_logger.print("Creating database instance for the workspace: {}...".format(workspace_name))
+    cli_logger.print(
+        "Creating database instance for the workspace: {}...".format(workspace_name))
     try:
-        delegated_subnet_resource_id = "/subscriptions/{}/resourceGroups/{}/providers/Microsoft.Network/virtualNetworks/{}/subnets/{}".format(
-            subscription_id, resource_group_name, virtual_network_name, subnet_name)
-        private_dns_zone_resource_id = "/subscriptions/{}/resourceGroups/{}/providers/Microsoft.Network/privateDnsZones/{}".format(
-            subscription_id, resource_group_name, private_dns_zone_name)
+        delegated_subnet_resource_id = \
+            "/subscriptions/{}/resourceGroups/{}/providers/Microsoft.Network/virtualNetworks/{}/subnets/{}".format(
+                subscription_id, resource_group_name, virtual_network_name, subnet_name)
+        private_dns_zone_resource_id = \
+            "/subscriptions/{}/resourceGroups/{}/providers/Microsoft.Network/privateDnsZones/{}".format(
+                subscription_id, resource_group_name, private_dns_zone_name)
 
         if engine == DATABASE_ENGINE_MYSQL:
             _create_mysql_instance(
@@ -2296,7 +2489,8 @@ def _create_managed_database_instance(
             "Successfully created database instance for the workspace: {}.".format(
                 db_instance_name))
     except Exception as e:
-        cli_logger.error("Failed to create database instance. {}", str(e))
+        cli_logger.error(
+            "Failed to create database instance. {}", str(e))
         raise e
 
 
@@ -2411,13 +2605,16 @@ def _get_managed_database_instance(
         database_config = get_azure_database_config(provider_config, {})
         engine = get_azure_database_engine(database_config)
     rdbms_client = _construct_rdbms_client(provider_config, engine=engine)
-    cli_logger.verbose("Getting the database instance: {}.".format(db_instance_name))
+    cli_logger.verbose(
+        "Getting the database instance: {}.".format(db_instance_name))
     try:
         server_instance = rdbms_client.servers.get(resource_group_name, db_instance_name)
-        cli_logger.verbose("Successfully get database instance: {}.".format(db_instance_name))
+        cli_logger.verbose(
+            "Successfully get database instance: {}.".format(db_instance_name))
         return engine, server_instance
     except Exception as e:
-        cli_logger.verbose_error("Failed to get database instance. {}", str(e))
+        cli_logger.verbose_error(
+            "Failed to get database instance. {}", str(e))
         return None
 
 
@@ -2443,18 +2640,21 @@ def _get_managed_database_instances(
 def _get_managed_database_instances_of_engine(
         provider_config, resource_group_name, engine):
     rdbms_client = _construct_rdbms_client(provider_config, engine=engine)
-    cli_logger.verbose("Getting the database instances...")
+    cli_logger.verbose(
+        "Getting the database instances...")
     try:
         server_instances = rdbms_client.servers.list_by_resource_group(
             resource_group_name)
         if server_instances is None:
             return []
         server_instances = list(server_instances)
-        cli_logger.verbose("Successfully get {} database instances.".format(
-            len(server_instances)))
+        cli_logger.verbose(
+            "Successfully get {} database instances.".format(
+                len(server_instances)))
         return server_instances
     except Exception as e:
-        cli_logger.verbose_error("Failed to get database instances. {}", str(e))
+        cli_logger.verbose_error(
+            "Failed to get database instances. {}", str(e))
         return None
 
 
@@ -2477,19 +2677,23 @@ def _create_user_assigned_identities(config, resource_group_name):
 
 def _create_user_assigned_identity_for_head(config, resource_group_name):
     user_assigned_identity_name = _get_head_user_assigned_identity_name(config)
-    _create_user_assigned_identity(config["provider"], resource_group_name, user_assigned_identity_name)
+    _create_user_assigned_identity(
+        config["provider"], resource_group_name, user_assigned_identity_name)
 
 
 def _create_user_assigned_identity_for_worker(config, resource_group_name):
     worker_user_assigned_identity_name = _get_worker_user_assigned_identity_name(config)
-    _create_user_assigned_identity(config["provider"], resource_group_name, worker_user_assigned_identity_name)
+    _create_user_assigned_identity(
+        config["provider"], resource_group_name, worker_user_assigned_identity_name)
 
 
-def _create_user_assigned_identity(provider_config, resource_group_name, user_assigned_identity_name):
+def _create_user_assigned_identity(
+        provider_config, resource_group_name, user_assigned_identity_name):
     location = provider_config["location"]
     msi_client = _construct_manage_server_identity_client(provider_config)
 
-    cli_logger.print("Creating user assigned identity: {}...", user_assigned_identity_name)
+    cli_logger.print(
+        "Creating user assigned identity: {}...", user_assigned_identity_name)
     # Create identity
     try:
         msi_client.user_assigned_identities.create_or_update(
@@ -2500,8 +2704,9 @@ def _create_user_assigned_identity(provider_config, resource_group_name, user_as
             }
         )
         time.sleep(20)
-        cli_logger.print("Successfully created user assigned identity: {}.".
-                         format(user_assigned_identity_name))
+        cli_logger.print(
+            "Successfully created user assigned identity: {}.".
+            format(user_assigned_identity_name))
     except Exception as e:
         cli_logger.error(
             "Failed to create user assigned identity. {}", str(e))
@@ -2510,11 +2715,13 @@ def _create_user_assigned_identity(provider_config, resource_group_name, user_as
 
 def _configure_peering_vnet_cidr_block(resource_client, network_client):
     current_resource_group_name = get_working_node_resource_group_name(resource_client)
-    current_virtual_network_name = get_working_node_virtual_network_name(resource_client, network_client)
+    current_virtual_network_name = get_working_node_virtual_network_name(
+        resource_client, network_client)
     current_vnet_peering_connections = list(network_client.virtual_network_peerings.list(
         current_resource_group_name, current_virtual_network_name))
-    current_remote_peering_cidr_blocks = [current_vnet_peering_connection.remote_address_space.address_prefixes
-                                          for current_vnet_peering_connection in current_vnet_peering_connections]
+    current_remote_peering_cidr_blocks = [
+        current_vnet_peering_connection.remote_address_space.address_prefixes
+        for current_vnet_peering_connection in current_vnet_peering_connections]
     existing_vnet_cidr_blocks = []
     for current_remote_peering_cidr_block in current_remote_peering_cidr_blocks:
         existing_vnet_cidr_blocks += current_remote_peering_cidr_block
@@ -2526,10 +2733,12 @@ def _configure_peering_vnet_cidr_block(resource_client, network_client):
     for i in range(0, 256):
         tmp_cidr_block = "10.{}.0.0/16".format(i)
         if check_cidr_conflict(tmp_cidr_block, existing_vnet_cidr_blocks):
-            cli_logger.print("Successfully found cidr block for peering vnet.")
+            cli_logger.print(
+                "Successfully found cidr block for peering vnet.")
             return tmp_cidr_block
 
-    raise RuntimeError("Failed to find non-conflicted cidr block for peering vnet.")
+    raise RuntimeError(
+        "Failed to find non-conflicted cidr block for peering vnet.")
 
 
 def _create_vnet(config, resource_client, network_client):
@@ -2538,21 +2747,26 @@ def _create_vnet(config, resource_client, network_client):
 
     if use_working_vpc:
         # No need to create new virtual network
-        virtual_network_name = get_working_node_virtual_network_name(resource_client, network_client)
+        virtual_network_name = get_working_node_virtual_network_name(
+            resource_client, network_client)
         if virtual_network_name is None:
-            cli_logger.abort("Only when the working node is an Azure instance"
-                             " can use use_internal_ips=True with use_working_vpc=True.")
+            cli_logger.abort(
+                "Only when the working node is an Azure instance"
+                " can use use_internal_ips=True with use_working_vpc=True.")
         else:
-            cli_logger.print("Will use the current node virtual network: {}.", virtual_network_name)
+            cli_logger.print(
+                "Will use the current node virtual network: {}.", virtual_network_name)
     else:
         # Need to create a new virtual network
         if get_workspace_virtual_network(workspace_name, network_client) is None:
-            virtual_network = create_virtual_network(config, resource_client, network_client)
+            virtual_network = create_virtual_network(
+                config, resource_client, network_client)
             virtual_network_name = virtual_network.name
         else:
-            cli_logger.abort("There is a existing virtual network with the same name: {}, "
-                             "if you want to create a new workspace with the same name, "
-                             "you need to execute workspace delete first!".format(workspace_name))
+            cli_logger.abort(
+                "There is a existing virtual network with the same name: {}, "
+                "if you want to create a new workspace with the same name, "
+                "you need to execute workspace delete first!".format(workspace_name))
     return virtual_network_name
 
 
@@ -2560,7 +2774,8 @@ def create_virtual_network(config, resource_client, network_client):
     workspace_name = config["workspace_name"]
     virtual_network_name = get_workspace_virtual_network_name(workspace_name)
     use_working_vpc = is_use_working_vpc(config)
-    resource_group_name = get_resource_group_name(config, resource_client, use_working_vpc)
+    resource_group_name = get_resource_group_name(
+        config, resource_client, use_working_vpc)
     assert "location" in config["provider"], (
         "Provider config must include location field")
 
@@ -2568,7 +2783,8 @@ def create_virtual_network(config, resource_client, network_client):
     random.seed(virtual_network_name)
     cidr_block = "10.{}.0.0/16".format(random.randint(1, 254))
     if is_use_peering_vpc(config):
-        cidr_block = _configure_peering_vnet_cidr_block(resource_client, network_client)
+        cidr_block = _configure_peering_vnet_cidr_block(
+            resource_client, network_client)
 
     params = {
         "address_space": {
@@ -2581,15 +2797,17 @@ def create_virtual_network(config, resource_client, network_client):
             AZURE_WORKSPACE_VERSION_TAG_NAME: AZURE_WORKSPACE_VERSION_CURRENT
         }
     }
-    cli_logger.print("Creating workspace virtual network: {}...", virtual_network_name)
+    cli_logger.print(
+        "Creating workspace virtual network: {}...", virtual_network_name)
     # create virtual network
     try:
         virtual_network = network_client.virtual_networks.begin_create_or_update(
             resource_group_name=resource_group_name,
             virtual_network_name=virtual_network_name,
             parameters=params).result()
-        cli_logger.print("Successfully created workspace virtual network: {}.",
-                         virtual_network_name)
+        cli_logger.print(
+            "Successfully created workspace virtual network: {}.",
+            virtual_network_name)
         return virtual_network
     except Exception as e:
         cli_logger.error(
@@ -2597,11 +2815,15 @@ def create_virtual_network(config, resource_client, network_client):
         raise e
 
 
-def get_virtual_network_peering(network_client, resource_group_name, virtual_network_name, virtual_network_peering_name):
-    cli_logger.verbose("Getting the existing virtual network peering: {} ", virtual_network_peering_name)
+def get_virtual_network_peering(
+        network_client, resource_group_name,
+        virtual_network_name, virtual_network_peering_name):
+    cli_logger.verbose(
+        "Getting the existing virtual network peering: {} ", virtual_network_peering_name)
     if virtual_network_name is None:
-        cli_logger.verbose_error("Failed to get the virtual network peering: {} because virtual network {} not existed!",
-                                 virtual_network_peering_name, virtual_network_name)
+        cli_logger.verbose_error(
+            "Failed to get the virtual network peering: {} because virtual network {} not existed!",
+            virtual_network_peering_name, virtual_network_name)
         return None
     try:
         virtual_network_peering = network_client.virtual_network_peerings.get(
@@ -2609,16 +2831,26 @@ def get_virtual_network_peering(network_client, resource_group_name, virtual_net
             virtual_network_name=virtual_network_name,
             virtual_network_peering_name=virtual_network_peering_name
         )
-        cli_logger.verbose("Successfully get the virtual network peering: {}.", virtual_network_peering_name)
+        cli_logger.verbose(
+            "Successfully get the virtual network peering: {}.",
+            virtual_network_peering_name)
         return virtual_network_peering
     except ResourceNotFoundError as e:
-        cli_logger.verbose_error("Failed to get the virtual network peering: {}. {}", virtual_network_peering_name, str(e))
+        cli_logger.verbose_error(
+            "Failed to get the virtual network peering: {}. {}",
+            virtual_network_peering_name, str(e))
         return None
 
 
-def _delete_vnet_peering_connection(network_client, resource_group_name, virtual_network_name, virtual_network_peering_name):
-    if get_virtual_network_peering(network_client, resource_group_name, virtual_network_name, virtual_network_peering_name) is None:
-        cli_logger.print("The virtual_network_peering \"{}\" is not found.", virtual_network_peering_name)
+def _delete_vnet_peering_connection(
+        network_client, resource_group_name,
+        virtual_network_name, virtual_network_peering_name):
+    if get_virtual_network_peering(
+            network_client, resource_group_name,
+            virtual_network_name, virtual_network_peering_name) is None:
+        cli_logger.print(
+            "The virtual_network_peering \"{}\" is not found.",
+            virtual_network_peering_name)
     else:
         try:
             network_client.virtual_network_peerings.begin_delete(
@@ -2626,11 +2858,13 @@ def _delete_vnet_peering_connection(network_client, resource_group_name, virtual
                 virtual_network_name=virtual_network_name,
                 virtual_network_peering_name=virtual_network_peering_name
             ).result()
-            cli_logger.print("Successfully deleted virtual network peering: {} .",
-                             virtual_network_peering_name)
+            cli_logger.print(
+                "Successfully deleted virtual network peering: {} .",
+                virtual_network_peering_name)
         except Exception as e:
-            cli_logger.error("Failed to delete the virtual network peering: {}. {}",
-                             virtual_network_peering_name, str(e))
+            cli_logger.error(
+                "Failed to delete the virtual network peering: {}. {}",
+                virtual_network_peering_name, str(e))
             raise e
 
 
@@ -2668,10 +2902,12 @@ def _delete_vnet_peering_connections(config, resource_client, network_client):
 
 
 def get_subnet(network_client, resource_group_name, virtual_network_name, subnet_name):
-    cli_logger.verbose("Getting the existing subnet: {}.", subnet_name)
+    cli_logger.verbose(
+        "Getting the existing subnet: {}.", subnet_name)
     if virtual_network_name is None:
-        cli_logger.verbose_error("Failed to get the subnet: {} because virtual network not existed!",
-                                 subnet_name, virtual_network_name)
+        cli_logger.verbose_error(
+            "Failed to get the subnet: {} because virtual network not existed!",
+            subnet_name, virtual_network_name)
         return None
     try:
         subnet = network_client.subnets.get(
@@ -2679,46 +2915,56 @@ def get_subnet(network_client, resource_group_name, virtual_network_name, subnet
             virtual_network_name=virtual_network_name,
             subnet_name=subnet_name
         )
-        cli_logger.verbose("Successfully get the subnet: {}.", subnet_name)
+        cli_logger.verbose(
+            "Successfully get the subnet: {}.", subnet_name)
         return subnet
     except ResourceNotFoundError as e:
-        cli_logger.verbose_error("Failed to get the subnet: {}. {}", subnet_name, str(e))
+        cli_logger.verbose_error(
+            "Failed to get the subnet: {}. {}", subnet_name, str(e))
         return None
 
 
-def _delete_subnet(config, network_client, resource_group_name, virtual_network_name, is_private=True):
+def _delete_subnet(
+        config, network_client, resource_group_name,
+        virtual_network_name, is_private=True):
     if is_private:
         subnet_attribute = "private"
     else:
         subnet_attribute = "public"
 
     workspace_name = config["workspace_name"]
-    subnet_name = get_workspace_subnet_name(workspace_name, isPrivate=is_private)
+    subnet_name = get_workspace_subnet_name(workspace_name, is_private=is_private)
 
     if get_subnet(network_client, resource_group_name, virtual_network_name, subnet_name) is None:
-        cli_logger.print("The {} subnet \"{}\" is not found for workspace.",
-                         subnet_attribute, subnet_name)
+        cli_logger.print(
+            "The {} subnet \"{}\" is not found for workspace.",
+            subnet_attribute, subnet_name)
         return
 
     """ Delete custom subnet """
-    cli_logger.print("Deleting {} subnet: {}...", subnet_attribute, subnet_name)
+    cli_logger.print(
+        "Deleting {} subnet: {}...", subnet_attribute, subnet_name)
     try:
         network_client.subnets.begin_delete(
             resource_group_name=resource_group_name,
             virtual_network_name=virtual_network_name,
             subnet_name=subnet_name
         ).result()
-        cli_logger.print("Successfully deleted {} subnet: {}.",
-                         subnet_attribute, subnet_name)
+        cli_logger.print(
+            "Successfully deleted {} subnet: {}.",
+            subnet_attribute, subnet_name)
     except Exception as e:
-        cli_logger.error("Failed to delete the {} subnet: {}. {}",
-                         subnet_attribute, subnet_name, str(e))
+        cli_logger.error(
+            "Failed to delete the {} subnet: {}. {}",
+            subnet_attribute, subnet_name, str(e))
         raise e
 
 
-def _configure_azure_subnet_cidr(network_client, resource_group_name, virtual_network_name):
+def _configure_azure_subnet_cidr(
+        network_client, resource_group_name, virtual_network_name):
     virtual_network = network_client.virtual_networks.get(
-        resource_group_name=resource_group_name, virtual_network_name=virtual_network_name)
+        resource_group_name=resource_group_name,
+        virtual_network_name=virtual_network_name)
 
     subnet_prefix_len = 24
     subnets = virtual_network.subnets
@@ -2734,7 +2980,8 @@ def _configure_azure_subnet_cidr(network_client, resource_group_name, virtual_ne
         virtual_network, subnet_prefix_len, existed_cidr_blocks)
 
 
-def _get_free_subnet_cidr(virtual_network, subnet_prefix_len, existed_cidr_blocks):
+def _get_free_subnet_cidr(
+        virtual_network, subnet_prefix_len, existed_cidr_blocks):
     address_prefixes = virtual_network.address_space.address_prefixes
     for address_prefix in address_prefixes:
         subnet_cidr = _get_free_subnet_cidr_of_address_space(
@@ -2763,11 +3010,13 @@ def _get_free_subnet_cidr_of_address_space(
     return None
 
 
-def _create_vnet_peering_connection(network_client, subscription_id, current_resource_group_name,
-                                    current_virtual_network_name, remote_resource_group_name,
-                                    remote_virtual_network_name, virtual_network_peering_name):
+def _create_vnet_peering_connection(
+        network_client, subscription_id, current_resource_group_name,
+        current_virtual_network_name, remote_resource_group_name,
+        remote_virtual_network_name, virtual_network_peering_name):
     # Create virtual network peering
-    cli_logger.print("Creating virtual network peering: {}... ", virtual_network_peering_name)
+    cli_logger.print(
+        "Creating virtual network peering: {}... ", virtual_network_peering_name)
     try:
         network_client.virtual_network_peerings.begin_create_or_update(
             current_resource_group_name,
@@ -2780,23 +3029,28 @@ def _create_vnet_peering_connection(network_client, subscription_id, current_res
                 "use_remote_gateways": False,
                 "remote_virtual_network": {
                     "id": "/subscriptions/{}/resourceGroups/{}/providers/Microsoft.Network/virtualNetworks/{}"
-                        .format(subscription_id, remote_resource_group_name, remote_virtual_network_name)
+                    .format(subscription_id, remote_resource_group_name, remote_virtual_network_name)
                 }
             }
         ).result()
-        cli_logger.print("Successfully created virtual network peering {} for virtual network {}.",
-                         virtual_network_peering_name, current_virtual_network_name)
+        cli_logger.print(
+            "Successfully created virtual network peering {} for virtual network {}.",
+            virtual_network_peering_name, current_virtual_network_name)
     except Exception as e:
-        cli_logger.error("Failed to create virtual network peering. {}", str(e))
+        cli_logger.error(
+            "Failed to create virtual network peering. {}", str(e))
         raise e
 
 
-def _create_vnet_peering_connections(config, resource_client, network_client, resource_group_name, virtual_network_name):
+def _create_vnet_peering_connections(
+        config, resource_client, network_client,
+        resource_group_name, virtual_network_name):
     subscription_id = config["provider"].get("subscription_id")
     workspace_name = config["workspace_name"]
     virtual_network_peering_name = get_workspace_vnet_peering_name(workspace_name)
     current_resource_group_name = get_working_node_resource_group_name(resource_client)
-    current_virtual_network_name = get_working_node_virtual_network_name(resource_client, network_client)
+    current_virtual_network_name = get_working_node_virtual_network_name(
+        resource_client, network_client)
 
     current_step = 1
     total_steps = 2
@@ -2805,38 +3059,44 @@ def _create_vnet_peering_connections(config, resource_client, network_client, re
             "Creating working virtual network peering",
             _numbered=("()", current_step, total_steps)):
         current_step += 1
-        _create_vnet_peering_connection(network_client, subscription_id, current_resource_group_name,
-                                        current_virtual_network_name, resource_group_name,
-                                        virtual_network_name, virtual_network_peering_name)
+        _create_vnet_peering_connection(
+            network_client, subscription_id, current_resource_group_name,
+            current_virtual_network_name, resource_group_name,
+            virtual_network_name, virtual_network_peering_name)
 
     with cli_logger.group(
             "Creating workspace virtual network peering",
             _numbered=("()", current_step, total_steps)):
         current_step += 1
-        _create_vnet_peering_connection(network_client, subscription_id, resource_group_name,
-                                        virtual_network_name, current_resource_group_name,
-                                        current_virtual_network_name, virtual_network_peering_name)
+        _create_vnet_peering_connection(
+            network_client, subscription_id, resource_group_name,
+            virtual_network_name, current_resource_group_name,
+            current_virtual_network_name, virtual_network_peering_name)
 
 
-def _create_and_configure_subnets(config, network_client, resource_group_name, virtual_network_name, is_private=True):
+def _create_and_configure_subnets(
+        config, network_client, resource_group_name,
+        virtual_network_name, is_private=True):
     subscription_id = config["provider"].get("subscription_id")
     workspace_name = config["workspace_name"]
     subnet_attribute = "private" if is_private else "public"
-    subnet_name = get_workspace_subnet_name(workspace_name, isPrivate=is_private)
+    subnet_name = get_workspace_subnet_name(workspace_name, is_private=is_private)
 
-    cidr_block = _configure_azure_subnet_cidr(network_client, resource_group_name, virtual_network_name)
+    cidr_block = _configure_azure_subnet_cidr(
+        network_client, resource_group_name, virtual_network_name)
     nat_gateway_name = get_workspace_nat_name(workspace_name)
-    network_security_group_name = get_workspace_network_security_group_name(workspace_name)
+    network_security_group_name = get_workspace_network_security_group_name(
+        workspace_name)
     if is_private:
         subnet_parameters = {
             "address_prefix": cidr_block,
             "nat_gateway": {
                 "id": "/subscriptions/{}/resourceGroups/{}/providers/Microsoft.Network/natGateways/{}"
-                    .format(subscription_id, resource_group_name, nat_gateway_name)
+                .format(subscription_id, resource_group_name, nat_gateway_name)
             },
             "network_security_group": {
                 "id": "/subscriptions/{}/resourceGroups/{}/providers/Microsoft.Network/networkSecurityGroups/{}"
-                    .format(subscription_id, resource_group_name, network_security_group_name)
+                .format(subscription_id, resource_group_name, network_security_group_name)
             }
         }
     else:
@@ -2844,13 +3104,14 @@ def _create_and_configure_subnets(config, network_client, resource_group_name, v
             "address_prefix": cidr_block,
             "network_security_group": {
                 "id": "/subscriptions/{}/resourceGroups/{}/providers/Microsoft.Network/networkSecurityGroups/{}"
-                    .format(subscription_id, resource_group_name, network_security_group_name)
+                .format(subscription_id, resource_group_name, network_security_group_name)
             }
         }
 
     # Create subnet
-    cli_logger.print("Creating subnet for the virtual network: {} with CIDR: {}...".
-                     format(virtual_network_name, cidr_block))
+    cli_logger.print(
+        "Creating subnet for the virtual network: {} with CIDR: {}...".
+        format(virtual_network_name, cidr_block))
     try:
         network_client.subnets.begin_create_or_update(
             resource_group_name=resource_group_name,
@@ -2858,18 +3119,22 @@ def _create_and_configure_subnets(config, network_client, resource_group_name, v
             subnet_name=subnet_name,
             subnet_parameters=subnet_parameters
         ).result()
-        cli_logger.print("Successfully created {} subnet: {}.".format(subnet_attribute, subnet_name))
+        cli_logger.print(
+            "Successfully created {} subnet: {}.".format(subnet_attribute, subnet_name))
     except Exception as e:
-        cli_logger.error("Failed to create subnet. {}", str(e))
+        cli_logger.error(
+            "Failed to create subnet. {}", str(e))
         raise e
 
 
-def _create_nat(config, network_client, resource_group_name, public_ip_address_name):
+def _create_nat(
+        config, network_client, resource_group_name, public_ip_address_name):
     subscription_id = config["provider"].get("subscription_id")
     workspace_name = config["workspace_name"]
     nat_gateway_name = get_workspace_nat_name(workspace_name)
 
-    cli_logger.print("Creating NAT gateway: {}... ".format(nat_gateway_name))
+    cli_logger.print(
+        "Creating NAT gateway: {}... ".format(nat_gateway_name))
     try:
         network_client.nat_gateways.begin_create_or_update(
             resource_group_name=resource_group_name,
@@ -2882,15 +3147,17 @@ def _create_nat(config, network_client, resource_group_name, public_ip_address_n
                 "public_ip_addresses": [
                     {
                         "id": "/subscriptions/{}/resourceGroups/{}/providers/Microsoft.Network/publicIPAddresses/{}"
-                            .format(subscription_id, resource_group_name, public_ip_address_name)
+                        .format(subscription_id, resource_group_name, public_ip_address_name)
                     }
                 ],
             }
         ).result()
-        cli_logger.print("Successfully created NAT gateway: {}.".
-                         format(nat_gateway_name))
+        cli_logger.print(
+            "Successfully created NAT gateway: {}.".
+            format(nat_gateway_name))
     except Exception as e:
-        cli_logger.error("Failed to create NAT gateway. {}", str(e))
+        cli_logger.error(
+            "Failed to create NAT gateway. {}", str(e))
         raise e
 
 
@@ -2899,7 +3166,8 @@ def _create_public_ip_address(config, network_client, resource_group_name):
     public_ip_address_name = get_workspace_public_ip_address_name(workspace_name)
     location = config["provider"]["location"]
 
-    cli_logger.print("Creating public IP address: {}... ".format(public_ip_address_name))
+    cli_logger.print(
+        "Creating public IP address: {}... ".format(public_ip_address_name))
     try:
         network_client.public_ip_addresses.begin_create_or_update(
             resource_group_name,
@@ -2913,25 +3181,32 @@ def _create_public_ip_address(config, network_client, resource_group_name):
                 }
             }
         ).result()
-        cli_logger.print("Successfully created public IP address: {}.".
-                         format(public_ip_address_name))
+        cli_logger.print(
+            "Successfully created public IP address: {}.".
+            format(public_ip_address_name))
     except Exception as e:
-        cli_logger.error("Failed to create public IP address. {}", str(e))
+        cli_logger.error(
+            "Failed to create public IP address. {}", str(e))
         raise e
 
     return public_ip_address_name
 
 
-def _create_or_update_network_security_group(config, network_client, resource_group_name):
+def _create_or_update_network_security_group(
+        config, network_client, resource_group_name):
     workspace_name = config["workspace_name"]
     location = config["provider"]["location"]
     security_rules = config["provider"].get("securityRules", [])
-    network_security_group_name = get_workspace_network_security_group_name(workspace_name)
+    network_security_group_name = get_workspace_network_security_group_name(
+        workspace_name)
 
     for i in range(0, len(security_rules)):
-        security_rules[i]["name"] = get_workspace_security_rule_name(workspace_name, i)
+        security_rules[i]["name"] = get_workspace_security_rule_name(
+            workspace_name, i)
 
-    cli_logger.print("Creating or updating network security group: {}... ".format(network_security_group_name))
+    cli_logger.print(
+        "Creating or updating network security group: {}... ".format(
+            network_security_group_name))
     try:
         network_client.network_security_groups._create_or_update_initial(
             resource_group_name=resource_group_name,
@@ -2941,16 +3216,19 @@ def _create_or_update_network_security_group(config, network_client, resource_gr
                 "securityRules": security_rules
             }
         )
-        cli_logger.print("Successfully created or updated network security group: {}.".
-                         format(network_security_group_name))
+        cli_logger.print(
+            "Successfully created or updated network security group: {}.".
+            format(network_security_group_name))
     except Exception as e:
-        cli_logger.error("Failed to create or updated network security group. {}", str(e))
+        cli_logger.error(
+            "Failed to create or updated network security group. {}", str(e))
         raise e
 
     return network_security_group_name
 
 
-def _create_network_resources(config, resource_group_name, current_step, total_steps):
+def _create_network_resources(
+        config, resource_group_name, current_step, total_steps):
     network_client = construct_network_client(config)
     resource_client = construct_resource_client(config)
 
@@ -2959,14 +3237,16 @@ def _create_network_resources(config, resource_group_name, current_step, total_s
             "Creating virtual network",
             _numbered=("[]", current_step, total_steps)):
         current_step += 1
-        virtual_network_name = _create_vnet(config, resource_client, network_client)
+        virtual_network_name = _create_vnet(
+            config, resource_client, network_client)
 
     # create network security group
     with cli_logger.group(
             "Creating network security group",
             _numbered=("[]", current_step, total_steps)):
         current_step += 1
-        _create_or_update_network_security_group(config, network_client, resource_group_name)
+        _create_or_update_network_security_group(
+            config, network_client, resource_group_name)
 
     # create public subnet
     with cli_logger.group(
@@ -2974,21 +3254,25 @@ def _create_network_resources(config, resource_group_name, current_step, total_s
             _numbered=("[]", current_step, total_steps)):
         current_step += 1
         _create_and_configure_subnets(
-            config, network_client, resource_group_name, virtual_network_name, is_private=False)
+            config, network_client, resource_group_name,
+            virtual_network_name, is_private=False)
 
     # create public IP address
     with cli_logger.group(
             "Creating public IP address for NAT gateway",
             _numbered=("[]", current_step, total_steps)):
         current_step += 1
-        public_ip_address_name = _create_public_ip_address(config, network_client, resource_group_name,)
+        public_ip_address_name = _create_public_ip_address(
+            config, network_client, resource_group_name,)
 
     # create NAT gateway
     with cli_logger.group(
             "Creating NAT gateway",
             _numbered=("[]", current_step, total_steps)):
         current_step += 1
-        _create_nat(config, network_client, resource_group_name, public_ip_address_name)
+        _create_nat(
+            config, network_client, resource_group_name,
+            public_ip_address_name)
 
     # create private subnet
     with cli_logger.group(
@@ -2996,14 +3280,17 @@ def _create_network_resources(config, resource_group_name, current_step, total_s
             _numbered=("[]", current_step, total_steps)):
         current_step += 1
         _create_and_configure_subnets(
-            config, network_client, resource_group_name, virtual_network_name, is_private=True)
+            config, network_client, resource_group_name,
+            virtual_network_name, is_private=True)
 
     if is_use_peering_vpc(config):
         with cli_logger.group(
                 "Creating virtual network peerings",
                 _numbered=("[]", current_step, total_steps)):
             current_step += 1
-            _create_vnet_peering_connections(config, resource_client, network_client, resource_group_name, virtual_network_name)
+            _create_vnet_peering_connections(
+                config, resource_client, network_client,
+                resource_group_name, virtual_network_name)
 
     return current_step
 
@@ -3018,7 +3305,8 @@ def post_prepare_azure(config: Dict[str, Any]) -> Dict[str, Any]:
         config = fill_available_node_types_resources(config)
     except Exception as exc:
         cli_logger.warning(
-            "Failed to detect node resources. Make sure you have properly configured the Azure credentials: {}.",
+            "Failed to detect node resources. "
+            "Make sure you have properly configured the Azure credentials: {}.",
             str(exc))
         raise
     config = _configure_permanent_data_volumes(config)
@@ -3097,7 +3385,8 @@ def _configure_permanent_data_volumes(config):
 def bootstrap_azure_from_workspace(config):
     if not check_azure_workspace_integrity(config):
         workspace_name = config["workspace_name"]
-        cli_logger.abort("Azure workspace {} doesn't exist or is in wrong state!", workspace_name)
+        cli_logger.abort(
+            "Azure workspace {} doesn't exist or is in wrong state!", workspace_name)
 
     config = _configure_key_pair(config)
     config = _configure_workspace_resource(config)
@@ -3155,13 +3444,16 @@ def _configure_cloud_storage_from_workspace(config):
     use_managed_cloud_storage = is_use_managed_cloud_storage(config)
     use_working_vpc = is_use_working_vpc(config)
     resource_client = construct_resource_client(config)
-    resource_group_name = get_resource_group_name(config, resource_client, use_working_vpc)
+    resource_group_name = get_resource_group_name(
+        config, resource_client, use_working_vpc)
     if use_managed_cloud_storage:
         _configure_managed_cloud_storage_from_workspace(
             config, config["provider"], resource_group_name)
 
-    user_assigned_identity = get_head_user_assigned_identity(config, resource_group_name)
-    worker_user_assigned_identity = get_worker_user_assigned_identity(config, resource_group_name)
+    user_assigned_identity = get_head_user_assigned_identity(
+        config, resource_group_name)
+    worker_user_assigned_identity = get_worker_user_assigned_identity(
+        config, resource_group_name)
     for key, node_type in config["available_node_types"].items():
         node_config = node_type["node_config"]
         if key == config["head_node_type"]:
@@ -3182,8 +3474,9 @@ def _configure_managed_cloud_storage_from_workspace(
         cloud_provider, workspace_name, resource_group_name,
         object_storage_name=managed_cloud_storage_name)
     if azure_cloud_storage is None:
-        cli_logger.abort("No managed azure storage container was found. If you want to use managed azure storage, "
-                         "you should set managed_cloud_storage equal to True when you creating workspace.")
+        cli_logger.abort(
+            "No managed azure storage container was found. If you want to use managed azure storage, "
+            "you should set managed_cloud_storage equal to True when you creating workspace.")
 
     cloud_storage = get_azure_cloud_storage_config_for_update(config["provider"])
     cloud_storage["azure.storage.type"] = azure_cloud_storage["azure.storage.type"]
@@ -3195,7 +3488,8 @@ def _configure_cloud_database_from_workspace(config):
     use_managed_cloud_database = is_use_managed_cloud_database(config)
     use_working_vpc = is_use_working_vpc(config)
     resource_client = construct_resource_client(config)
-    resource_group_name = get_resource_group_name(config, resource_client, use_working_vpc)
+    resource_group_name = get_resource_group_name(
+        config, resource_client, use_working_vpc)
     if use_managed_cloud_database:
         _configure_managed_cloud_database_from_workspace(
             config, config["provider"], resource_group_name)
@@ -3212,8 +3506,9 @@ def _configure_managed_cloud_database_from_workspace(
         cloud_provider, workspace_name, resource_group_name,
         db_instance_name=managed_cloud_database_name)
     if database_instance is None:
-        cli_logger.abort("No managed database was found. If you want to use managed database, "
-                         "you should set managed_cloud_database equal to True when you creating workspace.")
+        cli_logger.abort(
+            "No managed database was found. If you want to use managed database, "
+            "you should set managed_cloud_database equal to True when you creating workspace.")
 
     engine, db_instance = database_instance
     database_config = get_azure_database_config_for_update(config["provider"])
@@ -3253,13 +3548,15 @@ def _get_azure_cloud_storage(storage_and_container):
 
 def _get_head_user_assigned_identity_name(config):
     workspace_name = config["workspace_name"]
-    user_assigned_identity_name = get_workspace_head_user_assigned_identity_name(workspace_name)
+    user_assigned_identity_name = get_workspace_head_user_assigned_identity_name(
+        workspace_name)
     return user_assigned_identity_name
 
 
 def _get_worker_user_assigned_identity_name(config):
     workspace_name = config["workspace_name"]
-    user_assigned_identity_name = get_workspace_worker_user_assigned_identity_name(workspace_name)
+    user_assigned_identity_name = get_workspace_worker_user_assigned_identity_name(
+        workspace_name)
     return user_assigned_identity_name
 
 
@@ -3282,8 +3579,8 @@ def _configure_subnet_from_workspace(config):
     workspace_name = config["workspace_name"]
     use_internal_ips = is_use_internal_ip(config)
 
-    public_subnet = get_workspace_subnet_name(workspace_name, isPrivate=False)
-    private_subnet = get_workspace_subnet_name(workspace_name, isPrivate=True)
+    public_subnet = get_workspace_subnet_name(workspace_name, is_private=False)
+    private_subnet = get_workspace_subnet_name(workspace_name, is_private=True)
 
     for key, node_type in config["available_node_types"].items():
         node_config = node_type["node_config"]
@@ -3303,7 +3600,8 @@ def _configure_subnet_from_workspace(config):
 
 def _configure_network_security_group_from_workspace(config):
     workspace_name = config["workspace_name"]
-    network_security_group_name = get_workspace_network_security_group_name(workspace_name)
+    network_security_group_name = get_workspace_network_security_group_name(
+        workspace_name)
 
     for node_type_key in config["available_node_types"].keys():
         node_config = config["available_node_types"][node_type_key][
@@ -3335,8 +3633,9 @@ def _configure_resource_group_from_workspace(config):
     return config
 
 
-def _configure_spot_for_node_type(node_type_config,
-                                  prefer_spot_node):
+def _configure_spot_for_node_type(
+        node_type_config,
+        prefer_spot_node):
     # azure_arm_parameters
     #   priority: Spot
     node_config = node_type_config["node_config"]
@@ -3452,7 +3751,8 @@ def _configure_disks_for_node(
         # node name for disk is in the format of cloudtik-{cluster_name}-{seq_id}
         seq_id = tags.get(CLOUDTIK_TAG_NODE_SEQ_ID) if tags else None
         if not seq_id:
-            raise RuntimeError("No node sequence id assigned for using permanent data volumes.")
+            raise RuntimeError(
+                "No node sequence id assigned for using permanent data volumes.")
         node_name_for_disk = "cloudtik-{}-node-{}".format(
             cluster_name, seq_id)
 
@@ -3545,7 +3845,8 @@ def _configure_managed_disk(
 def bootstrap_azure(config):
     workspace_name = config.get("workspace_name")
     if not workspace_name:
-        raise RuntimeError("Workspace name is not specified in cluster configuration.")
+        raise RuntimeError(
+            "Workspace name is not specified in cluster configuration.")
 
     config = bootstrap_azure_from_workspace(config)
     return config
@@ -3554,7 +3855,7 @@ def bootstrap_azure(config):
 def bootstrap_azure_for_api(config):
     workspace_name = config.get("workspace_name")
     if not workspace_name:
-        raise ValueError(f"Workspace name is not specified.")
+        raise ValueError("Workspace name is not specified.")
 
     return _configure_resource_group_from_workspace(config)
 
@@ -3587,7 +3888,8 @@ def _configure_key_pair(config):
     return config
 
 
-def _extract_metadata_for_node(vm, resource_group, compute_client, network_client):
+def _extract_metadata_for_node(
+        vm, resource_group, compute_client, network_client):
     # get tags
     metadata = {"name": vm.name, "tags": vm.tags, "status": "", "vm_size": ""}
 
@@ -3773,7 +4075,8 @@ def verify_azure_blob_storage(provider_config: Dict[str, Any]):
 
     exists = container_client.exists()
     if not exists:
-        raise RuntimeError(f"Container {azure_container} doesn't exist in Azure Blob Storage.")
+        raise RuntimeError(
+            f"Container {azure_container} doesn't exist in Azure Blob Storage.")
 
 
 def verify_azure_datalake_storage(provider_config: Dict[str, Any]):
@@ -3790,14 +4093,17 @@ def verify_azure_datalake_storage(provider_config: Dict[str, Any]):
             storage_account_name=azure_storage_account,
             container_name=azure_container)
     else:
-        service_client = DataLakeServiceClient(account_url="{}://{}.dfs.core.windows.net".format(
-            "https", azure_storage_account), credential=azure_account_key)
+        service_client = DataLakeServiceClient(
+            account_url="{}://{}.dfs.core.windows.net".format(
+                "https", azure_storage_account), credential=azure_account_key)
 
-        file_system_client = service_client.get_file_system_client(file_system=azure_container)
+        file_system_client = service_client.get_file_system_client(
+            file_system=azure_container)
 
         exists = file_system_client.exists()
         if not exists:
-            raise RuntimeError(f"Container {azure_container} doesn't exist in Azure Data Lake Storage Gen 2.")
+            raise RuntimeError(
+                f"Container {azure_container} doesn't exist in Azure Data Lake Storage Gen 2.")
 
 
 def verify_azure_cloud_storage(provider_config: Dict[str, Any]):
@@ -3817,13 +4123,15 @@ def verify_azure_cloud_storage(provider_config: Dict[str, Any]):
         else:
             verify_azure_datalake_storage(provider_config)
     except Exception as e:
-        raise StorageTestingError("Error happens when verifying Azure cloud storage configurations. "
-                                  "If you want to go without passing the verification, "
-                                  "set 'verify_cloud_storage' to False under provider config. "
-                                  "Error: {}.".format(str(e))) from None
+        raise StorageTestingError(
+            "Error happens when verifying Azure cloud storage configurations. "
+            "If you want to go without passing the verification, "
+            "set 'verify_cloud_storage' to False under provider config. "
+            "Error: {}.".format(str(e))) from None
 
 
-def with_azure_environment_variables(provider_config, node_type_config: Dict[str, Any], node_id: str):
+def with_azure_environment_variables(
+        provider_config, node_type_config: Dict[str, Any], node_id: str):
     config_dict = {}
     export_azure_cloud_storage_config(provider_config, config_dict)
     export_azure_cloud_database_config(provider_config, config_dict)
@@ -3850,7 +4158,8 @@ def delete_cluster_disks(provider_config, cluster_name):
     credential = get_credential(provider_config)
     compute_client = ComputeManagementClient(credential, subscription_id)
 
-    cli_logger.print("Getting disks for cluster: {}", cluster_name)
+    cli_logger.print(
+        "Getting disks for cluster: {}", cluster_name)
 
     disks = _get_cluster_disks(
         compute_client, resource_group_name, cluster_name)

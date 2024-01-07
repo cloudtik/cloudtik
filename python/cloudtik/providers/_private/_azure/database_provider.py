@@ -69,7 +69,9 @@ class AzureDatabaseProvider(DatabaseProvider):
                 "{} database instance name is between {} and {} characters, "
                 "and can only contain lowercase alphanumeric "
                 "characters, and dashes (-)".format(
-                    provider_config["type"], AZURE_DATABASE_NAME_MIN_LEN, AZURE_DATABASE_NAME_MAX_LEN))
+                    provider_config["type"],
+                    AZURE_DATABASE_NAME_MIN_LEN,
+                    AZURE_DATABASE_NAME_MAX_LEN))
 
     @staticmethod
     def bootstrap_config(config: Dict[str, Any]) -> Dict[str, Any]:

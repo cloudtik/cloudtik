@@ -74,8 +74,10 @@ class GCPNodeProvider(NodeProvider):
         # excessive DescribeInstances requests.
         self.cached_nodes: Dict[str, GCPNode] = {}
 
-    def with_environment_variables(self, node_type_config: Dict[str, Any], node_id: str):
-        return with_gcp_environment_variables(self.provider_config, node_type_config, node_id)
+    def with_environment_variables(
+            self, node_type_config: Dict[str, Any], node_id: str):
+        return with_gcp_environment_variables(
+            self.provider_config, node_type_config, node_id)
 
     def _construct_clients(self):
         _, _, compute, tpu = construct_clients_from_provider_config(
@@ -96,8 +98,9 @@ class GCPNodeProvider(NodeProvider):
                 tpu, self.provider_config["project_id"],
                 self.provider_config["availability_zone"], self.cluster_name)
 
-    def _get_resource_depending_on_node_name(self,
-                                             node_name: str) -> GCPResource:
+    def _get_resource_depending_on_node_name(
+            self,
+            node_name: str) -> GCPResource:
         """Return the resource responsible for the node, based on node_name.
 
         This expects the name to be in format '[NAME]-[UUID]-[TYPE]',
@@ -223,7 +226,8 @@ class GCPNodeProvider(NodeProvider):
                     r = future.result()
                 except Exception as e:
                     result[node_id] = e
-                    cli_logger.error("Terminate node {} failed: {}", node_id, str(e))
+                    cli_logger.error(
+                        "Terminate node {} failed: {}", node_id, str(e))
                 else:
                     result[node_id] = r
         return result
@@ -248,7 +252,8 @@ class GCPNodeProvider(NodeProvider):
         return self._get_node(node_id)
 
     def prepare_config_for_head(
-            self, cluster_config: Dict[str, Any], remote_config: Dict[str, Any]) -> Dict[str, Any]:
+            self, cluster_config: Dict[str, Any],
+            remote_config: Dict[str, Any]) -> Dict[str, Any]:
         """Returns a new cluster config with custom configs for head node."""
         # Since the head will use the instance profile and role to access cloud,
         # remove the client credentials from config
@@ -279,14 +284,16 @@ class GCPNodeProvider(NodeProvider):
     @staticmethod
     def post_prepare(
             cluster_config: Dict[str, Any]) -> Dict[str, Any]:
-        """Fills out missing fields after the user config is merged with defaults and before validate"""
+        """Fills out missing fields after the user config
+        is merged with defaults and before validate"""
         return post_prepare_gcp(cluster_config)
 
     @staticmethod
     def validate_config(
             provider_config: Dict[str, Any]) -> None:
-        config_dict = {"project_id": provider_config.get("project_id"),
-                       "availability_zone": provider_config.get("availability_zone")}
+        config_dict = {
+            "project_id": provider_config.get("project_id"),
+            "availability_zone": provider_config.get("availability_zone")}
 
         validate_config_dict(provider_config["type"], config_dict)
 
@@ -307,9 +314,12 @@ class GCPNodeProvider(NodeProvider):
     @staticmethod
     def verify_config(
             provider_config: Dict[str, Any]) -> None:
-        verify_cloud_storage = provider_config.get("verify_cloud_storage", True)
+        verify_cloud_storage = provider_config.get(
+            "verify_cloud_storage", True)
         cloud_storage = get_gcp_cloud_storage_config(provider_config)
         if verify_cloud_storage and cloud_storage is not None:
-            cli_logger.verbose("Verifying GCS storage configurations...")
+            cli_logger.verbose(
+                "Verifying GCS storage configurations...")
             verify_gcs_storage(provider_config)
-            cli_logger.verbose("Successfully verified GCS storage configurations.")
+            cli_logger.verbose(
+                "Successfully verified GCS storage configurations.")

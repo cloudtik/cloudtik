@@ -55,7 +55,8 @@ class AzureNodeProvider(NodeProvider):
     Computing nodes provider for Azure.
     All the operations use instance["name"] (vm.name) as the unique node id.
     Which is the longer form of the node-id shown in status command (shown the last component).
-    The node id (vm.name) is in the format of {CLOUDTIK_TAG_NODE_NAME}-{uuid4().hex[:VM_NAME_UUID_LEN]}{copy_index}
+    The node id (vm.name) is in the format:
+    {CLOUDTIK_TAG_NODE_NAME}-{uuid4().hex[:VM_NAME_UUID_LEN]}{copy_index}
     And CLOUDTIK_TAG_NODE_NAME keeps as the tag with the same tag name of the instance.
 
     This provider assumes Azure credentials are set by running ``az login``
@@ -71,10 +72,12 @@ class AzureNodeProvider(NodeProvider):
         NodeProvider.__init__(self, provider_config, cluster_name)
         subscription_id = provider_config["subscription_id"]
         self.credential = get_credential(provider_config)
-        self.compute_client = ComputeManagementClient(self.credential,
-                                                      subscription_id)
-        self.network_client = NetworkManagementClient(self.credential,
-                                                      subscription_id)
+        self.compute_client = ComputeManagementClient(
+            self.credential,
+            subscription_id)
+        self.network_client = NetworkManagementClient(
+            self.credential,
+            subscription_id)
         self.resource_client = ResourceManagementClient(
             self.credential, subscription_id)
 
@@ -83,8 +86,10 @@ class AzureNodeProvider(NodeProvider):
         # cache node objects
         self.cached_nodes = {}
 
-    def with_environment_variables(self, node_type_config: Dict[str, Any], node_id: str):
-        return with_azure_environment_variables(self.provider_config, node_type_config, node_id)
+    def with_environment_variables(
+            self, node_type_config: Dict[str, Any], node_id: str):
+        return with_azure_environment_variables(
+            self.provider_config, node_type_config, node_id)
 
     @synchronized
     def _get_filtered_nodes(self, tag_filters):
@@ -250,7 +255,8 @@ class AzureNodeProvider(NodeProvider):
                 function_name="delete")
             delete(resource_group_name=resource_group, vm_name=node_id).wait()
         except Exception as e:
-            logger.warning("Failed to delete VM: {}".format(e))
+            logger.warning(
+                "Failed to delete VM: {}".format(e))
 
         try:
             # delete nic
@@ -261,7 +267,8 @@ class AzureNodeProvider(NodeProvider):
                 resource_group_name=resource_group,
                 network_interface_name=metadata["nic_name"])
         except Exception as e:
-            logger.warning("Failed to delete nic: {}".format(e))
+            logger.warning(
+                "Failed to delete nic: {}".format(e))
 
         # delete ip address
         if "public_ip_name" in metadata:
@@ -269,23 +276,27 @@ class AzureNodeProvider(NodeProvider):
             delete = get_azure_sdk_function(
                 client=self.network_client.public_ip_addresses,
                 function_name="delete")
-            cli_logger.print("Deleting public ip address...")
+            cli_logger.print(
+                "Deleting public ip address...")
             while retry_time > 0:
                 try:
                     delete(
                         resource_group_name=resource_group,
                         public_ip_address_name=metadata["public_ip_name"])
-                    cli_logger.print("Successfully deleted public ip address.")
+                    cli_logger.print(
+                        "Successfully deleted public ip address.")
                     break
                 except Exception as e:
                     retry_time = retry_time - 1
                     if retry_time > 0:
                         cli_logger.warning(
                             "Failed to delete public ip address. "
-                            "Remaining {} tries to delete public ip address...".format(retry_time))
+                            "Remaining {} tries to delete public ip address...",
+                            retry_time)
                         time.sleep(1)
                     else:
-                        cli_logger.error("Failed to delete public ip address. {}", str(e))
+                        cli_logger.error(
+                            "Failed to delete public ip address. {}", str(e))
 
     def _get_node(self, node_id):
         self._get_filtered_nodes({})  # Side effect: updates cache
@@ -297,9 +308,11 @@ class AzureNodeProvider(NodeProvider):
         return self._get_node(node_id=node_id)
 
     def prepare_config_for_head(
-            self, cluster_config: Dict[str, Any], remote_config: Dict[str, Any]) -> Dict[str, Any]:
+            self, cluster_config: Dict[str, Any],
+            remote_config: Dict[str, Any]) -> Dict[str, Any]:
         """Returns a new cluster config with custom configs for head node."""
-        managed_identity_client_id = self._get_managed_identity_client_id(cluster_config)
+        managed_identity_client_id = self._get_managed_identity_client_id(
+            cluster_config)
         if managed_identity_client_id:
             remote_config["provider"]["managed_identity_client_id"] = managed_identity_client_id
 
@@ -315,7 +328,8 @@ class AzureNodeProvider(NodeProvider):
         If deep flag is true, do a deep clean up all the resources
         """
         if deep and _is_permanent_data_volumes(self.provider_config):
-            delete_cluster_disks(self.provider_config, self.cluster_name)
+            delete_cluster_disks(
+                self.provider_config, self.cluster_name)
 
     def get_default_cloud_storage(self):
         """Return the managed cloud storage if configured."""
@@ -323,20 +337,23 @@ class AzureNodeProvider(NodeProvider):
 
     def get_default_cloud_database(self):
         """Return the configured cloud storage if configured."""
-        return get_default_azure_cloud_database(self.provider_config)
+        return get_default_azure_cloud_database(
+            self.provider_config)
 
     @staticmethod
     def bootstrap_config(cluster_config):
         return bootstrap_azure(cluster_config)
 
     @staticmethod
-    def bootstrap_config_for_api(cluster_config: Dict[str, Any]) -> Dict[str, Any]:
+    def bootstrap_config_for_api(
+            cluster_config: Dict[str, Any]) -> Dict[str, Any]:
         return bootstrap_azure_for_api(cluster_config)
 
     @staticmethod
     def post_prepare(
             cluster_config: Dict[str, Any]) -> Dict[str, Any]:
-        """Fills out missing fields after the user config is merged with defaults and before validate"""
+        """Fills out missing fields after the user config is merged
+        with defaults and before validate"""
         return post_prepare_azure(cluster_config)
 
     @staticmethod
@@ -363,25 +380,31 @@ class AzureNodeProvider(NodeProvider):
     @staticmethod
     def verify_config(
             provider_config: Dict[str, Any]) -> None:
-        verify_cloud_storage = provider_config.get("verify_cloud_storage", True)
+        verify_cloud_storage = provider_config.get(
+            "verify_cloud_storage", True)
         cloud_storage = get_azure_cloud_storage_config(provider_config)
         if verify_cloud_storage and cloud_storage is not None:
-            cli_logger.verbose("Verifying Azure cloud storage configurations...")
+            cli_logger.verbose(
+                "Verifying Azure cloud storage configurations...")
             verify_azure_cloud_storage(provider_config)
-            cli_logger.verbose("Successfully verified Azure cloud storage configurations.")
+            cli_logger.verbose(
+                "Successfully verified Azure cloud storage configurations.")
 
     def _get_managed_identity_client_id(self, cluster_config):
         try:
             # The latest version doesn't require credential wrapper any longer
             # credential_adapter = AzureIdentityCredentialAdapter(self.credential)
-            msi_client = ManagedServiceIdentityClient(self.credential,
-                                                      self.provider_config["subscription_id"])
+            msi_client = ManagedServiceIdentityClient(
+                self.credential,
+                self.provider_config["subscription_id"])
 
-            user_assigned_identity_name = self.provider_config.get("userAssignedIdentity", AZURE_MSI_NAME)
+            user_assigned_identity_name = self.provider_config.get(
+                "userAssignedIdentity", AZURE_MSI_NAME)
             user_assigned_identity = msi_client.user_assigned_identities.get(
                 self.provider_config["resource_group"],
                 user_assigned_identity_name)
             return user_assigned_identity.client_id
         except Exception as e:
-            logger.warning("Failed to get azure client id: {}".format(e))
+            logger.warning(
+                "Failed to get azure client id: {}".format(e))
             return None

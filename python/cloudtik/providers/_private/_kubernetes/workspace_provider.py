@@ -1,7 +1,8 @@
 import logging
 from typing import Any, Dict, Optional
 
-from cloudtik.providers._private._kubernetes.config import bootstrap_kubernetes_workspace, create_kubernetes_workspace, \
+from cloudtik.providers._private._kubernetes.config import \
+    bootstrap_kubernetes_workspace, create_kubernetes_workspace, \
     delete_kubernetes_workspace, check_kubernetes_workspace_existence, check_kubernetes_workspace_integrity, \
     list_kubernetes_clusters, get_kubernetes_workspace_info, \
     publish_kubernetes_global_variables, subscribe_kubernetes_global_variables, \
@@ -19,15 +20,17 @@ class KubernetesWorkspaceProvider(WorkspaceProvider):
     def create_workspace(self, config):
         create_kubernetes_workspace(config)
 
-    def delete_workspace(self, config,
-                         delete_managed_storage: bool = False,
-                         delete_managed_database: bool = False):
+    def delete_workspace(
+            self, config,
+            delete_managed_storage: bool = False,
+            delete_managed_database: bool = False):
         delete_kubernetes_workspace(
             config, delete_managed_storage, delete_managed_database)
 
-    def update_workspace(self, config: Dict[str, Any],
-                         delete_managed_storage: bool = False,
-                         delete_managed_database: bool = False):
+    def update_workspace(
+            self, config: Dict[str, Any],
+            delete_managed_storage: bool = False,
+            delete_managed_database: bool = False):
         update_kubernetes_workspace(
             config, delete_managed_storage, delete_managed_database)
 
@@ -49,8 +52,9 @@ class KubernetesWorkspaceProvider(WorkspaceProvider):
             self, config: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         return list_kubernetes_databases(config)
 
-    def publish_global_variables(self, cluster_config: Dict[str, Any],
-                                 global_variables: Dict[str, Any]):
+    def publish_global_variables(
+            self, cluster_config: Dict[str, Any],
+            global_variables: Dict[str, Any]):
         """
         The global variables implements as labels. Labels are key/value pairs:
         Valid label keys have two segments:
@@ -65,14 +69,18 @@ class KubernetesWorkspaceProvider(WorkspaceProvider):
         unless empty, must begin and end with an alphanumeric character ([a-z0-9A-Z]),
         could contain dashes (-), underscores (_), dots (.), and alphanumerics between.
         """
-        publish_kubernetes_global_variables(cluster_config, global_variables)
+        publish_kubernetes_global_variables(
+            cluster_config, global_variables)
 
-    def subscribe_global_variables(self, cluster_config: Dict[str, Any]):
+    def subscribe_global_variables(
+            self, cluster_config: Dict[str, Any]):
         return subscribe_kubernetes_global_variables(
             self.provider_config, self.workspace_name, cluster_config)
 
-    def validate_config(self, provider_config: Dict[str, Any]):
-        validate_kubernetes_workspace_config(provider_config, self.workspace_name)
+    def validate_config(
+            self, provider_config: Dict[str, Any]):
+        validate_kubernetes_workspace_config(
+            provider_config, self.workspace_name)
 
     def get_workspace_info(self, config: Dict[str, Any]):
         return get_kubernetes_workspace_info(config)

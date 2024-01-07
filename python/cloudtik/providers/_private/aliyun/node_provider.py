@@ -99,7 +99,8 @@ class AliyunNodeProvider(NodeProvider):
             assert len(instances) == 1
             instance = instances[0]
             return instance.status == RUNNING
-        cli_logger.error("Invalid node id: %s", node_id)
+        cli_logger.error(
+            "Invalid node id: %s", node_id)
         return False
 
     def is_terminated(self, node_id: str) -> bool:
@@ -108,7 +109,8 @@ class AliyunNodeProvider(NodeProvider):
             assert len(instances) == 1
             instance = instances[0]
             return instance.status == STOPPED
-        cli_logger.error("Invalid node id: %s", node_id)
+        cli_logger.error(
+            "Invalid node id: %s", node_id)
         return False
 
     def node_tags(self, node_id: str) -> Dict[str, str]:
@@ -136,7 +138,8 @@ class AliyunNodeProvider(NodeProvider):
                 ):
                     if len(instance.public_ip_address.ip_address) > 0:
                         return instance.public_ip_address.ip_address[0]
-                cli_logger.error("PublicIpAddress attribute is not exist. %s" % instance)
+                cli_logger.error(
+                    "PublicIpAddress attribute is not exist. %s" % instance)
             time.sleep(STOPPING_NODE_DELAY)
 
     def internal_ip(self, node_id: str) -> str:
@@ -151,7 +154,8 @@ class AliyunNodeProvider(NodeProvider):
                 ):
                     if len(instance.vpc_attributes.private_ip_address.ip_address) > 0:
                         return instance.vpc_attributes.private_ip_address.ip_address[0]
-                cli_logger.error("InnerIpAddress attribute is not exist. %s" % instance)
+                cli_logger.error(
+                    "InnerIpAddress attribute is not exist. %s" % instance)
             time.sleep(STOPPING_NODE_DELAY)
 
     def set_node_tags(self, node_id: str, tags: Dict[str, str]) -> None:
@@ -226,7 +230,8 @@ class AliyunNodeProvider(NodeProvider):
                         if status == STOPPING:
                             # wait for node stopped
                             while (
-                                self.ecs.describe_instances(instance_ids=[node_id])[0].status == STOPPING
+                                self.ecs.describe_instances(
+                                    instance_ids=[node_id])[0].status == STOPPING
                             ):
                                 logging.info("wait for %s stop" % node_id)
                                 time.sleep(STOPPING_NODE_DELAY)
@@ -278,7 +283,8 @@ class AliyunNodeProvider(NodeProvider):
                     # at least in Starting status.
                     status_attempt = 0
                     while status_attempt < MAX_CREATE_STATUS_ATTEMPTS:
-                        instances = self.ecs.describe_instances(instance_ids=instance_id_sets)
+                        instances = self.ecs.describe_instances(
+                            instance_ids=instance_id_sets)
                         if instances:
                             # Counting on both STARTING and RUNNING nodes
                             started_nodes = 0
@@ -308,20 +314,26 @@ class AliyunNodeProvider(NodeProvider):
                     break
                 except TeaException as e:
                     if attempt == max_tries:
-                        cli_logger.abort("Failed to launch instances. Max attempts exceeded.", str(e))
+                        cli_logger.abort(
+                            "Failed to launch instances. Max attempts exceeded.", str(e))
                     if e.code == "InvalidDiskCategory.NotSupported":
-                        cli_logger.warning("Create instances attempt failed: the specified disk category"
-                                           " is not supported. Retrying...")
+                        cli_logger.warning(
+                            "Create instances attempt failed: the specified disk category"
+                            " is not supported. Retrying...")
                     elif e.code == "InvalidResourceType.NotSupported":
-                        cli_logger.warning("Create instances attempt failed: {}. Retrying...", e.message)
+                        cli_logger.warning(
+                            "Create instances attempt failed: {}. Retrying...", e.message)
                     else:
-                        cli_logger.warning("Create instances attempt failed. Retrying...", str(e))
+                        cli_logger.warning(
+                            "Create instances attempt failed. Retrying...", str(e))
                     vswitch_idx += 1
                 except Exception as e:
                     if attempt == max_tries:
-                        cli_logger.abort("Failed to launch instances. Max attempts exceeded.", str(e))
+                        cli_logger.abort(
+                            "Failed to launch instances. Max attempts exceeded.", str(e))
                     else:
-                        cli_logger.warning("Create instances attempt failed: {}. Retrying...", str(e))
+                        cli_logger.warning(
+                            "Create instances attempt failed: {}. Retrying...", str(e))
                     # Launch failure may be due to instance type availability in
                     # the given AZ
                     vswitch_idx += 1
@@ -378,7 +390,8 @@ class AliyunNodeProvider(NodeProvider):
         return self._get_node(node_id)
 
     def prepare_config_for_head(
-            self, cluster_config: Dict[str, Any], remote_config: Dict[str, Any]) -> Dict[str, Any]:
+            self, cluster_config: Dict[str, Any],
+            remote_config: Dict[str, Any]) -> Dict[str, Any]:
         """Returns a new remote cluster config with custom configs for head node.
         The cluster config may also be updated for setting up the head"""
 
@@ -398,9 +411,11 @@ class AliyunNodeProvider(NodeProvider):
         node = self._get_cached_node(node_id)
         return _get_node_info(node)
 
-    def with_environment_variables(self, node_type_config: Dict[str, Any], node_id: str):
+    def with_environment_variables(
+            self, node_type_config: Dict[str, Any], node_id: str):
         """Export necessary environment variables for running node commands"""
-        return with_aliyun_environment_variables(self.provider_config, node_type_config, node_id)
+        return with_aliyun_environment_variables(
+            self.provider_config, node_type_config, node_id)
 
     def get_default_cloud_storage(self):
         """Return the managed cloud storage if configured."""

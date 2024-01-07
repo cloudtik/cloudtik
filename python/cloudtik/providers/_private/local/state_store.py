@@ -8,7 +8,9 @@ logger = logging.getLogger(__name__)
 
 
 class LocalStateStore(FileStateStore):
-    def __init__(self, lock_path, state_path, provider_config, init_and_validate=True):
+    def __init__(
+            self, lock_path, state_path,
+            provider_config, init_and_validate=True):
         super().__init__(lock_path, state_path)
         self.provider_config = provider_config
         self._init_state(init_and_validate)

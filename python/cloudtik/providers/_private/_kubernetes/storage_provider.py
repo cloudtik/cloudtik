@@ -11,15 +11,17 @@ class KubernetesStorageProvider(StorageProvider):
     """Provider for creating or deleting cloud storage services for Kubernetes.
     """
 
-    def __init__(self, provider_config: Dict[str, Any],
-                 workspace_name: str, storage_name: str) -> None:
+    def __init__(
+            self, provider_config: Dict[str, Any],
+            workspace_name: str, storage_name: str) -> None:
         super().__init__(provider_config, workspace_name, storage_name)
         self.cloud_storage_provider = create_cloud_storage_provider(
             provider_config, workspace_name, storage_name)
 
     def check_cloud_storage_provider(self):
         if self.cloud_storage_provider is None:
-            raise RuntimeError("No storage provider available with current configuration.")
+            raise RuntimeError(
+                "No storage provider available with current configuration.")
 
     def create(self, config: Dict[str, Any]):
         """Create the object storage in the workspace based on the config."""

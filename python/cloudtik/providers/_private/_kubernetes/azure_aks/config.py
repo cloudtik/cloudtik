@@ -73,11 +73,13 @@ def _get_aks_oidc_issuer_url(cloud_provider):
     # Implement the get of issuer url through container service
     managed_cluster = _get_managed_cluster(cloud_provider)
     if not managed_cluster:
-        raise RuntimeError("AKS cluster {} doesn't exist.".format(
-            managed_cluster.name))
+        raise RuntimeError(
+            "AKS cluster {} doesn't exist.".format(
+                managed_cluster.name))
     if not managed_cluster.oidc_issuer_profile.enabled:
-        raise RuntimeError("AKS cluster {} is not enabled with OIDC provider.".format(
-            managed_cluster.name))
+        raise RuntimeError(
+            "AKS cluster {} is not enabled with OIDC provider.".format(
+                managed_cluster.name))
 
     return managed_cluster.oidc_issuer_profile.issuer_url
 
@@ -86,21 +88,26 @@ def _get_managed_cluster(cloud_provider, container_service_client=None):
     aks_resource_group = cloud_provider.get("aks_resource_group")
     aks_cluster_name = cloud_provider.get("aks_cluster_name")
     if not aks_resource_group:
-        raise RuntimeError("AKS cluster resource group must specified with aks_resource_group key in cloud provider.")
+        raise RuntimeError(
+            "AKS cluster resource group must specified with aks_resource_group key in cloud provider.")
     if not aks_cluster_name:
-        raise RuntimeError("AKS cluster name must specified with aks_cluster_name key in cloud provider.")
+        raise RuntimeError(
+            "AKS cluster name must specified with aks_cluster_name key in cloud provider.")
 
     if container_service_client is None:
-        container_service_client = _construct_container_service_client(cloud_provider)
-    cli_logger.verbose("Getting AKS cluster information: {}.{}...".format(
-        aks_resource_group, aks_cluster_name))
+        container_service_client = _construct_container_service_client(
+            cloud_provider)
+    cli_logger.verbose(
+        "Getting AKS cluster information: {}.{}...".format(
+            aks_resource_group, aks_cluster_name))
     try:
         managed_cluster = container_service_client.managed_clusters.get(
             aks_resource_group,
             aks_cluster_name
         )
-        cli_logger.verbose("Successfully get AKS cluster information: {}.{}.".format(
-            aks_resource_group, aks_cluster_name))
+        cli_logger.verbose(
+            "Successfully get AKS cluster information: {}.{}.".format(
+                aks_resource_group, aks_cluster_name))
         return managed_cluster
     except ResourceNotFoundError as e:
         cli_logger.verbose_error(
@@ -109,7 +116,8 @@ def _get_managed_cluster(cloud_provider, container_service_client=None):
         return None
 
 
-def create_configurations_for_azure(config: Dict[str, Any], namespace, cloud_provider):
+def create_configurations_for_azure(
+        config: Dict[str, Any], namespace, cloud_provider):
     workspace_name = config["workspace_name"]
     managed_cloud_storage = _is_managed_cloud_storage(cloud_provider)
     managed_cloud_database = _is_managed_cloud_database(cloud_provider)
@@ -126,14 +134,16 @@ def create_configurations_for_azure(config: Dict[str, Any], namespace, cloud_pro
             "Creating resource group",
             _numbered=("[]", current_step, total_steps)):
         current_step += 1
-        resource_group_name = _create_aks_resource_group(cloud_provider, workspace_name)
+        resource_group_name = _create_aks_resource_group(
+            cloud_provider, workspace_name)
 
     # Configure IAM based access for Kubernetes service accounts
     with cli_logger.group(
             "Creating IAM based access for Kubernetes",
             _numbered=("[]", current_step, total_steps)):
         current_step += 1
-        _create_iam_based_access_for_kubernetes(config, namespace, cloud_provider)
+        _create_iam_based_access_for_kubernetes(
+            config, namespace, cloud_provider)
 
     # Optionally, create managed cloud storage (Azure DataLake) if user choose to
     if managed_cloud_storage:
@@ -159,8 +169,9 @@ def _get_aks_virtual_network(cloud_provider):
     managed_cluster = _get_managed_cluster(
         cloud_provider, container_service_client)
     if not managed_cluster:
-        raise RuntimeError("AKS cluster {} doesn't exist.".format(
-            managed_cluster.name))
+        raise RuntimeError(
+            "AKS cluster {} doesn't exist.".format(
+                managed_cluster.name))
 
     # try to get the vnet resource group and virtual network from vnet_subnet_id of node pool
     resource_group_and_vnet = _get_aks_virtual_network_from_node_pool(
@@ -177,16 +188,19 @@ def _get_aks_virtual_network(cloud_provider):
     # finally use configuration
     vnet_resource_group_name = cloud_provider.get("aks_vnet_resource_group")
     if not vnet_resource_group_name:
-        raise RuntimeError("AKS vnet resource group name must specified "
-                           "with aks_vnet_resource_group key in cloud provider.")
+        raise RuntimeError(
+            "AKS vnet resource group name must specified "
+            "with aks_vnet_resource_group key in cloud provider.")
     virtual_network_name = cloud_provider.get("aks_vnet")
     if not virtual_network_name:
-        raise RuntimeError("AKS vnet name must specified "
-                           "with aks_vnet key in cloud provider.")
+        raise RuntimeError(
+            "AKS vnet name must specified "
+            "with aks_vnet key in cloud provider.")
     return vnet_resource_group_name, virtual_network_name
 
 
-def _get_aks_virtual_network_from_node_pool(cloud_provider, container_service_client):
+def _get_aks_virtual_network_from_node_pool(
+        cloud_provider, container_service_client):
     vnet_subnet_id = _get_aks_vnet_subnet_from_node_pool(
         cloud_provider, container_service_client)
     if not vnet_subnet_id:
@@ -201,7 +215,8 @@ def _parse_id_for_vnet(vnet_subnet_id):
     # providers/Microsoft.Network/virtualNetworks/{virtualNetworkName}/subnets/{subnetName}
     parsed_vnet_subnet_id = vnet_subnet_id.split("/")
     if len(parsed_vnet_subnet_id) != 11:
-        raise RuntimeError("Invalid vnet_subnet_id: {}".format(vnet_subnet_id))
+        raise RuntimeError(
+            "Invalid vnet_subnet_id: {}".format(vnet_subnet_id))
     return parsed_vnet_subnet_id[4], parsed_vnet_subnet_id[8]
 
 
@@ -358,7 +373,8 @@ def update_configurations_for_azure(
         total_steps += 1
 
     if total_steps == 0:
-        cli_logger.print("No configurations needed for update. Skip update.")
+        cli_logger.print(
+            "No configurations needed for update. Skip update.")
         return
 
     if managed_cloud_storage:
@@ -395,13 +411,18 @@ def update_configurations_for_azure(
 
 
 def _create_aks_resource_group(cloud_provider, workspace_name):
-    resource_group_name = get_aks_workspace_resource_group_name(workspace_name)
+    resource_group_name = get_aks_workspace_resource_group_name(
+        workspace_name)
     resource_group = _get_resource_group_by_name(
-        resource_group_name, resource_client=None, provider_config=cloud_provider)
+        resource_group_name, resource_client=None,
+        provider_config=cloud_provider)
     if resource_group is None:
-        resource_group = _create_resource_group(cloud_provider, resource_group_name)
+        resource_group = _create_resource_group(
+            cloud_provider, resource_group_name)
     else:
-        cli_logger.print("Resource group {} for workspace already exists. Skip creation.", resource_group.name)
+        cli_logger.print(
+            "Resource group {} for workspace already exists. Skip creation.",
+            resource_group.name)
     return resource_group.name
 
 
@@ -410,7 +431,8 @@ def _delete_aks_resource_group(cloud_provider, workspace_name):
     _delete_resource_group(cloud_provider, resource_group_name)
 
 
-def _create_iam_based_access_for_kubernetes(config: Dict[str, Any], namespace, cloud_provider):
+def _create_iam_based_access_for_kubernetes(
+        config: Dict[str, Any], namespace, cloud_provider):
     workspace_name = config["workspace_name"]
     current_step = 1
     total_steps = AZURE_KUBERNETES_IAM_ROLE_CREATION_NUM_STEPS
@@ -463,7 +485,8 @@ def _create_iam_user_assigned_identities(cloud_provider, workspace_name):
             cloud_provider, workspace_name, AccountType.WORKER)
 
 
-def _create_iam_user_assigned_identity(cloud_provider, workspace_name, account_type: AccountType):
+def _create_iam_user_assigned_identity(
+        cloud_provider, workspace_name, account_type: AccountType):
     resource_group_name = get_aks_workspace_resource_group_name(workspace_name)
     iam_user_assigned_identity_name = _get_iam_user_assigned_identity_name(
         workspace_name, account_type)
@@ -492,31 +515,39 @@ def _delete_iam_user_assigned_identities(cloud_provider, workspace_name):
             cloud_provider, workspace_name, AccountType.WORKER)
 
 
-def _delete_iam_user_assigned_identity(cloud_provider, workspace_name, account_type: AccountType):
+def _delete_iam_user_assigned_identity(
+        cloud_provider, workspace_name, account_type: AccountType):
     resource_group_name = get_aks_workspace_resource_group_name(workspace_name)
-    iam_user_assigned_identity_name = _get_iam_user_assigned_identity_name(workspace_name, account_type)
+    iam_user_assigned_identity_name = _get_iam_user_assigned_identity_name(
+        workspace_name, account_type)
     _delete_user_assigned_identity(
         cloud_provider, resource_group_name, iam_user_assigned_identity_name)
 
 
-def _get_iam_user_assigned_identity(cloud_provider, workspace_name, account_type: AccountType):
+def _get_iam_user_assigned_identity(
+        cloud_provider, workspace_name, account_type: AccountType):
     resource_group_name = get_aks_workspace_resource_group_name(workspace_name)
-    iam_user_assigned_identity_name = _get_iam_user_assigned_identity_name(workspace_name, account_type)
+    iam_user_assigned_identity_name = _get_iam_user_assigned_identity_name(
+        workspace_name, account_type)
 
-    cli_logger.verbose("Getting user assigned identity: {}...",
-                       iam_user_assigned_identity_name)
+    cli_logger.verbose(
+        "Getting user assigned identity: {}...",
+        iam_user_assigned_identity_name)
     user_assigned_identity = _get_user_assigned_identity(
         cloud_provider, resource_group_name, iam_user_assigned_identity_name)
     if user_assigned_identity is None:
-        cli_logger.verbose_error("Failed to get user assigned identity: {}.",
-                                 iam_user_assigned_identity_name)
+        cli_logger.verbose_error(
+            "Failed to get user assigned identity: {}.",
+            iam_user_assigned_identity_name)
     else:
-        cli_logger.verbose("Successfully got user assigned identity: {}.",
-                           iam_user_assigned_identity_name)
+        cli_logger.verbose(
+            "Successfully got user assigned identity: {}.",
+            iam_user_assigned_identity_name)
     return user_assigned_identity
 
 
-def _create_iam_user_assigned_identities_role_binding(cloud_provider, workspace_name):
+def _create_iam_user_assigned_identities_role_binding(
+        cloud_provider, workspace_name):
     current_step = 1
     total_steps = AZURE_KUBERNETES_HEAD_WORKER_FACED_NUM_STEPS
 
@@ -546,15 +577,18 @@ def _create_iam_user_assigned_identity_role_binding(
     user_assigned_identity = _get_user_assigned_identity(
         cloud_provider, resource_group_name, iam_user_assigned_identity_name)
     if user_assigned_identity is None:
-        raise RuntimeError("No user assigned identity {} found.".format(
-            iam_user_assigned_identity_name))
+        raise RuntimeError(
+            "No user assigned identity {} found.".format(
+                iam_user_assigned_identity_name))
 
     # Both head and worker use the same set of roles
     _create_role_assignment_for_storage_blob_data_owner(
-        cloud_provider, resource_group_name, user_assigned_identity, role_assignment_name)
+        cloud_provider, resource_group_name,
+        user_assigned_identity, role_assignment_name)
 
 
-def _delete_iam_user_assigned_identities_role_binding(cloud_provider, workspace_name):
+def _delete_iam_user_assigned_identities_role_binding(
+        cloud_provider, workspace_name):
     current_step = 1
     total_steps = AZURE_KUBERNETES_HEAD_WORKER_FACED_NUM_STEPS
 
@@ -584,8 +618,9 @@ def _delete_iam_user_assigned_identity_role_binding(
     user_assigned_identity = _get_user_assigned_identity(
         cloud_provider, resource_group_name, iam_user_assigned_identity_name)
     if user_assigned_identity is None:
-        cli_logger.print(log_prefix + "No user assigned identity {} found. Skip deletion.".format(
-            iam_user_assigned_identity_name))
+        cli_logger.print(
+            log_prefix + "No user assigned identity {} found. Skip deletion.",
+            iam_user_assigned_identity_name)
         return
 
     # Both head and worker use the same set of roles
@@ -602,13 +637,15 @@ def _has_iam_user_assigned_identity_role_binding(
         cloud_provider, workspace_name, account_type
     )
 
-    cli_logger.verbose("Getting user assigned identity role binding: {}...",
-                       iam_user_assigned_identity_name)
+    cli_logger.verbose(
+        "Getting user assigned identity role binding: {}...",
+        iam_user_assigned_identity_name)
     result = _get_role_assignment_for_storage_blob_data_owner(
         cloud_provider, resource_group_name, role_assignment_name
     )
-    cli_logger.verbose("user assigned identity role binding: {}: {}",
-                       iam_user_assigned_identity_name, result)
+    cli_logger.verbose(
+        "user assigned identity role binding: {}: {}",
+        iam_user_assigned_identity_name, result)
     return result
 
 
@@ -650,11 +687,13 @@ def _create_iam_user_assigned_identity_binding_with_kubernetes(
     user_assigned_identity = _get_user_assigned_identity(
         cloud_provider, resource_group_name, iam_user_assigned_identity_name)
     if user_assigned_identity is None:
-        raise RuntimeError("No user assigned identity {} found.".format(
-            iam_user_assigned_identity_name))
+        raise RuntimeError(
+            "No user assigned identity {} found.".format(
+                iam_user_assigned_identity_name))
 
-    cli_logger.print("Creating user assigned identity role binding with Kubernetes: {} -> {}...".format(
-        iam_user_assigned_identity_name, service_account_name))
+    cli_logger.print(
+        "Creating user assigned identity role binding with Kubernetes: {} -> {}...",
+        iam_user_assigned_identity_name, service_account_name)
     federated_identity_credential_name = _get_federated_identity_credential_name(
         workspace_name, account_type)
     oidc_issuer = _get_aks_oidc_issuer_url(cloud_provider)
@@ -665,8 +704,9 @@ def _create_iam_user_assigned_identity_binding_with_kubernetes(
         issuer=oidc_issuer,
         subject=subject)
 
-    cli_logger.print("Successfully created user assigned identity role binding with Kubernetes: {} -> {}.".format(
-        iam_user_assigned_identity_name, service_account_name))
+    cli_logger.print(
+        "Successfully created user assigned identity role binding with Kubernetes: {} -> {}.",
+        iam_user_assigned_identity_name, service_account_name)
 
 
 def _delete_iam_user_assigned_identities_binding_with_kubernetes(
@@ -696,19 +736,21 @@ def _delete_iam_user_assigned_identity_binding_with_kubernetes(
         namespace, account_type: AccountType):
     provider_config = config["provider"]
     resource_group_name = get_aks_workspace_resource_group_name(workspace_name)
-    iam_user_assigned_identity_name = _get_iam_user_assigned_identity_name(workspace_name, account_type)
+    iam_user_assigned_identity_name = _get_iam_user_assigned_identity_name(
+        workspace_name, account_type)
     service_account_name = _get_service_account_name(provider_config, account_type)
 
     user_assigned_identity = _get_user_assigned_identity(
         cloud_provider, resource_group_name, iam_user_assigned_identity_name)
     if user_assigned_identity is None:
-        cli_logger.print(log_prefix + "No user assigned identity {} found. Skip deletion.".format(
-            iam_user_assigned_identity_name))
+        cli_logger.print(
+            log_prefix + "No user assigned identity {} found. Skip deletion.",
+            iam_user_assigned_identity_name)
         return
 
     cli_logger.print(
-        log_prefix + "Deleting user assigned identity role binding for Kubernetes: {} -> {}".format(
-            iam_user_assigned_identity_name, service_account_name))
+        log_prefix + "Deleting user assigned identity role binding for Kubernetes: {} -> {}",
+        iam_user_assigned_identity_name, service_account_name)
     federated_identity_credential_name = _get_federated_identity_credential_name(
         workspace_name, account_type)
 
@@ -717,8 +759,8 @@ def _delete_iam_user_assigned_identity_binding_with_kubernetes(
         resource_group_name, iam_user_assigned_identity_name,
         federated_identity_credential_name)
     cli_logger.print(
-        log_prefix + "Successfully deleted user assigned identity role binding for Kubernetes: {} -> {}.".format(
-            iam_user_assigned_identity_name, service_account_name))
+        log_prefix + "Successfully deleted user assigned identity role binding for Kubernetes: {} -> {}.",
+        iam_user_assigned_identity_name, service_account_name)
 
 
 def _has_iam_user_assigned_identity_binding_with_kubernetes(
@@ -730,8 +772,9 @@ def _has_iam_user_assigned_identity_binding_with_kubernetes(
         workspace_name, account_type)
     service_account_name = _get_service_account_name(provider_config, account_type)
 
-    cli_logger.verbose("Getting user assigned identity binding with Kubernetes: {} -> {}...",
-                       iam_user_assigned_identity_name, service_account_name)
+    cli_logger.verbose(
+        "Getting user assigned identity binding with Kubernetes: {} -> {}...",
+        iam_user_assigned_identity_name, service_account_name)
     federated_identity_credential_name = _get_federated_identity_credential_name(
         workspace_name, account_type)
     federated_identity_credential = _get_federated_identity_credential(
@@ -739,8 +782,9 @@ def _has_iam_user_assigned_identity_binding_with_kubernetes(
         resource_group_name, iam_user_assigned_identity_name,
         federated_identity_credential_name)
     result = True if federated_identity_credential else False
-    cli_logger.verbose("Getting user assigned identity binding with Kubernetes: {} -> {}: {}",
-                       iam_user_assigned_identity_name, service_account_name, result)
+    cli_logger.verbose(
+        "Getting user assigned identity binding with Kubernetes: {} -> {}: {}",
+        iam_user_assigned_identity_name, service_account_name, result)
     return result
 
 
@@ -769,8 +813,8 @@ def _create_federated_identity_credential(
         )
         time.sleep(20)
         cli_logger.verbose(
-            "Successfully created federated identity credential: {}->{}.".format(
-                user_assigned_identity_name, subject))
+            "Successfully created federated identity credential: {}->{}.",
+            user_assigned_identity_name, subject)
     except Exception as e:
         cli_logger.error(
             "Failed to create federated identity credential. {}", str(e))
@@ -790,20 +834,23 @@ def _delete_federated_identity_credential(
     )
 
     if federated_identity_credential is None:
-        cli_logger.print("The federated identity credential doesn't exist: {} -> {}.".format(
-            user_assigned_identity_name, federated_identity_credential_name))
+        cli_logger.print(
+            "The federated identity credential doesn't exist: {} -> {}.",
+            user_assigned_identity_name, federated_identity_credential_name)
         return
 
-    cli_logger.verbose("Deleting the federated identity credential: {}->{}...".format(
-        user_assigned_identity_name, federated_identity_credential_name))
+    cli_logger.verbose(
+        "Deleting the federated identity credential: {}->{}...",
+        user_assigned_identity_name, federated_identity_credential_name)
     try:
         msi_client.federated_identity_credentials.delete(
             resource_group_name=resource_group_name,
             resource_name=user_assigned_identity_name,
             federated_identity_credential_resource_name=federated_identity_credential_name
         )
-        cli_logger.verbose("Successfully deleted the federated identity credential: {}->{}.".format(
-            user_assigned_identity_name, federated_identity_credential_name))
+        cli_logger.verbose(
+            "Successfully deleted the federated identity credential: {}->{}.",
+            user_assigned_identity_name, federated_identity_credential_name)
     except Exception as e:
         cli_logger.error(
             "Failed to delete the federated identity credential: {}->{}. {}",
@@ -818,16 +865,18 @@ def _get_federated_identity_credential(
     if not msi_client:
         msi_client = _construct_manage_server_identity_client(cloud_provider)
 
-    cli_logger.verbose("Getting the federated identity credential: {}->{}.".format(
-        user_assigned_identity_name, federated_identity_credential_name))
+    cli_logger.verbose(
+        "Getting the federated identity credential: {}->{}.",
+        user_assigned_identity_name, federated_identity_credential_name)
     try:
         federated_identity_credential = msi_client.federated_identity_credentials.get(
             resource_group_name=resource_group_name,
             resource_name=user_assigned_identity_name,
             federated_identity_credential_resource_name=federated_identity_credential_name
         )
-        cli_logger.verbose("Successfully get the federated identity credential: {}->.".format(
-            user_assigned_identity_name, federated_identity_credential_name))
+        cli_logger.verbose(
+            "Successfully get the federated identity credential: {}->.",
+            user_assigned_identity_name, federated_identity_credential_name)
         return federated_identity_credential
     except ResourceNotFoundError as e:
         cli_logger.verbose_error(
@@ -862,11 +911,13 @@ def _associate_kubernetes_service_accounts_with_iam(
 
 
 def _patch_service_account_with_iam(
-        config, cloud_provider, workspace_name, namespace, account_type: AccountType):
+        config, cloud_provider, workspace_name, namespace,
+        account_type: AccountType):
     provider_config = config["provider"]
 
     service_account_name = _get_service_account_name(provider_config, account_type)
-    iam_user_assigned_identity_name = _get_iam_user_assigned_identity_name(workspace_name, account_type)
+    iam_user_assigned_identity_name = _get_iam_user_assigned_identity_name(
+        workspace_name, account_type)
     _patch_service_account_with_iam_user_assigned_identity(
         cloud_provider,
         workspace_name,
@@ -881,7 +932,8 @@ def _patch_service_account_with_iam_user_assigned_identity(
         namespace, name, iam_user_assigned_identity_name):
     service_account = _get_service_account(namespace=namespace, name=name)
     if service_account is None:
-        cli_logger.print(log_prefix + "No service account {} found. Skip patching.".format(name))
+        cli_logger.print(
+            log_prefix + "No service account {} found. Skip patching.".format(name))
         return
 
     resource_group_name = get_aks_workspace_resource_group_name(workspace_name)
@@ -899,15 +951,18 @@ def _patch_service_account_with_iam_user_assigned_identity(
         }
     }
 
-    cli_logger.print(log_prefix + "Patching service account {} with IAM...".format(name))
+    cli_logger.print(
+        log_prefix + "Patching service account {} with IAM...".format(name))
     core_api().patch_namespaced_service_account(name, namespace, patch)
-    cli_logger.print(log_prefix + "Successfully patched service account {} with IAM.".format(name))
+    cli_logger.print(
+        log_prefix + "Successfully patched service account {} with IAM.".format(name))
 
 
 def _patch_service_account_without_iam_user_assigned_identity(namespace, name):
     service_account = _get_service_account(namespace=namespace, name=name)
     if service_account is None:
-        cli_logger.print(log_prefix + "No service account {} found. Skip patching.".format(name))
+        cli_logger.print(
+            log_prefix + "No service account {} found. Skip patching.".format(name))
         return
 
     patch = {
@@ -921,12 +976,15 @@ def _patch_service_account_without_iam_user_assigned_identity(namespace, name):
         }
     }
 
-    cli_logger.print(log_prefix + "Patching service account {} removing IAM...".format(name))
+    cli_logger.print(
+        log_prefix + "Patching service account {} removing IAM...".format(name))
     core_api().patch_namespaced_service_account(name, namespace, patch)
-    cli_logger.print(log_prefix + "Successfully patched service account {} removing IAM.".format(name))
+    cli_logger.print(
+        log_prefix + "Successfully patched service account {} removing IAM.".format(name))
 
 
-def _delete_iam_based_access_for_kubernetes(config: Dict[str, Any], namespace, cloud_provider):
+def _delete_iam_based_access_for_kubernetes(
+        config: Dict[str, Any], namespace, cloud_provider):
     workspace_name = config["workspace_name"]
     current_step = 1
     total_steps = AZURE_KUBERNETES_IAM_ROLE_CREATION_NUM_STEPS
@@ -960,7 +1018,8 @@ def _delete_iam_based_access_for_kubernetes(config: Dict[str, Any], namespace, c
             cloud_provider, workspace_name)
 
 
-def _dissociate_kubernetes_service_accounts_with_iam(config, cloud_provider, workspace_name, namespace):
+def _dissociate_kubernetes_service_accounts_with_iam(
+        config, cloud_provider, workspace_name, namespace):
     # Patch head service account and worker service account
     provider_config = config["provider"]
 
@@ -971,7 +1030,8 @@ def _dissociate_kubernetes_service_accounts_with_iam(config, cloud_provider, wor
             "Patching head service account without IAM role",
             _numbered=("[]", current_step, total_steps)):
         current_step += 1
-        head_service_account_name = _get_head_service_account_name(provider_config)
+        head_service_account_name = _get_head_service_account_name(
+            provider_config)
         _patch_service_account_without_iam_user_assigned_identity(
             namespace,
             head_service_account_name
@@ -981,7 +1041,8 @@ def _dissociate_kubernetes_service_accounts_with_iam(config, cloud_provider, wor
             "Patching head service account without IAM role",
             _numbered=("[]", current_step, total_steps)):
         current_step += 1
-        worker_service_account_name = _get_worker_service_account_name(provider_config)
+        worker_service_account_name = _get_worker_service_account_name(
+            provider_config)
         _patch_service_account_without_iam_user_assigned_identity(
             namespace,
             worker_service_account_name
@@ -996,8 +1057,9 @@ def _is_service_account_associated(
     iam_user_assigned_identity_name = _get_iam_user_assigned_identity_name(
         workspace_name, account_type)
 
-    cli_logger.verbose("Getting Kubernetes service account associated: {} -> {}...",
-                       service_account_name, iam_user_assigned_identity_name)
+    cli_logger.verbose(
+        "Getting Kubernetes service account associated: {} -> {}...",
+        service_account_name, iam_user_assigned_identity_name)
     result = _is_service_account_associated_with_iam(
         cloud_provider,
         workspace_name,
@@ -1005,8 +1067,9 @@ def _is_service_account_associated(
         service_account_name,
         iam_user_assigned_identity_name
     )
-    cli_logger.verbose("Kubernetes service account associated: {} -> {}: {}.",
-                       service_account_name, iam_user_assigned_identity_name, result)
+    cli_logger.verbose(
+        "Kubernetes service account associated: {} -> {}: {}.",
+        service_account_name, iam_user_assigned_identity_name, result)
 
     return result
 
@@ -1061,7 +1124,8 @@ def check_existence_for_azure(config: Dict[str, Any], namespace, cloud_provider)
     cloud_storage_existence = False
     cloud_database_existence = False
     resource_group = _get_resource_group_by_name(
-        resource_group_name, resource_client=None, provider_config=cloud_provider)
+        resource_group_name, resource_client=None,
+        provider_config=cloud_provider)
     if resource_group is not None:
         existing_resources += 1
         resource_group_existence = True
@@ -1130,12 +1194,15 @@ def check_existence_for_azure(config: Dict[str, Any], namespace, cloud_provider)
         return Existence.IN_COMPLETED
 
 
-def get_info_for_azure(config: Dict[str, Any], namespace, cloud_provider, info):
+def get_info_for_azure(
+        config: Dict[str, Any], namespace, cloud_provider, info):
     workspace_name = config["workspace_name"]
     resource_group_name = get_aks_workspace_resource_group_name(workspace_name)
 
-    head_iam_user_assigned_identity_name = _get_iam_user_assigned_identity_name(workspace_name, AccountType.HEAD)
-    worker_iam_user_assigned_identity_name = _get_iam_user_assigned_identity_name(workspace_name, AccountType.WORKER)
+    head_iam_user_assigned_identity_name = _get_iam_user_assigned_identity_name(
+        workspace_name, AccountType.HEAD)
+    worker_iam_user_assigned_identity_name = _get_iam_user_assigned_identity_name(
+        workspace_name, AccountType.WORKER)
 
     info[AZURE_KUBERNETES_HEAD_IAM_USER_ASSIGNED_IDENTITY_INFO] = head_iam_user_assigned_identity_name
     info[AZURE_KUBERNETES_WORKER_IAM_USER_ASSIGNED_IDENTITY_INFO] = worker_iam_user_assigned_identity_name
@@ -1201,9 +1268,10 @@ def list_databases_for_azure(
 
 
 class AzureKubernetesDatabaseProvider(AzureDatabaseProvider):
-    def __init__(self, provider_config: Dict[str, Any],
-                 workspace_name: str, database_name: str,
-                 resource_group_name: str, virtual_network_name) -> None:
+    def __init__(
+            self, provider_config: Dict[str, Any],
+            workspace_name: str, database_name: str,
+            resource_group_name: str, virtual_network_name) -> None:
         super().__init__(provider_config, workspace_name, database_name)
         self.resource_group_name = resource_group_name
         self.virtual_network_name = virtual_network_name
@@ -1229,7 +1297,8 @@ def create_database_provider_for_azure(
 ######################
 
 
-def configure_kubernetes_for_azure(config: Dict[str, Any], namespace, cloud_provider):
+def configure_kubernetes_for_azure(
+        config: Dict[str, Any], namespace, cloud_provider):
     # Optionally, if user choose to use managed cloud storage (Azure DataLake)
     # Configure the Azure DataLake container under cloud storage
     _configure_cloud_storage_for_azure(config, cloud_provider)
@@ -1237,18 +1306,21 @@ def configure_kubernetes_for_azure(config: Dict[str, Any], namespace, cloud_prov
     _configure_pod_label_for_use_workload_identity(config)
 
 
-def _configure_cloud_storage_for_azure(config: Dict[str, Any], cloud_provider):
+def _configure_cloud_storage_for_azure(
+        config: Dict[str, Any], cloud_provider):
     use_managed_cloud_storage = _is_use_managed_cloud_storage(cloud_provider)
     if use_managed_cloud_storage:
         workspace_name = config["workspace_name"]
-        resource_group_name = get_aks_workspace_resource_group_name(workspace_name)
+        resource_group_name = get_aks_workspace_resource_group_name(
+            workspace_name)
         _configure_managed_cloud_storage_from_workspace(
             config, cloud_provider, resource_group_name)
 
     return config
 
 
-def _configure_cloud_database_for_azure(config: Dict[str, Any], cloud_provider):
+def _configure_cloud_database_for_azure(
+        config: Dict[str, Any], cloud_provider):
     use_managed_cloud_database = _is_use_managed_cloud_database(cloud_provider)
     if use_managed_cloud_database:
         vnet_resource_group_name, _ = _get_aks_virtual_network(
