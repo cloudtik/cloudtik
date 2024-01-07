@@ -23,7 +23,8 @@ class HDFSRuntime(RuntimeBase):
         For example: {"ENV_NAME": value}
         """
         return _with_runtime_environment_variables(
-            self.runtime_config, config=config, provider=provider, node_id=node_id)
+            self.runtime_config, config=config,
+            provider=provider, node_id=node_id)
 
     def cluster_booting_completed(
             self, cluster_config: Dict[str, Any], head_node_id: str) -> None:
@@ -53,6 +54,7 @@ class HDFSRuntime(RuntimeBase):
         #1 Keyword to filter,
         #2 filter by command (True)/filter by args (False)
         #3 The third element is the process name.
-        #4 The forth element, if node, the process should on all nodes, if head, the process should on head node.
+        #4 The forth element, if node, the process should on all nodes,
+        if head, the process should on head node.
         """
         return _get_runtime_processes()

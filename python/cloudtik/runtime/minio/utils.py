@@ -69,7 +69,8 @@ def _get_server_cluster_size(minio_config: Dict[str, Any]):
     server_cluster_size = minio_config.get(
         MINIO_SERVER_CLUSTER_SIZE_CONFIG_KEY)
     if not server_cluster_size:
-        raise RuntimeError("MinIO server cluster size is invalid.")
+        raise RuntimeError(
+            "MinIO server cluster size is invalid.")
     return server_cluster_size
 
 
@@ -106,10 +107,12 @@ def _validate_config(config: Dict[str, Any], final=False):
     # Check Consul configured
     runtime_config = get_runtime_config(config)
     if not get_service_discovery_runtime(runtime_config):
-        raise RuntimeError("MinIO needs Consul service discovery to be configured.")
+        raise RuntimeError(
+            "MinIO needs Consul service discovery to be configured.")
 
     if not is_discoverable_cluster_node_name(runtime_config):
-        raise RuntimeError("MinIO needs sequential cluster node name from service discovery DNS.")
+        raise RuntimeError(
+            "MinIO needs sequential cluster node name from service discovery DNS.")
 
 
 def _with_runtime_environment_variables(

@@ -121,11 +121,13 @@ def _validate_config(config: Dict[str, Any], final=False):
         # if there is service discovery mechanism, assume we can get from service discovery
         if (final or not is_etcd_service_discovery(apisix_config) or
                 not get_service_discovery_runtime(runtime_config)):
-            raise ValueError("ETCD must be configured for APISIX.")
+            raise ValueError(
+                "ETCD must be configured for APISIX.")
 
     cluster_runtime_config = config.get(RUNTIME_CONFIG_KEY)
     if not get_service_discovery_runtime(cluster_runtime_config):
-        raise ValueError("Service discovery runtime is needed for APISIX.")
+        raise ValueError(
+            "Service discovery runtime is needed for APISIX.")
 
 
 def _with_runtime_environment_variables(

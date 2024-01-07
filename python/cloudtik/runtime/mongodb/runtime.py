@@ -26,11 +26,13 @@ class MongoDBRuntime(RuntimeBase):
     def __init__(self, runtime_config: Dict[str, Any]) -> None:
         super().__init__(runtime_config)
 
-    def prepare_config(self, cluster_config: Dict[str, Any]) -> Dict[str, Any]:
+    def prepare_config(
+            self, cluster_config: Dict[str, Any]) -> Dict[str, Any]:
         """Prepare runtime specific configurations"""
         return _prepare_config(self.runtime_config, cluster_config)
 
-    def bootstrap_config(self, cluster_config: Dict[str, Any]) -> Dict[str, Any]:
+    def bootstrap_config(
+            self, cluster_config: Dict[str, Any]) -> Dict[str, Any]:
         """Final chance to update the config with runtime specific configurations
         This happens after provider bootstrap_config is done.
         """
@@ -45,7 +47,8 @@ class MongoDBRuntime(RuntimeBase):
         internal service addresses the runtime depends.
         The head configuration will be updated and saved with the returned configuration.
         """
-        return _prepare_config_on_head(self.runtime_config, cluster_config)
+        return _prepare_config_on_head(
+            self.runtime_config, cluster_config)
 
     def validate_config(self, cluster_config: Dict[str, Any]):
         """Validate cluster configuration from runtime perspective."""

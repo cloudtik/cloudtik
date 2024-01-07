@@ -38,8 +38,9 @@ def _bootstrap_runtime_config(cluster_config: Dict[str, Any]) -> Dict[str, Any]:
         try:
             ssh_public_key = generate_public_key(ssh_private_key)
         except Exception:
-            raise ValueError("Failed to generate public key from private key file: {}. ".format(
-                ssh_private_key) + SSH_PUBLIC_KEY_ERROR)
+            raise ValueError(
+                "Failed to generate public key from private key file: {}. ".format(
+                    ssh_private_key) + SSH_PUBLIC_KEY_ERROR)
 
     file_mounts_config = get_config_for_update(cluster_config, "file_mounts")
     file_mounts_config.update({

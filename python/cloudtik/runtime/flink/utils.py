@@ -68,8 +68,9 @@ def get_flink_overhead(worker_memory_for_flink: int) -> int:
 
 
 def get_flink_taskmanager_overhead(flink_taskmanager_memory_all: int) -> int:
-    return max(int(flink_taskmanager_memory_all * FLINK_TASKMANAGER_OVERHEAD_RATIO),
-               FLINK_TASKMANAGER_OVERHEAD_MINIMUM)
+    return max(
+        int(flink_taskmanager_memory_all * FLINK_TASKMANAGER_OVERHEAD_RATIO),
+        FLINK_TASKMANAGER_OVERHEAD_MINIMUM)
 
 
 def _prepare_config(cluster_config: Dict[str, Any]) -> Dict[str, Any]:
@@ -89,7 +90,8 @@ def _prepare_config_on_head(cluster_config: Dict[str, Any]):
     return cluster_config
 
 
-def _configure_runtime_resources(cluster_config: Dict[str, Any]) -> Dict[str, Any]:
+def _configure_runtime_resources(
+        cluster_config: Dict[str, Any]) -> Dict[str, Any]:
     cluster_resource = get_node_type_resources(cluster_config)
 
     yarn_resource_memory_ratio = get_yarn_resource_memory_ratio(cluster_config)
@@ -119,8 +121,10 @@ def _configure_runtime_resources(cluster_config: Dict[str, Any]) -> Dict[str, An
     flink_taskmanager_memory_all = round_memory_size_to_gb(
         int(worker_memory_for_taskmanagers / number_of_taskmanagers))
     runtime_resource["flink_taskmanager_memory"] =\
-        flink_taskmanager_memory_all - get_flink_taskmanager_overhead(flink_taskmanager_memory_all)
-    runtime_resource["flink_jobmanager_memory"] = get_flink_jobmanager_memory(worker_memory_for_flink)
+        flink_taskmanager_memory_all - get_flink_taskmanager_overhead(
+            flink_taskmanager_memory_all)
+    runtime_resource["flink_jobmanager_memory"] = get_flink_jobmanager_memory(
+        worker_memory_for_flink)
 
     runtime_config = get_config_for_update(cluster_config, RUNTIME_CONFIG_KEY)
     flink_config = get_config_for_update(runtime_config, BUILT_IN_RUNTIME_FLINK)
@@ -168,7 +172,8 @@ def _configure(runtime_config, head: bool):
 
 def get_runtime_logs():
     flink_logs_dir = os.path.join(os.getenv("FLINK_HOME"), "logs")
-    jupyter_logs_dir = os.path.join(os.getenv("HOME"), "runtime", "jupyter", "logs")
+    jupyter_logs_dir = os.path.join(
+        os.getenv("HOME"), "runtime", "jupyter", "logs")
     all_logs = {"flink": flink_logs_dir,
                 "jupyter": jupyter_logs_dir
                 }

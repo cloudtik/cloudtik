@@ -248,7 +248,8 @@ def _get_runtime_endpoints(
     return endpoints
 
 
-def _get_head_service_ports(runtime_config: Dict[str, Any]) -> Dict[str, Any]:
+def _get_head_service_ports(
+        runtime_config: Dict[str, Any]) -> Dict[str, Any]:
     service_port = _get_service_port(runtime_config)
     service_ports = {
         "redis": {

@@ -59,15 +59,17 @@ def get_yarn_resource_memory_ratio(cluster_config: Dict[str, Any]):
 def get_spark_driver_memory(cluster_resource: Dict[str, Any]) -> int:
     spark_driver_memory = round_memory_size_to_gb(
         int(cluster_resource["head_memory"] * SPARK_DRIVER_MEMORY_RATIO))
-    return max(min(spark_driver_memory,
-                   SPARK_DRIVER_MEMORY_MAXIMUM), SPARK_DRIVER_MEMORY_MINIMUM)
+    return max(min(
+        spark_driver_memory, SPARK_DRIVER_MEMORY_MAXIMUM),
+        SPARK_DRIVER_MEMORY_MINIMUM)
 
 
 def get_spark_app_master_memory(worker_memory_for_spark: int) -> int:
     spark_app_master_memory = round_memory_size_to_gb(
         int(worker_memory_for_spark * SPARK_APP_MASTER_MEMORY_RATIO))
-    return max(min(spark_app_master_memory,
-                   SPARK_DRIVER_MEMORY_MAXIMUM), SPARK_DRIVER_MEMORY_MINIMUM)
+    return max(min(
+        spark_app_master_memory, SPARK_DRIVER_MEMORY_MAXIMUM),
+        SPARK_DRIVER_MEMORY_MINIMUM)
 
 
 def get_spark_overhead(worker_memory_for_spark: int) -> int:
@@ -121,7 +123,8 @@ def _configure_runtime_resources(cluster_config: Dict[str, Any]) -> Dict[str, An
             spark_executor_cores = int(worker_cpu / 2)
         else:
             # Overload max number of SPARK_EXECUTOR_CORES_DEFAULT - 1 cores
-            overload_cores = SPARK_EXECUTOR_CORES_DEFAULT - (worker_cpu % SPARK_EXECUTOR_CORES_DEFAULT)
+            overload_cores = SPARK_EXECUTOR_CORES_DEFAULT - (
+                    worker_cpu % SPARK_EXECUTOR_CORES_DEFAULT)
             worker_cpu += overload_cores
 
     executor_resource["spark_executor_cores"] = spark_executor_cores
@@ -142,7 +145,8 @@ def _configure_runtime_resources(cluster_config: Dict[str, Any]) -> Dict[str, An
     spark_executor_memory_all = round_memory_size_to_gb(
         int(worker_memory_for_executors / number_of_executors))
     executor_resource["spark_executor_memory"] = \
-        spark_executor_memory_all - get_spark_executor_overhead(spark_executor_memory_all)
+        spark_executor_memory_all - get_spark_executor_overhead(
+            spark_executor_memory_all)
 
     runtime_config = get_config_for_update(cluster_config, RUNTIME_CONFIG_KEY)
     spark_config = get_config_for_update(runtime_config, BUILT_IN_RUNTIME_SPARK)
@@ -156,7 +160,9 @@ def get_runtime_processes():
 
 
 def _is_runtime_scripts(script_file):
-    if script_file.endswith(".scala") or script_file.endswith(".jar") or script_file.endswith(".py"):
+    if (script_file.endswith(".scala")
+            or script_file.endswith(".jar")
+            or script_file.endswith(".py")):
         return True
     return False
 
@@ -196,7 +202,8 @@ def _configure(runtime_config, head: bool):
 
 def get_runtime_logs():
     spark_logs_dir = os.path.join(os.getenv("SPARK_HOME"), "logs")
-    jupyter_logs_dir = os.path.join(os.getenv("HOME"), "runtime", "jupyter", "logs")
+    jupyter_logs_dir = os.path.join(
+        os.getenv("HOME"), "runtime", "jupyter", "logs")
     all_logs = {"spark": spark_logs_dir,
                 "jupyter": jupyter_logs_dir
                 }
@@ -223,7 +230,8 @@ def _get_runtime_endpoints(cluster_config, cluster_head_ip):
     return endpoints
 
 
-def _get_head_service_ports(runtime_config: Dict[str, Any]) -> Dict[str, Any]:
+def _get_head_service_ports(
+        runtime_config: Dict[str, Any]) -> Dict[str, Any]:
     service_ports = {
         "jupyter-web": {
             "protocol": "TCP",

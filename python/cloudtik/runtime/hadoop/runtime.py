@@ -16,7 +16,8 @@ class HadoopRuntime(RuntimeBase):
     def __init__(self, runtime_config: Dict[str, Any]) -> None:
         super().__init__(runtime_config)
 
-    def prepare_config(self, cluster_config: Dict[str, Any]) -> Dict[str, Any]:
+    def prepare_config(
+            self, cluster_config: Dict[str, Any]) -> Dict[str, Any]:
         """Prepare runtime specific configurations"""
         return _prepare_config(cluster_config)
 
@@ -40,7 +41,8 @@ class HadoopRuntime(RuntimeBase):
         For example: {"ENV_NAME": value}
         """
         return _with_runtime_environment_variables(
-            self.runtime_config, config=config, provider=provider, node_id=node_id)
+            self.runtime_config, config=config,
+            provider=provider, node_id=node_id)
 
     def node_configure(self, head: bool):
         """ This method is called on every node as the first step of executing runtime

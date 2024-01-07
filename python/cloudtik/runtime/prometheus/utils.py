@@ -65,7 +65,8 @@ def _is_high_availability(prometheus_config: Dict[str, Any]):
 
 
 def _get_home_dir():
-    return os.path.join(os.getenv("HOME"), "runtime", BUILT_IN_RUNTIME_PROMETHEUS)
+    return os.path.join(
+        os.getenv("HOME"), "runtime", BUILT_IN_RUNTIME_PROMETHEUS)
 
 
 def _get_runtime_processes():

@@ -138,7 +138,8 @@ def _with_memory_configurations(
         get_memory_heap_headroom_per_node(jvm_max_memory)
 
 
-def _get_head_service_ports(runtime_config: Dict[str, Any]) -> Dict[str, Any]:
+def _get_head_service_ports(
+        runtime_config: Dict[str, Any]) -> Dict[str, Any]:
     service_ports = {
         "trino": {
             "protocol": "TCP",

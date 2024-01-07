@@ -145,16 +145,19 @@ def _validate_config(config: Dict[str, Any]):
         if config_mode == NGINX_CONFIG_MODE_STATIC:
             if not backend_config.get(
                     NGINX_BACKEND_SERVERS_CONFIG_KEY):
-                raise ValueError("Static servers must be provided with config mode: static.")
+                raise ValueError(
+                    "Static servers must be provided with config mode: static.")
         elif config_mode == NGINX_CONFIG_MODE_DNS:
             service_name = backend_config.get(NGINX_BACKEND_SERVICE_NAME_CONFIG_KEY)
             if not service_name:
-                raise ValueError("Service name must be configured for config mode: dns.")
+                raise ValueError(
+                    "Service name must be configured for config mode: dns.")
     elif app_mode == NGINX_APP_MODE_API_GATEWAY:
         if config_mode and (
                 config_mode != NGINX_CONFIG_MODE_DNS and
                 config_mode != NGINX_CONFIG_MODE_DYNAMIC):
-            raise ValueError("API Gateway mode support only DNS and dynamic config mode.")
+            raise ValueError(
+                "API Gateway mode support only DNS and dynamic config mode.")
 
 
 def _with_runtime_environment_variables(
@@ -183,8 +186,9 @@ def _with_runtime_environment_variables(
         _with_runtime_envs_for_api_gateway(
             config, backend_config, runtime_envs)
     else:
-        raise ValueError("Invalid application mode: {}. "
-                         "Must be web, load-balancer or api-gateway.".format(app_mode))
+        raise ValueError(
+            "Invalid application mode: {}. "
+            "Must be web, load-balancer or api-gateway.".format(app_mode))
 
     balance = backend_config.get(
         NGINX_BACKEND_BALANCE_CONFIG_KEY)
@@ -239,7 +243,8 @@ def _with_runtime_envs_for_load_balancer(
 def _get_service_dns_name(backend_config):
     service_name = backend_config.get(NGINX_BACKEND_SERVICE_NAME_CONFIG_KEY)
     if not service_name:
-        raise ValueError("Service name must be configured for config mode: dns.")
+        raise ValueError(
+            "Service name must be configured for config mode: dns.")
 
     service_tag = backend_config.get(
         NGINX_BACKEND_SERVICE_TAG_CONFIG_KEY)
@@ -270,7 +275,8 @@ def _with_runtime_envs_for_dynamic(backend_config, runtime_envs):
 def _get_default_api_gateway_config_mode(config, backend_config):
     cluster_runtime_config = get_runtime_config(config)
     if not get_service_discovery_runtime(cluster_runtime_config):
-        raise ValueError("Service discovery runtime is needed for API gateway mode.")
+        raise ValueError(
+            "Service discovery runtime is needed for API gateway mode.")
 
     if backend_config.get(
             NGINX_BACKEND_SELECTOR_CONFIG_KEY):

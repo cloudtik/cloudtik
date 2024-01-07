@@ -38,7 +38,8 @@ class AIRuntime(RuntimeBase):
         For example: {"ENV_NAME": value}
         """
         return _with_runtime_environment_variables(
-            self.runtime_config, config=config, provider=provider, node_id=node_id)
+            self.runtime_config, config=config,
+            provider=provider, node_id=node_id)
 
     def node_configure(self, head: bool):
         """ This method is called on every node as the first step of executing runtime
@@ -76,7 +77,11 @@ class AIRuntime(RuntimeBase):
 
     @staticmethod
     def get_dependencies():
-        return [BUILT_IN_RUNTIME_MYSQL, BUILT_IN_RUNTIME_POSTGRES, BUILT_IN_RUNTIME_SSHSERVER]
+        return [
+            BUILT_IN_RUNTIME_MYSQL,
+            BUILT_IN_RUNTIME_POSTGRES,
+            BUILT_IN_RUNTIME_SSHSERVER,
+        ]
 
     @staticmethod
     def get_required():

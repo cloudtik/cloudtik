@@ -41,7 +41,8 @@ def _get_config(runtime_config: Dict[str, Any]):
 
 def get_yarn_resource_memory_ratio(cluster_config: Dict[str, Any]):
     yarn_resource_memory_ratio = YARN_RESOURCE_MEMORY_RATIO
-    yarn_config = cluster_config.get(RUNTIME_CONFIG_KEY, {}).get(BUILT_IN_RUNTIME_YARN, {})
+    yarn_config = cluster_config.get(
+        RUNTIME_CONFIG_KEY, {}).get(BUILT_IN_RUNTIME_YARN, {})
     memory_ratio = yarn_config.get("yarn_resource_memory_ratio")
     if memory_ratio:
         yarn_resource_memory_ratio = memory_ratio
@@ -53,7 +54,8 @@ def _prepare_config(cluster_config: Dict[str, Any]) -> Dict[str, Any]:
     return cluster_config
 
 
-def _configure_runtime_resources(cluster_config: Dict[str, Any]) -> Dict[str, Any]:
+def _configure_runtime_resources(
+        cluster_config: Dict[str, Any]) -> Dict[str, Any]:
     cluster_resource = get_node_type_resources(cluster_config)
     worker_cpu = cluster_resource["worker_cpu"]
 
@@ -114,7 +116,8 @@ def _get_runtime_endpoints(cluster_config, cluster_head_ip):
     return endpoints
 
 
-def _get_head_service_ports(runtime_config: Dict[str, Any]) -> Dict[str, Any]:
+def _get_head_service_ports(
+        runtime_config: Dict[str, Any]) -> Dict[str, Any]:
     service_ports = {
         "yarn": {
             "protocol": "TCP",
@@ -170,7 +173,8 @@ def request_rest_yarn(
 
 
 def request_rest_yarn_with_retry(
-        config: Dict[str, Any], endpoint: Optional[str], retry=YARN_REQUEST_REST_RETRY_COUNT):
+        config: Dict[str, Any], endpoint: Optional[str],
+        retry=YARN_REQUEST_REST_RETRY_COUNT):
     while retry > 0:
         try:
             response = request_rest_yarn(config, endpoint)
@@ -178,10 +182,12 @@ def request_rest_yarn_with_retry(
         except Exception as e:
             retry = retry - 1
             if retry > 0:
-                cli_logger.warning(f"Error when requesting yarn api. Retrying in {YARN_REQUEST_REST_RETRY_DELAY_S} seconds.")
+                cli_logger.warning(
+                    f"Error when requesting yarn api. Retrying in {YARN_REQUEST_REST_RETRY_DELAY_S} seconds.")
                 time.sleep(YARN_REQUEST_REST_RETRY_DELAY_S)
             else:
-                cli_logger.error("Failed to request yarn api: {}", str(e))
+                cli_logger.error(
+                    "Failed to request yarn api: {}", str(e))
                 raise e
 
 

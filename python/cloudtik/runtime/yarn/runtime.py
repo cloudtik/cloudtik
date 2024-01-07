@@ -20,7 +20,8 @@ class YARNRuntime(RuntimeBase):
     def __init__(self, runtime_config: Dict[str, Any]) -> None:
         super().__init__(runtime_config)
 
-    def prepare_config(self, cluster_config: Dict[str, Any]) -> Dict[str, Any]:
+    def prepare_config(
+            self, cluster_config: Dict[str, Any]) -> Dict[str, Any]:
         """Prepare runtime specific configurations"""
         return _prepare_config(cluster_config)
 
@@ -28,7 +29,8 @@ class YARNRuntime(RuntimeBase):
             self, config: Dict[str, Any], provider: NodeProvider,
             node_id: str) -> Dict[str, Any]:
         return _with_runtime_environment_variables(
-            self.runtime_config, config=config, provider=provider, node_id=node_id)
+            self.runtime_config, config=config,
+            provider=provider, node_id=node_id)
 
     def get_runtime_endpoints(
             self, cluster_config: Dict[str, Any], cluster_head_ip: str):
@@ -43,9 +45,11 @@ class YARNRuntime(RuntimeBase):
     def get_scaling_policy(
             self, cluster_config: Dict[str, Any], head_host: str
     ) -> Optional[ScalingPolicy]:
-        return _get_scaling_policy(self.runtime_config, cluster_config, head_host)
+        return _get_scaling_policy(
+            self.runtime_config, cluster_config, head_host)
 
-    def get_job_waiter(self, cluster_config: Dict[str, Any]) -> Optional[JobWaiter]:
+    def get_job_waiter(
+            self, cluster_config: Dict[str, Any]) -> Optional[JobWaiter]:
         return YARNJobWaiter(cluster_config)
 
     @staticmethod

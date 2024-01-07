@@ -3,14 +3,17 @@ from typing import Any, Dict
 
 from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_ZOOKEEPER, BUILT_IN_RUNTIME_KAFKA
 from cloudtik.core._private.service_discovery.runtime_services import get_service_discovery_runtime
-from cloudtik.core._private.service_discovery.utils import get_canonical_service_name, define_runtime_service_on_worker, \
+from cloudtik.core._private.service_discovery.utils import \
+    get_canonical_service_name, define_runtime_service_on_worker, \
     get_service_discovery_config, SERVICE_DISCOVERY_FEATURE_MESSAGING
 from cloudtik.core._private.utils import \
     get_runtime_config, is_node_seq_id_enabled, enable_node_seq_id
-from cloudtik.runtime.common.service_discovery.cluster import query_service_from_cluster, get_service_addresses_string, \
+from cloudtik.runtime.common.service_discovery.cluster import \
+    query_service_from_cluster, get_service_addresses_string, \
     has_runtime_in_cluster
 from cloudtik.runtime.common.service_discovery.runtime_discovery import \
-    discover_zookeeper_from_workspace, discover_zookeeper_on_head, is_zookeeper_service_discovery, ZOOKEEPER_CONNECT_KEY
+    discover_zookeeper_from_workspace, discover_zookeeper_on_head, \
+    is_zookeeper_service_discovery, ZOOKEEPER_CONNECT_KEY
 
 RUNTIME_PROCESSES = [
     # The first element is the substring to filter.
@@ -54,7 +57,8 @@ def _get_runtime_processes():
     return RUNTIME_PROCESSES
 
 
-def _with_runtime_environment_variables(runtime_config, config, provider, node_id: str):
+def _with_runtime_environment_variables(
+        runtime_config, config, provider, node_id: str):
     runtime_envs = {"KAFKA_ENABLED": True}
     return runtime_envs
 
