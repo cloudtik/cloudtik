@@ -160,11 +160,13 @@ def _is_valid_database_config(config: Dict[str, Any], final=False):
 
 def _validate_config(config: Dict[str, Any], final=False):
     if not _is_valid_database_config(config, final):
-        raise ValueError("Postgres must be configured for Kong.")
+        raise ValueError(
+            "Postgres must be configured for Kong.")
 
     cluster_runtime_config = config.get(RUNTIME_CONFIG_KEY)
     if not get_service_discovery_runtime(cluster_runtime_config):
-        raise ValueError("Service discovery runtime is needed for Kong gateway.")
+        raise ValueError(
+            "Service discovery runtime is needed for Kong gateway.")
 
 
 def _with_runtime_environment_variables(
@@ -219,10 +221,12 @@ def _export_database_configurations(runtime_config):
     # finally check cloud database is configured (just check here)
     database_enabled = get_runtime_bool(DATABASE_ENV_ENABLED)
     if not database_enabled:
-        raise RuntimeError("No Postgres is configured for Kong.")
+        raise RuntimeError(
+            "No Postgres is configured for Kong.")
     database_engine = get_runtime_value(DATABASE_ENV_ENGINE)
     if database_engine != DATABASE_ENGINE_POSTGRES:
-        raise RuntimeError("Postgres must be configured for Kong.")
+        raise RuntimeError(
+            "Postgres must be configured for Kong.")
 
 
 def _configure(runtime_config, head: bool):

@@ -61,7 +61,8 @@ def _prepare_config_on_head(cluster_config: Dict[str, Any]):
 
 def _validate_config(config: Dict[str, Any], final=False):
     if not _is_valid_database_config(config, final):
-        raise ValueError("Database must be configured for Metastore.")
+        raise ValueError(
+            "Database must be configured for Metastore.")
 
 
 def _is_valid_database_config(config: Dict[str, Any], final=False):

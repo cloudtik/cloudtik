@@ -125,7 +125,8 @@ def _validate_config(config: Dict[str, Any]):
     user = database.get(MYSQL_DATABASE_USER_CONFIG_KEY)
     password = database.get(MYSQL_DATABASE_PASSWORD_CONFIG_KEY)
     if (user and not password) or (not user and password):
-        raise ValueError("User and password must be both specified or not specified.")
+        raise ValueError(
+            "User and password must be both specified or not specified.")
 
 
 def _with_runtime_environment_variables(
@@ -189,7 +190,8 @@ def _get_runtime_endpoints(
     return endpoints
 
 
-def _get_head_service_ports(runtime_config: Dict[str, Any]) -> Dict[str, Any]:
+def _get_head_service_ports(
+        runtime_config: Dict[str, Any]) -> Dict[str, Any]:
     service_port = _get_service_port(runtime_config)
     service_ports = {
         "mysql": {

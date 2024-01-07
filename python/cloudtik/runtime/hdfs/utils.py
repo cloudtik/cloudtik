@@ -80,7 +80,8 @@ def _get_runtime_endpoints(cluster_config, cluster_head_ip):
     return endpoints
 
 
-def _get_head_service_ports(runtime_config: Dict[str, Any]) -> Dict[str, Any]:
+def _get_head_service_ports(
+        runtime_config: Dict[str, Any]) -> Dict[str, Any]:
     service_ports = {
         "hdfs-web": {
             "protocol": "TCP",

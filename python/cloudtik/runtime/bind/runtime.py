@@ -35,4 +35,7 @@ class BindRuntime(RuntimeBase):
 
     @staticmethod
     def get_dependencies():
-        return [BUILT_IN_RUNTIME_NONE, BUILT_IN_RUNTIME_CONSUL]
+        return [
+            BUILT_IN_RUNTIME_NONE,
+            BUILT_IN_RUNTIME_CONSUL,
+        ]

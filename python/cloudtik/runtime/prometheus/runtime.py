@@ -16,7 +16,8 @@ class PrometheusRuntime(RuntimeBase):
     def __init__(self, runtime_config: Dict[str, Any]) -> None:
         super().__init__(runtime_config)
 
-    def bootstrap_config(self, cluster_config: Dict[str, Any]) -> Dict[str, Any]:
+    def bootstrap_config(
+            self, cluster_config: Dict[str, Any]) -> Dict[str, Any]:
         # collect the runtime services information for local mode
         cluster_config = _bootstrap_runtime_services(cluster_config)
         return cluster_config

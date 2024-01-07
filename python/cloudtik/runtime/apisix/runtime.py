@@ -17,7 +17,8 @@ class APISIXRuntime(RuntimeBase):
     def __init__(self, runtime_config: Dict[str, Any]) -> None:
         super().__init__(runtime_config)
 
-    def prepare_config(self, cluster_config: Dict[str, Any]) -> Dict[str, Any]:
+    def prepare_config(
+            self, cluster_config: Dict[str, Any]) -> Dict[str, Any]:
         """Prepare runtime specific configurations"""
         return _prepare_config(cluster_config)
 

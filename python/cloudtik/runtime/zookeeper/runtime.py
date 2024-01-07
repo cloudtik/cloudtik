@@ -25,7 +25,8 @@ class ZooKeeperRuntime(RuntimeBase):
     def __init__(self, runtime_config: Dict[str, Any]) -> None:
         super().__init__(runtime_config)
 
-    def bootstrap_config(self, cluster_config: Dict[str, Any]) -> Dict[str, Any]:
+    def bootstrap_config(
+            self, cluster_config: Dict[str, Any]) -> Dict[str, Any]:
         """Final chance to update the config with runtime specific configurations
         This happens after provider bootstrap_config is done.
         """
@@ -39,7 +40,8 @@ class ZooKeeperRuntime(RuntimeBase):
         For example: {"ENV_NAME": value}
         """
         return _with_runtime_environment_variables(
-            self.runtime_config, config=config, provider=provider, node_id=node_id)
+            self.runtime_config, config=config,
+            provider=provider, node_id=node_id)
 
     def get_runtime_endpoints(
             self, cluster_config: Dict[str, Any], cluster_head_ip: str):

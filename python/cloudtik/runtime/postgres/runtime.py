@@ -34,7 +34,8 @@ class PostgresRuntime(RuntimeBase):
     def __init__(self, runtime_config: Dict[str, Any]) -> None:
         super().__init__(runtime_config)
 
-    def bootstrap_config(self, cluster_config: Dict[str, Any]) -> Dict[str, Any]:
+    def bootstrap_config(
+            self, cluster_config: Dict[str, Any]) -> Dict[str, Any]:
         """Final chance to update the config with runtime specific configurations
         This happens after provider bootstrap_config is done.
         """
@@ -78,4 +79,7 @@ class PostgresRuntime(RuntimeBase):
     def get_dependencies():
         # Enable postgres archiving need the use of mount runtime to provide distributed file system
         # as local folder.
-        return [BUILT_IN_RUNTIME_MOUNT, BUILT_IN_RUNTIME_SSHSERVER]
+        return [
+            BUILT_IN_RUNTIME_MOUNT,
+            BUILT_IN_RUNTIME_SSHSERVER,
+        ]

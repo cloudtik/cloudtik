@@ -26,7 +26,8 @@ class ConsulRuntime(RuntimeBase):
         super().__init__(runtime_config)
         self.server_mode = _is_agent_server_mode(runtime_config)
 
-    def bootstrap_config(self, cluster_config: Dict[str, Any]) -> Dict[str, Any]:
+    def bootstrap_config(
+            self, cluster_config: Dict[str, Any]) -> Dict[str, Any]:
         cluster_config = _bootstrap_runtime_config(cluster_config)
 
         if not self.server_mode:

@@ -78,7 +78,8 @@ def _get_feature_tag(cluster_name):
     return CONSUL_TAG_FEATURE_FORMAT.format(cluster_name)
 
 
-def _bootstrap_runtime_config(cluster_config: Dict[str, Any]) -> Dict[str, Any]:
+def _bootstrap_runtime_config(
+        cluster_config: Dict[str, Any]) -> Dict[str, Any]:
     # We must enable the node seq id
     if not is_node_seq_id_enabled(cluster_config):
         enable_node_seq_id(cluster_config)
@@ -95,7 +96,8 @@ def _bootstrap_join_list(cluster_config: Dict[str, Any]):
         cluster_config=cluster_config,
         discovery_type=DiscoveryType.WORKSPACE)
     if not server_addresses:
-        raise RuntimeError("No running consul server cluster is detected.")
+        raise RuntimeError(
+            "No running consul server cluster is detected.")
 
     join_list = ",".join([server_address[0] for server_address in server_addresses])
     consul_config[CONFIG_KEY_JOIN_LIST] = join_list
@@ -181,7 +183,8 @@ def _with_runtime_environment_variables(
         runtime_envs["CONSUL_CLIENT"] = True
         join_list = consul_config.get(CONFIG_KEY_JOIN_LIST)
         if not join_list:
-            raise RuntimeError("Invalid join list. No running consul server cluster is detected.")
+            raise RuntimeError(
+                "Invalid join list. No running consul server cluster is detected.")
         runtime_envs["CONSUL_JOIN_LIST"] = join_list
 
     runtime_envs["CONSUL_SERVICE_PORT"] = CONSUL_SERVER_RPC_PORT
@@ -220,7 +223,8 @@ def _get_runtime_endpoints(
     return endpoints
 
 
-def _get_head_service_ports(server_mode, runtime_config: Dict[str, Any]) -> Dict[str, Any]:
+def _get_head_service_ports(
+        server_mode, runtime_config: Dict[str, Any]) -> Dict[str, Any]:
     service_ports = {
         "consul": {
             "protocol": "TCP",
@@ -244,9 +248,11 @@ def _server_ensemble_from_nodes_info(nodes_info: Dict[str, Any]):
     server_ensemble = []
     for node_id, node_info in nodes_info.items():
         if RUNTIME_NODE_IP not in node_info:
-            raise RuntimeError("Missing node ip for node {}.".format(node_id))
+            raise RuntimeError(
+                "Missing node ip for node {}.".format(node_id))
         if RUNTIME_NODE_SEQ_ID not in node_info:
-            raise RuntimeError("Missing node sequence id for node {}.".format(node_id))
+            raise RuntimeError(
+                "Missing node sequence id for node {}.".format(node_id))
         server_ensemble += [node_info]
 
     def node_info_sort(node_info):
@@ -286,7 +292,8 @@ def _get_consul_minimal_workers(config: Dict[str, Any]):
             # Exclude the head
             continue
         # Check the runtimes of the node type whether it needs to wait minimal before update
-        runtime_config = _get_node_type_specific_runtime_config(config, node_type)
+        runtime_config = _get_node_type_specific_runtime_config(
+            config, node_type)
         if not runtime_config:
             continue
         runtime_types = runtime_config.get(RUNTIME_TYPES_CONFIG_KEY, [])

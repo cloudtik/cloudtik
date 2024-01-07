@@ -5,7 +5,8 @@ from typing import Any, Dict
 from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_ETCD
 from cloudtik.core._private.util.runtime_utils import sort_nodes_by_seq_id, get_node_host_from_node_info
 from cloudtik.core._private.service_discovery.naming import get_cluster_node_address_type
-from cloudtik.core._private.service_discovery.utils import get_canonical_service_name, define_runtime_service_on_worker, \
+from cloudtik.core._private.service_discovery.utils import \
+    get_canonical_service_name, define_runtime_service_on_worker, \
     get_service_discovery_config, ServiceRegisterException, SERVICE_DISCOVERY_FEATURE_KEY_VALUE
 from cloudtik.core._private.utils import is_node_seq_id_enabled, enable_node_seq_id
 from cloudtik.runtime.common.service_discovery.workspace import register_service_to_workspace
@@ -30,7 +31,8 @@ def _get_config(runtime_config: Dict[str, Any]):
 
 
 def _get_home_dir():
-    return os.path.join(os.getenv("HOME"), "runtime", BUILT_IN_RUNTIME_ETCD)
+    return os.path.join(
+        os.getenv("HOME"), "runtime", BUILT_IN_RUNTIME_ETCD)
 
 
 def _get_runtime_logs():
@@ -43,7 +45,8 @@ def _get_runtime_processes():
     return RUNTIME_PROCESSES
 
 
-def _bootstrap_runtime_config(cluster_config: Dict[str, Any]) -> Dict[str, Any]:
+def _bootstrap_runtime_config(
+        cluster_config: Dict[str, Any]) -> Dict[str, Any]:
     # We must enable the node seq id
     if not is_node_seq_id_enabled(cluster_config):
         enable_node_seq_id(cluster_config)

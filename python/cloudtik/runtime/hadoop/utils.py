@@ -121,4 +121,5 @@ def _is_valid_storage_config(config: Dict[str, Any], final=False):
 
 def _validate_config(config: Dict[str, Any], final=False):
     if not _is_valid_storage_config(config, final=final):
-        raise ValueError("No storage configuration found for Hadoop.")
+        raise ValueError(
+            "No storage configuration found for Hadoop.")

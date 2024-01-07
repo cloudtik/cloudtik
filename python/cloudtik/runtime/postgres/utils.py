@@ -170,7 +170,8 @@ def _bootstrap_runtime_config(
             postgres_config = get_config_for_update(runtime_config, BUILT_IN_RUNTIME_POSTGRES)
             postgres_workers = _sum_min_workers(cluster_config)
             if postgres_workers < 1:
-                raise RuntimeError("Replication synchronously needs at least one workers.")
+                raise RuntimeError(
+                    "Replication synchronously needs at least one workers.")
             postgres_config[POSTGRES_SYNCHRONOUS_SIZE_CONFIG_KEY] = postgres_workers
 
     return cluster_config
@@ -184,12 +185,14 @@ def _validate_config(config: Dict[str, Any]):
     user = database.get(POSTGRES_DATABASE_USER_CONFIG_KEY)
     password = database.get(POSTGRES_DATABASE_PASSWORD_CONFIG_KEY)
     if (user and not password) or (not user and password):
-        raise ValueError("Database user and password must be both specified or not specified.")
+        raise ValueError(
+            "Database user and password must be both specified or not specified.")
 
     if (_is_archive_mode_enabled(postgres_config) and not has_runtime_in_cluster(
             runtime_config, BUILT_IN_RUNTIME_MOUNT)):
-        raise ValueError("Archive mode needs {} runtime to be configured for data sharing.".format(
-            BUILT_IN_RUNTIME_MOUNT))
+        raise ValueError(
+            "Archive mode needs {} runtime to be configured for data sharing.".format(
+                BUILT_IN_RUNTIME_MOUNT))
 
 
 def _with_runtime_environment_variables(

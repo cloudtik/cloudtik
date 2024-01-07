@@ -5,7 +5,8 @@ from typing import Any, Dict
 from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_ZOOKEEPER
 from cloudtik.core._private.util.runtime_utils import sort_nodes_by_seq_id, get_node_host_from_node_info
 from cloudtik.core._private.service_discovery.naming import get_cluster_node_address_type
-from cloudtik.core._private.service_discovery.utils import get_canonical_service_name, define_runtime_service_on_worker, \
+from cloudtik.core._private.service_discovery.utils import \
+    get_canonical_service_name, define_runtime_service_on_worker, \
     get_service_discovery_config, ServiceRegisterException, SERVICE_DISCOVERY_FEATURE_KEY_VALUE
 from cloudtik.core._private.utils import \
     is_node_seq_id_enabled, enable_node_seq_id
@@ -53,7 +54,8 @@ def _bootstrap_runtime_config(cluster_config: Dict[str, Any]) -> Dict[str, Any]:
     return cluster_config
 
 
-def _with_runtime_environment_variables(runtime_config, config, provider, node_id: str):
+def _with_runtime_environment_variables(
+        runtime_config, config, provider, node_id: str):
     runtime_envs = {"ZOOKEEPER_ENABLED": True}
     return runtime_envs
 
@@ -78,7 +80,8 @@ def _handle_node_constraints_reached(
             cluster_config, BUILT_IN_RUNTIME_ZOOKEEPER,
             service_addresses=endpoints)
     except ServiceRegisterException as e:
-        logger.warning("Error happened: {}", str(e))
+        logger.warning(
+            "Error happened: {}", str(e))
     register_service_to_cluster(
         BUILT_IN_RUNTIME_ZOOKEEPER,
         service_addresses=endpoints)

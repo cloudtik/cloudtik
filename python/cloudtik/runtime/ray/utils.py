@@ -35,7 +35,8 @@ def _get_runtime_processes():
     return RUNTIME_PROCESSES
 
 
-def _with_runtime_environment_variables(runtime_config, config, provider, node_id: str):
+def _with_runtime_environment_variables(
+        runtime_config, config, provider, node_id: str):
     runtime_envs = {"RAY_ENABLED": True}
     ray_config = _get_config(runtime_config)
 
@@ -79,7 +80,8 @@ def _with_memory_configurations(
     pass
 
 
-def _get_head_service_ports(runtime_config: Dict[str, Any]) -> Dict[str, Any]:
+def _get_head_service_ports(
+        runtime_config: Dict[str, Any]) -> Dict[str, Any]:
     service_ports = {
         "ray": {
             "protocol": "TCP",

@@ -121,7 +121,8 @@ def _get_mongos_port(sharding_config: Dict[str, Any]):
 
 def _generate_replication_set_name(workspace_name, cluster_name):
     if not cluster_name:
-        raise RuntimeError("Cluster name is needed for default replication set name.")
+        raise RuntimeError(
+            "Cluster name is needed for default replication set name.")
     return f"{workspace_name}-{cluster_name}"
 
 
@@ -220,7 +221,8 @@ def _validate_config(config: Dict[str, Any], final=False):
     user = database.get(MONGODB_DATABASE_USER_CONFIG_KEY)
     password = database.get(MONGODB_DATABASE_PASSWORD_CONFIG_KEY)
     if (user and not password) or (not user and password):
-        raise ValueError("User and password must be both specified or not specified.")
+        raise ValueError(
+            "User and password must be both specified or not specified.")
 
     if _is_config_server_needed(mongodb_config):
         config_server_uri = mongodb_config.get(MONGODB_CONFIG_SERVER_URI_KEY)
@@ -229,7 +231,8 @@ def _validate_config(config: Dict[str, Any], final=False):
             if (final or
                     not is_config_server_service_discovery(mongodb_config) or
                     not get_service_discovery_runtime(runtime_config)):
-                raise ValueError("Config server must be configured for Mongos or Shard cluster.")
+                raise ValueError(
+                    "Config server must be configured for Mongos or Shard cluster.")
 
 
 def _get_mongos_port_with_default(sharding_config):
@@ -334,15 +337,18 @@ def _with_runtime_environment_variables(
 def _parse_config_server_uri(config_server_uri):
     # TODO: this will not be needed if we support parsing uri directly to mongos
     if not config_server_uri:
-        raise ValueError("Empy config server uri.")
+        raise ValueError(
+            "Empy config server uri.")
     uri_components = config_server_uri.split('/')
     if len(uri_components) != 2:
-        raise ValueError("Invalid config server uri.")
+        raise ValueError(
+            "Invalid config server uri.")
     replication_set_name, addresses_string = config_server_uri.split('/')
     service_addresses = get_service_addresses_from_string(
         addresses_string)
     if len(service_addresses) == 0:
-        raise ValueError("Invalid config server uri: empty address.")
+        raise ValueError(
+            "Invalid config server uri: empty address.")
     primary_address = service_addresses[0]
     return replication_set_name, primary_address[0], primary_address[1]
 
@@ -356,7 +362,8 @@ def _configure_node_for_config_server(mongodb_config):
      config_server_port) = _parse_config_server_uri(config_server_uri)
     if (not replication_set_name
             or not config_server_host):
-        raise RuntimeError("No config server cluster configured or found.")
+        raise RuntimeError(
+            "No config server cluster configured or found.")
 
     os.environ["MONGODB_CONFIG_SERVER_REPLICATION_SET_NAME"] = replication_set_name
     os.environ["MONGODB_CONFIG_SERVER_HOST"] = config_server_host
