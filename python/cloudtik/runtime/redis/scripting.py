@@ -1,6 +1,7 @@
 import copy
 import logging
 import os
+import sys
 import time
 
 from redis.cluster import RedisCluster
@@ -451,7 +452,7 @@ def _get_master_replicas(master_nodes, slave_nodes):
 
 def _get_master_with_minimum_replicas(master_replicas):
     min_master_id = None
-    min_replicas = 999999
+    min_replicas = sys.maxsize
     for master_id, replicas in master_replicas.items():
         num_replicas = len(replicas)
         if num_replicas < min_replicas:

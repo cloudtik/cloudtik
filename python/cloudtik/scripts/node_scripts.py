@@ -565,16 +565,32 @@ def wait_for_port(port, host, timeout, free):
     default=False,
     help="Return the host instead of IP if hostname is available.")
 @click.option(
+    "--sort-by",
+    required=False,
+    type=str,
+    default=None,
+    help="Sort the list by a specific property. "
+         "Sort by kind and ip if not specified. "
+         "Valid values are: node_id, node_ip, node_kind, node_type, "
+         "node_seq_id, heartbeat_time.")
+@click.option(
+    "--reverse",
+    is_flag=True,
+    default=False,
+    help="Whether to sort in reverse order.")
+@click.option(
     "--separator",
     required=False,
     type=str,
     default=None,
     help="The separator between worker hosts. Default is change a line.")
 @add_click_logging_options
-def nodes(node_type, runtime, host, separator):
+def nodes(
+        node_type, runtime, host, sort_by, reverse, separator):
     """List live nodes in the cluster"""
     hosts = get_cluster_live_nodes_address(
-        node_type=node_type, runtime_type=runtime, host=host)
+        node_type=node_type, runtime_type=runtime,
+        host=host, sort_by=sort_by, reverse=reverse)
     if len(hosts) > 0:
         if separator:
             click.echo(separator.join(hosts))

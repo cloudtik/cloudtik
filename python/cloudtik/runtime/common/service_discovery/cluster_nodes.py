@@ -1,10 +1,14 @@
 import json
+import sys
 import time
+
+import ipaddr
 
 from cloudtik.core._private.constants import CLOUDTIK_HEARTBEAT_TIMEOUT_S
 from cloudtik.core._private.service_discovery.utils import ServiceAddressType
 from cloudtik.core._private.state.control_state import ControlState
-from cloudtik.core._private.state.state_utils import NODE_STATE_HEARTBEAT_TIME, NODE_STATE_NODE_TYPE
+from cloudtik.core._private.state.state_utils import NODE_STATE_HEARTBEAT_TIME, NODE_STATE_NODE_TYPE, \
+    NODE_STATE_NODE_SEQ_ID, NODE_STATE_NODE_IP, NODE_STATE_NODE_KIND, NODE_STATE_NODE_ID
 from cloudtik.core._private.util.runtime_utils import get_cluster_redis_address, get_runtime_config_of_node_type, \
     get_node_host_from_node_state, get_runtime_workspace_name, get_runtime_cluster_name, get_runtime_node_address_type
 from cloudtik.core._private.utils import is_runtime_enabled
@@ -80,14 +84,54 @@ def get_cluster_live_nodes(
     return matched_nodes
 
 
+def _sort_nodes(
+        nodes, sort_by: str = None, reverse: bool = False):
+    def sort_by_int(node):
+        # to the last for those who don't have the field
+        return node.get(sort_by, sys.maxsize)
+
+    def sort_by_str(node):
+        return node.get(sort_by)
+
+    def sort_by_ip(node):
+        node_ip = node.get(NODE_STATE_NODE_IP)
+        node_ip_addr = int(
+            ipaddr.IPAddress(node_ip)) if node_ip else sys.maxsize
+        return node_ip_addr
+
+    def sort_by_default(node):
+        return [node.get(NODE_STATE_NODE_KIND), sort_by_ip(node)]
+
+    if (sort_by == NODE_STATE_NODE_SEQ_ID
+            or sort_by == NODE_STATE_HEARTBEAT_TIME):
+        sort_fn = sort_by_int
+    elif (sort_by == NODE_STATE_NODE_ID
+          or sort_by == NODE_STATE_NODE_KIND
+          or sort_by == NODE_STATE_NODE_TYPE):
+        sort_fn = sort_by_str
+    elif sort_by == NODE_STATE_NODE_IP:
+        sort_fn = sort_by_ip
+    else:
+        sort_fn = sort_by_default
+
+    nodes.sort(key=sort_fn, reverse=reverse)
+    return nodes
+
+
 def get_cluster_live_nodes_address(
         node_type: str = None,
         runtime_type: str = None,
         host: bool = False,
+        sort_by: str = None,
+        reverse: bool = False,
         redis_address=None, redis_password=None):
     live_nodes = get_cluster_live_nodes(
         node_type=node_type, runtime_type=runtime_type,
         redis_address=redis_address, redis_password=redis_password)
+
+    # sort by ip by default
+    live_nodes = _sort_nodes(
+        live_nodes, sort_by=sort_by, reverse=reverse)
 
     # Warning: this method must call under the context of runtime
     # environment variables

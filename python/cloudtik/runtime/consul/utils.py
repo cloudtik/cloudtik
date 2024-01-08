@@ -5,7 +5,7 @@ from typing import Any, Dict
 
 from cloudtik.core._private.util.core_utils import get_list_for_update, get_config_for_update, http_address_string
 from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_CONSUL
-from cloudtik.core._private.util.runtime_utils import RUNTIME_NODE_SEQ_ID, RUNTIME_NODE_IP
+from cloudtik.core._private.util.runtime_utils import RUNTIME_NODE_IP, sort_nodes_by_seq_id
 from cloudtik.core._private.service_discovery.runtime_services import get_runtime_services_by_node_type
 from cloudtik.core._private.service_discovery.naming import CONSUL_CONFIG_DISABLE_CLUSTER_NODE_NAME
 from cloudtik.core._private.service_discovery.utils import SERVICE_DISCOVERY_TAGS, SERVICE_DISCOVERY_LABELS, \
@@ -245,29 +245,11 @@ def _get_head_service_ports(
     return service_ports
 
 
-def _server_ensemble_from_nodes_info(nodes_info: Dict[str, Any]):
-    server_ensemble = []
-    for node_id, node_info in nodes_info.items():
-        if RUNTIME_NODE_IP not in node_info:
-            raise RuntimeError(
-                "Missing node ip for node {}.".format(node_id))
-        if RUNTIME_NODE_SEQ_ID not in node_info:
-            raise RuntimeError(
-                "Missing node sequence id for node {}.".format(node_id))
-        server_ensemble += [node_info]
-
-    def node_info_sort(node_info):
-        return node_info[RUNTIME_NODE_SEQ_ID]
-
-    server_ensemble.sort(key=node_info_sort)
-    return server_ensemble
-
-
 def _handle_node_constraints_reached(
         runtime_config: Dict[str, Any], cluster_config: Dict[str, Any],
         node_type: str, head_info: Dict[str, Any], nodes_info: Dict[str, Any]):
     # We know this is called in the cluster scaler context
-    server_ensemble = _server_ensemble_from_nodes_info(nodes_info)
+    server_ensemble = sort_nodes_by_seq_id(nodes_info)
     endpoints = [(head_info[RUNTIME_NODE_IP], CONSUL_SERVER_RPC_PORT)]
     worker_nodes = [(node_info[RUNTIME_NODE_IP], CONSUL_SERVER_RPC_PORT
                      ) for node_info in server_ensemble]
