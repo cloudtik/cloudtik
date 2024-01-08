@@ -1,5 +1,6 @@
 import hashlib
 import json
+import sys
 from collections import defaultdict, namedtuple, Counter
 from typing import Any, Optional, Dict, List, Set, FrozenSet, Tuple, Union, \
     Callable
@@ -670,7 +671,7 @@ class ClusterScaler:
             return to_launch
 
         # figure out the highest priority
-        highest_priority = 999999
+        highest_priority = sys.maxsize
         for node_type in to_launch:
             launch_priority = self._get_node_type_launch_priority(node_type)
             if launch_priority < highest_priority:
@@ -689,7 +690,7 @@ class ClusterScaler:
         # Spawning these threads directly seems to cause
         # problems. They should at a minimum be spawned as daemon threads.
         # See pull #5903 for more info.
-        T = []
+        updater_threads = []
         for node_id, setup_commands, start_commands, docker_config in (
                 self.should_update(node_id)
                 for node_id in self.non_terminated_nodes.worker_ids):
@@ -697,14 +698,14 @@ class ClusterScaler:
                 resources = self._node_resources(node_id)
                 call_context = self.call_context.new_call_context()
                 logger.debug(f"{node_id}: Starting new thread runner.")
-                T.append(
+                updater_threads.append(
                     threading.Thread(
                         target=self.spawn_updater,
                         args=(node_id, setup_commands, start_commands,
                               resources, docker_config, call_context)))
-        for t in T:
+        for t in updater_threads:
             t.start()
-        for t in T:
+        for t in updater_threads:
             t.join()
 
     def process_completed_updates(self):
