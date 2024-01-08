@@ -9,10 +9,6 @@ class StartParams:
     """A class used to store the start-up parameters used.
 
     Attributes:
-        external_addresses (str): The address of external Redis server to
-            connect to, in format of "ip1:port1,ip2:port2,...".  If this
-            address is provided, then we won't start Redis instances in the
-            head node but use external Redis server(s) instead.
         redis_address (str): The address of the Redis server to connect to. If
             this address is not provided, then this command will start Redis, a
             cluster controller, and some workers.
@@ -56,7 +52,6 @@ class StartParams:
     """
 
     def __init__(self,
-                 external_addresses=None,
                  redis_address=None,
                  redis_max_memory=None,
                  redis_port=None,
@@ -80,7 +75,6 @@ class StartParams:
                  state=False,
                  controller=False,
                  ):
-        self.external_addresses = external_addresses
         self.redis_address = redis_address
         self.redis_max_memory = redis_max_memory
         self.redis_port = redis_port

@@ -1085,7 +1085,8 @@ class ClusterScaler:
             else:
                 self._delete_runtime_config(node_type)
 
-    def _publish_runtime_config(self, runtime_config: Dict[str, Any], node_type: Optional[str] = None):
+    def _publish_runtime_config(
+            self, runtime_config: Dict[str, Any], node_type: Optional[str] = None):
         if node_type is None:
             node_type = ""
 

@@ -26,7 +26,7 @@ from cloudtik.core._private.util import core_utils
 from cloudtik.core import tags
 from cloudtik.core._private.util.core_utils import detect_fate_sharing_support, set_kill_on_parent_death_linux, \
     set_kill_child_on_death_win32, get_cloudtik_temp_dir, get_node_ip_address, address_string
-from cloudtik.core._private.util.redis_utils import create_redis_client, wait_for_redis_to_start
+from cloudtik.core._private.util.redis_utils import wait_for_redis_to_start
 from cloudtik.core._private.util.runtime_utils import get_runtime_head_host
 from cloudtik.core._private.state.control_state import ControlState
 
@@ -522,7 +522,6 @@ def start_redis(
         redirect_worker_output=False,
         password=None,
         fate_share=None,
-        external_addresses=None,
         port_denylist=None):
     """Start the Redis global state store.
 
@@ -558,63 +557,55 @@ def start_redis(
     """
     processes = []
 
-    if external_addresses is not None:
-        primary_redis_address = external_addresses[0]
-        [primary_redis_ip, port] = primary_redis_address.split(":")
-        port = int(port)
-        redis_address = address_string(primary_redis_ip, port)
-        primary_redis_client = create_redis_client(
-            "%s:%s" % (primary_redis_ip, port), password=password)
-    else:
-        if len(redirect_files) != 1 + num_redis_shards:
-            raise ValueError(
-                "The number of redirect file pairs should be equal "
-                "to the number of redis shards (including the "
-                "primary shard) we will start.")
-        if redis_shard_ports is None:
-            if port is None:
-                redis_shard_ports = num_redis_shards * [None]
-            else:
-                redis_shard_port_start = port + 1
-                redis_shard_ports = [
-                    redis_shard_port_start + i for i in range(num_redis_shards)]
-        elif len(redis_shard_ports) != num_redis_shards:
-            raise RuntimeError(
-                "The number of Redis shard ports does not match "
-                "the number of Redis shards.")
-        redis_executable = CLOUDTIK_REDIS_EXECUTABLE
-
-        redis_stdout_file, redis_stderr_file = redirect_files[0]
-        # If no port is given, fallback to default Redis port for the primary
-        # shard.
+    if len(redirect_files) != 1 + num_redis_shards:
+        raise ValueError(
+            "The number of redirect file pairs should be equal "
+            "to the number of redis shards (including the "
+            "primary shard) we will start.")
+    if redis_shard_ports is None:
         if port is None:
-            port = constants.CLOUDTIK_DEFAULT_PORT
-            num_retries = 20
+            redis_shard_ports = num_redis_shards * [None]
         else:
-            num_retries = 1
-        # Start the primary Redis shard.
-        port, p = _start_redis_instance(
-            redis_executable,
-            session_dir_path,
-            data_dir,
-            instance_id=0,
-            bind_address=node_ip_address,
-            port=port,
-            password=password,
-            redis_max_clients=redis_max_clients,
-            num_retries=num_retries,
-            # Below we use None to indicate no limit on the memory of the
-            # primary Redis shard.
-            redis_max_memory=None,
-            stdout_file=redis_stdout_file,
-            stderr_file=redis_stderr_file,
-            fate_share=fate_share,
-            port_denylist=port_denylist,
-            listen_to_localhost_only=(node_ip_address == "127.0.0.1"))
-        processes.append(p)
-        redis_address = address_string(node_ip_address, port)
-        primary_redis_client = redis.StrictRedis(
-            host=node_ip_address, port=port, password=password)
+            redis_shard_port_start = port + 1
+            redis_shard_ports = [
+                redis_shard_port_start + i for i in range(num_redis_shards)]
+    elif len(redis_shard_ports) != num_redis_shards:
+        raise RuntimeError(
+            "The number of Redis shard ports does not match "
+            "the number of Redis shards.")
+    redis_executable = CLOUDTIK_REDIS_EXECUTABLE
+
+    redis_stdout_file, redis_stderr_file = redirect_files[0]
+    # If no port is given, fallback to default Redis port for the primary
+    # shard.
+    if port is None:
+        port = constants.CLOUDTIK_DEFAULT_PORT
+        num_retries = 20
+    else:
+        num_retries = 1
+    # Start the primary Redis shard.
+    port, p = _start_redis_instance(
+        redis_executable,
+        session_dir_path,
+        data_dir,
+        instance_id=0,
+        bind_address=node_ip_address,
+        port=port,
+        password=password,
+        redis_max_clients=redis_max_clients,
+        num_retries=num_retries,
+        # Below we use None to indicate no limit on the memory of the
+        # primary Redis shard.
+        redis_max_memory=None,
+        stdout_file=redis_stdout_file,
+        stderr_file=redis_stderr_file,
+        fate_share=fate_share,
+        port_denylist=port_denylist,
+        listen_to_localhost_only=(node_ip_address == "127.0.0.1"))
+    processes.append(p)
+    redis_address = address_string(node_ip_address, port)
+    primary_redis_client = redis.StrictRedis(
+        host=node_ip_address, port=port, password=password)
 
     # Register the number of Redis shards in the primary shard, so that clients
     # know how many redis shards to expect under RedisShards.
@@ -647,42 +638,40 @@ def start_redis(
     last_shard_port = new_port(denylist=port_denylist) - 1
     for i in range(num_redis_shards):
         shard_instance_id = i + 1
-        if external_addresses is not None:
-            shard_address = external_addresses[shard_instance_id]
+
+        redis_stdout_file, redis_stderr_file = redirect_files[shard_instance_id]
+        redis_executable = CLOUDTIK_REDIS_EXECUTABLE
+        redis_shard_port = redis_shard_ports[i]
+        # If no shard port is given, try to start this shard's Redis
+        # instance on the port right after the last shard's port.
+        if redis_shard_port is None:
+            redis_shard_port = last_shard_port + 1
+            num_retries = 20
         else:
-            redis_stdout_file, redis_stderr_file = redirect_files[shard_instance_id]
-            redis_executable = CLOUDTIK_REDIS_EXECUTABLE
-            redis_shard_port = redis_shard_ports[i]
-            # If no shard port is given, try to start this shard's Redis
-            # instance on the port right after the last shard's port.
-            if redis_shard_port is None:
-                redis_shard_port = last_shard_port + 1
-                num_retries = 20
-            else:
-                num_retries = 1
+            num_retries = 1
 
-            redis_shard_port, p = _start_redis_instance(
-                redis_executable,
-                session_dir_path,
-                data_dir,
-                instance_id=shard_instance_id,
-                bind_address=node_ip_address,
-                port=redis_shard_port,
-                password=password,
-                redis_max_clients=redis_max_clients,
-                num_retries=num_retries,
-                redis_max_memory=redis_max_memory,
-                stdout_file=redis_stdout_file,
-                stderr_file=redis_stderr_file,
-                fate_share=fate_share,
-                port_denylist=port_denylist,
-                listen_to_localhost_only=(node_ip_address == "127.0.0.1"))
-            processes.append(p)
+        redis_shard_port, p = _start_redis_instance(
+            redis_executable,
+            session_dir_path,
+            data_dir,
+            instance_id=shard_instance_id,
+            bind_address=node_ip_address,
+            port=redis_shard_port,
+            password=password,
+            redis_max_clients=redis_max_clients,
+            num_retries=num_retries,
+            redis_max_memory=redis_max_memory,
+            stdout_file=redis_stdout_file,
+            stderr_file=redis_stderr_file,
+            fate_share=fate_share,
+            port_denylist=port_denylist,
+            listen_to_localhost_only=(node_ip_address == "127.0.0.1"))
+        processes.append(p)
 
-            shard_host = (node_ip_address if node_ip_address == "127.0.0.1"
-                          else get_runtime_head_host(True))
-            shard_address = address_string(shard_host, redis_shard_port)
-            last_shard_port = redis_shard_port
+        shard_host = (node_ip_address if node_ip_address == "127.0.0.1"
+                      else get_runtime_head_host(True))
+        shard_address = address_string(shard_host, redis_shard_port)
+        last_shard_port = redis_shard_port
 
         redis_shards.append(shard_address)
         # Store redis shard information in the primary redis shard.
