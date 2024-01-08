@@ -31,8 +31,8 @@ def get_cluster_node_name(cluster_name, seq_id):
     return "{}-{}".format(cluster_name, seq_id)
 
 
-def get_cluster_node_sdn(node_name):
-    # short domain name without workspace-name.dc
+def get_cluster_node_sqdn(node_name):
+    # short qualified domain name without workspace-name.dc
     return "{}.node.cloudtik".format(node_name)
 
 
@@ -47,7 +47,7 @@ def get_address_type_of_hostname(hostname):
         raise RuntimeError("Invalid hostname: hostname is empty.")
     components = hostname.split('.')
     if len(components) <= 3:
-        return ServiceAddressType.NODE_SDN
+        return ServiceAddressType.NODE_SQDN
     else:
         return ServiceAddressType.NODE_FQDN
 
@@ -134,17 +134,17 @@ def _get_cluster_node_hostname(config: Dict[str, Any], node_seq_id) -> str:
     if is_config_use_fqdn(config):
         return get_cluster_node_fqdn_of(config, node_seq_id)
     else:
-        return get_cluster_node_sdn_of(config, node_seq_id)
+        return get_cluster_node_sqdn_of(config, node_seq_id)
 
 
-def get_cluster_node_sdn_of(config, node_seq_id):
+def get_cluster_node_sqdn_of(config, node_seq_id):
     cluster_name = get_cluster_name(config)
-    return _get_cluster_node_sdn_of(cluster_name, node_seq_id)
+    return _get_cluster_node_sqdn_of(cluster_name, node_seq_id)
 
 
-def _get_cluster_node_sdn_of(cluster_name, node_seq_id):
+def _get_cluster_node_sqdn_of(cluster_name, node_seq_id):
     node_name = get_cluster_node_name(cluster_name, node_seq_id)
-    return get_cluster_node_sdn(node_name)
+    return get_cluster_node_sqdn(node_name)
 
 
 def get_cluster_node_fqdn_of(config, node_seq_id):
@@ -187,7 +187,7 @@ def get_cluster_node_address_type(
         if is_config_use_fqdn(config):
             return ServiceAddressType.NODE_FQDN
         else:
-            return ServiceAddressType.NODE_SDN
+            return ServiceAddressType.NODE_SQDN
     return ServiceAddressType.NODE_IP
 
 
@@ -196,9 +196,9 @@ def get_fqdn_of_node_info(config, node_info):
     return get_cluster_node_fqdn_of(config, node_seq_id)
 
 
-def get_sdn_of_node_info(config, node_info):
+def get_sqdn_of_node_info(config, node_info):
     node_seq_id = node_info[CLOUDTIK_TAG_NODE_SEQ_ID]
-    return get_cluster_node_sdn_of(config, node_seq_id)
+    return get_cluster_node_sqdn_of(config, node_seq_id)
 
 
 def _get_hosts_of_nodes_info(config, nodes_info):
@@ -208,7 +208,7 @@ def _get_hosts_of_nodes_info(config, nodes_info):
             return [get_fqdn_of_node_info(
                 config, node_info) for node_info in nodes_info]
         else:
-            return [get_sdn_of_node_info(
+            return [get_sqdn_of_node_info(
                 config, node_info) for node_info in nodes_info]
     # use ip as host instead
     return [node_info[NODE_INFO_NODE_IP] for node_info in nodes_info]

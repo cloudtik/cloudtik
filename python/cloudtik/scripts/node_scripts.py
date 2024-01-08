@@ -28,6 +28,7 @@ from cloudtik.core._private.resource_spec import ResourceSpec
 from cloudtik.core._private.util.runtime_utils import get_runtime_value
 from cloudtik.core._private.util.pull.pull_server import pull_server
 from cloudtik.core._private.utils import parse_resources_json, run_script
+from cloudtik.runtime.common.service_discovery.cluster_nodes import get_cluster_live_nodes_address
 from cloudtik.scripts.utils import NaturalOrderGroup
 
 logger = logging.getLogger(__name__)
@@ -512,6 +513,7 @@ def pull(
         identifier, command,
         pull_class, pull_script,
         interval, logs_dir, no_redirect_output, script_args):
+    """Start a pull service with pull class and parameters."""
     redirect_output = None if not no_redirect_output else True
     pull_server(
         identifier, command,
@@ -540,7 +542,44 @@ def pull(
     help="Wait for the port to be free. Default wait for in use.")
 @add_click_logging_options
 def wait_for_port(port, host, timeout, free):
+    """Wait for port to be free or open"""
     _wait_for_port(port, host, timeout, free)
+
+
+@node.command()
+@click.option(
+    "--node-type",
+    required=False,
+    type=str,
+    default=None,
+    help="The node type of the nodes.")
+@click.option(
+    "--runtime",
+    required=False,
+    type=str,
+    default=None,
+    help="The node which is configured with the runtime.")
+@click.option(
+    "--host",
+    is_flag=True,
+    default=False,
+    help="Return the host instead of IP if hostname is available.")
+@click.option(
+    "--separator",
+    required=False,
+    type=str,
+    default=None,
+    help="The separator between worker hosts. Default is change a line.")
+@add_click_logging_options
+def nodes(node_type, runtime, host, separator):
+    """List live nodes in the cluster"""
+    hosts = get_cluster_live_nodes_address(
+        node_type=node_type, runtime_type=runtime, host=host)
+    if len(hosts) > 0:
+        if separator:
+            click.echo(separator.join(hosts))
+        else:
+            click.echo("\n".join(hosts))
 
 
 @node.command()
@@ -644,6 +683,7 @@ node.add_command(run)
 node.add_command(resources)
 node.add_command(pull)
 node.add_command(wait_for_port)
+node.add_command(nodes)
 
 # utility commands running on head or worker node for dump local data
 node.add_command(dump)

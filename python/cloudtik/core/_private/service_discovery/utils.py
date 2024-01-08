@@ -70,7 +70,7 @@ SERVICE_SELECTOR_CLUSTERS = "clusters"
 class ServiceAddressType(Enum):
     NODE_IP = auto()
     NODE_FQDN = auto()
-    NODE_SDN = auto()
+    NODE_SQDN = auto()
     SERVICE_FQDN = auto()
 
     def __str__(self):
@@ -82,8 +82,8 @@ class ServiceAddressType(Enum):
             return ServiceAddressType.NODE_IP
         elif address_type_str == "NODE_FQDN":
             return ServiceAddressType.NODE_FQDN
-        elif address_type_str == "NODE_SDN":
-            return ServiceAddressType.NODE_SDN
+        elif address_type_str == "NODE_SQDN":
+            return ServiceAddressType.NODE_SQDN
         elif address_type_str == "SERVICE_FQDN":
             return ServiceAddressType.SERVICE_FQDN
         else:

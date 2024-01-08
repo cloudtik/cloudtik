@@ -62,9 +62,10 @@ def _get_delete_data_sources(data_sources, existing_data_sources):
 class DiscoverDataSources(PullJob):
     """Pulling job for discovering data sources through service discovery"""
 
-    def __init__(self,
-                 admin_endpoint=None,
-                 service_selector=None):
+    def __init__(
+            self,
+            admin_endpoint=None,
+            service_selector=None):
         if not admin_endpoint:
             raise RuntimeError("Grafana endpoint is needed for pulling data sources.")
 
@@ -144,15 +145,18 @@ class DiscoverDataSources(PullJob):
             logger.info("Data source {} created: {}".format(
                 data_source_name, added_data_source))
         else:
-            logger.error("Data source {} creation failed: {}".format(
-                data_source_name, data_source))
+            logger.error(
+                "Data source {} creation failed: {}".format(
+                    data_source_name, data_source))
 
     def _delete_data_source(self, data_source_name):
         response_for_delete = delete_data_source(
             self.admin_endpoint, self.auth, data_source_name)
         if response_for_delete:
-            logger.info("Data source {} deleted successfully.".format(
-                data_source_name))
+            logger.info(
+                "Data source {} deleted successfully.".format(
+                    data_source_name))
         else:
-            logger.error("Data source {} deletion failed.".format(
-                data_source_name))
+            logger.error(
+                "Data source {} deletion failed.".format(
+                    data_source_name))

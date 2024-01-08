@@ -517,12 +517,10 @@ class NodeServicesStarter:
     def start_redis(self):
         """Start the Redis servers."""
         assert self._redis_address is None
-        redis_log_files = []
-        if self._start_params.external_addresses is None:
-            redis_log_files = [self.get_log_file_handles("redis", unique=True)]
-            for i in range(self._start_params.num_redis_shards):
-                redis_log_files.append(
-                    self.get_log_file_handles(f"redis-shard_{i}", unique=True))
+        redis_log_files = [self.get_log_file_handles("redis", unique=True)]
+        for i in range(self._start_params.num_redis_shards):
+            redis_log_files.append(
+                self.get_log_file_handles(f"redis-shard_{i}", unique=True))
 
         (self._redis_address, redis_shards,
          processes) = services.start_redis(
@@ -538,7 +536,6 @@ class NodeServicesStarter:
             redirect_worker_output=True,
             password=self._start_params.redis_password,
             fate_share=self.kernel_fate_share,
-            external_addresses=self._start_params.external_addresses,
             port_denylist=self._start_params.reserved_ports)
         assert (
             constants.PROCESS_TYPE_REDIS_SERVER not in self.all_processes)

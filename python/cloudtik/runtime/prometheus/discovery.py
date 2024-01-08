@@ -62,13 +62,14 @@ def _get_targets_of_node_types(live_nodes_by_node_type, node_types):
 class DiscoverLocalTargets(PullJob):
     """Pulling job for discovering local cluster nodes if service discovery is not available"""
 
-    def __init__(self,
-                 services=None,
-                 redis_address=None,
-                 redis_password=None,
-                 workspace_name=None,
-                 cluster_name=None,
-                 address_type=None):
+    def __init__(
+            self,
+            services=None,
+            redis_address=None,
+            redis_password=None,
+            workspace_name=None,
+            cluster_name=None,
+            address_type=None):
         self.pull_services = _parse_services(services)
         self.cluster_nodes = ClusterNodes(redis_address, redis_password)
         self.workspace_name = workspace_name

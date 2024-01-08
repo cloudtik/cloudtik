@@ -15,10 +15,10 @@ logger = logging.getLogger(__name__)
 
 
 class DiscoverJob(PullJob):
-    def __init__(self,
-                 service_selector=None,
-                 balance_method=None
-                 ):
+    def __init__(
+            self,
+            service_selector=None,
+            balance_method=None):
         self.service_selector = deserialize_service_selector(
             service_selector)
         self.balance_method = balance_method
@@ -36,10 +36,10 @@ class DiscoverBackendServers(DiscoverJob):
     update the config if there are new or deleted servers with reload.
     """
 
-    def __init__(self,
-                 service_selector=None,
-                 balance_method=None
-                 ):
+    def __init__(
+            self,
+            service_selector=None,
+            balance_method=None):
         super().__init__(service_selector, balance_method)
 
     def pull(self):
@@ -72,10 +72,10 @@ class DiscoverAPIGatewayBackendServers(DiscoverJob):
     and optionally service tag and service cluster
     """
 
-    def __init__(self,
-                 service_selector=None,
-                 balance_method=None
-                 ):
+    def __init__(
+            self,
+            service_selector=None,
+            balance_method=None):
         super().__init__(service_selector, balance_method)
         # TODO: logging the job parameters
 
@@ -118,10 +118,10 @@ class DiscoverAPIGatewayBackendServers(DiscoverJob):
 
 
 class DiscoverAPIGatewayBackends(DiscoverJob):
-    def __init__(self,
-                 service_selector=None,
-                 balance_method=None
-                 ):
+    def __init__(
+            self,
+            service_selector=None,
+            balance_method=None):
         super().__init__(service_selector, balance_method)
         # TODO: logging the job parameters
 

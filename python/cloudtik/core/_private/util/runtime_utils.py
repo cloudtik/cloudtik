@@ -12,10 +12,10 @@ from cloudtik.core._private.constants import CLOUDTIK_RUNTIME_ENV_NODE_TYPE, CLO
     CLOUDTIK_RUNTIME_ENV_CLUSTER, CLOUDTIK_RUNTIME_ENV_NODE_SEQ_ID
 from cloudtik.core._private.crypto import AESCipher
 from cloudtik.core._private.provider_factory import _get_node_provider
-from cloudtik.core._private.service_discovery.naming import _get_cluster_node_fqdn_of, _get_cluster_node_sdn_of, \
+from cloudtik.core._private.service_discovery.naming import _get_cluster_node_fqdn_of, _get_cluster_node_sqdn_of, \
     get_address_type_of_hostname, _get_worker_node_hosts
 from cloudtik.core._private.service_discovery.utils import ServiceAddressType
-from cloudtik.core._private.util.redis_utils import create_redis_client
+from cloudtik.core._private.util.redis_utils import create_redis_client, get_address_to_use_or_die
 from cloudtik.core._private.state.state_utils import NODE_STATE_NODE_IP, NODE_STATE_NODE_SEQ_ID
 from cloudtik.core._private.utils import load_head_cluster_config, _get_node_type_specific_runtime_config, \
     get_runtime_config_key, decode_cluster_secrets, CLOUDTIK_CLUSTER_NODES_INFO_NODE_TYPE, \
@@ -132,12 +132,15 @@ def retrieve_runtime_config(node_type: str = None):
 
 def subscribe_runtime_config():
     node_type = get_runtime_value(CLOUDTIK_RUNTIME_ENV_NODE_TYPE)
+    return _subscribe_runtime_config(node_type)
+
+
+def _subscribe_runtime_config(node_type):
     if node_type:
         # Try getting node type specific runtime config
         runtime_config = retrieve_runtime_config(node_type)
         if runtime_config is not None:
             return runtime_config
-
     return subscribe_cluster_runtime_config()
 
 
@@ -155,9 +158,20 @@ def get_runtime_config_from_node(head):
         return subscribe_runtime_config()
 
 
+def get_runtime_config_of_node_type(node_type, head=False):
+    if head:
+        config = load_head_cluster_config()
+        return _get_node_type_specific_runtime_config(
+            config, node_type)
+    else:
+        # Try getting node type specific runtime config
+        return _subscribe_runtime_config(node_type)
+
+
 def subscribe_nodes_info():
     if CLOUDTIK_RUNTIME_ENV_NODE_TYPE not in os.environ:
-        raise RuntimeError("Not able to subscribe nodes info in lack of node type.")
+        raise RuntimeError(
+            "Not able to subscribe nodes info in lack of node type.")
     node_type = os.environ[CLOUDTIK_RUNTIME_ENV_NODE_TYPE]
     return _retrieve_nodes_info(node_type)
 
@@ -175,9 +189,11 @@ def sort_nodes_by_seq_id(nodes_info: Dict[str, Any]):
     sorted_nodes_info = []
     for node_id, node_info in nodes_info.items():
         if RUNTIME_NODE_IP not in node_info:
-            raise RuntimeError("Missing node ip for node {}.".format(node_id))
+            raise RuntimeError(
+                "Missing node ip for node {}.".format(node_id))
         if RUNTIME_NODE_SEQ_ID not in node_info:
-            raise RuntimeError("Missing node sequence id for node {}.".format(node_id))
+            raise RuntimeError(
+                "Missing node sequence id for node {}.".format(node_id))
         sorted_nodes_info += [node_info]
 
     def node_info_sort(node_info):
@@ -287,8 +303,13 @@ def subscribe_cluster_variable(cluster_variable_name):
 
 def get_cluster_redis_address():
     # TODO: DNS naming service may not available at configuration stage.
-    redis_host = get_runtime_head_ip()
-    redis_address = "{}:{}".format(redis_host, CLOUDTIK_DEFAULT_PORT)
+    try:
+        redis_host = get_runtime_head_ip()
+        redis_address = "{}:{}".format(redis_host, CLOUDTIK_DEFAULT_PORT)
+    except Exception:
+        # if there is no head ip in environment, try to find one
+        redis_address = get_address_to_use_or_die()
+
     redis_password = CLOUDTIK_REDIS_DEFAULT_PASSWORD
     return redis_address, redis_password
 
@@ -333,19 +354,20 @@ def get_node_host_from(
         node, address_type, get_node_seq_id, get_node_ip,
         workspace_name=None, cluster_name=None):
     if (address_type == ServiceAddressType.NODE_FQDN
-            or address_type == ServiceAddressType.NODE_SDN):
+            or address_type == ServiceAddressType.NODE_SQDN):
         if not cluster_name:
             cluster_name = get_runtime_cluster_name()
         node_seq_id = get_node_seq_id(node)
         if not node_seq_id:
-            raise RuntimeError("Node seq id is not available in node data.")
+            raise RuntimeError(
+                "Node seq id is not available in node data.")
         if address_type == ServiceAddressType.NODE_FQDN:
             if not workspace_name:
                 workspace_name = get_runtime_workspace_name()
             return _get_cluster_node_fqdn_of(
                 workspace_name, cluster_name, node_seq_id)
         else:
-            return _get_cluster_node_sdn_of(
+            return _get_cluster_node_sqdn_of(
                 cluster_name, node_seq_id)
     else:
         return get_node_ip(node)
