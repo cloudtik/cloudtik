@@ -33,7 +33,8 @@ def get_runtime_services_by_node_type(config: Dict[str, Any]):
 
         for service_name, runtime_service in built_in_services.items():
             if match_service_node(runtime_service, head):
-                services_for_node_type[service_name] = (CLOUDTIK_RUNTIME_NAME, runtime_service)
+                services_for_node_type[service_name] = (
+                    CLOUDTIK_RUNTIME_NAME, runtime_service)
 
         runtime_config = _get_node_type_specific_runtime_config(config, node_type)
         if runtime_config:
@@ -50,7 +51,8 @@ def get_runtime_services_by_node_type(config: Dict[str, Any]):
 
                 for service_name, runtime_service in services.items():
                     if match_service_node(runtime_service, head):
-                        services_for_node_type[service_name] = (runtime_type, runtime_service)
+                        services_for_node_type[service_name] = (
+                            runtime_type, runtime_service)
         if services_for_node_type:
             services_map[node_type] = services_for_node_type
     return services_map

@@ -21,7 +21,7 @@ from cloudtik.core._private.constants import CLOUDTIK_PROCESSES, \
 from cloudtik.core._private.util.core_utils import get_cloudtik_home_dir, wait_for_port as _wait_for_port, \
     get_node_ip_address, address_to_ip, address_string
 from cloudtik.core._private.node.node_services import NodeServicesStarter
-from cloudtik.core._private.parameter import StartParams
+from cloudtik.core._private.node.parameter import StartParams
 from cloudtik.core._private.util.redis_utils import find_redis_address, validate_redis_address, create_redis_client, \
     wait_for_redis_to_start
 from cloudtik.core._private.resource_spec import ResourceSpec
@@ -29,6 +29,7 @@ from cloudtik.core._private.util.runtime_utils import get_runtime_value
 from cloudtik.core._private.util.pull.pull_server import pull_server
 from cloudtik.core._private.utils import parse_resources_json, run_script
 from cloudtik.runtime.common.service_discovery.cluster_nodes import get_cluster_live_nodes_address
+from cloudtik.runtime.common.service_discovery.discovery import get_service_node_addresses
 from cloudtik.scripts.utils import NaturalOrderGroup
 
 logger = logging.getLogger(__name__)
@@ -591,11 +592,63 @@ def nodes(
     hosts = get_cluster_live_nodes_address(
         node_type=node_type, runtime_type=runtime,
         host=host, sort_by=sort_by, reverse=reverse)
-    if len(hosts) > 0:
+    if hosts:
         if separator:
             click.echo(separator.join(hosts))
         else:
             click.echo("\n".join(hosts))
+
+
+@node.command()
+@click.option(
+    "--runtime",
+    required=False,
+    type=str,
+    default=None,
+    help="The node which is configured with the runtime.")
+@click.option(
+    "--service",
+    required=False,
+    type=str,
+    default=None,
+    help="List the nodes for the service name.")
+@click.option(
+    "--service-type",
+    required=False,
+    type=str,
+    default=None,
+    help="List the nodes for the service type.")
+@click.option(
+    "--host",
+    is_flag=True,
+    default=False,
+    help="Return the host instead of IP if hostname is available.")
+@click.option(
+    "--no-port",
+    is_flag=True,
+    default=False,
+    help="Return the address without service port.")
+@click.option(
+    "--separator",
+    required=False,
+    type=str,
+    default=None,
+    help="The separator between hosts. Default is change a line.")
+@add_click_logging_options
+def service_nodes(
+        runtime, service, service_type,
+        host, no_port, separator):
+    """List service nodes in the cluster"""
+    node_addresses = get_service_node_addresses(
+        runtime_type=runtime,
+        service_name=service,
+        service_type=service_type,
+        host=host, no_port=no_port)
+    if node_addresses:
+        if separator:
+            click.echo(separator.join(node_addresses))
+        else:
+            click.echo("\n".join(node_addresses))
 
 
 @node.command()
@@ -700,6 +753,7 @@ node.add_command(resources)
 node.add_command(pull)
 node.add_command(wait_for_port)
 node.add_command(nodes)
+node.add_command(service_nodes)
 
 # utility commands running on head or worker node for dump local data
 node.add_command(dump)

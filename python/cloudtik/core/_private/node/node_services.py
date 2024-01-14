@@ -19,6 +19,7 @@ from collections import defaultdict
 
 import cloudtik.core._private.constants as constants
 import cloudtik.core._private.services as services
+from cloudtik.core._private.node.parameter import StartParams
 from cloudtik.core._private.util.redis_utils import create_redis_client
 from cloudtik.core._private.util.runtime_utils import get_first_data_disk_dir
 from cloudtik.core._private.state.control_state import StateClient
@@ -50,7 +51,7 @@ class NodeServicesStarter:
     """
 
     def __init__(self,
-                 start_params,
+                 start_params: StartParams,
                  head=False,
                  shutdown_at_exit=True,
                  spawn_reaper=True):
