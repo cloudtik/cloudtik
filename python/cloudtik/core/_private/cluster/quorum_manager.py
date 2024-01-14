@@ -191,7 +191,8 @@ class QuorumManager:
                     # quorum join in progress, make sure the node has ip ready,
                     node_id, node_info = node_quorum_join
                     if node_info.get(RUNTIME_NODE_IP) is None:
-                        logger.info("Cluster Controller: waiting for")
+                        logger.info(
+                            "Cluster Controller: waiting for node ready.")
                         return True
 
                     # we publish the nodes info for quorum
@@ -441,8 +442,9 @@ class QuorumManager:
                 remaining = len(quorum_id_nodes)
                 if remaining < quorum:
                     if logger.isEnabledFor(logging.DEBUG):
-                        logger.debug("Node {} is not bad quorum member: {} ({}/{}). Will be terminated".format(
-                            node_id, node_quorum_id, remaining, minimal))
+                        logger.debug(
+                            "Node {} is not bad quorum member: {} ({}/{}). Will be terminated".format(
+                                node_id, node_quorum_id, remaining, minimal))
                     return True
                 return False
         return False
@@ -495,8 +497,9 @@ class QuorumManager:
             if remaining >= quorum:
                 # One quorum id exceed the quorum
                 if logger.isEnabledFor(logging.DEBUG):
-                    logger.debug("No new node launch allowed with the existence of a valid quorum: {} ({}/{}).".format(
-                        quorum_id, remaining, minimal))
+                    logger.debug(
+                        "No new node launch allowed with the existence of a valid quorum: {} ({}/{}).".format(
+                            quorum_id, remaining, minimal))
                 return quorum_id
 
         # none of the quorum_id exceeding a quorum
@@ -526,5 +529,6 @@ class QuorumManager:
 
     @staticmethod
     def _print_info_waiting_for(node_constraints, number_of_nodes, for_what):
-        logger.info("Cluster Controller: waiting for {} of {}/{} nodes required by runtimes: {}".format(
-            for_what, number_of_nodes, node_constraints.minimal, node_constraints.runtimes))
+        logger.info(
+            "Cluster Controller: waiting for {} of {}/{} nodes required by runtimes: {}".format(
+                for_what, number_of_nodes, node_constraints.minimal, node_constraints.runtimes))

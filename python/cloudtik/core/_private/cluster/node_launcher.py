@@ -9,11 +9,12 @@ import time
 
 from cloudtik.core._private.cluster.node_availability_tracker import NodeAvailabilityTracker
 from cloudtik.core.node_provider import NodeLaunchException
-from cloudtik.core.tags import (CLOUDTIK_TAG_LAUNCH_CONFIG, CLOUDTIK_TAG_NODE_STATUS,
-                                CLOUDTIK_TAG_NODE_KIND, CLOUDTIK_TAG_NODE_NAME,
-                                CLOUDTIK_TAG_USER_NODE_TYPE, STATUS_UNINITIALIZED,
-                                NODE_KIND_WORKER, CLOUDTIK_TAG_QUORUM_ID, CLOUDTIK_TAG_QUORUM_JOIN,
-                                QUORUM_JOIN_STATUS_INIT, CLOUDTIK_TAG_NODE_SEQ_ID)
+from cloudtik.core.tags import (
+    CLOUDTIK_TAG_LAUNCH_CONFIG, CLOUDTIK_TAG_NODE_STATUS,
+    CLOUDTIK_TAG_NODE_KIND, CLOUDTIK_TAG_NODE_NAME,
+    CLOUDTIK_TAG_USER_NODE_TYPE, STATUS_UNINITIALIZED,
+    NODE_KIND_WORKER, CLOUDTIK_TAG_QUORUM_ID, CLOUDTIK_TAG_QUORUM_JOIN,
+    QUORUM_JOIN_STATUS_INIT, CLOUDTIK_TAG_NODE_SEQ_ID)
 from cloudtik.core._private.prometheus_metrics import ClusterPrometheusMetrics
 from cloudtik.core._private.utils import hash_launch_conf
 
@@ -72,17 +73,18 @@ class PendingLaunches:
 class BaseNodeLauncher:
     """Launches nodes synchronously in the foreground."""
 
-    def __init__(self,
-                 provider,
-                 pending_launches,
-                 event_summarizer,
-                 node_availability_tracker: NodeAvailabilityTracker,
-                 session_name: Optional[str] = None,
-                 prometheus_metrics=None,
-                 node_types=None,
-                 index=None,
-                 *args,
-                 **kwargs):
+    def __init__(
+            self,
+            provider,
+            pending_launches,
+            event_summarizer,
+            node_availability_tracker: NodeAvailabilityTracker,
+            session_name: Optional[str] = None,
+            prometheus_metrics=None,
+            node_types=None,
+            index=None,
+            *args,
+            **kwargs):
         self.pending_launches = pending_launches
         self.event_summarizer = event_summarizer
         self.node_availability_tracker = node_availability_tracker
@@ -212,18 +214,19 @@ class BaseNodeLauncher:
 class NodeLauncher(BaseNodeLauncher, threading.Thread):
     """Launches nodes asynchronously in the background."""
 
-    def __init__(self,
-                 provider,
-                 queue,
-                 pending_launches,
-                 event_summarizer,
-                 node_availability_tracker: NodeAvailabilityTracker,
-                 session_name: Optional[str] = None,
-                 prometheus_metrics=None,
-                 node_types=None,
-                 index=None,
-                 *thread_args,
-                 **thread_kwargs):
+    def __init__(
+            self,
+            provider,
+            queue,
+            pending_launches,
+            event_summarizer,
+            node_availability_tracker: NodeAvailabilityTracker,
+            session_name: Optional[str] = None,
+            prometheus_metrics=None,
+            node_types=None,
+            index=None,
+            *thread_args,
+            **thread_kwargs):
         self.queue = queue
         BaseNodeLauncher.__init__(
             self,

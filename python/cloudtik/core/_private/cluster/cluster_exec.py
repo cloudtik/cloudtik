@@ -20,7 +20,8 @@ def _exec_on_node(
         run_env: str = "auto",
         with_output: bool = False,
         is_head_node: bool = False,
-        use_internal_ip: bool = True
+        use_internal_ip: bool = True,
+        with_updater_environment: bool = False
 ) -> str:
     """Runs a command on a node of a cluster
     """
@@ -31,12 +32,18 @@ def _exec_on_node(
         provider=provider,
         start_commands=[],
         is_head_node=is_head_node,
-        use_internal_ip=use_internal_ip)
+        use_internal_ip=use_internal_ip,
+        with_updater_environment=with_updater_environment)
+
+    environment_variables = None
+    if with_updater_environment:
+        environment_variables = updater.get_update_environment_variables()
 
     exec_out = updater.cmd_executor.run(
         cmd,
         with_output=with_output,
-        run_env=run_env)
+        run_env=run_env,
+        environment_variables=environment_variables)
     if with_output:
         return exec_out.decode(encoding="utf-8")
     else:
@@ -50,7 +57,8 @@ def exec_on_head(
         *,
         cmd: str = None,
         run_env: str = "auto",
-        with_output: bool = False) -> str:
+        with_output: bool = False,
+        with_updater_environment: bool = False) -> str:
     """Runs a command on the head of the cluster.
     """
     provider = _get_node_provider(
@@ -58,7 +66,8 @@ def exec_on_head(
     return _exec_on_node(
         config, call_context, node_id, provider,
         cmd=cmd, run_env=run_env, with_output=with_output,
-        is_head_node=False, use_internal_ip=True
+        is_head_node=False, use_internal_ip=True,
+        with_updater_environment=with_updater_environment
     )
 
 
@@ -69,7 +78,8 @@ def exec_cluster(
         cmd: str = None,
         run_env: str = "auto",
         with_output: bool = False,
-        _allow_uninitialized_state: bool = True) -> str:
+        _allow_uninitialized_state: bool = True,
+        with_updater_environment: bool = False) -> str:
     """Runs a command on the head of the cluster.
     """
     use_internal_ip = config.get("bootstrapped", False)
@@ -83,7 +93,8 @@ def exec_cluster(
     return _exec_on_node(
         config, call_context, head_node, provider,
         cmd=cmd, run_env=run_env, with_output=with_output,
-        is_head_node=True, use_internal_ip=use_internal_ip
+        is_head_node=True, use_internal_ip=use_internal_ip,
+        with_updater_environment=with_updater_environment
     )
 
 

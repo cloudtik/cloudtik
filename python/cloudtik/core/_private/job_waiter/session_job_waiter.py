@@ -1,5 +1,4 @@
 import logging
-import os
 import time
 from typing import Any, Dict, Optional
 
@@ -48,14 +47,17 @@ class SessionJobWaiter(JobWaiter):
             except Exception as e:
                 retry = retry - 1
                 if retry > 0:
-                    cli_logger.warning(f"Error when checking session. Retrying in {CHECK_SESSION_RETRY_DELAY_S} seconds.")
+                    cli_logger.warning(
+                        f"Error when checking session. Retrying in {CHECK_SESSION_RETRY_DELAY_S} seconds.")
                     time.sleep(CHECK_SESSION_RETRY_DELAY_S)
                 else:
-                    cli_logger.error("Failed to request yarn api: {}", str(e))
+                    cli_logger.error(
+                        "Failed to request yarn api: {}", str(e))
                     raise e
         return False
 
-    def wait_for_completion(self, node_id: str, cmd: str, session_name: str, timeout: Optional[int] = None):
+    def wait_for_completion(
+            self, node_id: str, cmd: str, session_name: str, timeout: Optional[int] = None):
         start_time = time.time()
         if timeout is None:
             timeout = CLOUDTIK_JOB_WAITER_TIMEOUT_MAX
@@ -64,7 +66,8 @@ class SessionJobWaiter(JobWaiter):
         session_exists = self._check_session(node_id, session_name)
         while time.time() - start_time < timeout:
             if not session_exists:
-                cli_logger.print("Session {} finished.", session_name)
+                cli_logger.print(
+                    "Session {} finished.", session_name)
                 return
             else:
                 cli_logger.print(

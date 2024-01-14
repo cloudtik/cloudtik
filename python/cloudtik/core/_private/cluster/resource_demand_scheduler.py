@@ -48,12 +48,13 @@ NodeIP = str
 
 
 class ResourceDemandScheduler:
-    def __init__(self,
-                 provider: NodeProvider,
-                 node_types: Dict[NodeType, NodeTypeConfigDict],
-                 max_workers: int,
-                 head_node_type: NodeType,
-                 upscaling_speed: float = 1) -> None:
+    def __init__(
+            self,
+            provider: NodeProvider,
+            node_types: Dict[NodeType, NodeTypeConfigDict],
+            max_workers: int,
+            head_node_type: NodeType,
+            upscaling_speed: float = 1) -> None:
         self.provider = provider
         self.node_types = _convert_memory_unit(node_types)
         self.node_resource_updated = set()
@@ -84,12 +85,13 @@ class ResourceDemandScheduler:
                 worker_ids.append(node)
         return head_id, worker_ids
 
-    def reset_config(self,
-                     provider: NodeProvider,
-                     node_types: Dict[NodeType, NodeTypeConfigDict],
-                     max_workers: int,
-                     head_node_type: NodeType,
-                     upscaling_speed: float = 1) -> None:
+    def reset_config(
+            self,
+            provider: NodeProvider,
+            node_types: Dict[NodeType, NodeTypeConfigDict],
+            max_workers: int,
+            head_node_type: NodeType,
+            upscaling_speed: float = 1) -> None:
         """Updates the class state variables.
         """
         new_node_types = copy.deepcopy(node_types)
@@ -159,9 +161,12 @@ class ResourceDemandScheduler:
             nodes, launching_nodes, unused_resources_by_ip)
 
         if logger.isEnabledFor(logging.DEBUG):
-            logger.debug("Cluster resources: {}".format(node_resources))
-            logger.debug("Node counts: {}".format(node_type_counts))
-            logger.debug("Minimum cluster size: {}".format(ensure_min_cluster_size))
+            logger.debug(
+                "Cluster resources: {}".format(node_resources))
+            logger.debug(
+                "Node counts: {}".format(node_type_counts))
+            logger.debug(
+                "Minimum cluster size: {}".format(ensure_min_cluster_size))
 
         # Step 2: add nodes to add to satisfy min_workers for each type
         (node_resources,
@@ -176,11 +181,14 @@ class ResourceDemandScheduler:
         max_to_add = self.max_workers + 1 - sum(node_type_counts.values())
 
         # Step 3/4: add nodes for pending tasks
-        unfulfilled, _ = get_bin_pack_residual(node_resources,
-                                               resource_demands)
+        unfulfilled, _ = get_bin_pack_residual(
+            node_resources,
+            resource_demands)
         if logger.isEnabledFor(logging.DEBUG):
-            logger.debug("Resource demands: {}".format(resource_demands))
-            logger.debug("Unfulfilled demands: {}".format(unfulfilled))
+            logger.debug(
+                "Resource demands: {}".format(resource_demands))
+            logger.debug(
+                "Unfulfilled demands: {}".format(unfulfilled))
 
         nodes_to_add_based_on_demand, final_unfulfilled = get_nodes_for(
             self.node_types, node_type_counts, self.head_node_type,
@@ -188,7 +196,8 @@ class ResourceDemandScheduler:
             utilization_scorer=utilization_scorer)
 
         if logger.isEnabledFor(logging.DEBUG):
-            logger.debug("Final unfulfilled: {}".format(final_unfulfilled))
+            logger.debug(
+                "Final unfulfilled: {}".format(final_unfulfilled))
 
         # Merge nodes to add based on demand and nodes to add based on
         # min_workers constraint. We add them because nodes to add based on
@@ -207,7 +216,8 @@ class ResourceDemandScheduler:
             launching_nodes, adjusted_min_workers)
 
         if logger.isEnabledFor(logging.DEBUG):
-            logger.debug("Node requests: {}".format(total_nodes_to_add))
+            logger.debug(
+                "Node requests: {}".format(total_nodes_to_add))
         return total_nodes_to_add, final_unfulfilled
 
     def _update_node_resources_from_runtime(
@@ -386,7 +396,8 @@ class ResourceDemandScheduler:
                 if tags[CLOUDTIK_TAG_NODE_KIND] == NODE_KIND_HEAD:
                     # Head node: consider all the head resources are used, because we cannot use it for workers
                     if node_type in self.node_types:
-                        available_resources = copy.deepcopy(self.node_types[node_type]["resources"])
+                        available_resources = copy.deepcopy(
+                            self.node_types[node_type]["resources"])
                         for resource_id in available_resources:
                             available_resources[resource_id] = 0
                     else:
@@ -405,8 +416,9 @@ class ResourceDemandScheduler:
         return node_resources, node_type_counts
 
 
-def _convert_memory_unit(node_types: Dict[NodeType, NodeTypeConfigDict]
-                         ) -> Dict[NodeType, NodeTypeConfigDict]:
+def _convert_memory_unit(
+        node_types: Dict[NodeType, NodeTypeConfigDict]
+) -> Dict[NodeType, NodeTypeConfigDict]:
     """Convert memory and object_store_memory to memory unit"""
     node_types = copy.deepcopy(node_types)
     for node_type in node_types:
@@ -514,15 +526,16 @@ def _add_min_workers_nodes(
     return node_resources, node_type_counts, total_nodes_to_add_dict
 
 
-def get_nodes_for(node_types: Dict[NodeType, NodeTypeConfigDict],
-                  existing_nodes: Dict[NodeType, int],
-                  head_node_type: NodeType,
-                  max_to_add: int,
-                  resources: List[ResourceDict],
-                  utilization_scorer: Callable[
-                      [NodeResources, ResourceDemands, str], Optional[UtilizationScore]],
-                  strict_spread: bool = False,
-                  ) -> (Dict[NodeType, int], List[ResourceDict]):
+def get_nodes_for(
+        node_types: Dict[NodeType, NodeTypeConfigDict],
+        existing_nodes: Dict[NodeType, int],
+        head_node_type: NodeType,
+        max_to_add: int,
+        resources: List[ResourceDict],
+        utilization_scorer: Callable[
+            [NodeResources, ResourceDemands, str], Optional[UtilizationScore]],
+        strict_spread: bool = False,
+) -> (Dict[NodeType, int], List[ResourceDict]):
     """Determine nodes to add given resource demands and constraints.
 
     Args:
@@ -555,8 +568,9 @@ def get_nodes_for(node_types: Dict[NodeType, NodeTypeConfigDict],
             if (existing_nodes.get(node_type, 0) + nodes_to_add.get(
                     node_type, 0) >= max_workers_of_node_type):
                 if logger.isEnabledFor(logging.DEBUG):
-                    logger.debug(f"Will not launch node of {node_type} type as it already "
-                                 f"exceeds the max number ({max_workers_of_node_type})")
+                    logger.debug(
+                        f"Will not launch node of {node_type} type as it already "
+                        f"exceeds the max number ({max_workers_of_node_type})")
                 continue
             node_resources = node_types[node_type]["resources"]
             if strict_spread:
@@ -583,8 +597,9 @@ def get_nodes_for(node_types: Dict[NodeType, NodeTypeConfigDict],
             resources = resources[1:]
         else:
             allocated_resource = node_types[best_node_type]["resources"]
-            residual, _ = get_bin_pack_residual([allocated_resource],
-                                                resources)
+            residual, _ = get_bin_pack_residual(
+                [allocated_resource],
+                resources)
             assert len(residual) < len(resources), (resources, residual)
             resources = residual
 
@@ -657,10 +672,11 @@ def _default_utilization_scorer(
     return _utilization_score(node_resources, resources)
 
 
-def get_bin_pack_residual(node_resources: List[ResourceDict],
-                          resource_demands: List[ResourceDict],
-                          strict_spread: bool = False
-                          ) -> (List[ResourceDict], List[ResourceDict]):
+def get_bin_pack_residual(
+        node_resources: List[ResourceDict],
+        resource_demands: List[ResourceDict],
+        strict_spread: bool = False
+) -> (List[ResourceDict], List[ResourceDict]):
     """Return a subset of resource_demands that cannot fit in the cluster.
 
     Args:
@@ -717,7 +733,8 @@ def _fits(node: ResourceDict, resources: ResourceDict) -> bool:
     return True
 
 
-def _inplace_subtract(node: ResourceDict, resources: ResourceDict) -> None:
+def _inplace_subtract(
+        node: ResourceDict, resources: ResourceDict) -> None:
     for k, v in resources.items():
         if v == 0:
             # This is an edge case since someone can

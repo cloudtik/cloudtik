@@ -26,36 +26,45 @@ import yaml
 from cloudtik.core import tags
 from cloudtik.core._private import constants
 from cloudtik.core._private.call_context import CallContext
+from cloudtik.core._private.cli_logger import cli_logger, cf
 from cloudtik.core._private.cluster.cluster_config import _load_cluster_config, _bootstrap_config, try_logging_config
+from cloudtik.core._private.cluster.cluster_dump import Archive, \
+    GetParameters, Node, _get_nodes_to_dump, \
+    add_archive_for_remote_nodes, get_all_local_data, \
+    add_archive_for_cluster_nodes, add_archive_for_local_node
 from cloudtik.core._private.cluster.cluster_exec import exec_cluster
 from cloudtik.core._private.cluster.cluster_logging import print_logs
+from cloudtik.core._private.cluster.cluster_metrics import ClusterMetricsSummary
+from cloudtik.core._private.cluster.cluster_scaler import ClusterScalerSummary
 from cloudtik.core._private.cluster.cluster_tunnel_request import request_tunnel_to_head
 from cloudtik.core._private.cluster.cluster_utils import create_node_updater_for_exec
 from cloudtik.core._private.cluster.node_availability_tracker import NodeAvailabilitySummary
 from cloudtik.core._private.cluster.resource_demand_scheduler import ResourceDict, \
     get_node_type_counts, get_unfulfilled_for_bundles
-from cloudtik.core._private.util.core_utils import stop_process_tree, double_quote, get_cloudtik_temp_dir, \
-    get_free_port, \
-    memory_to_gb, memory_to_gb_string, address_to_ip, split_list
-from cloudtik.core._private.job_waiter.job_waiter_factory import create_job_waiter
-from cloudtik.core._private.runtime_factory import _get_runtime_cls
-from cloudtik.core._private.service_discovery.naming import get_cluster_head_hostname, _get_worker_node_hosts, \
-    get_cluster_head_host
-from cloudtik.core._private.service_discovery.utils import ServiceRegisterException
-from cloudtik.core._private.util.redis_utils import validate_redis_address, get_address_to_use_or_die
-from cloudtik.core._private.state import kv_store
-from cloudtik.core._private.state.state_utils import NODE_STATE_NODE_IP, NODE_STATE_NODE_ID, NODE_STATE_NODE_KIND, \
-    NODE_STATE_HEARTBEAT_TIME, NODE_STATE_TIME
-from cloudtik.core.job_waiter import JobWaiter
-
-from cloudtik.core._private.state.kv_store import kv_put, kv_initialize_with_address, kv_get, kv_save
-
-from cloudtik.core.node_provider import NodeProvider
 from cloudtik.core._private.constants import \
     CLOUDTIK_RESOURCE_REQUESTS, \
     MAX_PARALLEL_SHUTDOWN_WORKERS, \
     CLOUDTIK_REDIS_DEFAULT_PASSWORD, CLOUDTIK_CLUSTER_STATUS_STOPPED, CLOUDTIK_CLUSTER_STATUS_RUNNING, \
     CLOUDTIK_RUNTIME_NAME, CLOUDTIK_KV_NAMESPACE_HEALTHCHECK, SESSION_LATEST, CLOUDTIK_CLUSTER_STATUS_UNHEALTHY
+from cloudtik.core._private.event_system import (CreateClusterEvent, global_event_system)
+from cloudtik.core._private.job_waiter.job_waiter_factory import create_job_waiter
+from cloudtik.core._private.log_timer import LogTimer
+from cloudtik.core._private.node.node_updater import NodeUpdaterThread
+from cloudtik.core._private.provider_factory import _get_node_provider, _NODE_PROVIDERS
+from cloudtik.core._private.runtime_factory import _get_runtime_cls
+from cloudtik.core._private.service_discovery.naming import get_cluster_head_hostname, _get_worker_node_hosts, \
+    get_cluster_head_host
+from cloudtik.core._private.service_discovery.utils import ServiceRegisterException
+from cloudtik.core._private.state import kv_store
+from cloudtik.core._private.state.control_state import ControlState
+from cloudtik.core._private.state.kv_store import kv_put, kv_initialize_with_address, kv_get, kv_save
+from cloudtik.core._private.state.state_utils import NODE_STATE_NODE_IP, NODE_STATE_NODE_ID, NODE_STATE_NODE_KIND, \
+    NODE_STATE_HEARTBEAT_TIME, NODE_STATE_TIME
+from cloudtik.core._private.util.core_utils import stop_process_tree, double_quote, get_cloudtik_temp_dir, \
+    get_free_port, \
+    memory_to_gb, memory_to_gb_string, address_to_ip, split_list
+from cloudtik.core._private.util.redis_utils import validate_redis_address, get_address_to_use_or_die
+from cloudtik.core._private.utils import format_info_string
 from cloudtik.core._private.utils import hash_runtime_conf, \
     hash_launch_conf, get_proxy_process_file, get_safe_proxy_process, \
     get_head_working_ip, get_node_cluster_ip, is_use_internal_ip, \
@@ -63,7 +72,7 @@ from cloudtik.core._private.utils import hash_runtime_conf, \
     get_nodes_info, run_in_parallel_on_nodes, get_commands_to_run, \
     sum_worker_cpus, sum_worker_memory, get_runtime_endpoints, get_enabled_runtimes, \
     cluster_booting_completed, load_head_cluster_config, get_runnable_command, get_cluster_uri, \
-    with_head_node_ip_environment_variables, get_verified_runtime_list, get_commands_of_runtimes, \
+    get_verified_runtime_list, get_commands_of_runtimes, \
     is_node_in_completed_status, check_for_single_worker_type, \
     get_node_specific_commands_of_runtimes, _get_node_specific_runtime_config, \
     RUNTIME_CONFIG_KEY, DOCKER_CONFIG_KEY, get_running_head_node, \
@@ -74,30 +83,17 @@ from cloudtik.core._private.utils import hash_runtime_conf, \
     sum_nodes_resource, get_gpus_of_node_info, get_resource_of_node_info, get_resource_info_of_node_type, \
     get_worker_node_type, save_server_process, get_resource_requests_for, _get_head_resource_requests, \
     get_resource_list_str, with_verbose_option, run_script, NODE_INFO_NODE_ID, is_alive_time_at, \
-    get_runtime_encryption_key, with_runtime_encryption_key, is_use_managed_cloud_storage, \
+    is_use_managed_cloud_storage, \
     print_dict_info, is_use_managed_cloud_database, prepare_config_for_runtime_hash, _get_sorted_nodes_info, \
     _get_number_of_node_in_status, _get_nodes_info_in_status, _get_worker_nodes, _get_worker_node_ips, \
     _get_workers_ready, HeadNotHealthyError
-
-from cloudtik.core._private.provider_factory import _get_node_provider, _NODE_PROVIDERS
+from cloudtik.core.job_waiter import JobWaiter
+from cloudtik.core.node_provider import NodeProvider
 from cloudtik.core.tags import (
     CLOUDTIK_TAG_NODE_KIND, CLOUDTIK_TAG_LAUNCH_CONFIG, CLOUDTIK_TAG_NODE_NAME,
     NODE_KIND_WORKER, NODE_KIND_HEAD, CLOUDTIK_TAG_USER_NODE_TYPE,
     STATUS_UNINITIALIZED, STATUS_UP_TO_DATE, CLOUDTIK_TAG_NODE_STATUS, STATUS_UPDATE_FAILED, CLOUDTIK_TAG_NODE_SEQ_ID,
     CLOUDTIK_TAG_HEAD_NODE_SEQ_ID)
-from cloudtik.core._private.cli_logger import cli_logger, cf
-from cloudtik.core._private.node.node_updater import NodeUpdaterThread
-from cloudtik.core._private.event_system import (CreateClusterEvent, global_event_system)
-from cloudtik.core._private.log_timer import LogTimer
-from cloudtik.core._private.cluster.cluster_dump import Archive, \
-    GetParameters, Node, _get_nodes_to_dump, \
-    add_archive_for_remote_nodes, get_all_local_data, \
-    add_archive_for_cluster_nodes, add_archive_for_local_node
-from cloudtik.core._private.state.control_state import ControlState
-
-from cloudtik.core._private.cluster.cluster_metrics import ClusterMetricsSummary
-from cloudtik.core._private.cluster.cluster_scaler import ClusterScalerSummary
-from cloudtik.core._private.utils import format_info_string
 
 logger = logging.getLogger(__name__)
 
@@ -1183,7 +1179,8 @@ def attach_cluster(
         no_config_cache: bool = False,
         new: bool = False,
         port_forward: Optional[Port_forward] = None,
-        force_to_host: bool = False) -> None:
+        force_to_host: bool = False,
+        with_updater_environment: bool = False) -> None:
     """Attaches to a screen for the specified cluster.
 
     Arguments:
@@ -1195,6 +1192,7 @@ def attach_cluster(
         new: whether to force a new screen
         port_forward ( (int,int) or list[(int,int)] ): port(s) to forward
         force_to_host: Force attaching to host
+        with_updater_environment (bool): Whether to set environment variables of updater
     """
     config = _load_cluster_config(
         config_file, override_cluster_name,
@@ -1214,7 +1212,8 @@ def attach_cluster(
         tmux=False,
         stop=False,
         start=False,
-        port_forward=port_forward)
+        port_forward=port_forward,
+        with_updater_environment=with_updater_environment)
 
 
 def _exec_cluster(
@@ -1231,7 +1230,8 @@ def _exec_cluster(
         with_output: bool = False,
         _allow_uninitialized_state: bool = True,
         job_waiter: Optional[JobWaiter] = None,
-        session_name: Optional[str] = None) -> str:
+        session_name: Optional[str] = None,
+        with_updater_environment: bool = False) -> str:
     """Runs a command on the specified cluster.
 
     Arguments:
@@ -1273,7 +1273,8 @@ def _exec_cluster(
         provider=provider,
         start_commands=[],
         is_head_node=True,
-        use_internal_ip=use_internal_ip)
+        use_internal_ip=use_internal_ip,
+        with_updater_environment=with_updater_environment)
 
     if cmd and stop:
         # if no job waiter defined, we shut down at the end
@@ -1298,7 +1299,8 @@ def _exec_cluster(
         with_output=with_output,
         run_env=run_env,
         session_name=session_name,
-        hold_session=hold_session)
+        hold_session=hold_session,
+        with_updater_environment=with_updater_environment)
 
     # if a job waiter is specified, we always wait for its completion.
     if job_waiter is not None:
@@ -1326,7 +1328,8 @@ def _exec(
         shutdown_after_run: bool = False,
         exit_on_fail: bool = False,
         session_name: str = None,
-        hold_session: bool = True) -> str:
+        hold_session: bool = True,
+        with_updater_environment: bool = False) -> str:
     if cmd:
         if screen:
             if not session_name:
@@ -1344,13 +1347,18 @@ def _exec(
                 quote(cmd + "; exec bash") if hold_session else quote(cmd)
             ]
             cmd = " ".join(wrapped_cmd)
+
+    environment_variables = None
+    if with_updater_environment:
+        environment_variables = updater.get_update_environment_variables()
     exec_out = updater.cmd_executor.run(
         cmd,
         exit_on_fail=exit_on_fail,
         port_forward=port_forward,
         with_output=with_output,
         run_env=run_env,
-        shutdown_after_run=shutdown_after_run)
+        shutdown_after_run=shutdown_after_run,
+        environment_variables=environment_variables)
     if with_output:
         return exec_out.decode(encoding="utf-8")
     else:
@@ -1477,11 +1485,13 @@ def _rsync(
                     source_file = os.path.basename(source)
                     target = os.path.join(target, source_file)
 
-            rsync_to_node(head_node, target_on_head, target, is_head_node=True)
+            rsync_to_node(
+                head_node, target_on_head, target, is_head_node=True)
         else:
             # rsync up
             # first rsync local node with head
-            rsync_to_node(head_node, source, target_on_head, is_head_node=True)
+            rsync_to_node(
+                head_node, source, target_on_head, is_head_node=True)
 
             # then rsync from head to the specific node
             if os.path.isdir(source):
@@ -2850,7 +2860,8 @@ def exec_on_nodes(
         parallel: bool = True,
         yes: bool = False,
         job_waiter_name: Optional[str] = None,
-        force: bool = False) -> str:
+        force: bool = False,
+        with_updater_environment: bool = False) -> str:
     if not node_ip and not all_nodes:
         if (start or stop) and not yes:
             cli_logger.confirm(
@@ -2887,7 +2898,8 @@ def exec_on_nodes(
             port_forward=port_forward,
             with_output=with_output,
             _allow_uninitialized_state=True if force else False,
-            job_waiter=job_waiter)
+            job_waiter=job_waiter,
+            with_updater_environment=with_updater_environment)
     else:
         return _exec_node_from_head(
             config,
@@ -2905,7 +2917,8 @@ def exec_on_nodes(
             with_output=with_output,
             parallel=parallel,
             job_waiter_name=job_waiter_name,
-            force=force)
+            force=force,
+            with_updater_environment=with_updater_environment)
 
 
 def _exec_node_from_head(
@@ -2924,7 +2937,8 @@ def _exec_node_from_head(
         with_output: bool = False,
         parallel: bool = True,
         job_waiter_name: Optional[str] = None,
-        force: bool = False) -> str:
+        force: bool = False,
+        with_updater_environment: bool = False) -> str:
 
     # execute exec on head with the cmd
     cmds = [
@@ -2958,6 +2972,8 @@ def _exec_node_from_head(
 
     if job_waiter_name:
         cmds += ["--job-waiter={}".format(job_waiter_name)]
+    if with_updater_environment:
+        cmds += ["--with-updater"]
 
     # TODO (haifeng): handle port forward and with_output for two state cases
     with_verbose_option(cmds, call_context)
@@ -2989,7 +3005,8 @@ def attach_worker(
         no_config_cache: bool = False,
         new: bool = False,
         port_forward: Optional[Port_forward] = None,
-        force_to_host: bool = False) -> None:
+        force_to_host: bool = False,
+        with_updater_environment: bool = False) -> None:
     """Attaches to a screen for the specified cluster.
 
     Arguments:
@@ -3002,6 +3019,7 @@ def attach_worker(
         new: whether to force a new screen
         port_forward ( (int,int) or list[(int,int)] ): port(s) to forward
         force_to_host: Whether attach to host even running with docker
+        with_updater_environment (bool): Whether to set environment variables of updater
     """
     config = _load_cluster_config(
         config_file, override_cluster_name,
@@ -3022,6 +3040,8 @@ def attach_worker(
         cmds += ["--new"]
     if force_to_host:
         cmds += ["--host"]
+    if with_updater_environment:
+        cmds += ["--with-updater"]
 
     # TODO (haifeng): handle port forward for two state cases
     with_verbose_option(cmds, call_context)
@@ -3045,12 +3065,14 @@ def exec_cmd_on_head(
         provider,
         node_id: str,
         cmd: str = None,
+        head_node: str = None,
         run_env: str = "auto",
         screen: bool = False,
         tmux: bool = False,
         port_forward: Optional[Port_forward] = None,
         with_output: bool = False,
-        job_waiter_name: Optional[str] = None) -> str:
+        job_waiter_name: Optional[str] = None,
+        with_updater_environment: bool = False) -> str:
     """Runs a command on the specified node from head."""
 
     assert not (screen and tmux), "Can specify only one of `screen` or `tmux`."
@@ -3061,14 +3083,23 @@ def exec_cmd_on_head(
     job_waiter = _create_job_waiter(
         config, call_context, job_waiter_name)
 
+    # check whether this node is head or worker
+    if not head_node:
+        head_node = get_running_head_node(
+            config, _provider=provider,
+            _allow_uninitialized_state=True)
+    is_head_node = True if node_id == head_node else False
+
     updater = create_node_updater_for_exec(
         config=config,
         call_context=call_context,
         node_id=node_id,
         provider=provider,
         start_commands=[],
-        is_head_node=False,
-        use_internal_ip=True)
+        is_head_node=is_head_node,
+        head_node=head_node,
+        use_internal_ip=True,
+        with_updater_environment=with_updater_environment)
 
     hold_session = False if job_waiter else True
     session_name = get_command_session_name(cmd, time.time_ns())
@@ -3082,7 +3113,8 @@ def exec_cmd_on_head(
         run_env=run_env,
         shutdown_after_run=False,
         session_name=session_name,
-        hold_session=hold_session)
+        hold_session=hold_session,
+        with_updater_environment=with_updater_environment)
 
     # if a job waiter is specified, we always wait for its completion.
     if job_waiter is not None:
@@ -3097,18 +3129,21 @@ def attach_node_on_head(
         use_tmux: bool,
         new: bool = False,
         port_forward: Optional[Port_forward] = None,
-        force_to_host: bool = False):
+        force_to_host: bool = False,
+        with_updater_environment: bool = False):
     config = load_head_cluster_config()
     call_context = cli_call_context()
     provider = _get_node_provider(config["provider"], config["cluster_name"])
 
     if not node_ip:
-        cli_logger.error("Node IP must be specified to attach node!")
+        cli_logger.error(
+            "Node IP must be specified to attach node!")
         return
 
     node_id = provider.get_node_id(node_ip, use_internal_ip=True)
     if not node_id:
-        cli_logger.error("No node with the specified node ip - {} found.", node_ip)
+        cli_logger.error(
+            "No node with the specified node ip - {} found.", node_ip)
         return
 
     cmd = get_attach_command(use_screen, use_tmux, new)
@@ -3125,7 +3160,8 @@ def attach_node_on_head(
         run_env=run_env,
         screen=False,
         tmux=False,
-        port_forward=port_forward)
+        port_forward=port_forward,
+        with_updater_environment=with_updater_environment)
 
 
 def _exec_node_on_head(
@@ -3144,7 +3180,8 @@ def _exec_node_on_head(
         with_output: bool = False,
         parallel: bool = True,
         job_waiter_name: Optional[str] = None,
-        force: bool = True):
+        force: bool = True,
+        with_updater_environment: bool = False):
     provider = _get_node_provider(
         config["provider"], config["cluster_name"])
     head_node = _get_running_head_node(
@@ -3168,12 +3205,15 @@ def _exec_node_on_head(
             config,
             call_context=call_context,
             provider=provider,
-            node_id=node_id, cmd=cmd,
+            node_id=node_id,
+            cmd=cmd,
+            head_node=head_node,
             run_env=run_env,
             screen=screen, tmux=tmux,
             port_forward=port_forward,
             with_output=with_output,
-            job_waiter_name=job_waiter_name)
+            job_waiter_name=job_waiter_name,
+            with_updater_environment=with_updater_environment)
 
     total_nodes = len(nodes)
     if total_nodes == 1:
@@ -3276,7 +3316,6 @@ def _do_start_node_on_head(
         if node_id == head_node:
             is_head_node = True
 
-        environment_variables = {}
         if is_head_node:
             start_commands = get_commands_of_runtimes(
                 config, "head_start_commands", runtimes=runtimes)
@@ -3284,11 +3323,6 @@ def _do_start_node_on_head(
             start_commands = get_node_specific_commands_of_runtimes(
                 config, provider, node_id=node_id,
                 command_key="worker_start_commands", runtimes=runtimes)
-            environment_variables = with_head_node_ip_environment_variables(
-                head_node_ip, environment_variables)
-            encryption_key = get_runtime_encryption_key(config)
-            environment_variables = with_runtime_encryption_key(
-                encryption_key, environment_variables)
 
         updater = create_node_updater_for_exec(
             config=config,
@@ -3299,7 +3333,7 @@ def _do_start_node_on_head(
             is_head_node=is_head_node,
             use_internal_ip=True,
             runtime_config=runtime_config,
-            environment_variables=environment_variables)
+            with_updater_environment=True)
 
         updater_envs = updater.get_update_environment_variables()
         updater.exec_commands("Starting", start_commands, updater_envs)
@@ -3612,7 +3646,6 @@ def _do_stop_node_on_head(
         if node_id == head_node:
             is_head_node = True
 
-        environment_variables = {}
         if is_head_node:
             stop_commands = get_commands_of_runtimes(
                 config, "head_stop_commands", runtimes=runtimes)
@@ -3620,11 +3653,6 @@ def _do_stop_node_on_head(
             stop_commands = get_node_specific_commands_of_runtimes(
                 config, provider, node_id=node_id,
                 command_key="worker_stop_commands", runtimes=runtimes)
-            environment_variables = with_head_node_ip_environment_variables(
-                head_node_ip, environment_variables)
-            encryption_key = get_runtime_encryption_key(config)
-            environment_variables = with_runtime_encryption_key(
-                encryption_key, environment_variables)
 
         if not stop_commands:
             return
@@ -3638,7 +3666,7 @@ def _do_stop_node_on_head(
             is_head_node=is_head_node,
             use_internal_ip=True,
             runtime_config=runtime_config,
-            environment_variables=environment_variables)
+            with_updater_environment=True)
 
         updater_envs = updater.get_update_environment_variables()
         updater.exec_commands(
