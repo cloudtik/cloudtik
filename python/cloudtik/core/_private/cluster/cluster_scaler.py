@@ -180,7 +180,8 @@ class ClusterScaler:
             def read_fn(config_hash: str):
                 with open(config_reader) as f:
                     config_data = f.read()
-                    new_config_hash = hashlib.md5(config_data.encode("utf-8")).hexdigest()
+                    new_config_hash = hashlib.md5(
+                        config_data.encode("utf-8")).hexdigest()
                     if config_hash is not None and new_config_hash == config_hash:
                         return None, None
                     new_config = yaml.safe_load(config_data)
@@ -325,7 +326,8 @@ class ClusterScaler:
             assert os.path.exists(local_path)
         config_to_log = copy.deepcopy(self.config)
         process_config_with_privacy(config_to_log)
-        logger.info("Cluster Controller: {}".format(config_to_log))
+        logger.info(
+            "Cluster Controller: {}".format(config_to_log))
 
     def run(self):
         self.reset(errors_fatal=False)
@@ -350,7 +352,8 @@ class ClusterScaler:
             try:
                 self.emit_metrics(cluster_scaler_summary)
             except Exception:
-                logger.exception("Error emitting cluster scaler metrics")
+                logger.exception(
+                    "Error emitting cluster scaler metrics")
 
         for msg in self.event_summarizer.summary():
             # Need to prefix each line of the message for the lines to
@@ -369,8 +372,8 @@ class ClusterScaler:
             self._update()
         except Exception as e:
             self.prometheus_metrics.update_loop_exceptions.inc()
-            logger.exception("Cluster Controller: "
-                             "Error during autoscaling.")
+            logger.exception(
+                "Cluster Controller: Error during autoscaling.")
             # Don't abort the cluster scaler if the K8s API server is down.
             # issue #12255
             is_k8s_connection_error = (
@@ -379,8 +382,8 @@ class ClusterScaler:
             if not is_k8s_connection_error:
                 self.num_failures += 1
             if self.num_failures > self.max_failures:
-                logger.critical("Cluster Controller: "
-                                "Too many errors, abort.")
+                logger.critical(
+                    "Cluster Controller: Too many errors, abort.")
                 raise e
 
     def _update(self):
@@ -459,10 +462,10 @@ class ClusterScaler:
         # 1. The remaining (available) resources -> dynamic_resources_by_ip (get_resource_utilization)
         # 2. The resource demands (get_resource_demands)
         # 3. The minimum resources request from manual scale up or down (get_resource_requests).
-        #    This resource requests will not check the existing resource usage which is different from resource
-        #    demands from #2
-        # 4. The total resources of each node reported by runtime is used to update the node type resource information.
-        #    (get_static_node_resources_by_ip)
+        #    This resource requests will not check the existing resource usage which is different
+        #    from resource demands from #2
+        # 4. The total resources of each node reported by runtime is used to update the node type
+        #    resource information. (get_static_node_resources_by_ip)
         # Dict[NodeType, int], List[ResourceDict]
         to_launch, unfulfilled = (
             self.resource_demand_scheduler.get_nodes_to_launch(
@@ -506,7 +509,8 @@ class ClusterScaler:
         horizon = now - (60 * idle_timeout_minutes)
 
         if logger.isEnabledFor(logging.DEBUG):
-            logger.debug("Nodes last used (horizon={}): {}".format(horizon, last_used))
+            logger.debug(
+                "Nodes last used (horizon={}): {}".format(horizon, last_used))
 
         # Sort based on last used to make sure to keep min_workers that
         # were most recently used. Otherwise, _keep_min_workers_of_node_type
@@ -559,8 +563,9 @@ class ClusterScaler:
                     and last_used[node_ip] < horizon):
                 self.schedule_node_termination(node_id, "idle", logger.info)
             elif not self.launch_config_ok(node_id):
-                self.schedule_node_termination(node_id, "outdated",
-                                               logger.info)
+                self.schedule_node_termination(
+                    node_id, "outdated",
+                    logger.info)
             else:
                 keep_node(node_id)
                 nodes_we_could_terminate.append(node_id)
@@ -585,23 +590,27 @@ class ClusterScaler:
             extra_nodes_to_terminate = nodes_we_could_terminate[
                 -num_extra_nodes_to_terminate:]
             for node_id in extra_nodes_to_terminate:
-                self.schedule_node_termination(node_id, "max workers",
-                                               logger.info)
+                self.schedule_node_termination(
+                    node_id, "max workers",
+                    logger.info)
 
         self.terminate_scheduled_nodes()
 
-    def schedule_node_termination(self, node_id: NodeID,
-                                  reason_opt: Optional[str],
-                                  logger_method: Callable) -> None:
+    def schedule_node_termination(
+            self, node_id: NodeID,
+            reason_opt: Optional[str],
+            logger_method: Callable) -> None:
         if reason_opt is None:
-            raise Exception("reason should be not None.")
+            raise Exception(
+                "Termination reason should be not None.")
         reason: str = reason_opt
         node_ip = self.provider.internal_ip(node_id)
         # Log, record an event, and add node_id to nodes_to_terminate.
-        logger_method("Cluster Controller: "
-                      f"Terminating the node with id {node_id}"
-                      f" and ip {node_ip}."
-                      f" ({reason})")
+        logger_method(
+            "Cluster Controller: "
+            f"Terminating the node with id {node_id}"
+            f" and ip {node_ip}."
+            f" ({reason})")
         self.event_summarizer.add(
             "Removing {} nodes of type " + self._get_node_type(node_id) +
             " ({}).".format(reason),
@@ -697,7 +706,8 @@ class ClusterScaler:
             if node_id is not None:
                 resources = self._node_resources(node_id)
                 call_context = self.call_context.new_call_context()
-                logger.debug(f"{node_id}: Starting new thread runner.")
+                logger.debug(
+                    f"{node_id}: Starting new thread runner.")
                 updater_threads.append(
                     threading.Thread(
                         target=self.spawn_updater,
@@ -751,9 +761,10 @@ class ClusterScaler:
                         self.schedule_node_termination(
                             node_id, "launch failed", logger.error)
                     else:
-                        logger.warning(f"Cluster Controller: {node_id}:"
-                                       " Failed to update node."
-                                       " Node has already been terminated.")
+                        logger.warning(
+                            f"Cluster Controller: {node_id}:"
+                            " Failed to update node."
+                            " Node has already been terminated.")
                 self.terminate_scheduled_nodes()
 
     def set_prometheus_updater_data(self):
@@ -807,8 +818,9 @@ class ClusterScaler:
                     key="infeasible_{}".format(sorted(request.items())),
                     interval_s=30)
 
-    def _sort_based_on_last_used(self, nodes: List[NodeID],
-                                 last_used: Dict[str, float]) -> List[NodeID]:
+    def _sort_based_on_last_used(
+            self, nodes: List[NodeID],
+            last_used: Dict[str, float]) -> List[NodeID]:
         """Sort the nodes based on the last time they were used.
 
         The first item in the return list is the most recently used.
@@ -897,9 +909,10 @@ class ClusterScaler:
                 nodes_not_allowed_to_terminate.add(node_id)
         return frozenset(nodes_not_allowed_to_terminate)
 
-    def _keep_worker_of_node_type(self, node_id: NodeID,
-                                  node_type_counts: Dict[NodeType, int]
-                                  ) -> Tuple[KeepOrTerminate, Optional[str]]:
+    def _keep_worker_of_node_type(
+            self, node_id: NodeID,
+            node_type_counts: Dict[NodeType, int]
+    ) -> Tuple[KeepOrTerminate, Optional[str]]:
         """Determines if a worker should be kept based on the min_workers
         and max_workers constraint of the worker's node_type.
 
@@ -957,8 +970,8 @@ class ClusterScaler:
         node_type = self.provider.node_tags(node_id).get(
             CLOUDTIK_TAG_USER_NODE_TYPE)
         if self.available_node_types:
-            return self.available_node_types.get(node_type, {}).get(
-                "resources", {})
+            return self.available_node_types.get(
+                node_type, {}).get("resources", {})
         else:
             return {}
 
@@ -977,8 +990,8 @@ class ClusterScaler:
             if errors_fatal:
                 raise e
             else:
-                logger.exception("Cluster Controller: "
-                                 "Error parsing config.")
+                logger.exception(
+                    "Cluster Controller: Error parsing config.")
 
     def _apply_config(self, new_config):
         new_config = decrypt_config(new_config)
@@ -995,8 +1008,9 @@ class ClusterScaler:
         self.secrets = get_runtime_encryption_key(self.config)
 
         if not self.provider:
-            self.provider = _get_node_provider(self.config["provider"],
-                                               self.config["cluster_name"])
+            self.provider = _get_node_provider(
+                self.config["provider"],
+                self.config["cluster_name"])
 
         self.available_node_types = self.config["available_node_types"]
         self._update_runtime_hashes(self.config)
@@ -1098,7 +1112,8 @@ class ClusterScaler:
         new_runtime_config_hash = get_string_hash(runtime_config_str)
 
         published_runtime_config_hash = self.published_runtime_config_hashes.get(node_type)
-        if published_runtime_config_hash and new_runtime_config_hash == published_runtime_config_hash:
+        if (published_runtime_config_hash
+                and new_runtime_config_hash == published_runtime_config_hash):
             return
         self.published_runtime_config_hashes[node_type] = new_runtime_config_hash
 
@@ -1171,11 +1186,12 @@ class ClusterScaler:
                 or (self.file_mounts_contents_hash is not None
                     and self.file_mounts_contents_hash !=
                     applied_file_mounts_contents_hash)):
-            logger.info("Cluster Controller: "
-                        "{}: Runtime state is ({},{}), want ({},{})".format(
-                            node_id, applied_config_hash,
-                            applied_file_mounts_contents_hash,
-                            runtime_hash, self.file_mounts_contents_hash))
+            logger.info(
+                "Cluster Controller: "
+                "{}: Runtime state is ({},{}), want ({},{})".format(
+                    node_id, applied_config_hash,
+                    applied_file_mounts_contents_hash,
+                    runtime_hash, self.file_mounts_contents_hash))
             return False
         return True
 
@@ -1220,8 +1236,9 @@ class ClusterScaler:
             # Heartbeat indicates node is healthy:
             if self.heartbeat_on_time(node_id, now):
                 continue
-            self.schedule_node_termination(node_id, "lost contact with node",
-                                           logger.warning)
+            self.schedule_node_termination(
+                node_id, "lost contact with node",
+                logger.warning)
         self.terminate_scheduled_nodes()
 
     def attempt_to_recover_unhealthy_nodes(self, now):
@@ -1236,9 +1253,10 @@ class ClusterScaler:
         if self.heartbeat_on_time(node_id, now):
             return
 
-        logger.warning("Cluster Controller: "
-                       "{}: No recent heartbeat, "
-                       "restarting to recover...".format(node_id))
+        logger.warning(
+            "Cluster Controller: "
+            "{}: No recent heartbeat, "
+            "restarting to recover...".format(node_id))
         self.event_summarizer.add(
             "Restarting {} nodes of type " + self._get_node_type(node_id) +
             " (lost contact with node).",
@@ -1341,10 +1359,12 @@ class ClusterScaler:
             start_commands=start_commands,
             docker_config=docker_config)
 
-    def spawn_updater(self, node_id, setup_commands, start_commands,
-                      node_resources, docker_config, call_context):
-        logger.info(f"Creating new (spawn_updater) updater thread for node"
-                    f" {node_id}.")
+    def spawn_updater(
+            self, node_id, setup_commands, start_commands,
+            node_resources, docker_config, call_context):
+        logger.info(
+            f"Creating new (spawn_updater) updater thread for node"
+            f" {node_id}.")
         ip = self.provider.internal_ip(node_id)
         node_type = self._get_node_type(node_id)
         self.node_tracker.track(node_id, ip, node_type)
@@ -1398,8 +1418,9 @@ class ClusterScaler:
             return False
         if self.num_failed_updates.get(node_id, 0) > 0:  # TODO: retry?
             return False
-        logger.debug(f"{node_id} is not being updated and "
-                     "passes config check (can_update=True).")
+        logger.debug(
+            f"{node_id} is not being updated and "
+            "passes config check (can_update=True).")
         return True
 
     def launch_new_node(
@@ -1415,31 +1436,35 @@ class ClusterScaler:
                 self.pending_launches.inc(node_type, 1, seq_id)
                 node_launch_args = copy.deepcopy(launch_args)
                 node_launch_args[LAUNCH_ARGS_SEQ_ID] = seq_id
-                self.launch_queue.put((config, 1,
-                                       node_type, node_launch_args))
+                self.launch_queue.put(
+                    (config, 1,
+                     node_type, node_launch_args))
                 count -= 1
 
         else:
             self.pending_launches.inc(node_type, count)
             # Split into individual launch requests of the max batch size.
             while count > 0:
-                self.launch_queue.put((config, min(count, self.max_launch_batch),
-                                       node_type, launch_args))
+                self.launch_queue.put(
+                    (config, min(count, self.max_launch_batch),
+                     node_type, launch_args))
                 count -= self.max_launch_batch
 
     def workers(self):
         return self.non_terminated_nodes.worker_ids
 
     def kill_workers(self):
-        logger.error("Cluster Controller: kill_workers triggered")
+        logger.error(
+            "Cluster Controller: kill_workers triggered")
         nodes = self.workers()
         if nodes:
             self.provider.terminate_nodes(nodes)
             for node in nodes:
                 self.node_tracker.untrack(node)
                 self.prometheus_metrics.stopped_nodes.inc()
-        logger.error("Cluster Controller: terminated {} node(s)".format(
-            len(nodes)))
+        logger.error(
+            "Cluster Controller: terminated {} node(s)".format(
+                len(nodes)))
 
     def summary(self) -> Optional[ClusterScalerSummary]:
         """Summarizes the active, pending, and failed node launches.
@@ -1560,7 +1585,8 @@ class ClusterScaler:
         # The maximum sequence id lost (rare cases)
         max_node_seq_id = CLOUDTIK_TAG_HEAD_NODE_SEQ_ID
         for node_id in self.non_terminated_nodes.worker_ids:
-            node_seq_id_tag = self.provider.node_tags(node_id).get(CLOUDTIK_TAG_NODE_SEQ_ID)
+            node_seq_id_tag = self.provider.node_tags(
+                node_id).get(CLOUDTIK_TAG_NODE_SEQ_ID)
             if node_seq_id_tag is None:
                 continue
 

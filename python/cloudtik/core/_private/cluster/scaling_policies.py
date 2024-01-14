@@ -36,14 +36,17 @@ SCALING_WITH_TIME_PERIODIC_MONTHLY = "monthly"
 
 
 class ScalingWithResources(ScalingPolicy):
-    def __init__(self,
-                 config: Dict[str, Any],
-                 head_host: str) -> None:
+    def __init__(
+            self,
+            config: Dict[str, Any],
+            head_host: str) -> None:
         ScalingPolicy.__init__(self, config, head_host)
         self.last_state_time = 0
         self.control_state = ControlState()
         self.control_state.initialize_control_state(
-            head_host, constants.CLOUDTIK_DEFAULT_PORT, constants.CLOUDTIK_REDIS_DEFAULT_PASSWORD)
+            head_host,
+            constants.CLOUDTIK_DEFAULT_PORT,
+            constants.CLOUDTIK_REDIS_DEFAULT_PASSWORD)
 
         self.scaling_config = {}
         self.in_use_cpu_load_threshold = SCALING_WITH_LOAD_IN_USE_CPU_LOAD_THRESHOLD_DEFAULT
@@ -60,7 +63,8 @@ class ScalingWithResources(ScalingPolicy):
         runtime_config = self.config.get(RUNTIME_CONFIG_KEY, {})
         self.scaling_config = runtime_config.get("scaling", {})
         self.in_use_cpu_load_threshold = self.scaling_config.get(
-            "in_use_cpu_load_threshold", SCALING_WITH_LOAD_IN_USE_CPU_LOAD_THRESHOLD_DEFAULT)
+            "in_use_cpu_load_threshold",
+            SCALING_WITH_LOAD_IN_USE_CPU_LOAD_THRESHOLD_DEFAULT)
 
     def get_scaling_state(self) -> Optional[ScalingState]:
         self.last_state_time = time.time()
@@ -161,9 +165,10 @@ class ScalingWithResources(ScalingPolicy):
 
 
 class ScalingWithLoad(ScalingWithResources):
-    def __init__(self,
-                 config: Dict[str, Any],
-                 head_host: str) -> None:
+    def __init__(
+            self,
+            config: Dict[str, Any],
+            head_host: str) -> None:
         ScalingWithResources.__init__(self, config, head_host)
 
         self.last_resource_demands_time = 0
@@ -334,9 +339,10 @@ class ScalingWithLoad(ScalingWithResources):
 
 
 class ScalingWithTime(ScalingWithResources):
-    def __init__(self,
-                 config: Dict[str, Any],
-                 head_host: str) -> None:
+    def __init__(
+            self,
+            config: Dict[str, Any],
+            head_host: str) -> None:
         ScalingWithResources.__init__(self, config, head_host)
 
         # scaling parameters
@@ -446,7 +452,8 @@ class ScalingWithTime(ScalingWithResources):
             nodes_spec = nodes_spec[1:]
             if nodes_spec.isdigit():
                 return max(0, round(base_nodes - int(nodes_spec)))
-        raise ValueError("Invalid node specification for multiplier: {}".format(nodes_spec))
+        raise ValueError(
+            "Invalid node specification for multiplier: {}".format(nodes_spec))
 
     def _expand_time_table(self, expanding_time_table):
         remaining = 0
@@ -476,7 +483,8 @@ class ScalingWithTime(ScalingWithResources):
                             # cannot expand by now
                             remaining += 1
                 else:
-                    raise ValueError("Invalid node specification: {}".format(nodes_spec))
+                    raise ValueError(
+                        "Invalid node specification: {}".format(nodes_spec))
             prev_expanding_slot = expanding_slot
         return remaining
 
@@ -498,9 +506,10 @@ class ScalingWithTime(ScalingWithResources):
             if remaining > 0:
                 remaining = self._expand_time_table(scaling_time_table)
                 if remaining > 0:
-                    raise ValueError("Invalid node specification. For math based on previous time, "
-                                     "at least one time needs specific the number of nodes. "
-                                     "Use 0 to refer the minimum workers from cluster configuration.")
+                    raise ValueError(
+                        "Invalid node specification. For math based on previous time, "
+                        "at least one time needs specific the number of nodes. "
+                        "Use 0 to refer the minimum workers from cluster configuration.")
             return scaling_time_table
         except Exception as e:
             logger.error(

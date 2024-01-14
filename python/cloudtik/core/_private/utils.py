@@ -1452,6 +1452,8 @@ def with_runtime_encryption_key(
         encryption_key, environment_variables: Dict[str, Any]):
     if encryption_key:
         encoded_secrets = encode_cluster_secrets(encryption_key)
+        if environment_variables is None:
+            environment_variables = {}
         environment_variables[CLOUDTIK_RUNTIME_ENV_SECRETS] = encoded_secrets
     return environment_variables
 

@@ -10,9 +10,10 @@ logger = logging.getLogger(__name__)
 
 
 class ResourceScalingPolicy:
-    def __init__(self,
-                 head_host,
-                 scaling_state_client: ScalingStateClient):
+    def __init__(
+            self,
+            head_host,
+            scaling_state_client: ScalingStateClient):
         self.head_host = head_host
         self.scaling_state_client = scaling_state_client
         self.config = None
@@ -26,9 +27,11 @@ class ResourceScalingPolicy:
         # in the case that the scaling policy is disabled in the change
         self.scaling_policy = self._create_scaling_policy(self.config)
         if self.scaling_policy is not None:
-            logger.info(f"CloudTik scaling with: {self.scaling_policy.name()}")
+            logger.info(
+                f"CloudTik scaling with: {self.scaling_policy.name()}")
         else:
-            logger.info("CloudTik: No scaling policy is used.")
+            logger.info(
+                "CloudTik: No scaling policy is used.")
 
     def _create_scaling_policy(self, config):
         scaling_policy = _get_runtime_scaling_policy(config, self.head_host)

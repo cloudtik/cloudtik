@@ -88,10 +88,19 @@ def head():
     type=int,
     help="Port to forward. Use this multiple times to forward multiple ports.")
 @click.option(
-    "--host", is_flag=True, default=False, help="Attach to the host even running with docker.")
+    "--host",
+    is_flag=True,
+    default=False,
+    help="Attach to the host even running with docker.")
+@click.option(
+    "--with-updater",
+    is_flag=True,
+    default=False,
+    help="Run with updater environment variables.")
 @add_click_logging_options
 def attach(
-        node_ip, screen, tmux, new, port_forward, host):
+        node_ip, screen, tmux, new, port_forward, host,
+        with_updater):
     """Attach to worker node from head."""
     port_forward = [(port, port) for port in list(port_forward)]
     attach_node_on_head(
@@ -100,7 +109,8 @@ def attach(
         tmux,
         new,
         port_forward,
-        force_to_host=host)
+        force_to_host=host,
+        with_updater_environment=with_updater)
 
 
 @head.command()
@@ -165,11 +175,17 @@ def attach(
     required=False,
     type=str,
     help="The job waiter to be used to check the completion of the job.")
+@click.option(
+    "--with-updater",
+    is_flag=True,
+    default=False,
+    help="Run with updater environment variables.")
 @add_click_logging_options
 def exec(
         cmd, node_ip, all_nodes, run_env, screen, tmux,
         wait_for_workers, min_workers, wait_timeout,
-        port_forward, with_output, parallel, job_waiter):
+        port_forward, with_output, parallel, job_waiter,
+        with_updater):
     """Execute command on the worker node from head."""
     port_forward = [(port, port) for port in list(port_forward)]
     config = load_head_cluster_config()
@@ -190,7 +206,8 @@ def exec(
         port_forward=port_forward,
         with_output=with_output,
         parallel=parallel,
-        job_waiter_name=job_waiter)
+        job_waiter_name=job_waiter,
+        with_updater_environment=with_updater)
 
 
 @head.command(context_settings={"ignore_unknown_options": True})

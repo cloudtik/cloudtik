@@ -260,11 +260,20 @@ def stop(
     default=None,
     help="The node ip address of the node to attach to")
 @click.option(
-    "--host", is_flag=True, default=False, help="Attach to the host even running with docker.")
+    "--host",
+    is_flag=True,
+    default=False,
+    help="Attach to the host even running with docker.")
+@click.option(
+    "--with-updater",
+    is_flag=True,
+    default=False,
+    help="Run with updater environment variables.")
 @add_click_logging_options
 def attach(
         cluster_config_file, screen, tmux, cluster_name,
-        no_config_cache, new, port_forward, node_ip, host):
+        no_config_cache, new, port_forward, node_ip, host,
+        with_updater):
     """Create or attach to SH session to a cluster or a worker node."""
     port_forward = [(port, port) for port in list(port_forward)]
     try:
@@ -278,7 +287,8 @@ def attach(
                 no_config_cache=no_config_cache,
                 new=new,
                 port_forward=port_forward,
-                force_to_host=host)
+                force_to_host=host,
+                with_updater_environment=with_updater)
         else:
             # attach to the worker node
             attach_worker(
@@ -290,7 +300,8 @@ def attach(
                 no_config_cache=no_config_cache,
                 new=new,
                 port_forward=port_forward,
-                force_to_host=host)
+                force_to_host=host,
+                with_updater_environment=with_updater)
     except RuntimeError as re:
         fail_command("Failed to attach.", re)
 
@@ -392,12 +403,17 @@ def attach(
     is_flag=True,
     default=False,
     help="Do even if the head is not in healthy state.")
+@click.option(
+    "--with-updater",
+    is_flag=True,
+    default=False,
+    help="Run with updater environment variables.")
 @add_click_logging_options
 def exec(
         cluster_config_file, cmd, cluster_name, run_env, screen, tmux, stop, start,
         force_update, wait_for_workers, min_workers, wait_timeout,
         no_config_cache, port_forward, node_ip, all_nodes, parallel, yes, job_waiter,
-        force):
+        force, with_updater):
     """Execute a command via SSH on a cluster or a specified node."""
     port_forward = [(port, port) for port in list(port_forward)]
 
@@ -427,7 +443,8 @@ def exec(
             parallel=parallel,
             yes=yes,
             job_waiter_name=job_waiter,
-            force=force)
+            force=force,
+            with_updater_environment=with_updater)
     except RuntimeError as re:
         fail_command("Failed to exec command.", re)
 
