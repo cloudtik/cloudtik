@@ -188,12 +188,11 @@ def _get_sorted_service_nodes(services, address_type):
     return service_nodes
 
 
-def get_service_node_addresses(
+def get_service_nodes(
         runtime_type: str = None,
         service_name: str = None,
         service_type: str = None,
-        host: bool = False,
-        no_port: bool = False):
+        host: bool = False):
     address_type = ServiceAddressType.NODE_IP
     if host:
         # Which address type is available/used at runtime
@@ -206,8 +205,23 @@ def get_service_node_addresses(
     if not services:
         return None
 
-    service_nodes = _get_sorted_service_nodes(
+    return _get_sorted_service_nodes(
         services, address_type)
+
+
+def get_service_node_addresses(
+        runtime_type: str = None,
+        service_name: str = None,
+        service_type: str = None,
+        host: bool = False,
+        no_port: bool = False):
+    service_nodes = get_service_nodes(
+        runtime_type=runtime_type,
+        service_name=service_name,
+        service_type=service_type,
+        host=host)
+    if not service_nodes:
+        return None
 
     def get_service_node_address(node):
         name, service_host, service_port = node
