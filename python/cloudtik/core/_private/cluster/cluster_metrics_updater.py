@@ -17,10 +17,11 @@ MAX_FAILURES_FOR_LOGGING = 16
 
 
 class ClusterMetricsUpdater:
-    def __init__(self,
-                 cluster_metrics: ClusterMetrics,
-                 event_summarizer: Optional[EventSummarizer],
-                 scaling_state_client: ScalingStateClient):
+    def __init__(
+            self,
+            cluster_metrics: ClusterMetrics,
+            event_summarizer: Optional[EventSummarizer],
+            scaling_state_client: ScalingStateClient):
         self.cluster_metrics = cluster_metrics
         self.event_summarizer = event_summarizer
         self.scaling_state_client = scaling_state_client
@@ -41,28 +42,34 @@ class ClusterMetricsUpdater:
             # reset if there is a success
             self.cluster_metrics_failures = 0
         except Exception as e:
-            if self.cluster_metrics_failures == 0 or self.cluster_metrics_failures == MAX_FAILURES_FOR_LOGGING:
+            if (self.cluster_metrics_failures == 0
+                    or self.cluster_metrics_failures == MAX_FAILURES_FOR_LOGGING):
                 # detailed form
                 error = traceback.format_exc()
-                logger.exception(f"Load metrics update failed with the following error:\n{error}")
+                logger.exception(
+                    f"Load metrics update failed with the following error:\n{error}")
             elif self.cluster_metrics_failures < MAX_FAILURES_FOR_LOGGING:
                 # short form
-                logger.exception(f"Load metrics update failed with the following error:{str(e)}")
+                logger.exception(
+                    f"Load metrics update failed with the following error:{str(e)}")
 
             if self.cluster_metrics_failures == MAX_FAILURES_FOR_LOGGING:
-                logger.exception(f"The above error has been showed consecutively"
-                                 f" for {self.cluster_metrics_failures} times. Stop showing.")
+                logger.exception(
+                    f"The above error has been showed consecutively"
+                    f" for {self.cluster_metrics_failures} times. Stop showing.")
 
             self.cluster_metrics_failures += 1
 
     def _update_node_heartbeats(
             self, heartbeat_nodes: Dict[str, str]):
-        cluster_heartbeat_state = self.scaling_state_client.get_cluster_heartbeat_state(timeout=60)
+        cluster_heartbeat_state = self.scaling_state_client.get_cluster_heartbeat_state(
+            timeout=60)
         for node_id, node_heartbeat_state in cluster_heartbeat_state.node_heartbeat_states.items():
             ip = node_heartbeat_state.node_ip
             last_heartbeat_time = node_heartbeat_state.last_heartbeat_time
             heartbeat_nodes[node_id] = ip
-            self.cluster_metrics.update_heartbeat(ip, node_id, last_heartbeat_time)
+            self.cluster_metrics.update_heartbeat(
+                ip, node_id, last_heartbeat_time)
 
     def _update_scaling_metrics(
             self, heartbeat_nodes: Dict[str, str]):
@@ -117,7 +124,8 @@ class ClusterMetricsUpdater:
                     resource_requests["request_time"],
                     request_resources)
             except Exception:
-                logger.exception("Error parsing resource requests")
+                logger.exception(
+                    "Error parsing resource requests")
 
     def _update_event_summary(self):
         """Report the current size of the cluster.

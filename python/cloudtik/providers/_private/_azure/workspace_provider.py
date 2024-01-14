@@ -1,12 +1,11 @@
 import logging
 from typing import Any, Dict, Optional
 
-from cloudtik.core._private.utils import get_running_head_node, check_workspace_name_format
+from cloudtik.core._private.utils import get_running_head_node, check_workspace_name_format, get_node_provider_of
 from cloudtik.providers._private._azure.config import create_azure_workspace, \
     delete_azure_workspace, check_azure_workspace_integrity, \
     get_workspace_head_nodes, list_azure_clusters, bootstrap_azure_workspace, check_azure_workspace_existence, \
     get_azure_workspace_info, update_azure_workspace, list_azure_storages, list_azure_databases
-from cloudtik.core._private.provider_factory import _get_node_provider
 from cloudtik.core.tags import CLOUDTIK_GLOBAL_VARIABLE_KEY_PREFIX, CLOUDTIK_GLOBAL_VARIABLE_KEY
 from cloudtik.core.workspace_provider import WorkspaceProvider
 
@@ -72,8 +71,7 @@ class AzureWorkspaceProvider(WorkspaceProvider):
             prefixed_name = CLOUDTIK_GLOBAL_VARIABLE_KEY.format(name)
             global_variables_prefixed[prefixed_name] = global_variables[name]
 
-        provider = _get_node_provider(
-            cluster_config["provider"], cluster_config["cluster_name"])
+        provider = get_node_provider_of(cluster_config)
         head_node_id = get_running_head_node(cluster_config, provider)
         provider.set_node_tags(head_node_id, global_variables_prefixed)
 

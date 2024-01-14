@@ -8,8 +8,7 @@ from cloudtik.core._private.service_discovery.utils import ServiceRegisterExcept
     SERVICE_SELECTOR_EXCLUDE_LABELS, SERVICE_DISCOVERY_TAG_CLUSTER_PREFIX, \
     SERVICE_DISCOVERY_LABEL_CLUSTER, SERVICE_DISCOVERY_LABEL_RUNTIME, get_service_discovery_config, \
     is_prefer_workspace_discovery, SERVICE_SELECTOR_SERVICE_TYPES
-from cloudtik.core._private.utils import RUNTIME_CONFIG_KEY
-from cloudtik.core._private.workspace.workspace_operator import _get_workspace_provider
+from cloudtik.core._private.utils import RUNTIME_CONFIG_KEY, get_workspace_provider_of
 from cloudtik.runtime.common.service_discovery.utils import get_service_addresses_string, \
     get_service_addresses_from_string, ServiceInstance
 
@@ -74,8 +73,7 @@ def register_service_to_workspace(
         registry_name: registry_addresses
     }
 
-    workspace_provider = _get_workspace_provider(
-        cluster_config["provider"], workspace_name)
+    workspace_provider = get_workspace_provider_of(cluster_config)
 
     try:
         workspace_provider.publish_global_variables(
@@ -95,8 +93,7 @@ def query_services_from_workspace(
     if workspace_name is None:
         return None
 
-    workspace_provider = _get_workspace_provider(
-        cluster_config["provider"], workspace_name)
+    workspace_provider = get_workspace_provider_of(cluster_config)
     global_variables = workspace_provider.subscribe_global_variables(
         cluster_config)
     if not global_variables:

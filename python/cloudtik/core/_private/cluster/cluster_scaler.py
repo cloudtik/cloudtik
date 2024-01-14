@@ -40,7 +40,6 @@ from cloudtik.core.tags import (
 from cloudtik.core._private.cluster.event_summarizer import EventSummarizer
 from cloudtik.core._private.cluster.cluster_metrics import ClusterMetrics
 from cloudtik.core._private.prometheus_metrics import ClusterPrometheusMetrics
-from cloudtik.core._private.provider_factory import _get_node_provider
 from cloudtik.core._private.node.node_updater import NodeUpdaterThread
 from cloudtik.core._private.cluster.node_launcher import NodeLauncher, LAUNCH_ARGS_QUORUM_ID, PendingLaunches, \
     LAUNCH_ARGS_SEQ_ID
@@ -56,7 +55,7 @@ from cloudtik.core._private.utils import validate_config, \
     _has_node_type_specific_runtime_config, get_runtime_config_key, RUNTIME_CONFIG_KEY, \
     process_config_with_privacy, decrypt_config, CLOUDTIK_CLUSTER_SCALING_STATUS, get_runtime_encryption_key, \
     with_runtime_encryption_key, PROVIDER_STORAGE_CONFIG_KEY, PROVIDER_DATABASE_CONFIG_KEY, \
-    prepare_config_for_runtime_hash, get_config_option
+    prepare_config_for_runtime_hash, get_config_option, get_node_provider_of
 from cloudtik.core._private.constants import CLOUDTIK_MAX_NUM_FAILURES, \
     CLOUDTIK_MAX_LAUNCH_BATCH, CLOUDTIK_MAX_CONCURRENT_LAUNCHES, \
     CLOUDTIK_UPDATE_INTERVAL_S, CLOUDTIK_HEARTBEAT_TIMEOUT_S, \
@@ -1008,9 +1007,7 @@ class ClusterScaler:
         self.secrets = get_runtime_encryption_key(self.config)
 
         if not self.provider:
-            self.provider = _get_node_provider(
-                self.config["provider"],
-                self.config["cluster_name"])
+            self.provider = get_node_provider_of(self.config)
 
         self.available_node_types = self.config["available_node_types"]
         self._update_runtime_hashes(self.config)

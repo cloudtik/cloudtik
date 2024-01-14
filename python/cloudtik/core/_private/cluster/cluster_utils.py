@@ -4,10 +4,9 @@ from types import ModuleType
 
 from cloudtik.core._private.call_context import CallContext
 from cloudtik.core._private.node.node_updater import NodeUpdaterThread
-from cloudtik.core._private.provider_factory import _get_node_provider
 from cloudtik.core._private.utils import get_running_head_node, _get_node_specific_runtime_config, \
     _get_node_specific_docker_config, get_runtime_encryption_key, with_runtime_encryption_key, \
-    with_head_node_ip_environment_variables, get_node_cluster_ip
+    with_head_node_ip_environment_variables, get_node_cluster_ip, get_node_provider_of
 
 
 def create_node_updater_for_exec(
@@ -107,8 +106,7 @@ def run_on_node(
         is_head_node: bool = False,
         with_updater_environment: bool = False) -> str:
     use_internal_ip = config.get("bootstrapped", False)
-    provider = _get_node_provider(
-        config["provider"], config["cluster_name"])
+    provider = get_node_provider_of(config)
 
     updater = create_node_updater_for_exec(
         config=config,

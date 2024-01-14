@@ -6,8 +6,9 @@ from cloudtik.core._private.util.core_utils import get_cloudtik_temp_dir, get_js
 from cloudtik.core._private.util.schema_utils import STORAGE_SCHEMA_NAME, STORAGE_SCHEMA_REFS, \
     validate_schema_by_name
 from cloudtik.core._private.utils import print_dict_info, \
-    load_yaml_config, handle_cli_override, save_config_cache, load_config_from_cache, merge_config_hierarchy
-from cloudtik.core._private.provider_factory import _get_storage_provider_cls, _get_storage_provider, \
+    load_yaml_config, handle_cli_override, save_config_cache, load_config_from_cache, merge_config_hierarchy, \
+    get_storage_provider_of
+from cloudtik.core._private.provider_factory import _get_storage_provider_cls, \
     _STORAGE_PROVIDERS, _PROVIDER_PRETTY_NAMES
 from cloudtik.core._private.cli_logger import cli_logger, cf
 
@@ -31,10 +32,8 @@ def delete_storage(
 def _delete_storage(
         config: Dict[str, Any],
         yes: bool = False):
-    workspace_name = config["workspace_name"]
     storage_name = config["storage_name"]
-    provider = _get_storage_provider(
-        config["provider"], workspace_name, storage_name)
+    provider = get_storage_provider_of(config)
     storage_info = provider.get_info(config)
     if not storage_info:
         raise RuntimeError(
@@ -79,10 +78,8 @@ def create_storage(
 
 def _create_storage(
         config: Dict[str, Any], yes: bool = False):
-    workspace_name = config["workspace_name"]
     storage_name = config["storage_name"]
-    provider = _get_storage_provider(
-        config["provider"], workspace_name, storage_name)
+    provider = get_storage_provider_of(config)
     storage_info = provider.get_info(config)
     if storage_info:
         raise RuntimeError(
@@ -103,8 +100,7 @@ def get_storage_info(
 
 def _get_storage_info(
         config: Dict[str, Any]):
-    provider = _get_storage_provider(
-        config["provider"], config["workspace_name"], config["storage_name"])
+    provider = get_storage_provider_of(config)
     return provider.get_info(config)
 
 
@@ -189,6 +185,5 @@ def validate_storage_config(config: Dict[str, Any]) -> None:
             "Config {} is not a dictionary".format(config))
 
     validate_schema_by_name(config, STORAGE_SCHEMA_NAME, STORAGE_SCHEMA_REFS)
-    provider = _get_storage_provider(
-        config["provider"], config["workspace_name"], config["storage_name"])
+    provider = get_storage_provider_of(config)
     provider.validate_config(config["provider"])
