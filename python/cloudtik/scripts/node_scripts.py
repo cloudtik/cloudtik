@@ -30,7 +30,7 @@ from cloudtik.core._private.util.pull.pull_server import pull_server
 from cloudtik.core._private.utils import parse_resources_json, run_script
 from cloudtik.runtime.common.service_discovery.cluster_nodes import get_cluster_live_nodes_address
 from cloudtik.runtime.common.service_discovery.discovery import get_service_node_addresses
-from cloudtik.scripts.utils import NaturalOrderGroup
+from cloudtik.scripts.utils import NaturalOrderGroup, fail_command
 
 logger = logging.getLogger(__name__)
 
@@ -589,14 +589,17 @@ def wait_for_port(port, host, timeout, free):
 def nodes(
         node_type, runtime, host, sort_by, reverse, separator):
     """List live nodes in the cluster"""
-    hosts = get_cluster_live_nodes_address(
-        node_type=node_type, runtime_type=runtime,
-        host=host, sort_by=sort_by, reverse=reverse)
-    if hosts:
-        if separator:
-            click.echo(separator.join(hosts))
-        else:
-            click.echo("\n".join(hosts))
+    try:
+        hosts = get_cluster_live_nodes_address(
+            node_type=node_type, runtime_type=runtime,
+            host=host, sort_by=sort_by, reverse=reverse)
+        if hosts:
+            if separator:
+                click.echo(separator.join(hosts))
+            else:
+                click.echo("\n".join(hosts))
+    except RuntimeError as re:
+        fail_command("Failed to get cluster nodes.", re)
 
 
 @node.command()
@@ -639,16 +642,19 @@ def service_nodes(
         runtime, service, service_type,
         host, no_port, separator):
     """List service nodes in the cluster"""
-    node_addresses = get_service_node_addresses(
-        runtime_type=runtime,
-        service_name=service,
-        service_type=service_type,
-        host=host, no_port=no_port)
-    if node_addresses:
-        if separator:
-            click.echo(separator.join(node_addresses))
-        else:
-            click.echo("\n".join(node_addresses))
+    try:
+        node_addresses = get_service_node_addresses(
+            runtime_type=runtime,
+            service_name=service,
+            service_type=service_type,
+            host=host, no_port=no_port)
+        if node_addresses:
+            if separator:
+                click.echo(separator.join(node_addresses))
+            else:
+                click.echo("\n".join(node_addresses))
+    except RuntimeError as re:
+        fail_command("Failed to get service nodes.", re)
 
 
 @node.command()

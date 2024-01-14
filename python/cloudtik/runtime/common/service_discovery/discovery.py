@@ -75,35 +75,36 @@ def query_services_with_discovery_service(
         first: bool = False):
     # Note: the runtime config should be global runtime config.
     # If a node type override the list of runtimes, we may not get the service discovery runtime
+    if not get_service_discovery_runtime(runtime_config):
+        return None
+
     if (discovery_type == DiscoveryType.ANY or
             discovery_type == DiscoveryType.LOCAL):
-        if get_service_discovery_runtime(runtime_config):
-            # try first use service discovery if available
-            services = query_services_from_consul(
-                service_selector,
-                address_type=address_type,
-                first=first)
-            if services:
-                return services
+        # try first use service discovery if available
+        services = query_services_from_consul(
+            service_selector,
+            address_type=address_type,
+            first=first)
+        if services:
+            return services
         if discovery_type == DiscoveryType.LOCAL:
             return None
 
     if (discovery_type == DiscoveryType.ANY or
             discovery_type == DiscoveryType.CLUSTER):
-        if get_service_discovery_runtime(runtime_config):
-            # For case that the local consul is not yet available
-            # If the current cluster is consul server or consul server is not available
-            # the address will be None
-            addresses = get_consul_server_addresses(runtime_config)
-            if addresses is not None:
-                # TODO: we can retry other addresses if failed
-                services = query_services_from_consul(
-                    service_selector,
-                    address_type=address_type,
-                    address=addresses[0],
-                    first=first)
-                if services:
-                    return services
+        # For case that the local consul is not yet available
+        # If the current cluster is consul server or consul server is not available
+        # the address will be None
+        addresses = get_consul_server_addresses(runtime_config)
+        if addresses is not None:
+            # TODO: we can retry other addresses if failed
+            services = query_services_from_consul(
+                service_selector,
+                address_type=address_type,
+                address=addresses[0],
+                first=first)
+            if services:
+                return services
         if discovery_type == DiscoveryType.CLUSTER:
             return None
     return None
@@ -142,6 +143,11 @@ def _discover_services_from_node(
     if runtime_config is None:
         # the global runtime config
         runtime_config = subscribe_cluster_runtime_config()
+
+    # raise error instead of return None if service discovery is not available
+    if not get_service_discovery_runtime(runtime_config):
+        raise RuntimeError("Service discovery runtime is not configured.")
+
     if address_type is None:
         # auto address type
         address_type = get_runtime_node_address_type()
