@@ -43,7 +43,8 @@ def get_expressions_of_service_selector(service_selector):
     runtimes = service_selector.get(SERVICE_SELECTOR_RUNTIMES)
     clusters = service_selector.get(SERVICE_SELECTOR_CLUSTERS)
     exclude_labels = service_selector.get(SERVICE_SELECTOR_EXCLUDE_LABELS)
-    exclude_joined_labels = service_selector.get(SERVICE_SELECTOR_EXCLUDE_JOINED_LABELS)
+    exclude_joined_labels = service_selector.get(
+        SERVICE_SELECTOR_EXCLUDE_JOINED_LABELS)
 
     if not (services or service_types or
             tags or labels or
@@ -56,7 +57,8 @@ def get_expressions_of_service_selector(service_selector):
         # Any services in the list (OR)
         service_expressions = []
         for service_name in services:
-            service_expressions.append('ServiceName == "{}"'.format(service_name))
+            service_expressions.append(
+                'ServiceName == "{}"'.format(service_name))
         expressions.append(" or ".join(service_expressions))
 
     if tags:
@@ -72,7 +74,8 @@ def get_expressions_of_service_selector(service_selector):
         for label_name, label_value in labels.items():
             # TODO: shall we anchor to the start and end to value by default?
             label_expressions.append(
-                'ServiceMeta["{}"] matches "{}"'.format(label_name, label_value))
+                'ServiceMeta["{}"] matches "{}"'.format(
+                    label_name, label_value))
         expressions.append(" and ".join(label_expressions))
 
     if service_types:
@@ -107,7 +110,8 @@ def get_expressions_of_service_selector(service_selector):
         exclude_label_expressions = []
         for label_name, label_value in exclude_labels.items():
             exclude_label_expressions.append(
-                'ServiceMeta["{}"] not matches "{}"'.format(label_name, label_value))
+                'ServiceMeta["{}"] not matches "{}"'.format(
+                    label_name, label_value))
         expressions.append(" and ".join(exclude_label_expressions))
 
     if exclude_joined_labels:
@@ -118,8 +122,10 @@ def get_expressions_of_service_selector(service_selector):
             joined_label_expressions = []
             for label_name, label_value in joined_labels.items():
                 joined_label_expressions.append(
-                    'ServiceMeta["{}"] not matches "{}"'.format(label_name, label_value))
-            exclude_joined_expressions.append(" or ".join(joined_label_expressions))
+                    'ServiceMeta["{}"] not matches "{}"'.format(
+                        label_name, label_value))
+            exclude_joined_expressions.append(
+                " or ".join(joined_label_expressions))
         expressions.append(" and ".join(["( {} )".format(
             expr) for expr in exclude_joined_expressions]))
 
@@ -165,7 +171,8 @@ def get_service_name_of_node(service_node):
 
 
 def get_service_address_of_node(
-        service_node, address_type: ServiceAddressType = ServiceAddressType.NODE_IP):
+        service_node,
+        address_type: ServiceAddressType = ServiceAddressType.NODE_IP):
     if address_type == ServiceAddressType.NODE_IP:
         service_host = service_node.get("ServiceAddress")
         if not service_host:
@@ -299,6 +306,13 @@ def _get_runtime_of_service_nodes(
         error_if_not_same=error_if_not_same)
 
 
+def _get_service_type_of_service_nodes(
+        service_nodes, error_if_not_same=False):
+    return get_common_label_of_service_nodes(
+        service_nodes, SERVICE_DISCOVERY_LABEL_SERVICE,
+        error_if_not_same=error_if_not_same)
+
+
 def get_tags_of_service_nodes(service_nodes):
     if not service_nodes:
         return []
@@ -317,23 +331,7 @@ def get_tags_of_service_nodes(service_nodes):
     return list(tags)
 
 
-def query_one_service_from_consul(
-        service_selector,
-        address_type: ServiceAddressType = ServiceAddressType.NODE_IP,
-        address: Optional[Tuple[str, int]] = None):
-    services = query_services(service_selector, address=address)
-    if not services:
-        return None
-
-    service_name, service_tags = next(iter(services.items()))
-    service_instance = query_service_from_consul(
-        service_name, service_selector,
-        address_type=address_type, address=address
-    )
-    return service_instance
-
-
-def query_service_from_consul(
+def query_service(
         service_name, service_selector,
         address_type: ServiceAddressType = ServiceAddressType.NODE_IP,
         address: Optional[Tuple[str, int]] = None):
@@ -344,6 +342,7 @@ def query_service_from_consul(
 
     # the runtime of the service nodes should be the same
     runtime_type = _get_runtime_of_service_nodes(service_nodes)
+    service_type = _get_service_type_of_service_nodes(service_nodes)
 
     # WARNING: the cluster of the service nodes may not be the same. None if not the same
     cluster_name = _get_cluster_of_service_nodes(service_nodes)
@@ -365,24 +364,35 @@ def query_service_from_consul(
 
     return ServiceInstance(
         service_name, service_addresses,
+        service_type=service_type,
         runtime_type=runtime_type,
         cluster_name=cluster_name)
 
 
 def query_services_from_consul(
-        service_selector, address_type: ServiceAddressType = ServiceAddressType.NODE_IP,
-        address: Optional[Tuple[str, int]] = None):
+        service_selector,
+        address_type: ServiceAddressType = ServiceAddressType.NODE_IP,
+        address: Optional[Tuple[str, int]] = None,
+        first: bool = False):
     services = query_services(service_selector, address=address)
     if not services:
         return None
 
-    services_to_return = {}
-    for service_name, service_tags in services.items():
-        service_instance = query_service_from_consul(
+    if first:
+        service_name, service_tags = next(iter(services.items()))
+        service_instance = query_service(
             service_name, service_selector,
             address_type=address_type, address=address
         )
-        if service_instance:
-            services_to_return[service_name] = service_instance
+        return service_instance
+    else:
+        services_to_return = {}
+        for service_name, service_tags in services.items():
+            service_instance = query_service(
+                service_name, service_selector,
+                address_type=address_type, address=address
+            )
+            if service_instance:
+                services_to_return[service_name] = service_instance
 
-    return services_to_return
+        return services_to_return

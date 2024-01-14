@@ -88,7 +88,9 @@ def register_service_to_workspace(
 
 
 def query_services_from_workspace(
-        cluster_config: Dict[str, Any], service_selector):
+        cluster_config: Dict[str, Any],
+        service_selector,
+        first=False):
     workspace_name = cluster_config.get("workspace_name")
     if workspace_name is None:
         return None
@@ -102,29 +104,15 @@ def query_services_from_workspace(
 
     # match through the clusters, runtimes, and services if they are provided
     services = _query_service_registry(
-        global_variables, service_selector)
-    return services
-
-
-def query_one_service_from_workspace(
-        cluster_config: Dict[str, Any], service_selector):
-    workspace_name = cluster_config.get("workspace_name")
-    if workspace_name is None:
-        return None
-
-    workspace_provider = _get_workspace_provider(
-        cluster_config["provider"], workspace_name)
-    global_variables = workspace_provider.subscribe_global_variables(
-        cluster_config)
-    if not global_variables:
-        return None
-
-    services = _query_service_registry(
-        global_variables, service_selector, first_match=True)
+        global_variables, service_selector,
+        first_match=first)
     if not services:
         return None
 
-    return next(iter(services.values()))
+    if first:
+        return next(iter(services.values()))
+    else:
+        return services
 
 
 def _query_service_registry(
@@ -153,7 +141,9 @@ def _query_service_registry(
                 registry_addresses)
             matched_services[registry_name] = ServiceInstance(
                 service_name, service_addresses,
-                runtime_type=runtime_type, cluster_name=cluster_name)
+                service_type=service_name,
+                runtime_type=runtime_type,
+                cluster_name=cluster_name)
             if first_match:
                 return matched_services
     return matched_services

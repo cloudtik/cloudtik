@@ -9,9 +9,11 @@ class ServiceInstance:
     """A service instance returned by discovering processes"""
     def __init__(
             self, service_name, service_addresses,
-            runtime_type, cluster_name=None, tags=None):
+            service_type, runtime_type,
+            cluster_name=None, tags=None):
         self.service_name = service_name
         self.service_addresses = service_addresses
+        self.service_type = service_type
         self.runtime_type = runtime_type
         self.cluster_name = cluster_name
         self.tags = tags

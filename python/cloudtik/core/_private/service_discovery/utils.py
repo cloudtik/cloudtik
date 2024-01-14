@@ -275,56 +275,54 @@ def get_service_selector_for_update(config, config_key):
     return service_selector
 
 
-def include_label_for_selector(
-        service_selector, label_name,
-        label_value: Union[str, List[str]], override=False):
-    label_values = get_list_for_update(
-        service_selector, label_name)
-    if label_values:
+def include_list_for_selector(
+        service_selector, list_name,
+        list_value: Union[str, List[str]], override=False):
+    if service_selector is None:
+        service_selector = {}
+    list_values = get_list_for_update(
+        service_selector, list_name)
+    if list_values:
         if not override:
             return service_selector
-        label_values.clear()
+        list_values.clear()
 
-    if isinstance(label_value, str):
-        label_values.append(label_value)
+    if isinstance(list_value, str):
+        list_values.append(list_value)
     else:
-        # list of runtime types
-        for item in label_value:
-            label_values.append(item)
+        # list of values
+        for item in list_value:
+            list_values.append(item)
     return service_selector
 
 
 def include_cluster_for_selector(
         service_selector,
         cluster_name: Union[str, List[str]], override=False):
-    return include_label_for_selector(
+    return include_list_for_selector(
         service_selector, SERVICE_SELECTOR_CLUSTERS,
         cluster_name, override)
 
 
 def include_runtime_for_selector(
         service_selector, runtime: Union[str, List[str]], override=False):
-    return include_label_for_selector(
+    return include_list_for_selector(
         service_selector, SERVICE_SELECTOR_RUNTIMES,
         runtime, override)
 
 
 def include_service_type_for_selector(
         service_selector, service_type: Union[str, List[str]], override=False):
-    service_types = get_list_for_update(
-        service_selector, SERVICE_SELECTOR_SERVICE_TYPES)
-    if service_types:
-        if not override:
-            return service_selector
-        service_types.clear()
+    return include_list_for_selector(
+        service_selector, SERVICE_SELECTOR_SERVICE_TYPES,
+        service_type, override)
 
-    if isinstance(service_type, str):
-        service_types.append(service_type)
-    else:
-        # list of runtime types
-        for item in service_type:
-            service_types.append(item)
-    return service_selector
+
+def include_service_name_for_selector(
+        service_selector, service_name: Union[str, List[str]], override=False):
+    return include_list_for_selector(
+        service_selector, SERVICE_SELECTOR_SERVICES,
+        service_name, override)
 
 
 def include_feature_for_selector(service_selector, feature):
@@ -333,4 +331,19 @@ def include_feature_for_selector(service_selector, feature):
     feature_tag = SERVICE_DISCOVERY_TAG_FEATURE_PREFIX + feature
     if feature_tag not in tags:
         tags.append(feature_tag)
+    return service_selector
+
+
+def include_runtime_service_for_selector(
+        service_selector,
+        runtime_type: Optional[Union[str, List[str]]] = None,
+        service_type: Optional[Union[str, List[str]]] = None):
+    if runtime_type:
+        # if user provide runtimes in the selector, we don't override it
+        # because any runtimes in the list will be selected
+        service_selector = include_runtime_for_selector(
+            service_selector, runtime_type)
+    if service_type:
+        service_selector = include_service_type_for_selector(
+            service_selector, service_type)
     return service_selector
