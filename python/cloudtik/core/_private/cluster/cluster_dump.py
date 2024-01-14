@@ -19,9 +19,8 @@ from cloudtik.core._private.cli_logger import cli_logger
 from cloudtik.core._private.cluster.cluster_exec import exec_cluster, exec_on_head, rsync_cluster, rsync_on_head
 from cloudtik.core._private.constants import SESSION_LATEST
 from cloudtik.core._private.util.core_utils import get_cloudtik_home_dir, split_list
-from cloudtik.core._private.provider_factory import _get_node_provider
 from cloudtik.core._private.utils import get_head_working_ip, get_node_cluster_ip, get_runtime_logs, \
-    get_runtime_processes, _get_node_specific_runtime_types, with_verbose_option
+    get_runtime_processes, _get_node_specific_runtime_types, with_verbose_option, get_node_provider_of
 from cloudtik.core.tags import CLOUDTIK_TAG_NODE_KIND, NODE_KIND_HEAD, \
     NODE_KIND_WORKER
 
@@ -717,7 +716,7 @@ def _get_cluster_nodes(config: Dict[str, Any]) \
     Returns:
         (head node_id, head node_ip), list of workers (node_id, node_ip)
     """
-    provider = _get_node_provider(config["provider"], config["cluster_name"])
+    provider = get_node_provider_of(config)
     head_nodes = provider.non_terminated_nodes({
         CLOUDTIK_TAG_NODE_KIND: NODE_KIND_HEAD
     })

@@ -176,9 +176,10 @@ def _get_node_provider_cls(provider_config: Dict[str, Any]):
     return importer(provider_config)
 
 
-def _get_node_provider(provider_config: Dict[str, Any],
-                       cluster_name: str,
-                       use_cache: bool = True) -> Any:
+def _get_node_provider(
+        provider_config: Dict[str, Any],
+        cluster_name: str,
+        use_cache: bool = True) -> Any:
     """Get the instantiated node provider for a given provider config.
 
     Note that this may be used by private node providers that proxy methods to
@@ -193,7 +194,8 @@ def _get_node_provider(provider_config: Dict[str, Any],
     Returns:
         NodeProvider
     """
-    def load_node_provider(provider_config: Dict[str, Any], cluster_name: str):
+    def load_node_provider(
+            provider_config: Dict[str, Any], cluster_name: str):
         provider_cls = _get_node_provider_cls(provider_config)
         return provider_cls(provider_config, cluster_name)
 
@@ -324,8 +326,9 @@ def _get_workspace_provider_cls(provider_config: Dict[str, Any]):
     """
     importer = _WORKSPACE_PROVIDERS.get(provider_config["type"])
     if importer is None:
-        raise NotImplementedError("Unsupported workspace provider: {}".format(
-            provider_config["type"]))
+        raise NotImplementedError(
+            "Unsupported workspace provider: {}".format(
+                provider_config["type"]))
     return importer(provider_config)
 
 
@@ -347,7 +350,8 @@ def _get_workspace_provider(
     Returns:
         WorkspaceProvider
     """
-    def load_workspace_provider(provider_config: Dict[str, Any], workspace_name: str):
+    def load_workspace_provider(
+            provider_config: Dict[str, Any], workspace_name: str):
         provider_cls = _get_workspace_provider_cls(provider_config)
         return provider_cls(provider_config, workspace_name)
 
@@ -365,7 +369,8 @@ def _clear_workspace_provider_cache():
 
 
 def _get_default_workspace_config(provider_config):
-    return _get_provider_config_object(provider_config, "workspace-defaults")
+    return _get_provider_config_object(
+        provider_config, "workspace-defaults")
 
 
 """Storage provider"""
@@ -431,8 +436,9 @@ def _get_storage_provider_cls(provider_config: Dict[str, Any]):
     """
     importer = _STORAGE_PROVIDERS.get(provider_config["type"])
     if importer is None:
-        raise NotImplementedError("Unsupported storage provider: {}".format(
-            provider_config["type"]))
+        raise NotImplementedError(
+            "Unsupported storage provider: {}".format(
+                provider_config["type"]))
     return importer(provider_config)
 
 
@@ -462,7 +468,8 @@ def _get_storage_provider(
         return provider_cls(provider_config, workspace_name, storage_name)
 
     if not use_cache:
-        return load_storage_provider(provider_config, workspace_name, storage_name)
+        return load_storage_provider(
+            provider_config, workspace_name, storage_name)
 
     provider_key = (json.dumps(provider_config, sort_keys=True), storage_name)
     return _storage_provider_instances.get(
@@ -530,8 +537,9 @@ def _get_database_provider_cls(provider_config: Dict[str, Any]):
     """
     importer = _DATABASE_PROVIDERS.get(provider_config["type"])
     if importer is None:
-        raise NotImplementedError("Unsupported database provider: {}".format(
-            provider_config["type"]))
+        raise NotImplementedError(
+            "Unsupported database provider: {}".format(
+                provider_config["type"]))
     return importer(provider_config)
 
 

@@ -3,8 +3,7 @@ from typing import Any, Dict
 
 from cloudtik.core._private.call_context import CallContext
 from cloudtik.core._private.cluster.cluster_utils import create_node_updater_for_exec
-from cloudtik.core._private.provider_factory import _get_node_provider
-from cloudtik.core._private.utils import get_running_head_node
+from cloudtik.core._private.utils import get_running_head_node, get_node_provider_of
 from cloudtik.core.node_provider import NodeProvider
 
 logger = logging.getLogger(__name__)
@@ -61,8 +60,7 @@ def exec_on_head(
         with_updater_environment: bool = False) -> str:
     """Runs a command on the head of the cluster.
     """
-    provider = _get_node_provider(
-        config["provider"], config["cluster_name"])
+    provider = get_node_provider_of(config)
     return _exec_on_node(
         config, call_context, node_id, provider,
         cmd=cmd, run_env=run_env, with_output=with_output,
@@ -83,8 +81,7 @@ def exec_cluster(
     """Runs a command on the head of the cluster.
     """
     use_internal_ip = config.get("bootstrapped", False)
-    provider = _get_node_provider(
-        config["provider"], config["cluster_name"])
+    provider = get_node_provider_of(config)
     head_node = get_running_head_node(
         config,
         _provider=provider,
@@ -137,8 +134,7 @@ def rsync_on_head(
     source, target,
     down: bool
 ):
-    provider = _get_node_provider(
-        config["provider"], config["cluster_name"])
+    provider = get_node_provider_of(config)
     _rsync_with_node(
         config, call_context, node_id, provider,
         source, target, down,
@@ -154,8 +150,7 @@ def rsync_cluster(
     down: bool
 ):
     use_internal_ip = config.get("bootstrapped", False)
-    provider = _get_node_provider(
-        config["provider"], config["cluster_name"])
+    provider = get_node_provider_of(config)
     head_node = get_running_head_node(
         config,
         _provider=provider)

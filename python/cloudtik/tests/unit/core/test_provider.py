@@ -3,7 +3,7 @@ import copy
 import pytest
 
 from cloudtik.core._private.cluster.cluster_config import _bootstrap_config
-from cloudtik.core._private.provider_factory import _get_node_provider, _get_workspace_provider
+from cloudtik.core._private.utils import get_node_provider_of, get_workspace_provider_of
 from cloudtik.core._private.workspace.workspace_operator import _bootstrap_workspace_config
 from cloudtik.core.node_provider import NodeProvider
 from cloudtik.core.workspace_provider import WorkspaceProvider
@@ -55,9 +55,7 @@ EXTERNAL_WORKSPACE_CONFIG = {
 class TestProvider:
     def test_external_node_provider(self):
         config = copy.deepcopy(EXTERNAL_PROVIDER_CONFIG)
-        provider = _get_node_provider(
-            config["provider"], config["cluster_name"])
-
+        provider = get_node_provider_of(config)
         assert provider is not None
 
         # bootstrap should be successful
@@ -65,8 +63,7 @@ class TestProvider:
 
     def test_external_workspace_provider(self):
         config = copy.deepcopy(EXTERNAL_WORKSPACE_CONFIG)
-        provider = _get_workspace_provider(
-            config["provider"], config["workspace_name"])
+        provider = get_workspace_provider_of(config)
 
         assert provider is not None
 

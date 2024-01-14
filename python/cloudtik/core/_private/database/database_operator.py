@@ -6,8 +6,9 @@ from cloudtik.core._private.util.core_utils import get_cloudtik_temp_dir, get_js
 from cloudtik.core._private.util.schema_utils import DATABASE_SCHEMA_NAME, \
     DATABASE_SCHEMA_REFS, validate_schema_by_name
 from cloudtik.core._private.utils import print_dict_info, \
-    load_yaml_config, handle_cli_override, save_config_cache, load_config_from_cache, merge_config_hierarchy
-from cloudtik.core._private.provider_factory import _get_database_provider_cls, _get_database_provider, \
+    load_yaml_config, handle_cli_override, save_config_cache, load_config_from_cache, merge_config_hierarchy, \
+    get_database_provider_of
+from cloudtik.core._private.provider_factory import _get_database_provider_cls, \
     _DATABASE_PROVIDERS, _PROVIDER_PRETTY_NAMES
 from cloudtik.core._private.cli_logger import cli_logger, cf
 
@@ -31,10 +32,8 @@ def delete_database(
 def _delete_database(
         config: Dict[str, Any],
         yes: bool = False):
-    workspace_name = config["workspace_name"]
     database_name = config["database_name"]
-    provider = _get_database_provider(
-        config["provider"], workspace_name, database_name)
+    provider = get_database_provider_of(config)
     database_info = provider.get_info(config)
     if not database_info:
         raise RuntimeError(
@@ -78,10 +77,8 @@ def create_database(
 
 def _create_database(
         config: Dict[str, Any], yes: bool = False):
-    workspace_name = config["workspace_name"]
     database_name = config["database_name"]
-    provider = _get_database_provider(
-        config["provider"], workspace_name, database_name)
+    provider = get_database_provider_of(config)
     database_info = provider.get_info(config)
     if database_info:
         raise RuntimeError(
@@ -102,8 +99,7 @@ def get_database_info(
 
 def _get_database_info(
         config: Dict[str, Any]):
-    provider = _get_database_provider(
-        config["provider"], config["workspace_name"], config["database_name"])
+    provider = get_database_provider_of(config)
     return provider.get_info(config)
 
 
@@ -188,6 +184,5 @@ def validate_database_config(config: Dict[str, Any]) -> None:
 
     validate_schema_by_name(
         config, DATABASE_SCHEMA_NAME, DATABASE_SCHEMA_REFS)
-    provider = _get_database_provider(
-        config["provider"], config["workspace_name"], config["database_name"])
+    provider = get_database_provider_of(config)
     provider.validate_config(config["provider"])

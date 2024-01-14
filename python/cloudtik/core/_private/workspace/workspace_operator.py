@@ -16,8 +16,8 @@ from cloudtik.core.workspace_provider import Existence, CLOUDTIK_MANAGED_CLOUD_S
 from cloudtik.core._private.utils import \
     is_managed_cloud_database, is_managed_cloud_storage, print_dict_info, \
     NODE_INFO_NODE_IP, handle_cli_override, load_yaml_config, save_config_cache, load_config_from_cache, \
-    merge_config_hierarchy
-from cloudtik.core._private.provider_factory import _get_workspace_provider_cls, _get_workspace_provider, \
+    merge_config_hierarchy, get_workspace_provider_of
+from cloudtik.core._private.provider_factory import _get_workspace_provider_cls, \
     _WORKSPACE_PROVIDERS, _PROVIDER_PRETTY_NAMES, _get_node_provider_cls
 from cloudtik.core._private.cli_logger import cli_logger, cf
 
@@ -61,7 +61,7 @@ def _delete_workspace(
         delete_managed_storage: bool = False,
         delete_managed_database: bool = False):
     workspace_name = config["workspace_name"]
-    provider = _get_workspace_provider(config["provider"], workspace_name)
+    provider = get_workspace_provider_of(config)
     existence = provider.check_workspace_existence(config)
     if existence == Existence.NOT_EXIST:
         raise RuntimeError(
@@ -148,7 +148,7 @@ def _create_workspace(
         config: Dict[str, Any], yes: bool = False,
         delete_incomplete: bool = False):
     workspace_name = config["workspace_name"]
-    provider = _get_workspace_provider(config["provider"], workspace_name)
+    provider = get_workspace_provider_of(config)
     existence = provider.check_workspace_existence(config)
     if existence == Existence.COMPLETED:
         raise RuntimeError(
@@ -198,7 +198,7 @@ def _update_workspace(
         delete_managed_database: bool = False
 ):
     workspace_name = config["workspace_name"]
-    provider = _get_workspace_provider(config["provider"], workspace_name)
+    provider = get_workspace_provider_of(config)
     existence = provider.check_workspace_existence(config)
     if existence == Existence.NOT_EXIST:
         raise RuntimeError(
@@ -291,8 +291,7 @@ def _show_clusters(clusters_info):
 
 def _list_workspace_clusters(
         config: Dict[str, Any]) -> Optional[Dict[str, Any]]:
-    provider = _get_workspace_provider(
-        config["provider"], config["workspace_name"])
+    provider = get_workspace_provider_of(config)
     existence = provider.check_workspace_existence(config)
     if existence == Existence.NOT_EXIST:
         return None
@@ -325,8 +324,7 @@ def list_workspace_storages(
 
 def _list_workspace_storages(
         config: Dict[str, Any]) -> Optional[Dict[str, Any]]:
-    provider = _get_workspace_provider(
-        config["provider"], config["workspace_name"])
+    provider = get_workspace_provider_of(config)
     existence = provider.check_workspace_existence(config)
     if existence == Existence.NOT_EXIST:
         return None
@@ -371,8 +369,7 @@ def list_workspace_databases(
 
 def _list_workspace_databases(
         config: Dict[str, Any]) -> Optional[Dict[str, Any]]:
-    provider = _get_workspace_provider(
-        config["provider"], config["workspace_name"])
+    provider = get_workspace_provider_of(config)
     existence = provider.check_workspace_existence(config)
     if existence == Existence.NOT_EXIST:
         return None
@@ -418,8 +415,7 @@ def show_status(
 
 
 def _get_workspace_status(config):
-    workspace_name = config["workspace_name"]
-    provider = _get_workspace_provider(config["provider"], workspace_name)
+    provider = get_workspace_provider_of(config)
     return provider.check_workspace_existence(config)
 
 
@@ -432,8 +428,7 @@ def get_workspace_info(
 
 def _get_workspace_info(
         config: Dict[str, Any]):
-    provider = _get_workspace_provider(
-        config["provider"], config["workspace_name"])
+    provider = get_workspace_provider_of(config)
     return provider.get_workspace_info(config)
 
 
@@ -534,6 +529,5 @@ def validate_workspace_config(config: Dict[str, Any]) -> None:
 
     validate_schema_by_name(
         config, WORKSPACE_SCHEMA_NAME, WORKSPACE_SCHEMA_REFS)
-    provider = _get_workspace_provider(
-        config["provider"], config["workspace_name"])
+    provider = get_workspace_provider_of(config)
     provider.validate_config(config["provider"])

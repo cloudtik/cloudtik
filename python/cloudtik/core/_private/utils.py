@@ -43,7 +43,8 @@ from cloudtik.core._private.util.schema_utils import CLUSTER_SCHEMA_NAME, CLUSTE
     validate_schema_by_name
 from cloudtik.core.node_provider import NodeProvider
 from cloudtik.core._private.provider_factory import _get_default_config, _get_node_provider, \
-    _get_provider_config_object, _get_node_provider_cls
+    _get_provider_config_object, _get_node_provider_cls, _get_workspace_provider, _get_database_provider, \
+    _get_storage_provider
 from cloudtik.core._private.docker import validate_docker_config
 from cloudtik.core.scaling_policy import ScalingState
 from cloudtik.core.tags import CLOUDTIK_TAG_USER_NODE_TYPE, CLOUDTIK_TAG_NODE_STATUS, STATUS_UP_TO_DATE, \
@@ -391,9 +392,8 @@ def validate_config(
 def verify_config(
         config: Dict[str, Any], skip_runtime_verify: bool = False):
     """Verify the configurations. Usually verify may mean to involve slow process"""
+    provider = get_node_provider_of(config)
     provider_config = config["provider"]
-    provider = _get_node_provider(provider_config, config["cluster_name"])
-
     provider.verify_config(provider_config)
 
     if not skip_runtime_verify:
@@ -1068,7 +1068,7 @@ def combine_commands_from_docker(config, merged_commands, command_key):
 
 
 def _get_node_specific_runtime_types(config, node_id: str):
-    provider = _get_node_provider_of(config)
+    provider = get_node_provider_of(config)
     node_tags = provider.node_tags(node_id)
     node_type = node_tags.get(CLOUDTIK_TAG_USER_NODE_TYPE)
     return _get_node_type_specific_runtime_types(config, node_type)
@@ -1720,12 +1720,12 @@ def get_usage_report(cluster_metrics_summary: ClusterMetricsSummary) -> str:
             used = used - pg_total + pg_used
 
         if resource in ["memory"]:
-            to_GiB = 1 / 2**30
-            line = (f" {(used * to_GiB):.2f}/"
-                    f"{(total * to_GiB):.3f} GiB {resource}")
+            to_gib = 1 / 2**30
+            line = (f" {(used * to_gib):.2f}/"
+                    f"{(total * to_gib):.3f} GiB {resource}")
             if used_in_pg:
-                line = line + (f" ({(pg_used * to_GiB):.2f} used of "
-                               f"{(pg_total * to_GiB):.2f} GiB " +
+                line = line + (f" ({(pg_used * to_gib):.2f} used of "
+                               f"{(pg_total * to_gib):.2f} GiB " +
                                "reserved in placement groups)")
             usage_lines.append(line)
         else:
@@ -1761,7 +1761,7 @@ def format_resource_demand_summary(
             result_bundle[resource_name] = resource_count
             if pg_name:
                 using_placement_group = True
-        return (result_bundle, using_placement_group)
+        return result_bundle, using_placement_group
 
     bundle_demand = collections.defaultdict(int)
     pg_bundle_demand = collections.defaultdict(int)
@@ -2019,8 +2019,7 @@ def get_node_cluster_ip(provider: NodeProvider, node: str) -> str:
 
 
 def get_node_cluster_ip_of(config: Dict[str, Any], node: str) -> str:
-    provider = _get_node_provider(
-        config["provider"], config["cluster_name"])
+    provider = get_node_provider_of(config)
     return get_node_cluster_ip(provider, node)
 
 
@@ -2060,7 +2059,7 @@ def get_head_working_ip(config: Dict[str, Any],
 
 
 def get_cluster_head_ip(config: Dict[str, Any], public: bool = False) -> str:
-    provider = _get_node_provider_of(config)
+    provider = get_node_provider_of(config)
     head_node = get_running_head_node(config)
     if public:
         return get_head_working_ip(config, provider, head_node)
@@ -2292,16 +2291,34 @@ def is_node_in_status(provider, node: str, node_status: str):
     return True if node_status == node_info.get(CLOUDTIK_TAG_NODE_STATUS) else False
 
 
-def _get_node_provider_of(config: Dict[str, Any]):
+def get_node_provider_of(config: Dict[str, Any]):
     return _get_node_provider(
         config["provider"], config["cluster_name"])
+
+
+def get_workspace_provider_of(config: Dict[str, Any]):
+    return _get_workspace_provider(
+        config["provider"], config["workspace_name"])
+
+
+def get_storage_provider_of(config: Dict[str, Any]):
+    return _get_storage_provider(
+        config["provider"], config["workspace_name"],
+        config["storage_name"])
+
+
+def get_database_provider_of(config: Dict[str, Any]):
+    return _get_database_provider(
+        config["provider"], config["workspace_name"],
+        config["database_name"])
 
 
 def _get_worker_nodes(config: Dict[str, Any]) -> List[str]:
     """Returns worker node ids for given configuration."""
     # Technically could be reused in get_worker_node_ips
-    provider = _get_node_provider_of(config)
-    return provider.non_terminated_nodes({CLOUDTIK_TAG_NODE_KIND: NODE_KIND_WORKER})
+    provider = get_node_provider_of(config)
+    return provider.non_terminated_nodes(
+        {CLOUDTIK_TAG_NODE_KIND: NODE_KIND_WORKER})
 
 
 def is_node_info_for_runtime(
@@ -2323,7 +2340,7 @@ def _get_worker_nodes_info(
         config: Dict[str, Any],
         runtime: str = None,
         node_status: str = None) -> List[str]:
-    provider = _get_node_provider_of(config)
+    provider = get_node_provider_of(config)
     workers = _get_worker_nodes(config)
     return _get_nodes_info_for(
         config, provider, workers,
@@ -2351,7 +2368,7 @@ def _get_nodes_info_for(
 def _get_worker_node_ips(
         config: Dict[str, Any], runtime: str = None,
         node_status: str = None) -> List[str]:
-    provider = _get_node_provider_of(config)
+    provider = get_node_provider_of(config)
     nodes = provider.non_terminated_nodes({
         CLOUDTIK_TAG_NODE_KIND: NODE_KIND_WORKER
     })
@@ -3015,8 +3032,7 @@ def get_running_head_node(
         _allow_uninitialized_state: bool = True,
 ) -> str:
     """Get a valid, running head node."""
-    provider = _provider or _get_node_provider(config["provider"],
-                                               config["cluster_name"])
+    provider = _provider or get_node_provider_of(config)
     head_node_tags = {
         CLOUDTIK_TAG_NODE_KIND: NODE_KIND_HEAD,
     }

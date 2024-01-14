@@ -1,8 +1,7 @@
 from typing import Any, Dict, Optional
 
-from cloudtik.core._private.provider_factory import _get_node_provider
 from cloudtik.core._private.utils import check_workspace_name_format, \
-    get_running_head_node
+    get_running_head_node, get_node_provider_of
 from cloudtik.core.tags import CLOUDTIK_GLOBAL_VARIABLE_KEY, \
     CLOUDTIK_GLOBAL_VARIABLE_KEY_PREFIX
 from cloudtik.core.workspace_provider import Existence, WorkspaceProvider
@@ -81,9 +80,7 @@ class HUAWEICLOUDWorkspaceProvider(WorkspaceProvider):
             prefixed_name = CLOUDTIK_GLOBAL_VARIABLE_KEY.format(name)
             global_variables_prefixed[prefixed_name] = global_variables[name]
 
-        provider = _get_node_provider(
-            cluster_config['provider'],
-            cluster_config['cluster_name'])
+        provider = get_node_provider_of(cluster_config)
         head_node_id = get_running_head_node(cluster_config, provider)
         provider.set_node_tags(head_node_id, global_variables_prefixed)
 

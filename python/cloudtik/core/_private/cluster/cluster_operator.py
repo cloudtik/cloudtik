@@ -50,7 +50,7 @@ from cloudtik.core._private.event_system import (CreateClusterEvent, global_even
 from cloudtik.core._private.job_waiter.job_waiter_factory import create_job_waiter
 from cloudtik.core._private.log_timer import LogTimer
 from cloudtik.core._private.node.node_updater import NodeUpdaterThread
-from cloudtik.core._private.provider_factory import _get_node_provider, _NODE_PROVIDERS
+from cloudtik.core._private.provider_factory import _NODE_PROVIDERS
 from cloudtik.core._private.runtime_factory import _get_runtime_cls
 from cloudtik.core._private.service_discovery.naming import get_cluster_head_hostname, _get_worker_node_hosts, \
     get_cluster_head_host
@@ -64,7 +64,7 @@ from cloudtik.core._private.util.core_utils import stop_process_tree, double_quo
     get_free_port, \
     memory_to_gb, memory_to_gb_string, address_to_ip, split_list
 from cloudtik.core._private.util.redis_utils import validate_redis_address, get_address_to_use_or_die
-from cloudtik.core._private.utils import format_info_string
+from cloudtik.core._private.utils import format_info_string, get_node_provider_of
 from cloudtik.core._private.utils import hash_runtime_conf, \
     hash_launch_conf, get_proxy_process_file, get_safe_proxy_process, \
     get_head_working_ip, get_node_cluster_ip, is_use_internal_ip, \
@@ -315,7 +315,7 @@ def create_or_update_cluster(
         with _cli_logger.group("Starting SOCKS5 proxy..."):
             _start_proxy(config, True, "localhost")
 
-    provider = _get_node_provider(config["provider"], config["cluster_name"])
+    provider = get_node_provider_of(config)
     head_node = _get_running_head_node(
         config,
         _allow_uninitialized_state=False)
@@ -465,7 +465,7 @@ def _teardown_cluster(
             "Stopping head and remaining nodes",
             _numbered=("[]", current_step, total_steps)):
         current_step += 1
-        provider = _get_node_provider(config["provider"], config["cluster_name"])
+        provider = get_node_provider_of(config)
         # Since head node has down the workers shutdown
         # We continue shutdown the head and remaining workers
         teardown_cluster_nodes(
@@ -707,7 +707,7 @@ def _kill_node_from_head(
         node_ip: str = None,
         hard: bool = False) -> Optional[str]:
     if node_ip is None:
-        provider = _get_node_provider(config["provider"], config["cluster_name"])
+        provider = get_node_provider_of(config)
         nodes = provider.non_terminated_nodes({
             CLOUDTIK_TAG_NODE_KIND: NODE_KIND_WORKER
         })
@@ -767,7 +767,7 @@ def _kill_node(
         call_context: CallContext,
         hard: bool,
         node_ip: str = None):
-    provider = _get_node_provider(config["provider"], config["cluster_name"])
+    provider = get_node_provider_of(config)
     _cli_logger = call_context.cli_logger
     if node_ip:
         node = provider.get_node_id(node_ip, use_internal_ip=True)
@@ -850,8 +850,7 @@ def get_or_create_head_node(
     global_event_system.execute_callback(
         get_cluster_uri(config),
         CreateClusterEvent.cluster_booting_started)
-    provider = (_provider or _get_node_provider(config["provider"],
-                                                config["cluster_name"]))
+    provider = (_provider or get_node_provider_of(config))
 
     config = copy.deepcopy(config)
     head_node_tags = {
@@ -1265,7 +1264,7 @@ def _exec_cluster(
         create_if_needed=start,
         _allow_uninitialized_state=_allow_uninitialized_state)
 
-    provider = _get_node_provider(config["provider"], config["cluster_name"])
+    provider = get_node_provider_of(config)
     updater = create_node_updater_for_exec(
         config=config,
         call_context=call_context,
@@ -1392,7 +1391,7 @@ def _rsync(
                 is_file_mount = True
                 break
 
-    provider = _get_node_provider(config["provider"], config["cluster_name"])
+    provider = get_node_provider_of(config)
 
     def rsync_to_node(node_id, source, target, is_head_node):
         updater = create_node_updater_for_exec(
@@ -1575,7 +1574,7 @@ def rsync_node_on_head(
         down: bool,
         node_ip: str = None,
         all_workers: bool = False):
-    provider = _get_node_provider(config["provider"], config["cluster_name"])
+    provider = get_node_provider_of(config)
 
     is_file_mount = False
     if source and target:
@@ -1747,8 +1746,7 @@ def _get_running_head_node_ex(
             `cloudtik exec` to debug a cluster in a bad state.
 
     """
-    provider = _provider or _get_node_provider(config["provider"],
-                                               config["cluster_name"])
+    provider = _provider or get_node_provider_of(config)
     head_node_tags = {
         CLOUDTIK_TAG_NODE_KIND: NODE_KIND_HEAD,
     }
@@ -2053,50 +2051,50 @@ def dump_cluster(
 
 
 def _show_worker_cpus(config: Dict[str, Any]):
-    provider = _get_node_provider(config["provider"], config["cluster_name"])
+    provider = get_node_provider_of(config)
     worker_cpus = get_worker_cpus(config, provider)
     cli_logger.print(worker_cpus)
 
 
 def _show_worker_gpus(config: Dict[str, Any]):
-    provider = _get_node_provider(config["provider"], config["cluster_name"])
+    provider = get_node_provider_of(config)
     worker_gpus = get_worker_gpus(config, provider)
     cli_logger.print(worker_gpus)
 
 
 def _show_worker_memory(config: Dict[str, Any]):
-    provider = _get_node_provider(config["provider"], config["cluster_name"])
+    provider = get_node_provider_of(config)
     memory_in_gb = memory_to_gb_string(get_worker_memory(config, provider))
     cli_logger.print(memory_in_gb)
 
 
 def _show_cpus_per_worker(config: Dict[str, Any]):
-    provider = _get_node_provider(config["provider"], config["cluster_name"])
+    provider = get_node_provider_of(config)
     cpus_per_worker = get_cpus_per_worker(config, provider)
     cli_logger.print(cpus_per_worker)
 
 
 def _show_gpus_per_worker(config: Dict[str, Any]):
-    provider = _get_node_provider(config["provider"], config["cluster_name"])
+    provider = get_node_provider_of(config)
     gpus_per_worker = get_gpus_per_worker(config, provider)
     cli_logger.print(gpus_per_worker)
 
 
 def _show_sockets_per_worker(config: Dict[str, Any]):
-    provider = _get_node_provider(config["provider"], config["cluster_name"])
+    provider = get_node_provider_of(config)
     sockets_per_worker = get_sockets_per_worker(config, provider)
     cli_logger.print(sockets_per_worker)
 
 
 def _show_memory_per_worker(config: Dict[str, Any]):
-    provider = _get_node_provider(config["provider"], config["cluster_name"])
+    provider = get_node_provider_of(config)
     memory_per_worker = get_memory_per_worker(config, provider)
     # convert to GB and print
     cli_logger.print(memory_to_gb(memory_per_worker))
 
 
 def _show_total_workers(config: Dict[str, Any]):
-    provider = _get_node_provider(config["provider"], config["cluster_name"])
+    provider = get_node_provider_of(config)
     cluster_info = _get_cluster_info(config, provider)
     worker_count = cluster_info["total-workers"]
     cli_logger.print(worker_count)
@@ -2146,7 +2144,7 @@ def _show_cluster_info(
         config: Dict[str, Any],
         config_file: str,
         override_cluster_name: Optional[str] = None):
-    provider = _get_node_provider(config["provider"], config["cluster_name"])
+    provider = get_node_provider_of(config)
 
     cluster_info = _get_cluster_info(config, provider)
 
@@ -2332,7 +2330,7 @@ def _show_cluster_status(config: Dict[str, Any]) -> None:
 def _get_cluster_nodes_info(
         config: Dict[str, Any],
         runtime: str = None, node_status: str = None):
-    provider = _get_node_provider(config["provider"], config["cluster_name"])
+    provider = get_node_provider_of(config)
     nodes = provider.non_terminated_nodes({})
     return _get_sorted_nodes_info(
         config, provider, nodes,
@@ -2344,7 +2342,7 @@ def _get_cluster_info(
         provider: NodeProvider = None,
         simple_config: bool = False) -> Dict[str, Any]:
     if provider is None:
-        provider = _get_node_provider(config["provider"], config["cluster_name"])
+        provider = get_node_provider_of(config)
 
     cluster_info = {
         "name": config["cluster_name"]
@@ -2501,7 +2499,7 @@ def _start_proxy(
                 bind_address_to_show, port)
             return
 
-    provider = _get_node_provider(config["provider"], config["cluster_name"])
+    provider = get_node_provider_of(config)
     # Check whether the head node is running
     try:
         head_node = _get_running_head_node(
@@ -2678,7 +2676,7 @@ def teardown_cluster_on_head(
         cli_logger.newline()
 
     call_context = cli_call_context()
-    provider = _get_node_provider(config["provider"], config["cluster_name"])
+    provider = get_node_provider_of(config)
 
     teardown_cluster_nodes(
         config,
@@ -2738,7 +2736,7 @@ def get_runtime_processes(runtime_type):
 def cluster_process_status_on_head(
         redis_address, redis_password, runtimes):
     config = load_head_cluster_config()
-    provider = _get_node_provider(config["provider"], config["cluster_name"])
+    provider = get_node_provider_of(config)
 
     control_state = ControlState()
     _, redis_ip, redis_port = validate_redis_address(redis_address)
@@ -3133,7 +3131,7 @@ def attach_node_on_head(
         with_updater_environment: bool = False):
     config = load_head_cluster_config()
     call_context = cli_call_context()
-    provider = _get_node_provider(config["provider"], config["cluster_name"])
+    provider = get_node_provider_of(config)
 
     if not node_ip:
         cli_logger.error(
@@ -3182,8 +3180,7 @@ def _exec_node_on_head(
         job_waiter_name: Optional[str] = None,
         force: bool = True,
         with_updater_environment: bool = False):
-    provider = _get_node_provider(
-        config["provider"], config["cluster_name"])
+    provider = get_node_provider_of(config)
     head_node = _get_running_head_node(
         config, _provider=provider,
         _allow_uninitialized_state=True if force else False)
@@ -3270,7 +3267,7 @@ def _start_node_on_head(
         runtimes: str = None,
         parallel: bool = True,
         force: bool = True):
-    provider = _get_node_provider(config["provider"], config["cluster_name"])
+    provider = get_node_provider_of(config)
     runtime_list = get_verified_runtime_list(config, runtimes) if runtimes else None
 
     head_node = _get_running_head_node(
@@ -3600,7 +3597,7 @@ def _stop_node_on_head(
         parallel: bool = True,
         force: bool = True):
     # Since this is running on head, the bootstrap config must exist
-    provider = _get_node_provider(config["provider"], config["cluster_name"])
+    provider = get_node_provider_of(config)
     runtime_list = get_verified_runtime_list(
         config, runtimes) if runtimes else None
     head_node = _get_running_head_node(
@@ -3984,7 +3981,7 @@ def _get_requested_resource(
 def _get_cluster_unfulfilled_for_bundles(
         config: Dict[str, Any],
         bundles: List[ResourceDict]):
-    provider = _get_node_provider(config["provider"], config["cluster_name"])
+    provider = get_node_provider_of(config)
     node_types = config["available_node_types"]
     workers = provider.non_terminated_nodes({
         CLOUDTIK_TAG_NODE_KIND: NODE_KIND_WORKER
@@ -4030,7 +4027,7 @@ def _is_resource_satisfied(
                     return False
 
     # 2. whether running cluster resources already satisfied
-    provider = _get_node_provider(config["provider"], config["cluster_name"])
+    provider = get_node_provider_of(config)
     if cpus and get_worker_cpus(config, provider) < cpus:
         return False
     if gpus and get_worker_gpus(config, provider) < gpus:
@@ -4347,7 +4344,7 @@ def _wait_for_ready(
     if timeout is None:
         timeout = constants.CLOUDTIK_WAIT_FOR_CLUSTER_READY_TIMEOUT_S
 
-    provider = _get_node_provider(config["provider"], config["cluster_name"])
+    provider = get_node_provider_of(config)
     workers_ready = _get_workers_ready(config, provider)
     if workers_ready >= min_workers:
         return
@@ -4377,15 +4374,13 @@ def _create_job_waiter(
 
 def get_default_cloud_storage(
         config: Dict[str, Any]):
-    provider = _get_node_provider(
-        config["provider"], config["cluster_name"])
+    provider = get_node_provider_of(config)
     return provider.get_default_cloud_storage()
 
 
 def get_default_cloud_database(
         config: Dict[str, Any]):
-    provider = _get_node_provider(
-        config["provider"], config["cluster_name"])
+    provider = get_node_provider_of(config)
     return provider.get_default_cloud_database()
 
 
@@ -4495,7 +4490,7 @@ def _index_node_processes(node_processes_rows):
 def do_nodes_health_check(
         redis_address, redis_password, with_details=False):
     config = load_head_cluster_config()
-    provider = _get_node_provider(config["provider"], config["cluster_name"])
+    provider = get_node_provider_of(config)
 
     failed_nodes = {}
     # Check whether the head node is running

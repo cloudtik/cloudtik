@@ -11,7 +11,6 @@ from cloudtik.core._private.constants import CLOUDTIK_RUNTIME_ENV_NODE_TYPE, CLO
     CLOUDTIK_RUNTIME_ENV_HEAD_HOST, CLOUDTIK_RUNTIME_ENV_NODE_HOST, CLOUDTIK_RUNTIME_ENV_WORKSPACE, \
     CLOUDTIK_RUNTIME_ENV_CLUSTER, CLOUDTIK_RUNTIME_ENV_NODE_SEQ_ID
 from cloudtik.core._private.crypto import AESCipher
-from cloudtik.core._private.provider_factory import _get_node_provider
 from cloudtik.core._private.service_discovery.naming import _get_cluster_node_fqdn_of, _get_cluster_node_sqdn_of, \
     get_address_type_of_hostname, _get_worker_node_hosts
 from cloudtik.core._private.service_discovery.utils import ServiceAddressType
@@ -19,7 +18,7 @@ from cloudtik.core._private.util.redis_utils import create_redis_client, get_add
 from cloudtik.core._private.state.state_utils import NODE_STATE_NODE_IP, NODE_STATE_NODE_SEQ_ID
 from cloudtik.core._private.utils import load_head_cluster_config, _get_node_type_specific_runtime_config, \
     get_runtime_config_key, decode_cluster_secrets, CLOUDTIK_CLUSTER_NODES_INFO_NODE_TYPE, \
-    _get_workers_ready, _get_worker_node_ips, CLOUDTIK_CLUSTER_VARIABLE
+    _get_workers_ready, _get_worker_node_ips, CLOUDTIK_CLUSTER_VARIABLE, get_node_provider_of
 from cloudtik.core.tags import STATUS_UP_TO_DATE
 
 RUNTIME_NODE_ID = "node_id"
@@ -256,7 +255,7 @@ def get_first_data_disk_dir():
 
 def get_workers_ready_from_head():
     config = load_head_cluster_config()
-    provider = _get_node_provider(config["provider"], config["cluster_name"])
+    provider = get_node_provider_of(config)
     return _get_workers_ready(config, provider)
 
 
