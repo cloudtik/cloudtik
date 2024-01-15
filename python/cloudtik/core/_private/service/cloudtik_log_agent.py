@@ -65,26 +65,27 @@ def _get_pid_from_log_file(file_path):
         except ValueError:
             pass
 
-    pid_match = PID_LOG_PATTERN.match(file_path)
+    # use file name without extension as pid
+    log_file_stem = Path(file_path).stem
+    pid_match = PID_LOG_PATTERN.match(log_file_stem)
     if pid_match:
         worker_pid = pid_match.group(1)
         if worker_pid:
             return worker_pid
 
-    # use file name as pid
-    worker_pid = Path(file_path).stem
-    return worker_pid
+    return log_file_stem
 
 
 class LogFileInfo:
-    def __init__(self,
-                 filename=None,
-                 size_when_last_opened=None,
-                 file_position=None,
-                 file_handle=None,
-                 is_err_file=False,
-                 worker_pid=None,
-                 runtime_name=None):
+    def __init__(
+            self,
+            filename=None,
+            size_when_last_opened=None,
+            file_position=None,
+            file_handle=None,
+            is_err_file=False,
+            worker_pid=None,
+            runtime_name=None):
         assert (filename is not None and size_when_last_opened is not None
                 and file_position is not None)
         self.filename = filename
@@ -156,16 +157,17 @@ class LogMonitor:
             false otherwise.
     """
 
-    def __init__(self,
-                 node_id,
-                 node_ip,
-                 node_type,
-                 logs_dir,
-                 redis_address,
-                 redis_password=None,
-                 runtimes=None,
-                 max_files_open: int = constants.LOG_MONITOR_MAX_OPEN_FILES,
-                 ):
+    def __init__(
+            self,
+            node_id,
+            node_ip,
+            node_type,
+            logs_dir,
+            redis_address,
+            redis_password=None,
+            runtimes=None,
+            max_files_open: int = constants.LOG_MONITOR_MAX_OPEN_FILES,
+    ):
         """Initialize the log monitor object."""
         if not node_ip:
             node_ip = get_node_ip_address()
@@ -323,8 +325,9 @@ class LogMonitor:
             except (IOError, OSError) as e:
                 # Catch "file not found" errors.
                 if e.errno == errno.ENOENT:
-                    logger.warning(f"Warning: The file {file_info.filename} "
-                                   "was not found.")
+                    logger.warning(
+                        f"Warning: The file {file_info.filename} "
+                        "was not found.")
                     self.log_filenames.remove(file_info.filename)
                     continue
                 raise e
@@ -460,15 +463,17 @@ class LogMonitor:
             except Exception as e:
                 error_str = str(e)
                 if last_error_str != error_str:
-                    logger.exception("Error happened when publishing: " + str(e))
+                    logger.exception(
+                        "Error happened when publishing: " + str(e))
                     logger.exception(traceback.format_exc())
                     last_error_str = error_str
                     last_error_num = 1
                 else:
                     last_error_num += 1
                     if last_error_num % log_repeat_errors == 0:
-                        logger.error("Error happened {} times for updating: {}".format(
-                            last_error_num, error_str))
+                        logger.error(
+                            "Error happened {} times for updating: {}".format(
+                                last_error_num, error_str))
                 # if there is error, wait for some time
                 time.sleep(interval)
             else:

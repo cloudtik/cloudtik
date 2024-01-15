@@ -49,13 +49,14 @@ class ClusterController:
         redis: A connection to the Redis server.
     """
 
-    def __init__(self,
-                 redis_address,
-                 cluster_config,
-                 redis_password=None,
-                 controller_ip=None,
-                 stop_event: Optional[Event] = None,
-                 retry_on_failure: bool = True):
+    def __init__(
+            self,
+            redis_address,
+            cluster_config,
+            redis_password=None,
+            controller_ip=None,
+            stop_event: Optional[Event] = None,
+            retry_on_failure: bool = True):
         # For controller, since we reside on head, there is no problem
         # for the redis address and resource scaling policy to use the
         # IP address.
@@ -81,7 +82,8 @@ class ClusterController:
         kv_initialize(state_client)
 
         self._session_name = self.get_session_name(state_client)
-        logger.info(f"session_name: {self._session_name}")
+        logger.info(
+            f"session_name: {self._session_name}")
 
         self.scaling_state_client = ScalingStateClient.create_from(control_state)
 
@@ -105,7 +107,8 @@ class ClusterController:
             session_name=self._session_name)
         self._start_metrics_server(controller_ip)
 
-        logger.info("Controller: Started")
+        logger.info(
+            "Controller: Started")
 
     def get_session_name(self, state_client) -> Optional[str]:
         """Obtain the session name from the state store.
@@ -147,8 +150,9 @@ class ClusterController:
                 logger.exception(
                     "An exception occurred while starting the metrics server.")
         else:
-            logger.warning("`prometheus_client` not found, so metrics will "
-                           "not be exported.")
+            logger.warning(
+                "`prometheus_client` not found, so metrics will "
+                "not be exported.")
 
     def _run(self):
         """Run the controller loop."""
@@ -163,7 +167,8 @@ class ClusterController:
             except Exception:
                 # By default, do not exit the controller on failure.
                 if self.retry_on_failure:
-                    logger.exception("Controller: Execution exception. Trying again...")
+                    logger.exception(
+                        "Controller: Execution exception. Trying again...")
                 else:
                     raise
 
@@ -187,7 +192,8 @@ class ClusterController:
                 "Controller: Cleanup failed due to lack of cluster config.")
             return
 
-        logger.info("Controller: Exception caught. Taking down workers...")
+        logger.info(
+            "Controller: Exception caught. Taking down workers...")
         clean = False
         while not clean:
             try:
@@ -199,13 +205,16 @@ class ClusterController:
                     keep_min_workers=True,  # Retain minimal amount of workers.
                 )
                 clean = True
-                logger.info("Controller: Workers taken down.")
+                logger.info(
+                    "Controller: Workers taken down.")
             except Exception:
-                logger.error("Controller: Cleanup exception. Trying again...")
+                logger.error(
+                    "Controller: Cleanup exception. Trying again...")
                 time.sleep(2)
 
     def _handle_failure(self, error):
-        logger.exception("Error in controller loop")
+        logger.exception(
+            "Error in controller loop")
         if self.cluster_scaler is not None and \
            os.environ.get("CLOUDTIK_FATESHARE_WORKERS", "") == "1":
             self.cluster_scaler.kill_workers()
@@ -227,7 +236,8 @@ class ClusterController:
             redis_client=redis_client)
 
     def _signal_handler(self, sig, frame):
-        logger.info(f"Terminated with signal {sig}")
+        logger.info(
+            f"Terminated with signal {sig}")
         sys.exit(sig + 128)
 
     def run(self):
@@ -321,10 +331,14 @@ if __name__ == "__main__":
         max_bytes=args.logging_rotate_bytes,
         backup_count=args.logging_rotate_backup_count)
 
-    logger.info(f"Starting controller using CloudTik installation: {cloudtik.__file__}")
-    logger.info(f"CloudTik version: {cloudtik.__version__}")
-    logger.info(f"CloudTik commit: {cloudtik.__commit__}")
-    logger.info(f"Controller started with command: {sys.argv}")
+    logger.info(
+        f"Starting controller using CloudTik installation: {cloudtik.__file__}")
+    logger.info(
+        f"CloudTik version: {cloudtik.__version__}")
+    logger.info(
+        f"CloudTik commit: {cloudtik.__commit__}")
+    logger.info(
+        f"Controller started with command: {sys.argv}")
 
     if args.cluster_config:
         cluster_config = os.path.expanduser(args.cluster_config)
