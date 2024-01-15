@@ -33,17 +33,18 @@ class NodeMonitor:
     """Node Monitor for node heartbeats and node status updates
     """
 
-    def __init__(self,
-                 node_id,
-                 node_ip,
-                 node_kind,
-                 node_type,
-                 node_seq_id,
-                 redis_address,
-                 redis_password=None,
-                 static_resource_list=None,
-                 stop_event: Optional[Event] = None,
-                 runtimes: str = None):
+    def __init__(
+            self,
+            node_id,
+            node_ip,
+            node_kind,
+            node_type,
+            node_seq_id,
+            redis_address,
+            redis_password=None,
+            static_resource_list=None,
+            stop_event: Optional[Event] = None,
+            runtimes: str = None):
         if not node_ip:
             node_ip = get_node_ip_address()
         if node_id is None:
@@ -123,23 +124,27 @@ class NodeMonitor:
             except Exception as e:
                 error_str = str(e)
                 if last_error_str != error_str:
-                    logger.exception("Error happened when updating: " + str(e))
+                    logger.exception(
+                        "Error happened when updating: " + str(e))
                     logger.exception(traceback.format_exc())
                     last_error_str = error_str
                     last_error_num = 1
                 else:
                     last_error_num += 1
                     if last_error_num % log_repeat_errors == 0:
-                        logger.error("Error happened {} times for updating: {}".format(
-                            last_error_num, error_str))
+                        logger.error(
+                            "Error happened {} times for updating: {}".format(
+                                last_error_num, error_str))
 
             time.sleep(interval)
 
     def _handle_failure(self, error):
-        logger.exception(f"Error in node monitor loop:\n{error}")
+        logger.exception(
+            f"Error in node monitor loop:\n{error}")
 
     def _signal_handler(self, sig, frame):
-        logger.info(f"Terminated with signal {sig}")
+        logger.info(
+            f"Terminated with signal {sig}")
         sys.exit(sig + 128)
 
     def _run_heartbeat(self):
@@ -164,15 +169,17 @@ class NodeMonitor:
             except Exception as e:
                 error_str = str(e)
                 if last_error_str != error_str:
-                    logger.exception("Error happened when heartbeat: " + str(e))
+                    logger.exception(
+                        "Error happened when heartbeat: " + str(e))
                     logger.exception(traceback.format_exc())
                     last_error_str = error_str
                     last_error_num = 1
                 else:
                     last_error_num += 1
                     if last_error_num % log_repeat_errors == 0:
-                        logger.error("Error happened {} times for heartbeat: {}".format(
-                            last_error_num, error_str))
+                        logger.error(
+                            "Error happened {} times for heartbeat: {}".format(
+                                last_error_num, error_str))
 
     def _update_processes(self):
         self._refresh_processes()
@@ -207,8 +214,9 @@ class NodeMonitor:
                     found_process[process_name] = proc.status()
 
         if found_process != self.old_processes:
-            logger.info("Cloudtik processes status changed, latest process information: {}".format(
-                str(found_process)))
+            logger.info(
+                "Cloudtik processes status changed, latest process information: {}".format(
+                    str(found_process)))
             self.node_processes["process"] = found_process
             self.old_processes = found_process
 
@@ -222,7 +230,8 @@ class NodeMonitor:
 
         metrics = self.metrics_collector.get_all_metrics()
         if logger.isEnabledFor(logging.DEBUG):
-            logger.debug("Metrics collected for node: {}".format(metrics))
+            logger.debug(
+                "Metrics collected for node: {}".format(metrics))
         self.node_metrics["metrics"] = metrics
 
     def _publish_processes(self):
@@ -356,10 +365,14 @@ if __name__ == "__main__":
         max_bytes=args.logging_rotate_bytes,
         backup_count=args.logging_rotate_backup_count)
 
-    logger.info(f"Starting Node Monitor using CloudTik installation: {cloudtik.__file__}")
-    logger.info(f"CloudTik version: {cloudtik.__version__}")
-    logger.info(f"CloudTik commit: {cloudtik.__commit__}")
-    logger.info(f"Node Monitor started with command: {sys.argv}")
+    logger.info(
+        f"Starting Node Monitor using CloudTik installation: {cloudtik.__file__}")
+    logger.info(
+        f"CloudTik version: {cloudtik.__version__}")
+    logger.info(
+        f"CloudTik commit: {cloudtik.__commit__}")
+    logger.info(
+        f"Node Monitor started with command: {sys.argv}")
 
     node_monitor = NodeMonitor(
         args.node_id,
