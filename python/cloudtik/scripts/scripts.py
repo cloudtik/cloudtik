@@ -265,7 +265,7 @@ def stop(
     default=False,
     help="Attach to the host even running with docker.")
 @click.option(
-    "--with-updater",
+    "--with-env",
     is_flag=True,
     default=False,
     help="Run with updater environment variables.")
@@ -273,7 +273,7 @@ def stop(
 def attach(
         cluster_config_file, screen, tmux, cluster_name,
         no_config_cache, new, port_forward, node_ip, host,
-        with_updater):
+        with_env):
     """Create or attach to SH session to a cluster or a worker node."""
     port_forward = [(port, port) for port in list(port_forward)]
     try:
@@ -288,7 +288,7 @@ def attach(
                 new=new,
                 port_forward=port_forward,
                 force_to_host=host,
-                with_updater_environment=with_updater)
+                with_env=with_env)
         else:
             # attach to the worker node
             attach_worker(
@@ -301,7 +301,7 @@ def attach(
                 new=new,
                 port_forward=port_forward,
                 force_to_host=host,
-                with_updater_environment=with_updater)
+                with_env=with_env)
     except RuntimeError as re:
         fail_command("Failed to attach.", re)
 
@@ -404,7 +404,7 @@ def attach(
     default=False,
     help="Do even if the head is not in healthy state.")
 @click.option(
-    "--with-updater",
+    "--with-env",
     is_flag=True,
     default=False,
     help="Run with updater environment variables.")
@@ -413,7 +413,7 @@ def exec(
         cluster_config_file, cmd, cluster_name, run_env, screen, tmux, stop, start,
         force_update, wait_for_workers, min_workers, wait_timeout,
         no_config_cache, port_forward, node_ip, all_nodes, parallel, yes, job_waiter,
-        force, with_updater):
+        force, with_env):
     """Execute a command via SSH on a cluster or a specified node."""
     port_forward = [(port, port) for port in list(port_forward)]
 
@@ -444,7 +444,7 @@ def exec(
             yes=yes,
             job_waiter_name=job_waiter,
             force=force,
-            with_updater_environment=with_updater)
+            with_env=with_env)
     except RuntimeError as re:
         fail_command("Failed to exec command.", re)
 
@@ -538,6 +538,11 @@ def exec(
     is_flag=True,
     default=False,
     help="Do even if the head is not in healthy state.")
+@click.option(
+    "--with-env",
+    is_flag=True,
+    default=False,
+    help="Run with updater environment variables.")
 @click.argument("script", required=True, type=str)
 @click.argument("script_args", nargs=-1)
 @add_click_logging_options
@@ -545,7 +550,7 @@ def submit(
         cluster_config_file, cluster_name, screen, tmux, stop, start,
         force_update, wait_for_workers, min_workers, wait_timeout,
         no_config_cache, port_forward, yes, job_waiter, job_log,
-        runtime, runtime_options, force,
+        runtime, runtime_options, force, with_env,
         script, script_args):
     """Uploads and runs a script on the specified cluster.
 
@@ -581,6 +586,7 @@ def submit(
         runtime=runtime,
         runtime_options=runtime_options,
         force=force,
+        with_env=with_env,
         )
 
 
@@ -662,6 +668,11 @@ def submit(
     is_flag=True,
     default=False,
     help="Do even if the head is not in healthy state.")
+@click.option(
+    "--with-env",
+    is_flag=True,
+    default=False,
+    help="Run with updater environment variables.")
 @click.argument("script", required=True, type=str)
 @click.argument("script_args", nargs=-1)
 @add_click_logging_options
@@ -669,7 +680,7 @@ def run(
         cluster_config_file, cluster_name, screen, tmux, stop, start,
         force_update, wait_for_workers, min_workers, wait_timeout,
         no_config_cache, port_forward, yes, job_waiter, job_log, force,
-        script, script_args):
+        with_env, script, script_args):
     """Runs a built-in script (bash or python or a registered command).
 
     If you want to execute any commands or user scripts, use exec or submit.
@@ -697,8 +708,9 @@ def run(
         yes=yes,
         job_waiter_name=job_waiter,
         job_log=job_log,
-        force=force
-        )
+        force=force,
+        with_env=with_env,
+    )
 
 
 @cli.command()

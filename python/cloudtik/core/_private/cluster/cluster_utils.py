@@ -21,7 +21,7 @@ def create_node_updater_for_exec(
         runtime_config: Dict[str, Any] = None,
         process_runner: ModuleType = subprocess,
         environment_variables=None,
-        with_updater_environment: bool = False):
+        with_env: bool = False):
     if runtime_config is None:
         runtime_config = _get_node_specific_runtime_config(
             config, provider, node_id)
@@ -32,7 +32,7 @@ def create_node_updater_for_exec(
         # if head node is passed, update the is head node based on the fact
         is_head_node = True if node_id == head_node else False
 
-    if with_updater_environment and not is_head_node:
+    if with_env and not is_head_node:
         # for workers, head node ip and encryption secrets is needed
         if not head_node:
             head_node = get_running_head_node(
@@ -79,7 +79,7 @@ def run_on_cluster(
         run_env: str = "auto",
         with_output: bool = False,
         _allow_uninitialized_state: bool = False,
-        with_updater_environment: bool = False) -> str:
+        with_env: bool = False) -> str:
     head_node = get_running_head_node(
         config,
         _allow_uninitialized_state=_allow_uninitialized_state)
@@ -92,7 +92,7 @@ def run_on_cluster(
         run_env=run_env,
         with_output=with_output,
         is_head_node=True,
-        with_updater_environment=with_updater_environment
+        with_env=with_env
     )
 
 
@@ -104,7 +104,7 @@ def run_on_node(
         run_env: str = "auto",
         with_output: bool = False,
         is_head_node: bool = False,
-        with_updater_environment: bool = False) -> str:
+        with_env: bool = False) -> str:
     use_internal_ip = config.get("bootstrapped", False)
     provider = get_node_provider_of(config)
 
@@ -116,10 +116,10 @@ def run_on_node(
         start_commands=[],
         is_head_node=is_head_node,
         use_internal_ip=use_internal_ip,
-        with_updater_environment=with_updater_environment)
+        with_env=with_env)
 
     environment_variables = None
-    if with_updater_environment:
+    if with_env:
         environment_variables = updater.get_update_environment_variables()
 
     exec_out = updater.cmd_executor.run(

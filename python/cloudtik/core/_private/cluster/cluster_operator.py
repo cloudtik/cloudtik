@@ -1180,7 +1180,7 @@ def attach_cluster(
         new: bool = False,
         port_forward: Optional[Port_forward] = None,
         force_to_host: bool = False,
-        with_updater_environment: bool = False) -> None:
+        with_env: bool = False) -> None:
     """Attaches to a screen for the specified cluster.
 
     Arguments:
@@ -1192,7 +1192,7 @@ def attach_cluster(
         new: whether to force a new screen
         port_forward ( (int,int) or list[(int,int)] ): port(s) to forward
         force_to_host: Force attaching to host
-        with_updater_environment (bool): Whether to set environment variables of updater
+        with_env (bool): Whether to set environment variables of updater
     """
     config = _load_cluster_config(
         config_file, override_cluster_name,
@@ -1213,7 +1213,7 @@ def attach_cluster(
         stop=False,
         start=False,
         port_forward=port_forward,
-        with_updater_environment=with_updater_environment)
+        with_env=with_env)
 
 
 def _exec_cluster(
@@ -1231,7 +1231,7 @@ def _exec_cluster(
         _allow_uninitialized_state: bool = True,
         job_waiter: Optional[JobWaiter] = None,
         session_name: Optional[str] = None,
-        with_updater_environment: bool = False) -> str:
+        with_env: bool = False) -> str:
     """Runs a command on the specified cluster.
 
     Arguments:
@@ -1274,7 +1274,7 @@ def _exec_cluster(
         start_commands=[],
         is_head_node=True,
         use_internal_ip=use_internal_ip,
-        with_updater_environment=with_updater_environment)
+        with_env=with_env)
 
     if cmd and stop:
         # if no job waiter defined, we shut down at the end
@@ -1300,7 +1300,7 @@ def _exec_cluster(
         run_env=run_env,
         session_name=session_name,
         hold_session=hold_session,
-        with_updater_environment=with_updater_environment)
+        with_env=with_env)
 
     # if a job waiter is specified, we always wait for its completion.
     if job_waiter is not None:
@@ -1329,7 +1329,7 @@ def _exec(
         exit_on_fail: bool = False,
         session_name: str = None,
         hold_session: bool = True,
-        with_updater_environment: bool = False) -> str:
+        with_env: bool = False) -> str:
     if cmd:
         if screen:
             if not session_name:
@@ -1349,7 +1349,7 @@ def _exec(
             cmd = " ".join(wrapped_cmd)
 
     environment_variables = None
-    if with_updater_environment:
+    if with_env:
         environment_variables = updater.get_update_environment_variables()
     exec_out = updater.cmd_executor.run(
         cmd,
@@ -2860,7 +2860,7 @@ def exec_on_nodes(
         yes: bool = False,
         job_waiter_name: Optional[str] = None,
         force: bool = False,
-        with_updater_environment: bool = False) -> str:
+        with_env: bool = False) -> str:
     if not node_ip and not all_nodes:
         if (start or stop) and not yes:
             cli_logger.confirm(
@@ -2898,7 +2898,7 @@ def exec_on_nodes(
             with_output=with_output,
             _allow_uninitialized_state=True if force else False,
             job_waiter=job_waiter,
-            with_updater_environment=with_updater_environment)
+            with_env=with_env)
     else:
         return _exec_node_from_head(
             config,
@@ -2917,7 +2917,7 @@ def exec_on_nodes(
             parallel=parallel,
             job_waiter_name=job_waiter_name,
             force=force,
-            with_updater_environment=with_updater_environment)
+            with_env=with_env)
 
 
 def _exec_node_from_head(
@@ -2937,7 +2937,7 @@ def _exec_node_from_head(
         parallel: bool = True,
         job_waiter_name: Optional[str] = None,
         force: bool = False,
-        with_updater_environment: bool = False) -> str:
+        with_env: bool = False) -> str:
 
     # execute exec on head with the cmd
     cmds = [
@@ -2971,8 +2971,8 @@ def _exec_node_from_head(
 
     if job_waiter_name:
         cmds += ["--job-waiter={}".format(job_waiter_name)]
-    if with_updater_environment:
-        cmds += ["--with-updater"]
+    if with_env:
+        cmds += ["--with-env"]
 
     # TODO (haifeng): handle port forward and with_output for two state cases
     with_verbose_option(cmds, call_context)
@@ -3005,7 +3005,7 @@ def attach_worker(
         new: bool = False,
         port_forward: Optional[Port_forward] = None,
         force_to_host: bool = False,
-        with_updater_environment: bool = False) -> None:
+        with_env: bool = False) -> None:
     """Attaches to a screen for the specified cluster.
 
     Arguments:
@@ -3018,7 +3018,7 @@ def attach_worker(
         new: whether to force a new screen
         port_forward ( (int,int) or list[(int,int)] ): port(s) to forward
         force_to_host: Whether attach to host even running with docker
-        with_updater_environment (bool): Whether to set environment variables of updater
+        with_env (bool): Whether to set environment variables of updater
     """
     config = _load_cluster_config(
         config_file, override_cluster_name,
@@ -3039,8 +3039,8 @@ def attach_worker(
         cmds += ["--new"]
     if force_to_host:
         cmds += ["--host"]
-    if with_updater_environment:
-        cmds += ["--with-updater"]
+    if with_env:
+        cmds += ["--with-env"]
 
     # TODO (haifeng): handle port forward for two state cases
     with_verbose_option(cmds, call_context)
@@ -3071,7 +3071,7 @@ def exec_cmd_on_head(
         port_forward: Optional[Port_forward] = None,
         with_output: bool = False,
         job_waiter_name: Optional[str] = None,
-        with_updater_environment: bool = False) -> str:
+        with_env: bool = False) -> str:
     """Runs a command on the specified node from head."""
 
     assert not (screen and tmux), "Can specify only one of `screen` or `tmux`."
@@ -3098,7 +3098,7 @@ def exec_cmd_on_head(
         is_head_node=is_head_node,
         head_node=head_node,
         use_internal_ip=True,
-        with_updater_environment=with_updater_environment)
+        with_env=with_env)
 
     hold_session = False if job_waiter else True
     session_name = get_command_session_name(cmd, time.time_ns())
@@ -3113,7 +3113,7 @@ def exec_cmd_on_head(
         shutdown_after_run=False,
         session_name=session_name,
         hold_session=hold_session,
-        with_updater_environment=with_updater_environment)
+        with_env=with_env)
 
     # if a job waiter is specified, we always wait for its completion.
     if job_waiter is not None:
@@ -3129,7 +3129,7 @@ def attach_node_on_head(
         new: bool = False,
         port_forward: Optional[Port_forward] = None,
         force_to_host: bool = False,
-        with_updater_environment: bool = False):
+        with_env: bool = False):
     config = load_head_cluster_config()
     call_context = cli_call_context()
     provider = get_node_provider_of(config)
@@ -3160,7 +3160,7 @@ def attach_node_on_head(
         screen=False,
         tmux=False,
         port_forward=port_forward,
-        with_updater_environment=with_updater_environment)
+        with_env=with_env)
 
 
 def _exec_node_on_head(
@@ -3180,7 +3180,7 @@ def _exec_node_on_head(
         parallel: bool = True,
         job_waiter_name: Optional[str] = None,
         force: bool = True,
-        with_updater_environment: bool = False):
+        with_env: bool = False):
     provider = get_node_provider_of(config)
     head_node = _get_running_head_node(
         config, _provider=provider,
@@ -3211,7 +3211,7 @@ def _exec_node_on_head(
             port_forward=port_forward,
             with_output=with_output,
             job_waiter_name=job_waiter_name,
-            with_updater_environment=with_updater_environment)
+            with_env=with_env)
 
     total_nodes = len(nodes)
     if total_nodes == 1:
@@ -3331,7 +3331,7 @@ def _do_start_node_on_head(
             is_head_node=is_head_node,
             use_internal_ip=True,
             runtime_config=runtime_config,
-            with_updater_environment=True)
+            with_env=True)
 
         updater_envs = updater.get_update_environment_variables()
         updater.exec_commands("Starting", start_commands, updater_envs)
@@ -3664,7 +3664,7 @@ def _do_stop_node_on_head(
             is_head_node=is_head_node,
             use_internal_ip=True,
             runtime_config=runtime_config,
-            with_updater_environment=True)
+            with_env=True)
 
         updater_envs = updater.get_update_environment_variables()
         updater.exec_commands(
@@ -4121,6 +4121,7 @@ def submit_and_exec(
         runtime: Optional[str] = None,
         runtime_options: Optional[List[str]] = None,
         force: bool = False,
+        with_env: bool = False,
 ):
     def prepare_submit_command():
         target_name = os.path.basename(script)
@@ -4194,6 +4195,7 @@ def submit_and_exec(
         yes=yes,
         job_waiter_name=job_waiter_name,
         force=force,
+        with_env=with_env,
     )
 
 
@@ -4216,6 +4218,7 @@ def _run_script(
         job_waiter_name: Optional[str] = None,
         job_log: bool = False,
         force: bool = False,
+        with_env: bool = False
 ):
     def prepare_run_script():
         cmds = ["cloudtik", "node", "run", script]
@@ -4248,6 +4251,7 @@ def _run_script(
         yes=yes,
         job_waiter_name=job_waiter_name,
         force=force,
+        with_env=with_env,
     )
 
 
@@ -4269,6 +4273,7 @@ def _exec_with_prepare(
         yes: bool = False,
         job_waiter_name: Optional[str] = None,
         force: bool = False,
+        with_env: bool = False,
 ):
     assert not (screen and tmux), "Can specify only one of `screen` or `tmux`."
 
@@ -4311,7 +4316,8 @@ def _exec_with_prepare(
         with_output=with_output,
         job_waiter=job_waiter,
         session_name=session_name,
-        _allow_uninitialized_state=True if force else False)
+        _allow_uninitialized_state=True if force else False,
+        with_env=with_env)
 
 
 def _run_script_on_head(
@@ -4322,7 +4328,8 @@ def _run_script_on_head(
         wait_for_workers: bool = False,
         min_workers: Optional[int] = None,
         wait_timeout: Optional[int] = None,
-        with_output: bool = False):
+        with_output: bool = False,
+        with_env: bool = False):
     # wait for workers if needed
     if wait_for_workers:
         _wait_for_ready(
