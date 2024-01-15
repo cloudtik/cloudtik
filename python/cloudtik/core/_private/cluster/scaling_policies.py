@@ -9,9 +9,9 @@ from cloudtik.core._private import constants
 from cloudtik.core._private.state.control_state import ControlState
 from cloudtik.core._private.state.state_utils import NODE_STATE_NODE_ID, NODE_STATE_NODE_IP, NODE_STATE_NODE_KIND, \
     NODE_STATE_TIME
-from cloudtik.core._private.utils import get_resource_demands_for_cpu, RUNTIME_CONFIG_KEY, \
+from cloudtik.core._private.utils import get_resource_demands_for_cpu, \
     convert_nodes_to_cpus, get_resource_demands_for_memory, convert_nodes_to_memory, get_resource_requests_for_cpu, \
-    _sum_min_workers
+    _sum_min_workers, get_runtime_config
 from cloudtik.core.scaling_policy import ScalingPolicy, ScalingState
 
 logger = logging.getLogger(__name__)
@@ -60,7 +60,7 @@ class ScalingWithResources(ScalingPolicy):
         self._reset_resources_config()
 
     def _reset_resources_config(self):
-        runtime_config = self.config.get(RUNTIME_CONFIG_KEY, {})
+        runtime_config = get_runtime_config(self.config)
         self.scaling_config = runtime_config.get("scaling", {})
         self.in_use_cpu_load_threshold = self.scaling_config.get(
             "in_use_cpu_load_threshold",

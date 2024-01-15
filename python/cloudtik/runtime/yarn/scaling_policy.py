@@ -9,8 +9,8 @@ from cloudtik.core._private import constants
 from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_YARN
 from cloudtik.core._private.util.core_utils import address_to_ip
 from cloudtik.core._private.state.state_utils import NODE_STATE_NODE_ID, NODE_STATE_NODE_IP, NODE_STATE_TIME
-from cloudtik.core._private.utils import make_node_id, get_resource_demands_for_cpu, RUNTIME_CONFIG_KEY, \
-    convert_nodes_to_cpus, get_resource_demands_for_memory, convert_nodes_to_memory
+from cloudtik.core._private.utils import make_node_id, get_resource_demands_for_cpu, \
+    convert_nodes_to_cpus, get_resource_demands_for_memory, convert_nodes_to_memory, get_runtime_config
 from cloudtik.core.scaling_policy import ScalingPolicy, ScalingState
 
 YARN_REST_ENDPOINT_CLUSTER_NODES = "http://{}:{}/ws/v1/cluster/nodes"
@@ -75,8 +75,8 @@ class YARNScalingPolicy(ScalingPolicy):
         self._reset_yarn_config()
 
     def _reset_yarn_config(self):
-        yarn_config = self.config.get(RUNTIME_CONFIG_KEY, {}).get(
-            BUILT_IN_RUNTIME_YARN, {})
+        runtime_config = get_runtime_config(self.config)
+        yarn_config = runtime_config.get(BUILT_IN_RUNTIME_YARN, {})
         self.scaling_config = yarn_config.get("scaling", {})
 
         # Update the scaling parameters

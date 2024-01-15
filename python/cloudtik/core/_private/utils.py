@@ -2707,7 +2707,8 @@ def get_runtime_endpoints(config, head_cluster_ip):
 
 
 def get_enabled_runtimes(config):
-    return config.get(RUNTIME_CONFIG_KEY, {}).get(RUNTIME_TYPES_CONFIG_KEY, DEFAULT_RUNTIMES)
+    runtime_config = get_runtime_config(config)
+    return runtime_config.get(RUNTIME_TYPES_CONFIG_KEY, DEFAULT_RUNTIMES)
 
 
 def is_runtime_enabled(runtime_config, runtime_type: str):
@@ -2773,7 +2774,8 @@ def _parse_runtime_list(runtimes: str):
 
 
 def verify_runtime_list(config: Dict[str, Any], runtimes: List[str]):
-    runtime_types = config.get(RUNTIME_CONFIG_KEY, {}).get(RUNTIME_TYPES_CONFIG_KEY, [])
+    runtime_config = get_runtime_config(config)
+    runtime_types = runtime_config.get(RUNTIME_TYPES_CONFIG_KEY, [])
     for runtime in runtimes:
         if runtime in runtime_types or runtime == CLOUDTIK_RUNTIME_NAME:
             continue

@@ -5,7 +5,7 @@ from typing import Any, Dict, Optional
 
 from cloudtik.core._private.util.core_utils import get_address_string, address_to_ip
 from cloudtik.core._private.state.state_utils import NODE_STATE_NODE_ID, NODE_STATE_NODE_IP, NODE_STATE_TIME
-from cloudtik.core._private.utils import make_node_id, RUNTIME_CONFIG_KEY
+from cloudtik.core._private.utils import make_node_id, get_runtime_config
 from cloudtik.core.scaling_policy import ScalingPolicy, ScalingState
 
 logger = logging.getLogger(__name__)
@@ -105,7 +105,8 @@ class RayScalingPolicy(ScalingPolicy):
         self._reset_ray_config()
 
     def _reset_ray_config(self):
-        ray_config = self.config.get(RUNTIME_CONFIG_KEY, {}).get("ray", {})
+        runtime_config = get_runtime_config(self.config)
+        ray_config = runtime_config.get("ray", {})
         self.scaling_config = ray_config.get("scaling", {})
         # Update the scaling parameters
         self.auto_scaling = ray_config.get("auto_scaling", False)

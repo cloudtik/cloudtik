@@ -46,8 +46,8 @@ def _get_config(runtime_config: Dict[str, Any]):
 
 def get_yarn_resource_memory_ratio(cluster_config: Dict[str, Any]):
     yarn_resource_memory_ratio = FLINK_YARN_RESOURCE_MEMORY_RATIO
-    yarn_config = cluster_config.get(RUNTIME_CONFIG_KEY, {}).get(
-        BUILT_IN_RUNTIME_YARN, {})
+    runtime_config = get_runtime_config(cluster_config)
+    yarn_config = runtime_config.get(BUILT_IN_RUNTIME_YARN, {})
     memory_ratio = yarn_config.get("yarn_resource_memory_ratio")
     if memory_ratio:
         yarn_resource_memory_ratio = memory_ratio
