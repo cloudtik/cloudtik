@@ -170,7 +170,7 @@ class Cluster:
             parallel: bool = True,
             job_waiter: Optional[str] = None,
             force: bool = False,
-            with_updater_environment: bool = False
+            with_env: bool = False,
     ) -> Optional[str]:
         """Runs a command on the specified cluster.
 
@@ -193,7 +193,7 @@ class Cluster:
             parallel (bool): Whether to run the commands on nodes in parallel.
             job_waiter (str): The job waiter to use for waiting an async job to complete.
             force (bool): Do even head is not in healthy state.
-            with_updater_environment (bool): Whether to set environment variables of updater.
+            with_env (bool): Whether to set environment variables of updater.
         Returns:
             The output of the command as a string.
         """
@@ -218,7 +218,7 @@ class Cluster:
             yes=True,
             job_waiter_name=job_waiter,
             force=force,
-            with_updater_environment=with_updater_environment)
+            with_env=with_env)
 
     def submit(
             self,
@@ -237,6 +237,7 @@ class Cluster:
             job_waiter: Optional[str] = None,
             job_log: bool = False,
             force: bool = False,
+            with_env: bool = False,
     ) -> Optional[str]:
         """Submit a script file to cluster and run.
 
@@ -256,6 +257,7 @@ class Cluster:
             job_waiter (str): The job waiter to use for waiting an async job to complete.
             job_log (bool): Send the output of the job to log file in ~/user/logs.
             force (bool): Do even head is not in healthy state.
+            with_env (bool): Whether to set environment variables of updater.
         Returns:
             The output of the command as a string.
         """
@@ -278,6 +280,7 @@ class Cluster:
             job_waiter_name=job_waiter,
             job_log=job_log,
             force=force,
+            with_env=with_env,
         )
 
     def run(
@@ -297,6 +300,7 @@ class Cluster:
             job_waiter: Optional[str] = None,
             job_log: bool = False,
             force: bool = False,
+            with_env: bool = False,
     ) -> Optional[str]:
         """Runs a built-in script (bash or python or a registered command)
 
@@ -316,6 +320,7 @@ class Cluster:
             job_waiter (str): The job waiter to use for waiting an async job to complete.
             job_log (bool): Send the output of the job to log file in ~/user/logs.
             force (bool): Do even head is not in healthy state.
+            with_env (bool): Whether to set environment variables of updater.
         Returns:
             The output of the command as a string.
         """
@@ -338,6 +343,7 @@ class Cluster:
             job_waiter_name=job_waiter,
             job_log=job_log,
             force=force,
+            with_env=with_env,
         )
 
     def rsync(
@@ -647,7 +653,7 @@ class ThisCluster:
             with_output: bool = False,
             parallel: bool = True,
             job_waiter: Optional[str] = None,
-            with_updater_environment: bool = False) -> Optional[str]:
+            with_env: bool = False) -> Optional[str]:
         """Runs a command on the specified cluster.
 
         Args:
@@ -665,7 +671,7 @@ class ThisCluster:
             with_output (bool): Whether to capture command output.
             parallel (bool): Whether to run the commands on nodes in parallel.
             job_waiter (str): The job waiter to use for waiting an async job to complete.
-            with_updater_environment (bool): Whether to set environment variables of updater.
+            with_env (bool): Whether to set environment variables of updater.
         Returns:
             The output of the command as a string.
         """
@@ -685,7 +691,7 @@ class ThisCluster:
             with_output=with_output,
             parallel=parallel,
             job_waiter_name=job_waiter,
-            with_updater_environment=with_updater_environment)
+            with_env=with_env)
 
     def run(
             self,

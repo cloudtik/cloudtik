@@ -93,14 +93,14 @@ def head():
     default=False,
     help="Attach to the host even running with docker.")
 @click.option(
-    "--with-updater",
+    "--with-env",
     is_flag=True,
     default=False,
     help="Run with updater environment variables.")
 @add_click_logging_options
 def attach(
         node_ip, screen, tmux, new, port_forward, host,
-        with_updater):
+        with_env):
     """Attach to worker node from head."""
     port_forward = [(port, port) for port in list(port_forward)]
     attach_node_on_head(
@@ -110,7 +110,7 @@ def attach(
         new,
         port_forward,
         force_to_host=host,
-        with_updater_environment=with_updater)
+        with_env=with_env)
 
 
 @head.command()
@@ -176,7 +176,7 @@ def attach(
     type=str,
     help="The job waiter to be used to check the completion of the job.")
 @click.option(
-    "--with-updater",
+    "--with-env",
     is_flag=True,
     default=False,
     help="Run with updater environment variables.")
@@ -185,7 +185,7 @@ def exec(
         cmd, node_ip, all_nodes, run_env, screen, tmux,
         wait_for_workers, min_workers, wait_timeout,
         port_forward, with_output, parallel, job_waiter,
-        with_updater):
+        with_env):
     """Execute command on the worker node from head."""
     port_forward = [(port, port) for port in list(port_forward)]
     config = load_head_cluster_config()
@@ -207,7 +207,7 @@ def exec(
         with_output=with_output,
         parallel=parallel,
         job_waiter_name=job_waiter,
-        with_updater_environment=with_updater)
+        with_env=with_env)
 
 
 @head.command(context_settings={"ignore_unknown_options": True})
