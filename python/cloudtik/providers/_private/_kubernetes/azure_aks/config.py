@@ -5,7 +5,8 @@ from azure.core.exceptions import ResourceNotFoundError
 
 from cloudtik.core._private.cli_logger import cli_logger
 from cloudtik.core._private.utils import _is_use_managed_cloud_storage, _is_managed_cloud_storage, \
-    _is_managed_cloud_database, _is_use_managed_cloud_database
+    _is_managed_cloud_database, _is_use_managed_cloud_database, get_provider_config, get_workspace_name, \
+    get_available_node_types
 from cloudtik.core.workspace_provider import Existence
 from cloudtik.providers._private._azure.database_provider import AzureDatabaseProvider
 from cloudtik.providers._private._azure.storage_provider import AzureStorageProvider
@@ -118,7 +119,7 @@ def _get_managed_cluster(cloud_provider, container_service_client=None):
 
 def create_configurations_for_azure(
         config: Dict[str, Any], namespace, cloud_provider):
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     managed_cloud_storage = _is_managed_cloud_storage(cloud_provider)
     managed_cloud_database = _is_managed_cloud_database(cloud_provider)
 
@@ -303,7 +304,7 @@ def delete_configurations_for_azure(
         config: Dict[str, Any], namespace, cloud_provider,
         delete_managed_storage: bool = False,
         delete_managed_database: bool = False):
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     resource_group_name = get_aks_workspace_resource_group_name(workspace_name)
     managed_cloud_storage = _is_managed_cloud_storage(cloud_provider)
     managed_cloud_database = _is_managed_cloud_database(cloud_provider)
@@ -360,7 +361,7 @@ def update_configurations_for_azure(
         config: Dict[str, Any], namespace, cloud_provider,
         delete_managed_storage: bool = False,
         delete_managed_database: bool = False):
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     resource_group_name = get_aks_workspace_resource_group_name(workspace_name)
     managed_cloud_storage = _is_managed_cloud_storage(cloud_provider)
     managed_cloud_database = _is_managed_cloud_database(cloud_provider)
@@ -433,7 +434,7 @@ def _delete_aks_resource_group(cloud_provider, workspace_name):
 
 def _create_iam_based_access_for_kubernetes(
         config: Dict[str, Any], namespace, cloud_provider):
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     current_step = 1
     total_steps = AZURE_KUBERNETES_IAM_ROLE_CREATION_NUM_STEPS
 
@@ -674,7 +675,7 @@ def _create_iam_user_assigned_identities_binding_with_kubernetes(
 def _create_iam_user_assigned_identity_binding_with_kubernetes(
         config, cloud_provider, workspace_name,
         namespace, account_type: AccountType):
-    provider_config = config["provider"]
+    provider_config = get_provider_config(config)
     resource_group_name = get_aks_workspace_resource_group_name(workspace_name)
     iam_user_assigned_identity_name = _get_iam_user_assigned_identity_name(
         workspace_name, account_type)
@@ -734,7 +735,7 @@ def _delete_iam_user_assigned_identities_binding_with_kubernetes(
 def _delete_iam_user_assigned_identity_binding_with_kubernetes(
         config, cloud_provider, workspace_name,
         namespace, account_type: AccountType):
-    provider_config = config["provider"]
+    provider_config = get_provider_config(config)
     resource_group_name = get_aks_workspace_resource_group_name(workspace_name)
     iam_user_assigned_identity_name = _get_iam_user_assigned_identity_name(
         workspace_name, account_type)
@@ -766,7 +767,7 @@ def _delete_iam_user_assigned_identity_binding_with_kubernetes(
 def _has_iam_user_assigned_identity_binding_with_kubernetes(
         config, cloud_provider, workspace_name,
         namespace, account_type: AccountType):
-    provider_config = config["provider"]
+    provider_config = get_provider_config(config)
     resource_group_name = get_aks_workspace_resource_group_name(workspace_name)
     iam_user_assigned_identity_name = _get_iam_user_assigned_identity_name(
         workspace_name, account_type)
@@ -913,7 +914,7 @@ def _associate_kubernetes_service_accounts_with_iam(
 def _patch_service_account_with_iam(
         config, cloud_provider, workspace_name, namespace,
         account_type: AccountType):
-    provider_config = config["provider"]
+    provider_config = get_provider_config(config)
 
     service_account_name = _get_service_account_name(provider_config, account_type)
     iam_user_assigned_identity_name = _get_iam_user_assigned_identity_name(
@@ -985,7 +986,7 @@ def _patch_service_account_without_iam_user_assigned_identity(namespace, name):
 
 def _delete_iam_based_access_for_kubernetes(
         config: Dict[str, Any], namespace, cloud_provider):
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     current_step = 1
     total_steps = AZURE_KUBERNETES_IAM_ROLE_CREATION_NUM_STEPS
 
@@ -1021,7 +1022,7 @@ def _delete_iam_based_access_for_kubernetes(
 def _dissociate_kubernetes_service_accounts_with_iam(
         config, cloud_provider, workspace_name, namespace):
     # Patch head service account and worker service account
-    provider_config = config["provider"]
+    provider_config = get_provider_config(config)
 
     current_step = 1
     total_steps = AZURE_KUBERNETES_HEAD_WORKER_FACED_NUM_STEPS
@@ -1051,8 +1052,8 @@ def _dissociate_kubernetes_service_accounts_with_iam(
 
 def _is_service_account_associated(
         config, cloud_provider, namespace, account_type: AccountType):
-    provider_config = config["provider"]
-    workspace_name = config["workspace_name"]
+    provider_config = get_provider_config(config)
+    workspace_name = get_workspace_name(config)
     service_account_name = _get_service_account_name(provider_config, account_type)
     iam_user_assigned_identity_name = _get_iam_user_assigned_identity_name(
         workspace_name, account_type)
@@ -1101,7 +1102,7 @@ def _is_service_account_associated_with_iam(
 
 
 def check_existence_for_azure(config: Dict[str, Any], namespace, cloud_provider):
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     resource_group_name = get_aks_workspace_resource_group_name(workspace_name)
     managed_cloud_storage = _is_managed_cloud_storage(cloud_provider)
     managed_cloud_database = _is_managed_cloud_database(cloud_provider)
@@ -1196,7 +1197,7 @@ def check_existence_for_azure(config: Dict[str, Any], namespace, cloud_provider)
 
 def get_info_for_azure(
         config: Dict[str, Any], namespace, cloud_provider, info):
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     resource_group_name = get_aks_workspace_resource_group_name(workspace_name)
 
     head_iam_user_assigned_identity_name = _get_iam_user_assigned_identity_name(
@@ -1235,7 +1236,7 @@ def get_default_kubernetes_cloud_database_for_azure(provider_config):
 
 def list_storages_for_azure(
         config: Dict[str, Any], namespace, cloud_provider):
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     resource_group_name = get_aks_workspace_resource_group_name(workspace_name)
     return _list_azure_storages(
         cloud_provider, workspace_name, resource_group_name)
@@ -1261,7 +1262,7 @@ def create_storage_provider_for_azure(
 
 def list_databases_for_azure(
         config: Dict[str, Any], namespace, cloud_provider):
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     resource_group_name = get_aks_workspace_resource_group_name(workspace_name)
     return _list_azure_databases(
         cloud_provider, workspace_name, resource_group_name)
@@ -1310,7 +1311,7 @@ def _configure_cloud_storage_for_azure(
         config: Dict[str, Any], cloud_provider):
     use_managed_cloud_storage = _is_use_managed_cloud_storage(cloud_provider)
     if use_managed_cloud_storage:
-        workspace_name = config["workspace_name"]
+        workspace_name = get_workspace_name(config)
         resource_group_name = get_aks_workspace_resource_group_name(
             workspace_name)
         _configure_managed_cloud_storage_from_workspace(
@@ -1335,7 +1336,7 @@ def _configure_pod_label_for_use_workload_identity(config):
     if "available_node_types" not in config:
         return
 
-    node_types = config["available_node_types"]
+    node_types = get_available_node_types(config)
     for node_type in node_types:
         node_config = node_types[node_type]["node_config"]
         pod = node_config["pod"]

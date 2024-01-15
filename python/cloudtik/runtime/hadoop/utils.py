@@ -6,7 +6,7 @@ from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_HADOOP, BUIL
 from cloudtik.core._private.service_discovery.runtime_services import get_service_discovery_runtime
 from cloudtik.core._private.utils import \
     is_use_managed_cloud_storage, \
-    get_runtime_config, PROVIDER_STORAGE_CONFIG_KEY
+    get_runtime_config, PROVIDER_STORAGE_CONFIG_KEY, get_provider_config
 from cloudtik.runtime.common.hadoop import configure_remote_storage, configure_storage_properties
 from cloudtik.runtime.common.service_discovery.cluster import has_runtime_in_cluster
 from cloudtik.runtime.common.service_discovery.runtime_discovery import \
@@ -105,7 +105,7 @@ def _is_valid_storage_config(config: Dict[str, Any], final=False):
         return True
 
     # Check any cloud storage is configured
-    provider_config = config["provider"]
+    provider_config = get_provider_config(config)
     if (PROVIDER_STORAGE_CONFIG_KEY in provider_config or
             (not final and is_use_managed_cloud_storage(config))):
         return True

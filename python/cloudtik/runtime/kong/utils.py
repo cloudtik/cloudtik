@@ -13,7 +13,7 @@ from cloudtik.core._private.service_discovery.utils import \
 from cloudtik.core._private.util.database_utils import is_database_configured, export_database_environment_variables, \
     DATABASE_ENGINE_POSTGRES, get_database_engine, DATABASE_ENV_ENABLED, DATABASE_ENV_ENGINE
 from cloudtik.core._private.utils import get_runtime_config, is_use_managed_cloud_database, \
-    PROVIDER_DATABASE_CONFIG_KEY, RUNTIME_CONFIG_KEY
+    PROVIDER_DATABASE_CONFIG_KEY, RUNTIME_CONFIG_KEY, get_provider_config
 from cloudtik.runtime.common.service_discovery.runtime_discovery import \
     DATABASE_CONNECT_KEY, is_database_service_discovery, discover_database_on_head, \
     discover_database_from_workspace, get_database_runtime_in_cluster, export_database_runtime_environment_variables
@@ -145,7 +145,7 @@ def _is_valid_database_config(config: Dict[str, Any], final=False):
         return True
 
     # check whether cloud database is available (must be postgres)
-    provider_config = config["provider"]
+    provider_config = get_provider_config(config)
     if (PROVIDER_DATABASE_CONFIG_KEY in provider_config or
             (not final and is_use_managed_cloud_database(config))):
         return True

@@ -4,6 +4,7 @@ from typing import Any, Optional
 from typing import Dict
 
 from cloudtik.core._private.cli_logger import cli_logger, cf
+from cloudtik.core._private.utils import get_provider_config, get_workspace_name
 from cloudtik.core.tags import CLOUDTIK_TAG_NODE_KIND, NODE_KIND_HEAD
 from cloudtik.core.workspace_provider import Existence
 from cloudtik.providers._private.onpremise.config import _get_cloud_simulator_address, \
@@ -48,8 +49,8 @@ def check_onpremise_workspace_integrity(config):
 
 
 def check_onpremise_workspace_existence(config):
-    provider_config = config["provider"]
-    workspace_name = config["workspace_name"]
+    provider_config = get_provider_config(config)
+    workspace_name = get_workspace_name(config)
 
     skipped_resources = 0
     target_resources = ON_PREMISE_WORKSPACE_TARGET_RESOURCES
@@ -128,8 +129,8 @@ def create_onpremise_workspace(config):
 
 
 def _create_workspace(config):
-    provider_config = config["provider"]
-    workspace_name = config["workspace_name"]
+    provider_config = get_provider_config(config)
+    workspace_name = get_workspace_name(config)
 
     current_step = 1
     total_steps = ON_PREMISE_WORKSPACE_NUM_CREATION_STEPS
@@ -158,8 +159,8 @@ def _create_workspace(config):
 
 def delete_onpremise_workspace(
         config):
-    provider_config = config["provider"]
-    workspace_name = config["workspace_name"]
+    provider_config = get_provider_config(config)
+    workspace_name = get_workspace_name(config)
 
     current_step = 1
     total_steps = ON_PREMISE_WORKSPACE_NUM_DELETION_STEPS

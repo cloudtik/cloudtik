@@ -21,7 +21,7 @@ from cloudtik.core._private.utils import check_cidr_conflict, is_use_internal_ip
     is_managed_cloud_storage, is_use_managed_cloud_storage, _is_use_managed_cloud_storage, update_nested_dict, \
     is_gpu_runtime, is_managed_cloud_database, is_use_managed_cloud_database, _is_permanent_data_volumes, \
     _get_managed_cloud_storage_name, _get_managed_cloud_database_name, enable_stable_node_seq_id, \
-    is_permanent_data_volumes
+    is_permanent_data_volumes, get_provider_config, get_workspace_name, get_available_node_types
 from cloudtik.core.workspace_provider import Existence, CLOUDTIK_MANAGED_CLOUD_STORAGE, \
     CLOUDTIK_MANAGED_CLOUD_STORAGE_URI, CLOUDTIK_MANAGED_CLOUD_DATABASE, CLOUDTIK_MANAGED_CLOUD_DATABASE_ENDPOINT, \
     CLOUDTIK_MANAGED_CLOUD_STORAGE_NAME, CLOUDTIK_MANAGED_CLOUD_DATABASE_PORT, CLOUDTIK_MANAGED_CLOUD_DATABASE_ENGINE, \
@@ -145,8 +145,8 @@ def get_workspace_storage_container_name(workspace_name):
 
 
 def get_resource_group_name_of(config):
-    provider_config = config["provider"]
-    workspace_name = config["workspace_name"]
+    provider_config = get_provider_config(config)
+    workspace_name = get_workspace_name(config)
     return _get_resource_group_name_of(provider_config, workspace_name)
 
 
@@ -173,7 +173,7 @@ def get_managed_database_private_dns_zone_link_name(workspace_name, engine):
 def check_azure_workspace_existence(config):
     use_working_vpc = is_use_working_vpc(config)
     use_peering_vpc = is_use_peering_vpc(config)
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     managed_cloud_storage = is_managed_cloud_storage(config)
     managed_cloud_database = is_managed_cloud_database(config)
     network_client = construct_network_client(config)
@@ -315,7 +315,7 @@ def get_azure_workspace_info(config):
 
 def get_azure_managed_cloud_storage_info(
         config, cloud_provider, resource_group_name, info):
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     cloud_storage_info = _get_managed_cloud_storage_info(
         cloud_provider, workspace_name, resource_group_name)
     if cloud_storage_info:
@@ -346,7 +346,7 @@ def _get_object_storage_info(storage_and_container):
 
 def get_azure_managed_cloud_database_info(
         config, cloud_provider, resource_group_name, info):
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     cloud_database_info = _get_managed_cloud_database_info(
         cloud_provider, workspace_name, resource_group_name)
     if cloud_database_info:
@@ -386,7 +386,7 @@ def get_managed_database_instance_info(database_instance):
 
 
 def get_resource_group_name(config, resource_client, use_working_vpc):
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     return _get_resource_group_name(
         workspace_name, resource_client, use_working_vpc)
 
@@ -416,7 +416,7 @@ def update_azure_workspace(config,
                            delete_managed_storage: bool = False,
                            delete_managed_database: bool = False
                            ):
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     use_working_vpc = is_use_working_vpc(config)
     managed_cloud_storage = is_managed_cloud_storage(config)
     managed_cloud_database = is_managed_cloud_database(config)
@@ -484,7 +484,7 @@ def update_azure_workspace(config,
 def update_workspace_firewalls(config):
     resource_client = construct_resource_client(config)
     network_client = construct_network_client(config)
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     use_working_vpc = is_use_working_vpc(config)
     resource_group_name = get_resource_group_name(
         config, resource_client, use_working_vpc)
@@ -511,7 +511,7 @@ def update_workspace_firewalls(config):
 def delete_azure_workspace(config,
                            delete_managed_storage: bool = False,
                            delete_managed_database: bool = False):
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     use_working_vpc = is_use_working_vpc(config)
     use_peering_vpc = is_use_peering_vpc(config)
     managed_cloud_storage = is_managed_cloud_storage(config)
@@ -588,7 +588,7 @@ def delete_azure_workspace(config,
 
 def _delete_network_resources(
         config, resource_client, resource_group_name, current_step, total_steps):
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     use_working_vpc = is_use_working_vpc(config)
     use_peering_vpc = is_use_peering_vpc(config)
     network_client = construct_network_client(config)
@@ -668,7 +668,7 @@ def _delete_network_resources(
 
 def get_container_of_storage_account(
         config, resource_group_name, object_storage_name=None):
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     return _get_container_of_storage_account(
         config["provider"], workspace_name, resource_group_name,
         object_storage_name=object_storage_name
@@ -737,7 +737,7 @@ def _get_containers_of_storage_account(
 
 
 def get_storage_account(config):
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     storage_account_name = get_workspace_storage_account_name(workspace_name)
     return _get_storage_account(config["provider"], storage_account_name)
 
@@ -785,8 +785,8 @@ def _get_container(
 
 
 def _delete_workspace_cloud_storage(config, resource_group_name):
-    provider_config = config["provider"]
-    workspace_name = config["workspace_name"]
+    provider_config = get_provider_config(config)
+    workspace_name = get_workspace_name(config)
     _delete_managed_cloud_storage(
         provider_config, workspace_name, resource_group_name
     )
@@ -865,8 +865,8 @@ def _delete_container_for_storage_account(
 
 
 def _delete_workspace_cloud_database(config, resource_group_name):
-    provider_config = config["provider"]
-    workspace_name = config["workspace_name"]
+    provider_config = get_provider_config(config)
+    workspace_name = get_workspace_name(config)
     virtual_network_name = get_virtual_network_name(
         provider_config, workspace_name)
     _delete_managed_cloud_database(
@@ -1169,7 +1169,7 @@ def get_worker_role_assignment_for_storage_blob_data_owner(config, resource_grou
 
 
 def get_role_assignment_name_for_storage_blob_data_owner(config, role_type):
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     subscription_id = config["provider"].get("subscription_id")
     role_assignment_name = str(uuid.uuid3(
         uuid.UUID(subscription_id),
@@ -1206,7 +1206,7 @@ def _get_role_assignment_for_storage_blob_data_owner(
 
 
 def get_head_role_assignment_for_contributor(config, resource_group_name):
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     subscription_id = config["provider"].get("subscription_id")
     role_assignment_name = str(uuid.uuid3(
         uuid.UUID(subscription_id), workspace_name + "contributor"))
@@ -1592,7 +1592,7 @@ def _delete_vnet(config, resource_client, network_client):
             "Will not delete the current node virtual network.")
         return
 
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     resource_group_name = get_resource_group_name(
         config, resource_client, use_working_vpc)
     virtual_network_name = _get_virtual_network_name(
@@ -1625,7 +1625,7 @@ def _delete_workspace_resource_group(config, resource_client):
             "Will not delete the current node resource group.")
         return
 
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     resource_group_name = get_workspace_resource_group_name(workspace_name)
     _delete_resource_group(
         config["provider"], resource_group_name, resource_client)
@@ -1672,7 +1672,7 @@ def create_azure_workspace(config):
 
 
 def _create_workspace(config):
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     managed_cloud_storage = is_managed_cloud_storage(config)
     managed_cloud_database = is_managed_cloud_database(config)
     use_peering_vpc = is_use_peering_vpc(config)
@@ -1740,7 +1740,7 @@ def _create_workspace(config):
 
 
 def _create_workspace_resource_group(config):
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     use_working_vpc = is_use_working_vpc(config)
     resource_client = construct_resource_client(config)
 
@@ -2017,7 +2017,7 @@ def _create_role_assignment_for_storage_blob_data_owner(
 
 def _create_head_role_assignment_for_contributor(
         config, resource_group_name):
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     subscription_id = config["provider"].get("subscription_id")
     role_assignment_name = str(uuid.uuid3(
         uuid.UUID(subscription_id), workspace_name + "contributor"))
@@ -2029,6 +2029,10 @@ def _create_head_role_assignment_for_contributor(
         subscriptionId=subscription_id,
         resourceGroupName=resource_group_name
     )
+    role_definition_id = (
+        "/subscriptions/{}/providers/Microsoft.Authorization"
+        "/roleDefinitions/b24988ac-6180-42a0-ab88-20f7382dd24c").format(
+        subscription_id),
     user_assigned_identity = get_head_user_assigned_identity(
         config, resource_group_name)
     # Create role assignment
@@ -2037,9 +2041,7 @@ def _create_head_role_assignment_for_contributor(
             scope=scope,
             role_assignment_name=role_assignment_name,
             parameters={
-                "role_definition_id":
-                    "/subscriptions/{}/providers/Microsoft.Authorization/roleDefinitions/b24988ac-6180-42a0-ab88-20f7382dd24c".format(
-                        subscription_id),
+                "role_definition_id": role_definition_id,
                 "principal_id": user_assigned_identity.principal_id,
                 "principalType": "ServicePrincipal"
             }
@@ -2082,8 +2084,8 @@ def _create_role_assignments(config, resource_group_name):
 
 
 def _create_workspace_cloud_storage(config, resource_group_name):
-    provider_config = config["provider"]
-    workspace_name = config["workspace_name"]
+    provider_config = get_provider_config(config)
+    workspace_name = get_workspace_name(config)
     _create_managed_cloud_storage(
         provider_config, workspace_name, resource_group_name
     )
@@ -2234,12 +2236,12 @@ def _create_storage_account(
 
 
 def _create_workspace_cloud_database(config, resource_group_name):
-    cloud_provider = config["provider"]
-    workspace_name = config["workspace_name"]
+    provider_config = get_provider_config(config)
+    workspace_name = get_workspace_name(config)
     virtual_network_name = get_virtual_network_name(
-        cloud_provider, workspace_name)
+        provider_config, workspace_name)
     _create_managed_cloud_database(
-        cloud_provider, workspace_name,
+        provider_config, workspace_name,
         resource_group_name, virtual_network_name)
 
 
@@ -2581,8 +2583,8 @@ def get_default_workspace_database_name(workspace_name):
 
 def get_workspace_database_instance(
         config, resource_group_name):
-    provider_config = config["provider"]
-    workspace_name = config["workspace_name"]
+    provider_config = get_provider_config(config)
+    workspace_name = get_workspace_name(config)
     return get_managed_database_instance(
         provider_config, workspace_name, resource_group_name)
 
@@ -2742,8 +2744,9 @@ def _configure_peering_vnet_cidr_block(resource_client, network_client):
 
 
 def _create_vnet(config, resource_client, network_client):
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     use_working_vpc = is_use_working_vpc(config)
+    virtual_network_name = None
 
     if use_working_vpc:
         # No need to create new virtual network
@@ -2771,7 +2774,7 @@ def _create_vnet(config, resource_client, network_client):
 
 
 def create_virtual_network(config, resource_client, network_client):
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     virtual_network_name = get_workspace_virtual_network_name(workspace_name)
     use_working_vpc = is_use_working_vpc(config)
     resource_group_name = get_resource_group_name(
@@ -2869,7 +2872,7 @@ def _delete_vnet_peering_connection(
 
 
 def _delete_vnet_peering_connections(config, resource_client, network_client):
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     virtual_network_peering_name = get_workspace_vnet_peering_name(workspace_name)
     use_working_vpc = is_use_working_vpc(config)
     resource_group_name = get_resource_group_name(
@@ -2932,7 +2935,7 @@ def _delete_subnet(
     else:
         subnet_attribute = "public"
 
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     subnet_name = get_workspace_subnet_name(workspace_name, is_private=is_private)
 
     if get_subnet(network_client, resource_group_name, virtual_network_name, subnet_name) is None:
@@ -3046,7 +3049,7 @@ def _create_vnet_peering_connections(
         config, resource_client, network_client,
         resource_group_name, virtual_network_name):
     subscription_id = config["provider"].get("subscription_id")
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     virtual_network_peering_name = get_workspace_vnet_peering_name(workspace_name)
     current_resource_group_name = get_working_node_resource_group_name(resource_client)
     current_virtual_network_name = get_working_node_virtual_network_name(
@@ -3078,7 +3081,7 @@ def _create_and_configure_subnets(
         config, network_client, resource_group_name,
         virtual_network_name, is_private=True):
     subscription_id = config["provider"].get("subscription_id")
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     subnet_attribute = "private" if is_private else "public"
     subnet_name = get_workspace_subnet_name(workspace_name, is_private=is_private)
 
@@ -3130,7 +3133,7 @@ def _create_and_configure_subnets(
 def _create_nat(
         config, network_client, resource_group_name, public_ip_address_name):
     subscription_id = config["provider"].get("subscription_id")
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     nat_gateway_name = get_workspace_nat_name(workspace_name)
 
     cli_logger.print(
@@ -3162,7 +3165,7 @@ def _create_nat(
 
 
 def _create_public_ip_address(config, network_client, resource_group_name):
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     public_ip_address_name = get_workspace_public_ip_address_name(workspace_name)
     location = config["provider"]["location"]
 
@@ -3194,7 +3197,7 @@ def _create_public_ip_address(config, network_client, resource_group_name):
 
 def _create_or_update_network_security_group(
         config, network_client, resource_group_name):
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     location = config["provider"]["location"]
     security_rules = config["provider"].get("securityRules", [])
     network_security_group_name = get_workspace_network_security_group_name(
@@ -3384,7 +3387,7 @@ def _configure_permanent_data_volumes(config):
 
 def bootstrap_azure_from_workspace(config):
     if not check_azure_workspace_integrity(config):
-        workspace_name = config["workspace_name"]
+        workspace_name = get_workspace_name(config)
         cli_logger.abort(
             "Azure workspace {} doesn't exist or is in wrong state!", workspace_name)
 
@@ -3404,7 +3407,7 @@ def bootstrap_azure_workspace(config):
 
 
 def _configure_allowed_ssh_sources(config):
-    provider_config = config["provider"]
+    provider_config = get_provider_config(config)
     if "allowed_ssh_sources" not in provider_config:
         return
 
@@ -3468,7 +3471,7 @@ def _configure_cloud_storage_from_workspace(config):
 
 def _configure_managed_cloud_storage_from_workspace(
         config, cloud_provider, resource_group_name):
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     managed_cloud_storage_name = _get_managed_cloud_storage_name(cloud_provider)
     azure_cloud_storage = _get_managed_azure_cloud_storage(
         cloud_provider, workspace_name, resource_group_name,
@@ -3499,7 +3502,7 @@ def _configure_cloud_database_from_workspace(config):
 
 def _configure_managed_cloud_database_from_workspace(
         config, cloud_provider, resource_group_name):
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     managed_cloud_database_name = _get_managed_cloud_database_name(cloud_provider)
     # TODO: convenient way to we know the engine. Currently use the database config
     database_instance = get_managed_database_instance(
@@ -3547,14 +3550,14 @@ def _get_azure_cloud_storage(storage_and_container):
 
 
 def _get_head_user_assigned_identity_name(config):
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     user_assigned_identity_name = get_workspace_head_user_assigned_identity_name(
         workspace_name)
     return user_assigned_identity_name
 
 
 def _get_worker_user_assigned_identity_name(config):
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     user_assigned_identity_name = get_workspace_worker_user_assigned_identity_name(
         workspace_name)
     return user_assigned_identity_name
@@ -3576,7 +3579,7 @@ def _configure_user_assigned_identity_from_workspace(config):
 
 
 def _configure_subnet_from_workspace(config):
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     use_internal_ips = is_use_internal_ip(config)
 
     public_subnet = get_workspace_subnet_name(workspace_name, is_private=False)
@@ -3599,7 +3602,7 @@ def _configure_subnet_from_workspace(config):
 
 
 def _configure_network_security_group_from_workspace(config):
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     network_security_group_name = get_workspace_network_security_group_name(
         workspace_name)
 
@@ -3612,10 +3615,10 @@ def _configure_network_security_group_from_workspace(config):
 
 
 def _configure_virtual_network_from_workspace(config):
-    cloud_provider = config["provider"]
-    workspace_name = config["workspace_name"]
+    provider_config = get_provider_config(config)
+    workspace_name = get_workspace_name(config)
     virtual_network_name = get_virtual_network_name(
-        cloud_provider, workspace_name)
+        provider_config, workspace_name)
 
     for node_type_key in config["available_node_types"].keys():
         node_config = config["available_node_types"][node_type_key][
@@ -3656,7 +3659,7 @@ def _configure_prefer_spot_node(config):
         return config
 
     # User override, set or remove spot settings for worker node types
-    node_types = config["available_node_types"]
+    node_types = get_available_node_types(config)
     for node_type_name in node_types:
         if node_type_name == config["head_node_type"]:
             continue
@@ -3712,7 +3715,7 @@ def _get_default_image(default_image, is_gpu):
 
 
 def _configure_disk_volumes(config):
-    provider_config = config["provider"]
+    provider_config = get_provider_config(config)
     for node_type in config["available_node_types"].values():
         node_config = node_type["node_config"]
         _configure_disk_volumes_for_node(
@@ -3984,7 +3987,7 @@ def get_cluster_name_from_head(head_node) -> Optional[str]:
 def list_azure_clusters(config: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     compute_client = construct_compute_client(config)
     network_client = construct_network_client(config)
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     resource_group_name = get_resource_group_name_of(config)
 
     head_nodes = _get_workspace_head_nodes(
@@ -4007,8 +4010,8 @@ def list_azure_clusters(config: Dict[str, Any]) -> Optional[Dict[str, Any]]:
 
 
 def list_azure_storages(config: Dict[str, Any]) -> Optional[Dict[str, Any]]:
-    provider_config = config["provider"]
-    workspace_name = config["workspace_name"]
+    provider_config = get_provider_config(config)
+    workspace_name = get_workspace_name(config)
     resource_group_name = get_resource_group_name_of(config)
     return _list_azure_storages(
         provider_config, workspace_name, resource_group_name)
@@ -4032,8 +4035,8 @@ def _list_azure_storages(
 
 
 def list_azure_databases(config: Dict[str, Any]) -> Optional[Dict[str, Any]]:
-    provider_config = config["provider"]
-    workspace_name = config["workspace_name"]
+    provider_config = get_provider_config(config)
+    workspace_name = get_workspace_name(config)
     resource_group_name = get_resource_group_name_of(config)
     return _list_azure_databases(
         provider_config, workspace_name, resource_group_name)

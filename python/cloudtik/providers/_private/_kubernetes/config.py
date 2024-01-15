@@ -16,7 +16,8 @@ from cloudtik.core._private.util.core_utils import parse_memory_resource, \
 from cloudtik.core._private.docker import get_versioned_image
 from cloudtik.core._private.utils import is_use_internal_ip, get_running_head_node, \
     get_head_service_ports, _is_use_managed_cloud_storage, _is_use_internal_ip, is_gpu_runtime, \
-    PROVIDER_DATABASE_CONFIG_KEY, PROVIDER_STORAGE_CONFIG_KEY, _is_permanent_data_volumes, get_node_provider_of
+    PROVIDER_DATABASE_CONFIG_KEY, PROVIDER_STORAGE_CONFIG_KEY, _is_permanent_data_volumes, get_node_provider_of, \
+    get_provider_config, get_workspace_name, get_cluster_name, get_available_node_types, get_head_node_type
 from cloudtik.core.tags import CLOUDTIK_TAG_CLUSTER_NAME, CLOUDTIK_TAG_NODE_KIND, NODE_KIND_HEAD, \
     CLOUDTIK_GLOBAL_VARIABLE_KEY, CLOUDTIK_GLOBAL_VARIABLE_KEY_PREFIX
 from cloudtik.core.workspace_provider import Existence
@@ -246,7 +247,7 @@ def delete_kubernetes_workspace(
         config,
         delete_managed_storage: bool = False,
         delete_managed_database: bool = False):
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
 
     current_step = 1
     total_steps = KUBERNETES_WORKSPACE_NUM_DELETION_STEPS
@@ -300,7 +301,7 @@ def update_kubernetes_workspace(
         config,
         delete_managed_storage: bool = False,
         delete_managed_database: bool = False):
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
 
     current_step = 1
     total_steps = KUBERNETES_WORKSPACE_NUM_UPDATE_STEPS
@@ -329,7 +330,7 @@ def update_kubernetes_workspace(
 
 
 def check_kubernetes_workspace_existence(config):
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     existing_resources = 0
     target_resources = KUBERNETES_WORKSPACE_TARGET_RESOURCES
     """
@@ -386,9 +387,9 @@ def check_kubernetes_workspace_integrity(config):
 def list_kubernetes_clusters(
         config: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     head_nodes = get_workspace_head_nodes(config)
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     namespace = get_workspace_namespace_name(workspace_name)
-    provider_config = config["provider"]
+    provider_config = get_provider_config(config)
     clusters = {}
     for head_node in head_nodes:
         cluster_name = get_cluster_name_from_head(head_node)
@@ -424,13 +425,13 @@ def create_cloud_storage_provider(
 
 
 def list_kubernetes_storages(config: Dict[str, Any]) -> Optional[Dict[str, Any]]:
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     namespace = get_workspace_namespace_name(workspace_name)
     return _list_storages_for_cloud_provider(config, namespace)
 
 
 def _list_storages_for_cloud_provider(config, namespace):
-    provider_config = config["provider"]
+    provider_config = get_provider_config(config)
     cloud_provider = _get_cloud_provider_config(provider_config)
     if cloud_provider is None:
         # No cloud provider configured
@@ -480,13 +481,13 @@ def create_cloud_database_provider(
 
 
 def list_kubernetes_databases(config: Dict[str, Any]) -> Optional[Dict[str, Any]]:
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     namespace = get_workspace_namespace_name(workspace_name)
     return _list_databases_for_cloud_provider(config, namespace)
 
 
 def _list_databases_for_cloud_provider(config, namespace):
-    provider_config = config["provider"]
+    provider_config = get_provider_config(config)
     cloud_provider = _get_cloud_provider_config(provider_config)
     if cloud_provider is None:
         # No cloud provider configured
@@ -511,9 +512,9 @@ def _list_databases_for_cloud_provider(config, namespace):
 
 
 def get_kubernetes_workspace_info(config):
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     namespace = get_workspace_namespace_name(workspace_name)
-    provider_config = config["provider"]
+    provider_config = get_provider_config(config)
 
     head_service_account_name = _get_head_service_account_name(provider_config)
     worker_service_account_name = _get_worker_service_account_name(provider_config)
@@ -638,7 +639,7 @@ def subscribe_kubernetes_global_variables(
 
 
 def _create_workspace(config):
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
 
     current_step = 1
     total_steps = KUBERNETES_WORKSPACE_NUM_CREATION_STEPS
@@ -1089,7 +1090,7 @@ def _get_cloud_provider_config(provider_config):
 
 
 def _create_configurations_for_cloud_provider(config, namespace):
-    provider_config = config["provider"]
+    provider_config = get_provider_config(config)
     cloud_provider = _get_cloud_provider_config(provider_config)
     if cloud_provider is None:
         cli_logger.print(
@@ -1123,7 +1124,7 @@ def _delete_configurations_for_cloud_provider(
         config, namespace,
         delete_managed_storage: bool = False,
         delete_managed_database: bool = False):
-    provider_config = config["provider"]
+    provider_config = get_provider_config(config)
     cloud_provider = _get_cloud_provider_config(provider_config)
     if cloud_provider is None:
         cli_logger.print(
@@ -1162,7 +1163,7 @@ def _update_configurations_for_cloud_provider(
         config, namespace,
         delete_managed_storage: bool = False,
         delete_managed_database: bool = False):
-    provider_config = config["provider"]
+    provider_config = get_provider_config(config)
     cloud_provider = _get_cloud_provider_config(provider_config)
     if cloud_provider is None:
         cli_logger.print(
@@ -1198,7 +1199,7 @@ def _update_configurations_for_cloud_provider(
 
 
 def _check_existence_for_cloud_provider(config: Dict[str, Any], namespace):
-    provider_config = config["provider"]
+    provider_config = get_provider_config(config)
     cloud_provider = _get_cloud_provider_config(provider_config)
     if cloud_provider is None:
         cli_logger.verbose("No cloud provider configured for Kubernetes.")
@@ -1326,7 +1327,7 @@ def _configure_namespace_from_workspace(config):
     if config["provider"].get("_operator"):
         namespace = config["provider"]["namespace"]
     else:
-        workspace_name = config["workspace_name"]
+        workspace_name = get_workspace_name(config)
         # We don't check namespace existence here
         # since operator may not have the permission to list namespaces
         namespace = get_workspace_namespace_name(workspace_name)
@@ -1352,7 +1353,7 @@ def post_prepare_kubernetes(config: Dict[str, Any]) -> Dict[str, Any]:
             str(exc))
 
     # Set use_managed_cloud_storage value from cloud_provider if it is set
-    provider_config = config["provider"]
+    provider_config = get_provider_config(config)
     if "cloud_provider" in provider_config:
         provider_config["use_managed_cloud_storage"] = _is_use_managed_cloud_storage(
             provider_config["cloud_provider"])
@@ -1544,9 +1545,9 @@ def _configure_pod_name_and_labels(config):
     if "available_node_types" not in config:
         return
 
-    cluster_name = config["cluster_name"]
-    node_types = config["available_node_types"]
-    head_node_type = config["head_node_type"]
+    cluster_name = get_cluster_name(config)
+    node_types = get_available_node_types(config)
+    head_node_type = get_head_node_type(config)
     for node_type in node_types:
         node_config = node_types[node_type]["node_config"]
         pod = node_config["pod"]
@@ -1585,8 +1586,8 @@ def _configure_pod_hostname(config):
     if "available_node_types" not in config:
         return
 
-    cluster_name = config["cluster_name"]
-    node_types = config["available_node_types"]
+    cluster_name = get_cluster_name(config)
+    node_types = get_available_node_types(config)
     for node_type in node_types:
         node_config = node_types[node_type]["node_config"]
         spec = node_config["pod"]["spec"]
@@ -1600,8 +1601,8 @@ def _configure_pod_container_ports(config):
     runtime_config = config.get("runtime", {})
     service_ports = get_head_service_ports(runtime_config)
 
-    node_types = config["available_node_types"]
-    head_node_type = config["head_node_type"]
+    node_types = get_available_node_types(config)
+    head_node_type = get_head_node_type(config)
     node_config = node_types[head_node_type]["node_config"]
     pod = node_config["pod"]
     container_data = pod["spec"]["containers"][0]
@@ -1629,7 +1630,7 @@ def _configure_pod_container(config):
     if "available_node_types" not in config:
         return
 
-    node_types = config["available_node_types"]
+    node_types = get_available_node_types(config)
     for node_type in node_types:
         node_config = node_types[node_type]["node_config"]
         if "resources" in node_config:
@@ -1694,7 +1695,7 @@ def _configure_services_name_and_selector(config):
 
 
 def _configure_head_service_name_and_selector(config):
-    cluster_name = config["cluster_name"]
+    cluster_name = get_cluster_name(config)
     _configure_service_name_and_selector_for_head(
         config,
         KUBERNETES_HEAD_SERVICE_CONFIG_KEY,
@@ -1703,7 +1704,7 @@ def _configure_head_service_name_and_selector(config):
 
 
 def _configure_head_external_service_name_and_selector(config):
-    cluster_name = config["cluster_name"]
+    cluster_name = get_cluster_name(config)
     _configure_service_name_and_selector_for_head(
         config,
         KUBERNETES_HEAD_EXTERNAL_SERVICE_CONFIG_KEY,
@@ -1713,11 +1714,11 @@ def _configure_head_external_service_name_and_selector(config):
 
 def _configure_service_name_and_selector_for_head(
         config, service_field, service_name):
-    provider_config = config["provider"]
+    provider_config = get_provider_config(config)
     if service_field not in provider_config:
         return
 
-    cluster_name = config["cluster_name"]
+    cluster_name = get_cluster_name(config)
     service = provider_config[service_field]
 
     if "metadata" not in service:
@@ -1733,12 +1734,12 @@ def _configure_service_name_and_selector_for_head(
 
 
 def _configure_node_service_name_and_selector(config):
-    provider_config = config["provider"]
+    provider_config = get_provider_config(config)
     service_field = KUBERNETES_NODE_SERVICE_CONFIG_KEY
     if service_field not in provider_config:
         return
 
-    cluster_name = config["cluster_name"]
+    cluster_name = get_cluster_name(config)
     service = provider_config[service_field]
 
     if "metadata" not in service:
@@ -1753,7 +1754,7 @@ def _configure_node_service_name_and_selector(config):
 
 
 def _configure_head_service_ports(config):
-    provider_config = config["provider"]
+    provider_config = get_provider_config(config)
     service_field = KUBERNETES_HEAD_SERVICE_CONFIG_KEY
     if service_field not in provider_config:
         return
@@ -1784,7 +1785,7 @@ def _configure_service_ports(service, service_ports):
 
 
 def _configure_head_external_service_ports(config):
-    provider_config = config["provider"]
+    provider_config = get_provider_config(config)
     service_field = KUBERNETES_HEAD_EXTERNAL_SERVICE_CONFIG_KEY
     if service_field not in provider_config:
         return
@@ -1799,12 +1800,12 @@ def _configure_pod_service_account(config):
     if "available_node_types" not in config:
         return
 
-    provider_config = config["provider"]
+    provider_config = get_provider_config(config)
 
     head_service_account_name = _get_head_service_account_name(provider_config)
     worker_service_account_name = _get_worker_service_account_name(provider_config)
-    node_types = config["available_node_types"]
-    head_node_type = config["head_node_type"]
+    node_types = get_available_node_types(config)
+    head_node_type = get_head_node_type(config)
     for node_type in node_types:
         node_type_config = node_types[node_type]
         node_config = node_type_config["node_config"]
@@ -1824,8 +1825,8 @@ def _configure_pod_image(config):
     if "available_node_types" not in config:
         return
 
-    provider_config = config["provider"]
-    node_types = config["available_node_types"]
+    provider_config = get_provider_config(config)
+    node_types = get_available_node_types(config)
     for node_type in node_types:
         node_type_config = node_types[node_type]
         image = get_versioned_node_type_image(config, provider_config, node_type_config)
@@ -1938,13 +1939,13 @@ def _delete_services(config):
 
 
 def _delete_head_service(config):
-    provider_config = config["provider"]
+    provider_config = get_provider_config(config)
     if "namespace" not in provider_config:
         raise ValueError(
             "Must specify namespace in Kubernetes config.")
 
     namespace = provider_config["namespace"]
-    cluster_name = config["cluster_name"]
+    cluster_name = get_cluster_name(config)
 
     service_name = _get_head_service_name(cluster_name)
     _delete_service(namespace, service_name)
@@ -1954,26 +1955,26 @@ def _delete_head_external_service(config):
     if is_use_internal_ip(config):
         return
 
-    provider_config = config["provider"]
+    provider_config = get_provider_config(config)
     if "namespace" not in provider_config:
         raise ValueError(
             "Must specify namespace in Kubernetes config.")
 
     namespace = provider_config["namespace"]
-    cluster_name = config["cluster_name"]
+    cluster_name = get_cluster_name(config)
 
     service_name = _get_head_external_service_name(cluster_name)
     _delete_service(namespace, service_name)
 
 
 def _delete_node_service(config):
-    provider_config = config["provider"]
+    provider_config = get_provider_config(config)
     if "namespace" not in provider_config:
         raise ValueError(
             "Must specify namespace in Kubernetes config.")
 
     namespace = provider_config["namespace"]
-    cluster_name = config["cluster_name"]
+    cluster_name = get_cluster_name(config)
 
     service_name = _get_node_service_name(cluster_name)
     _delete_service(namespace, service_name)

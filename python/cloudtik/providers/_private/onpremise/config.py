@@ -7,8 +7,8 @@ from typing import Dict
 import logging
 
 from cloudtik.core._private.cli_logger import cli_logger
-import cloudtik.core._private.utils as utils
 from cloudtik.core._private.util.core_utils import get_memory_in_bytes, get_cloudtik_temp_dir
+from cloudtik.core._private.utils import get_provider_config, get_server_process, get_available_node_types
 from cloudtik.core.tags import CLOUDTIK_TAG_CLUSTER_NAME
 
 logger = logging.getLogger(__name__)
@@ -23,7 +23,7 @@ def get_cloud_simulator_process_file():
 
 def _discover_cloud_simulator():
     cloud_simulator_process_file = get_cloud_simulator_process_file()
-    server_process = utils.get_server_process(cloud_simulator_process_file)
+    server_process = get_server_process(cloud_simulator_process_file)
     if server_process is None:
         return None
     bind_address = server_process.get("bind_address")
@@ -94,9 +94,10 @@ def bootstrap_onpremise(config):
 
 
 def _configure_cloud_simulator(config):
-    provider = config["provider"]
-    if "cloud_simulator_address" not in provider:
-        provider["cloud_simulator_address"] = _get_cloud_simulator_address(provider)
+    provider_config = get_provider_config(config)
+    if "cloud_simulator_address" not in provider_config:
+        provider_config["cloud_simulator_address"] = _get_cloud_simulator_address(
+            provider_config)
     return config
 
 
@@ -182,7 +183,7 @@ def _get_node_info(node):
 def set_node_types_resources(
             config: Dict[str, Any], instance_types):
     # Update the instance information to node type
-    available_node_types = config["available_node_types"]
+    available_node_types = get_available_node_types(config)
     for node_type in available_node_types:
         instance_type = available_node_types[node_type]["node_config"][
             "instance_type"]

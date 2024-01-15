@@ -18,7 +18,7 @@ from cloudtik.core._private.util.redis_utils import create_redis_client, get_add
 from cloudtik.core._private.state.state_utils import NODE_STATE_NODE_IP, NODE_STATE_NODE_SEQ_ID
 from cloudtik.core._private.utils import load_head_cluster_config, _get_node_type_specific_runtime_config, \
     get_runtime_config_key, decode_cluster_secrets, CLOUDTIK_CLUSTER_NODES_INFO_NODE_TYPE, \
-    _get_workers_ready, _get_worker_node_ips, CLOUDTIK_CLUSTER_VARIABLE, get_node_provider_of
+    _get_workers_ready, _get_worker_node_ips, CLOUDTIK_CLUSTER_VARIABLE, get_node_provider_of, get_head_node_type
 from cloudtik.core.tags import STATUS_UP_TO_DATE
 
 RUNTIME_NODE_ID = "node_id"
@@ -150,7 +150,7 @@ def subscribe_cluster_runtime_config():
 def get_runtime_config_from_node(head):
     if head:
         config = load_head_cluster_config()
-        node_type = config["head_node_type"]
+        node_type = get_head_node_type(config)
         return _get_node_type_specific_runtime_config(config, node_type)
     else:
         # from worker node, subscribe from head redis

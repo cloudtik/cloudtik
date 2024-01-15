@@ -22,7 +22,7 @@ from cloudtik.core._private.utils import check_cidr_conflict, is_use_internal_ip
     is_worker_role_for_cloud_storage, is_use_working_vpc, is_use_peering_vpc, is_peering_firewall_allow_ssh_only, \
     is_peering_firewall_allow_working_subnet, is_gpu_runtime, _is_permanent_data_volumes, \
     _get_managed_cloud_storage_name, _get_managed_cloud_database_name, enable_stable_node_seq_id, \
-    is_permanent_data_volumes
+    is_permanent_data_volumes, get_provider_config, get_workspace_name, get_available_node_types, get_head_node_type
 from cloudtik.core.workspace_provider import Existence, CLOUDTIK_MANAGED_CLOUD_STORAGE, \
     CLOUDTIK_MANAGED_CLOUD_STORAGE_URI, CLOUDTIK_MANAGED_CLOUD_DATABASE, CLOUDTIK_MANAGED_CLOUD_DATABASE_ENDPOINT, \
     CLOUDTIK_MANAGED_CLOUD_DATABASE_PORT, CLOUDTIK_MANAGED_CLOUD_STORAGE_NAME, \
@@ -308,7 +308,7 @@ def get_vpc_endpoint_for_s3(ec2_client, vpc_id, workspace_name):
 def check_aws_workspace_existence(config):
     ec2 = _resource("ec2", config)
     ec2_client = _resource_client("ec2", config)
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     managed_cloud_storage = is_managed_cloud_storage(config)
     managed_cloud_database = is_managed_cloud_database(config)
     use_peering_vpc = is_use_peering_vpc(config)
@@ -422,7 +422,7 @@ def get_aws_workspace_info(config):
 
 def get_aws_managed_cloud_storage_info(
         config, cloud_provider, info):
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     cloud_storage_info = _get_managed_cloud_storage_info(
         cloud_provider, workspace_name)
     if cloud_storage_info:
@@ -451,7 +451,7 @@ def _get_object_storage_info(bucket):
 
 
 def get_aws_managed_cloud_database_info(config, cloud_provider, info):
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     cloud_database_info = _get_managed_cloud_database_info(
         cloud_provider, workspace_name)
     if cloud_database_info:
@@ -485,7 +485,7 @@ def update_aws_workspace(
         config,
         delete_managed_storage: bool = False,
         delete_managed_database: bool = False):
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     managed_cloud_storage = is_managed_cloud_storage(config)
     managed_cloud_database = is_managed_cloud_database(config)
 
@@ -546,7 +546,7 @@ def update_aws_workspace(
 
 def update_workspace_firewalls(config):
     ec2_client = _resource_client("ec2", config)
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     vpc_id = _get_workspace_vpc_id(workspace_name, ec2_client)
     if vpc_id is None:
         raise RuntimeError(
@@ -572,7 +572,7 @@ def delete_aws_workspace(
         delete_managed_database: bool = False):
     ec2 = _resource("ec2", config)
     ec2_client = _resource_client("ec2", config)
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     use_peering_vpc = is_use_peering_vpc(config)
     managed_cloud_storage = is_managed_cloud_storage(config)
     managed_cloud_database = is_managed_cloud_database(config)
@@ -1327,7 +1327,7 @@ def _delete_workspace_vpc_peering_connection_and_routes(
 
 def _delete_routes_for_workspace_vpc_peering_connection(
         config, ec2, ec2_client):
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     current_ec2_client = _working_node_client('ec2', config)
     current_vpc = get_current_vpc(config)
     workspace_vpc = get_workspace_vpc(workspace_name, ec2_client, ec2)
@@ -1407,7 +1407,7 @@ def _delete_workspace_vpc_peering_connection(config, ec2_client):
 
 
 def _create_vpc(config, ec2, ec2_client):
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     vpc_name = get_workspace_vpc_name(workspace_name)
     cli_logger.print(
         "Creating workspace VPC: {}...", vpc_name)
@@ -1507,7 +1507,7 @@ def _next_availability_zone(
 
 
 def _create_and_configure_subnets(config, ec2_client, vpc):
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     subnets = []
     cidr_list = _configure_subnets_cidr(vpc)
     cidr_len = len(cidr_list)
@@ -1824,7 +1824,7 @@ def _create_and_configure_vpc_peering_connection(config, ec2, ec2_client):
 def _update_route_tables_for_workspace_vpc_peering_connection(
         config, ec2, ec2_client):
     current_ec2_client = _working_node_client('ec2', config)
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     current_vpc = get_current_vpc(config)
     workspace_vpc = get_workspace_vpc(workspace_name, ec2_client, ec2)
     current_vpc_route_tables = get_vpc_route_tables(current_vpc)
@@ -1867,7 +1867,7 @@ def _update_route_tables_for_workspace_vpc_peering_connection(
 
 
 def wait_for_workspace_vpc_peering_connection_active(config):
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     vpc_peer_name = get_workspace_vpc_peering_name(workspace_name)
     current_ec2_client = _working_node_client('ec2', config)
     retry = 20
@@ -1890,7 +1890,7 @@ def wait_for_workspace_vpc_peering_connection_active(config):
 
 
 def _accept_workspace_vpc_peering_connection(config, ec2_client):
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     vpc_peer_name = get_workspace_vpc_peering_name(workspace_name)
     pending_vpc_peering_connection = get_workspace_pending_acceptance_vpc_peering_connection(
         config, ec2_client)
@@ -1912,7 +1912,7 @@ def _accept_workspace_vpc_peering_connection(config, ec2_client):
 
 
 def get_workspace_vpc_peering_connection(config):
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     vpc_peer_name = get_workspace_vpc_peering_name(workspace_name)
     current_ec2_client = _working_node_client('ec2', config)
     response = current_ec2_client.describe_vpc_peering_connections(Filters=[
@@ -1924,7 +1924,7 @@ def get_workspace_vpc_peering_connection(config):
 
 
 def get_workspace_pending_acceptance_vpc_peering_connection(config, ec2_client):
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     vpc_peer_name = get_workspace_vpc_peering_name(workspace_name)
     current_ec2_client = _working_node_client('ec2', config)
     retry = 20
@@ -1951,7 +1951,7 @@ def get_workspace_pending_acceptance_vpc_peering_connection(config, ec2_client):
 
 def _create_workspace_vpc_peering_connection(config, ec2, ec2_client):
     current_ec2_client = _working_node_client('ec2', config)
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     vpc_peer_name = get_workspace_vpc_peering_name(workspace_name)
     region = config["provider"]["region"]
     current_vpc = get_current_vpc(config)
@@ -1985,7 +1985,7 @@ def _create_vpc_endpoint_for_s3(config, ec2, ec2_client, vpc):
         "Creating VPC endpoint for S3: {}...".format(vpc.id))
     try:
         region = config["provider"]["region"]
-        workspace_name = config["workspace_name"]
+        workspace_name = get_workspace_name(config)
         s3_endpoint_name = get_workspace_vpc_s3_endpoint(workspace_name)
         route_table_ids = _get_workspace_route_table_ids(workspace_name, ec2, vpc.id)
 
@@ -2110,7 +2110,7 @@ def _create_route_table_for_private_subnets(config, ec2, vpc, subnets):
 def _create_workspace(config):
     ec2 = _resource("ec2", config)
     ec2_client = _resource_client("ec2", config)
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     managed_cloud_storage = is_managed_cloud_storage(config)
     managed_cloud_database = is_managed_cloud_database(config)
     use_peering_vpc = is_use_peering_vpc(config)
@@ -2313,15 +2313,15 @@ def get_database_security_group_id(cloud_provider, workspace_name):
 
 
 def _create_workspace_cloud_database(config, workspace_name):
-    cloud_provider = config["provider"]
+    provider_config = get_provider_config(config)
 
     subnet_ids = get_database_subnet_ids(
-        cloud_provider, workspace_name)
+        provider_config, workspace_name)
     security_group_id = get_database_security_group_id(
-        cloud_provider, workspace_name)
+        provider_config, workspace_name)
 
     _create_managed_cloud_database(
-        cloud_provider, workspace_name,
+        provider_config, workspace_name,
         subnet_ids, security_group_id
     )
 
@@ -2427,20 +2427,20 @@ def _get_worker_instance_profile_name(workspace_name):
 
 
 def _get_head_instance_profile(config):
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     head_instance_profile_name = _get_head_instance_profile_name(workspace_name)
     return _get_instance_profile(head_instance_profile_name, config)
 
 
 def _get_worker_instance_profile(config):
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     worker_instance_profile_name = _get_worker_instance_profile_name(workspace_name)
     return _get_instance_profile(worker_instance_profile_name, config)
 
 
 def _create_network_resources(config, ec2, ec2_client,
                               current_step, total_steps):
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
 
     # create VPC
     with cli_logger.group(
@@ -2716,9 +2716,8 @@ def _add_security_group_rules(config, security_group):
     cli_logger.print(
         "Updating rules for security group: {}...".format(security_group.id))
     security_group_ids = {security_group.id}
-    extended_rules = config["provider"] \
-        .get("security_group", {}) \
-        .get("IpPermissions", [])
+    extended_rules = config["provider"].get(
+        "security_group", {}).get("IpPermissions", [])
     ip_permissions = _create_default_inbound_rules(
         config, security_group_ids, extended_rules)
     _update_inbound_rules(security_group, ip_permissions)
@@ -2986,8 +2985,8 @@ def list_aws_clusters(config: Dict[str, Any]) -> Optional[Dict[str, Any]]:
 
 
 def list_aws_storages(config: Dict[str, Any]) -> Optional[Dict[str, Any]]:
-    provider_config = config["provider"]
-    workspace_name = config["workspace_name"]
+    provider_config = get_provider_config(config)
+    workspace_name = get_workspace_name(config)
     return _list_aws_storages(provider_config, workspace_name)
 
 
@@ -3004,8 +3003,8 @@ def _list_aws_storages(cloud_provider: Dict[str, Any], workspace_name):
 
 
 def list_aws_databases(config: Dict[str, Any]) -> Optional[Dict[str, Any]]:
-    provider_config = config["provider"]
-    workspace_name = config["workspace_name"]
+    provider_config = get_provider_config(config)
+    workspace_name = get_workspace_name(config)
     return _list_aws_databases(provider_config, workspace_name)
 
 
@@ -3211,7 +3210,7 @@ def log_to_cli(config: Dict[str, Any]) -> None:
         provider_name is not None,
         "Could not find a pretty name for the AWS provider.")
 
-    head_node_type = config["head_node_type"]
+    head_node_type = get_head_node_type(config)
     head_node_config = config["available_node_types"][head_node_type][
         "node_config"]
 
@@ -3288,14 +3287,14 @@ def log_to_cli(config: Dict[str, Any]) -> None:
                 or "IamInstanceProfile" in config["head_node"])
         if "IamInstanceProfile" in head_node_config:
             # If the user manually configured the role we're here.
-            IamProfile = head_node_config["IamInstanceProfile"]
+            iam_profile = head_node_config["IamInstanceProfile"]
         elif "IamInstanceProfile" in config["head_node"]:
             # If we filled the default IAM role, we're here.
-            IamProfile = config["head_node"]["IamInstanceProfile"]
-        profile_arn = IamProfile.get("Arn")
+            iam_profile = config["head_node"]["IamInstanceProfile"]
+        profile_arn = iam_profile.get("Arn")
         profile_name = _arn_to_name(profile_arn) \
             if profile_arn \
-            else IamProfile["Name"]
+            else iam_profile["Name"]
         cli_logger.labeled_value("IAM Profile", "{}", profile_name, _tags=tags)
 
         if all("KeyName" in node_type["node_config"]
@@ -3337,7 +3336,7 @@ def _configure_prefer_spot_node(config):
         return config
 
     # User override, set or remove spot settings for worker node types
-    node_types = config["available_node_types"]
+    node_types = get_available_node_types(config)
     for node_type_name in node_types:
         if node_type_name == config["head_node_type"]:
             continue
@@ -3362,7 +3361,7 @@ def bootstrap_aws(config):
 
 def bootstrap_aws_from_workspace(config):
     if not check_aws_workspace_integrity(config):
-        workspace_name = config["workspace_name"]
+        workspace_name = get_workspace_name(config)
         cli_logger.abort(
             "AWS workspace {} doesn't exist or is in wrong state.", workspace_name)
 
@@ -3411,7 +3410,7 @@ def bootstrap_aws_workspace(config):
 
 
 def _configure_allowed_ssh_sources(config):
-    provider_config = config["provider"]
+    provider_config = get_provider_config(config)
     if "allowed_ssh_sources" not in provider_config:
         return
 
@@ -3445,7 +3444,7 @@ def _configure_cloud_storage_from_workspace(config):
 
 
 def _configure_managed_cloud_storage_from_workspace(config, cloud_provider):
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     managed_cloud_storage_name = _get_managed_cloud_storage_name(cloud_provider)
     s3_bucket = get_managed_s3_bucket(
         cloud_provider, workspace_name,
@@ -3469,7 +3468,7 @@ def _configure_cloud_database_from_workspace(config):
 
 
 def _configure_managed_cloud_database_from_workspace(config, cloud_provider):
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     managed_cloud_database_name = _get_managed_cloud_database_name(cloud_provider)
     database_instance = get_managed_database_instance(
         cloud_provider, workspace_name,
@@ -3496,7 +3495,7 @@ def _configure_iam_role_from_workspace(config):
 
 
 def _configure_iam_role_for_head(config):
-    head_node_type = config["head_node_type"]
+    head_node_type = get_head_node_type(config)
     head_node_config = config["available_node_types"][head_node_type][
         "node_config"]
     if "IamInstanceProfile" in head_node_config:
@@ -3549,7 +3548,7 @@ def _configure_iam_role_for_cluster(config):
 def _configure_subnet_from_workspace(config):
     ec2 = _resource("ec2", config)
     ec2_client = _resource_client("ec2", config)
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     use_internal_ips = is_use_internal_ip(config)
 
     vpc_id = _get_workspace_vpc_id(workspace_name, ec2_client)
@@ -3569,7 +3568,7 @@ def _configure_subnet_from_workspace(config):
                 break
 
     # store the subnet id and availability_zone map to provider for use by node provider
-    provider_config = config["provider"]
+    provider_config = get_provider_config(config)
     subnet_zone_mapping = {
         private_subnet.id: private_subnet.availability_zone for private_subnet in private_subnets
     }
@@ -3597,7 +3596,7 @@ def _configure_subnet_from_workspace(config):
 
 def _configure_security_group_from_workspace(config):
     ec2_client = _resource_client("ec2", config)
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     vpc_id = _get_workspace_vpc_id(workspace_name, ec2_client)
     # map from node type key -> source of SecurityGroupIds field
     security_group_info_src = {}
@@ -3674,7 +3673,7 @@ def _key_assert_msg(node_type: str) -> str:
 
 
 def _configure_key_pair(config):
-    node_types = config["available_node_types"]
+    node_types = get_available_node_types(config)
 
     # map from node type key -> source of KeyName field
     key_pair_src_info = {}
@@ -3779,7 +3778,7 @@ def _configure_from_launch_template(config: Dict[str, Any]) -> Dict[str, Any]:
         template [name|id] and version, or more than one launch template is
         found.
     """
-    node_types = config["available_node_types"]
+    node_types = get_available_node_types(config)
 
     # iterate over sorted node types to support deterministic unit test stubs
     for name, node_type in sorted(node_types.items()):

@@ -6,7 +6,7 @@ from kubernetes.client.rest import ApiException
 
 from cloudtik.core._private.cli_logger import cli_logger
 from cloudtik.core._private.constants import CLOUDTIK_DATA_DISK_MOUNT_POINT, CLOUDTIK_DATA_DISK_MOUNT_NAME_PREFIX
-from cloudtik.core._private.utils import _is_permanent_data_volumes
+from cloudtik.core._private.utils import _is_permanent_data_volumes, get_provider_config, get_cluster_name
 from cloudtik.core.tags import CLOUDTIK_TAG_CLUSTER_NAME, CLOUDTIK_TAG_NODE_SEQ_ID, CLOUDTIK_TAG_NODE_NAME
 from cloudtik.providers._private._kubernetes import core_api
 
@@ -333,11 +333,11 @@ def cleanup_orphan_pvcs(cluster_name, namespace):
 
 
 def get_key_pair_path_for_kubernetes(config):
-    cluster_name = config["cluster_name"]
-    provider = config["provider"]
-    if "cloud_provider" in provider:
+    cluster_name = get_cluster_name(config)
+    provider_config = get_provider_config(config)
+    if "cloud_provider" in provider_config:
         key_pair_file_path = "~/.ssh/cloudtik_kubernetes_{}_{}.pem".format(
-            provider["cloud_provider"]["type"], cluster_name)
+            provider_config["cloud_provider"]["type"], cluster_name)
     else:
         key_pair_file_path = "~/.ssh/cloudtik_kubernetes_{}.pem".format(
             cluster_name)

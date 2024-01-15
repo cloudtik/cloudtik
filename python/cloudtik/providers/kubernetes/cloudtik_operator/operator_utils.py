@@ -163,16 +163,16 @@ def get_node_types(
 def get_provider_config(
     cluster_resource, cluster_name, namespace, cluster_owner_reference
 ):
-    provider_conf = {"type": "kubernetes", "use_internal_ips": True, "namespace": namespace}
+    provider_config = {"type": "kubernetes", "use_internal_ips": True, "namespace": namespace}
 
     configure_services(
-        provider_conf, cluster_resource,
+        provider_config, cluster_resource,
         cluster_name, cluster_owner_reference)
 
-    configure_cloud(provider_conf, cluster_resource)
+    configure_cloud(provider_config, cluster_resource)
     # Signal to autoscaler that the Operator is in use:
-    provider_conf["_operator"] = True
-    return provider_conf
+    provider_config["_operator"] = True
+    return provider_config
 
 
 def get_runtime_config(

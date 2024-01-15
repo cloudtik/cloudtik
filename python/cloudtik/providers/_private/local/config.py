@@ -7,7 +7,7 @@ from typing import Dict
 from cloudtik.core._private.util.core_utils import get_memory_in_bytes, get_cloudtik_temp_dir, exec_with_output, \
     get_host_address
 from cloudtik.core._private.resource_spec import ResourceSpec
-from cloudtik.core._private.utils import is_docker_enabled
+from cloudtik.core._private.utils import is_docker_enabled, get_provider_config, get_available_node_types
 from cloudtik.core.tags import CLOUDTIK_TAG_CLUSTER_NAME
 
 logger = logging.getLogger(__name__)
@@ -29,27 +29,27 @@ def bootstrap_local(config):
 def _configure_local_node_id(config):
     # if the config has a local ip specified
     # use this one, else use a default ip
-    provider = config["provider"]
+    provider_config = get_provider_config(config)
 
     # in case that user don't specify any other nodes
-    if CONFIG_KEY_NODES not in provider:
-        provider[CONFIG_KEY_NODES] = {}
+    if CONFIG_KEY_NODES not in provider_config:
+        provider_config[CONFIG_KEY_NODES] = {}
 
-    local_ip = provider.get("local_ip")
+    local_ip = provider_config.get("local_ip")
     listed_local_ip = None
     if not local_ip:
         # check whether there is local ip already list in the nodes list
-        listed_local_ip = _get_listed_local_ip(provider)
+        listed_local_ip = _get_listed_local_ip(provider_config)
         local_ip = listed_local_ip
         if not local_ip:
             local_ip = socket.gethostbyname(socket.gethostname())
         if not local_ip:
             raise RuntimeError("Failed to get local ip.")
-    provider["local_node_id"] = local_ip
+    provider_config["local_node_id"] = local_ip
 
     # we also need to add the local ip to the nodes list of provider
     if not listed_local_ip:
-        _add_local_node_to_provider(provider, local_ip)
+        _add_local_node_to_provider(provider_config, local_ip)
 
     return config
 
@@ -87,10 +87,10 @@ def _configure_instance_types(config):
 
 
 def _make_default_instance_type(config):
-    provider = config["provider"]
-    if "instance_types" not in provider:
-        provider["instance_types"] = {}
-    instance_types = provider["instance_types"]
+    provider_config = get_provider_config(config)
+    if "instance_types" not in provider_config:
+        provider_config["instance_types"] = {}
+    instance_types = provider_config["instance_types"]
     if LOCAL_INSTANCE_TYPE in instance_types:
         return
     resource_spec = ResourceSpec().resolve(available_memory=False)
@@ -104,8 +104,8 @@ def _make_default_instance_type(config):
 
 
 def _configure_node_instance_types(config):
-    provider = config["provider"]
-    nodes = provider[CONFIG_KEY_NODES]
+    provider_config = get_provider_config(config)
+    nodes = provider_config[CONFIG_KEY_NODES]
     for node in nodes:
         if "instance_type" not in node:
             node["instance_type"] = LOCAL_INSTANCE_TYPE
@@ -115,10 +115,10 @@ def _configure_node_instance_types(config):
 def _configure_docker(config):
     if not is_docker_enabled(config):
         return config
-    provider = config["provider"]
+    provider_config = get_provider_config(config)
     rootless = is_rootless_docker()
     if not rootless:
-        provider["docker_with_sudo"] = True
+        provider_config["docker_with_sudo"] = True
 
     state_path = get_state_path()
     exec_with_output(
@@ -207,10 +207,10 @@ def get_all_node_ids(provider_config: Dict[str, Any]):
 def set_node_types_resources(
             config: Dict[str, Any]):
     # Update the instance information to node type
-    provider = config["provider"]
-    instance_types = provider.get("instance_types", {})
+    provider_config = get_provider_config(config)
+    instance_types = provider_config.get("instance_types", {})
 
-    available_node_types = config["available_node_types"]
+    available_node_types = get_available_node_types(config)
     for node_type in available_node_types:
         instance_type_name = available_node_types[node_type]["node_config"].get(
             "instance_type", LOCAL_INSTANCE_TYPE)

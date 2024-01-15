@@ -10,7 +10,7 @@ from cloudtik.core._private.service_discovery.utils import \
     get_canonical_service_name, define_runtime_service, \
     get_service_discovery_config, define_runtime_service_on_head
 from cloudtik.core._private.utils import RUNTIME_CONFIG_KEY, is_node_seq_id_enabled, enable_node_seq_id, \
-    get_runtime_config, get_node_cluster_ip_of
+    get_runtime_config, get_node_cluster_ip_of, get_workspace_name, get_cluster_name
 from cloudtik.runtime.common.service_discovery.discovery import DiscoveryType
 from cloudtik.runtime.common.service_discovery.runtime_discovery import \
     discover_runtime_service
@@ -127,7 +127,7 @@ def _generate_replication_set_name(workspace_name, cluster_name):
 
 
 def _generate_replication_set_key(config: Dict[str, Any]):
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     key_material = str(uuid.uuid3(uuid.NAMESPACE_OID, workspace_name))
     return base64_encode_string(key_material)
 
@@ -288,8 +288,8 @@ def _with_replication_environment_variables(
         mongodb_config, config, runtime_envs)
 
     # default to workspace name + cluster name
-    workspace_name = config["workspace_name"]
-    cluster_name = config["cluster_name"]
+    workspace_name = get_workspace_name(config)
+    cluster_name = get_cluster_name(config)
     replication_set_name = _get_replication_set_name_prefix(
         mongodb_config, workspace_name, cluster_name)
     runtime_envs["MONGODB_REPLICATION_SET_NAME"] = replication_set_name
@@ -305,8 +305,8 @@ def _with_sharding_environment_variables(
     runtime_envs["MONGODB_SHARDING_CLUSTER_ROLE"] = cluster_role
 
     # default to workspace name + cluster name + cluster role
-    workspace_name = config["workspace_name"]
-    cluster_name = config["cluster_name"]
+    workspace_name = get_workspace_name(config)
+    cluster_name = get_cluster_name(config)
     replication_set_name = _get_sharding_replication_set_name(
         mongodb_config, workspace_name, cluster_name, cluster_role)
     runtime_envs["MONGODB_REPLICATION_SET_NAME"] = replication_set_name

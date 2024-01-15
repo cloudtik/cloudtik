@@ -16,7 +16,8 @@ from cloudtik.core._private.service_discovery.utils import SERVICE_DISCOVERY_TAG
     SERVICE_DISCOVERY_LABEL_SERVICE
 from cloudtik.core._private.utils import \
     RUNTIME_TYPES_CONFIG_KEY, _get_node_type_specific_runtime_config, \
-    RUNTIME_CONFIG_KEY, is_node_seq_id_enabled, enable_node_seq_id
+    RUNTIME_CONFIG_KEY, is_node_seq_id_enabled, enable_node_seq_id, get_cluster_name, get_available_node_types, \
+    get_head_node_type
 from cloudtik.runtime.common.service_discovery.cluster import register_service_to_cluster
 from cloudtik.runtime.common.service_discovery.discovery import DiscoveryType
 from cloudtik.runtime.common.service_discovery.runtime_discovery import discover_consul
@@ -112,7 +113,7 @@ def _bootstrap_join_list(cluster_config: Dict[str, Any]):
 def _bootstrap_runtime_services(config: Dict[str, Any]):
     # for all the runtimes, query its services per node type
     service_configs = {}
-    cluster_name = config["cluster_name"]
+    cluster_name = get_cluster_name(config)
     services_map = get_runtime_services_by_node_type(config)
     for node_type, services_for_node_type in services_map.items():
         service_config_for_node_type = {}
@@ -268,8 +269,8 @@ def _handle_node_constraints_reached(
 
 
 def _get_consul_minimal_workers(config: Dict[str, Any]):
-    available_node_types = config["available_node_types"]
-    head_node_type = config["head_node_type"]
+    available_node_types = get_available_node_types(config)
+    head_node_type = get_head_node_type(config)
     for node_type in available_node_types:
         if node_type == head_node_type:
             # Exclude the head
