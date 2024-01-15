@@ -63,7 +63,7 @@ class AzureWorkspaceProvider(WorkspaceProvider):
         The tag name has a limit of 512 characters and the tag value has a limit of 256 characters.
         For storage accounts, the tag name has a limit of 128 characters
         and the tag value has a limit of 256 characters.
-        Tag names can't contain these characters: <, >, %, &, \, ?, /
+        Tag names can't contain these characters: <, >, %, &, "\", ?, /
         """
         # Add prefix to the variables
         global_variables_prefixed = {}

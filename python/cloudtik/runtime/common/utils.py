@@ -3,15 +3,15 @@ from typing import Any, Dict
 from cloudtik.core._private.constants import CLOUDTIK_DEFAULT_STORAGE_URI, CLOUDTIK_DEFAULT_CLOUD_STORAGE_URI
 from cloudtik.core._private.util.core_utils import exec_with_output
 from cloudtik.core._private.runtime_factory import _get_runtime, BUILT_IN_RUNTIME_HDFS
-from cloudtik.core._private.utils import RUNTIME_CONFIG_KEY, get_cluster_head_ip, is_runtime_enabled, \
-    get_node_provider_of
+from cloudtik.core._private.utils import get_cluster_head_ip, is_runtime_enabled, \
+    get_node_provider_of, get_runtime_config
 
 SERVICE_COMMAND_START = "start"
 SERVICE_COMMAND_STOP = "stop"
 
 
 def get_runtime_endpoints_of(config: Dict[str, Any], runtime_name: str):
-    runtime_config = config.get(RUNTIME_CONFIG_KEY)
+    runtime_config = get_runtime_config(config)
 
     # Verify runtime is in configured
     if not is_runtime_enabled(runtime_config, runtime_name):
@@ -24,7 +24,7 @@ def get_runtime_endpoints_of(config: Dict[str, Any], runtime_name: str):
 
 
 def get_runtime_default_storage_of(config: Dict[str, Any], runtime_name: str):
-    runtime_config = config.get(RUNTIME_CONFIG_KEY)
+    runtime_config = get_runtime_config(config)
     config_of_runtime = runtime_config.get(runtime_name, {})
 
     # 1) Try to use local hdfs first;

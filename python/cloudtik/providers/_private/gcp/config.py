@@ -28,7 +28,8 @@ from cloudtik.core._private.utils import check_cidr_conflict, unescape_private_k
     _is_use_managed_cloud_storage, is_use_peering_vpc, is_use_working_vpc, _is_use_working_vpc, \
     is_peering_firewall_allow_working_subnet, is_peering_firewall_allow_ssh_only, is_gpu_runtime, \
     is_managed_cloud_database, is_use_managed_cloud_database, is_permanent_data_volumes, _is_permanent_data_volumes, \
-    _get_managed_cloud_storage_name, _get_managed_cloud_database_name, enable_stable_node_seq_id
+    _get_managed_cloud_storage_name, _get_managed_cloud_database_name, enable_stable_node_seq_id, get_provider_config, \
+    get_workspace_name, get_available_node_types
 from cloudtik.providers._private.gcp.node import GCPCompute
 from cloudtik.providers._private.gcp.utils import _get_node_info, construct_clients_from_provider_config, \
     wait_for_compute_global_operation, wait_for_compute_region_operation, _create_storage, \
@@ -148,7 +149,7 @@ def create_gcp_workspace(config):
 def _create_workspace(config):
     crm, iam, compute, tpu = construct_clients_from_provider_config(
         config["provider"])
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     managed_cloud_storage = is_managed_cloud_storage(config)
     managed_cloud_database = is_managed_cloud_database(config)
     use_peering_vpc = is_use_peering_vpc(config)
@@ -329,7 +330,7 @@ def create_vpc(config, compute):
 
 
 def get_vpc_name_by_id(config, compute, vpc_id):
-    provider_config = config["provider"]
+    provider_config = get_provider_config(config)
     project_id = provider_config.get("project_id")
     return compute.networks().get(
         project=project_id, network=vpc_id).execute()["name"]
@@ -450,7 +451,7 @@ def _delete_subnet(config, compute, is_private=True):
         subnet_attribute = "public"
     project_id = config["provider"].get("project_id")
     region = config["provider"].get("region")
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     subnet_name = "cloudtik-{}-{}-subnet".format(
         workspace_name, subnet_attribute)
 
@@ -479,7 +480,7 @@ def _delete_subnet(config, compute, is_private=True):
 
 
 def _create_and_configure_subnets(config, compute, vpc_id):
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     project_id = config["provider"]["project_id"]
     region = config["provider"]["region"]
 
@@ -517,7 +518,7 @@ def _create_and_configure_subnets(config, compute, vpc_id):
 def _create_router(config, compute, vpc_id):
     project_id = config["provider"]["project_id"]
     region = config["provider"]["region"]
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     router_name = "cloudtik-{}-private-router".format(workspace_name)
     vpc_name = _get_workspace_vpc_name(workspace_name)
     cli_logger.print(
@@ -547,7 +548,7 @@ def _create_router(config, compute, vpc_id):
 def _create_nat_for_router(config, compute):
     project_id = config["provider"]["project_id"]
     region = config["provider"]["region"]
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     nat_name = "cloudtik-{}-nat".format(workspace_name)
 
     cli_logger.print(
@@ -591,7 +592,7 @@ def _create_nat_for_router(config, compute):
 def _delete_router(config, compute):
     project_id = config["provider"]["project_id"]
     region = config["provider"]["region"]
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     router_name = "cloudtik-{}-private-router".format(workspace_name)
 
     if get_router(config, router_name, compute) is None:
@@ -692,7 +693,7 @@ def _get_subnetwork_ip_cidr_range(project_id, compute, subnetwork):
 
 
 def get_subnetworks_ip_cidr_range(config, compute, vpc_id):
-    provider_config = config["provider"]
+    provider_config = get_provider_config(config)
     project_id = provider_config["project_id"]
     subnetworks = compute.networks().get(
         project=project_id,
@@ -705,7 +706,7 @@ def get_subnetworks_ip_cidr_range(config, compute, vpc_id):
 
 
 def get_working_node_ip_cidr_range(config, compute):
-    provider_config = config["provider"]
+    provider_config = get_provider_config(config)
     project_id = provider_config["project_id"]
     subnetwork_cidrs = []
     subnetwork = _find_working_node_subnetwork(provider_config, compute)
@@ -717,7 +718,7 @@ def get_working_node_ip_cidr_range(config, compute):
 
 def _create_default_allow_internal_firewall(config, compute, vpc_id):
     project_id = config["provider"]["project_id"]
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     subnetwork_cidrs = get_subnetworks_ip_cidr_range(config, compute, vpc_id)
     firewall_name = "cloudtik-{}-default-allow-internal-firewall".format(
         workspace_name)
@@ -777,7 +778,7 @@ def _create_or_update_custom_firewalls(config, compute, vpc_id):
         firewall_rules += _get_allow_working_node_firewall_rules(config, compute)
 
     project_id = config["provider"]["project_id"]
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     for i in range(len(firewall_rules)):
         firewall_body = {
             "name": "cloudtik-{}-custom-{}-firewall".format(workspace_name, i),
@@ -806,7 +807,7 @@ def _create_or_update_firewalls(config, compute, vpc_id):
 
 
 def check_workspace_firewalls(config, compute):
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     firewall_names = ["cloudtik-{}-default-allow-internal-firewall".format(
         workspace_name)]
 
@@ -834,7 +835,7 @@ def delete_firewall(compute, project_id, firewall_name):
 
 def _delete_firewalls(config, compute):
     project_id = config["provider"]["project_id"]
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     workspace_firewalls = [
         firewall.get("name")
         for firewall in compute.firewalls().list(
@@ -890,7 +891,7 @@ def update_gcp_workspace(
         config,
         delete_managed_storage: bool = False,
         delete_managed_database: bool = False):
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     managed_cloud_storage = is_managed_cloud_storage(config)
     managed_cloud_database = is_managed_cloud_database(config)
 
@@ -954,7 +955,7 @@ def update_workspace_firewalls(config):
     crm, iam, compute, tpu = \
         construct_clients_from_provider_config(config["provider"])
 
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     use_working_vpc = is_use_working_vpc(config)
     vpc_id = get_gcp_vpc_id(config, compute, use_working_vpc)
     if vpc_id is None:
@@ -983,7 +984,7 @@ def delete_gcp_workspace(
     crm, iam, compute, tpu = construct_clients_from_provider_config(
         config["provider"])
 
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     managed_cloud_storage = is_managed_cloud_storage(config)
     managed_cloud_database = is_managed_cloud_database(config)
     use_working_vpc = is_use_working_vpc(config)
@@ -1058,13 +1059,13 @@ def _delete_workspace_service_accounts(config, iam):
 
 
 def _delete_head_service_account(config, iam):
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     head_service_account_id = GCP_HEAD_SERVICE_ACCOUNT_ID.format(workspace_name)
     _delete_service_account(config["provider"], head_service_account_id, iam)
 
 
 def _delete_worker_service_account(config, iam):
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     worker_service_account_id = GCP_WORKER_SERVICE_ACCOUNT_ID.format(workspace_name)
     _delete_service_account(config["provider"], worker_service_account_id, iam)
 
@@ -1129,8 +1130,8 @@ def _delete_managed_cloud_storage(
 
 def _delete_workspace_cloud_database(
         config, delete_for_update: bool = False):
-    provider_config = config["provider"]
-    workspace_name = config["workspace_name"]
+    provider_config = get_provider_config(config)
+    workspace_name = get_workspace_name(config)
     vpc_name = get_gcp_vpc_name(
         provider_config, workspace_name)
 
@@ -1373,8 +1374,9 @@ def _delete_network_resources(config, compute, current_step, total_steps):
 
 
 def _create_vpc(config, compute):
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     use_working_vpc = is_use_working_vpc(config)
+    vpc_id = None
     if use_working_vpc:
         # No need to create new vpc
         vpc_id = get_working_node_vpc_id(config, compute)
@@ -1397,7 +1399,7 @@ def _create_vpc(config, compute):
 
 
 def _create_head_service_account(config, crm, iam):
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     service_account_id = GCP_HEAD_SERVICE_ACCOUNT_ID.format(workspace_name)
     cli_logger.print(
         "Creating head service account: {}...".format(service_account_id))
@@ -1429,7 +1431,7 @@ def _create_head_service_account(config, crm, iam):
 
 
 def _create_worker_service_account(config, crm, iam):
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     service_account_id = GCP_WORKER_SERVICE_ACCOUNT_ID.format(workspace_name)
     cli_logger.print(
         "Creating worker service account: {}...".format(service_account_id))
@@ -1532,8 +1534,8 @@ def _create_managed_cloud_storage(
 
 
 def _create_workspace_cloud_database(config):
-    provider_config = config["provider"]
-    workspace_name = config["workspace_name"]
+    provider_config = get_provider_config(config)
+    workspace_name = get_workspace_name(config)
     vpc_name = get_gcp_vpc_name(
         provider_config, workspace_name)
     _create_managed_cloud_database(
@@ -1785,7 +1787,7 @@ def _create_network_resources(config, current_step, total_steps):
 def check_gcp_workspace_existence(config):
     crm, iam, compute, tpu = \
         construct_clients_from_provider_config(config["provider"])
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     managed_cloud_storage = is_managed_cloud_storage(config)
     managed_cloud_database = is_managed_cloud_database(config)
     use_working_vpc = is_use_working_vpc(config)
@@ -1896,7 +1898,7 @@ def get_gcp_workspace_info(config):
 
 
 def get_gcp_managed_cloud_storage_info(config, cloud_provider, info):
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     cloud_storage_info = _get_managed_cloud_storage_info(
         cloud_provider, workspace_name)
     if cloud_storage_info:
@@ -1925,7 +1927,7 @@ def _get_object_storage_info(bucket):
 
 
 def get_gcp_managed_cloud_database_info(config, cloud_provider, info):
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     cloud_database_info = _get_managed_cloud_database_info(
         cloud_provider, workspace_name)
     if cloud_database_info:
@@ -2481,8 +2483,8 @@ def list_gcp_clusters(config: Dict[str, Any]) -> Optional[Dict[str, Any]]:
 
 
 def list_gcp_storages(config: Dict[str, Any]) -> Optional[Dict[str, Any]]:
-    provider_config = config["provider"]
-    workspace_name = config["workspace_name"]
+    provider_config = get_provider_config(config)
+    workspace_name = get_workspace_name(config)
     return _list_gcp_storages(provider_config, workspace_name)
 
 
@@ -2501,8 +2503,8 @@ def _list_gcp_storages(
 
 
 def list_gcp_databases(config: Dict[str, Any]) -> Optional[Dict[str, Any]]:
-    provider_config = config["provider"]
-    workspace_name = config["workspace_name"]
+    provider_config = get_provider_config(config)
+    workspace_name = get_workspace_name(config)
     return _list_gcp_databases(provider_config, workspace_name)
 
 
@@ -2547,7 +2549,7 @@ def _create_vpc_peering_connections(config, compute, vpc_id):
 
 
 def _create_vpc_peering_connection(config, compute, vpc_id, peer_name, peering_vpc_name):
-    provider_config = config["provider"]
+    provider_config = get_provider_config(config)
     project_id = provider_config.get("project_id")
     cli_logger.print(
         "Creating VPC peering connection: {}...".format(peer_name))
@@ -2576,7 +2578,7 @@ def _create_vpc_peering_connection(config, compute, vpc_id, peer_name, peering_v
 
 
 def _delete_vpc_peering_connection(config, compute, vpc_id, peer_name):
-    provider_config = config["provider"]
+    provider_config = get_provider_config(config)
     project_id = provider_config.get("project_id")
     cli_logger.print(
         "Deleting VPC peering connection: {}".format(peer_name))
@@ -2598,7 +2600,7 @@ def _delete_vpc_peering_connection(config, compute, vpc_id, peer_name):
 
 
 def _get_vpc_peering_connection(config, compute, vpc_id, peer_name):
-    provider_config = config["provider"]
+    provider_config = get_provider_config(config)
     project_id = provider_config.get("project_id")
     vpc_info = compute.networks().get(
         project=project_id, network=vpc_id).execute()
@@ -2611,7 +2613,7 @@ def _get_vpc_peering_connection(config, compute, vpc_id, peer_name):
 
 
 def _create_workspace_vpc_peering_connection(config, compute, vpc_id, working_vpc_id):
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     peer_name = GCP_WORKSPACE_VPC_PEERING_NAME.format(workspace_name)
     working_vpc_name = get_vpc_name_by_id(config, compute, working_vpc_id)
     _create_vpc_peering_connection(
@@ -2622,7 +2624,7 @@ def _create_workspace_vpc_peering_connection(config, compute, vpc_id, working_vp
 
 
 def _create_working_vpc_peering_connection(config, compute, vpc_id, working_vpc_id):
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     peer_name = GCP_WORKING_VPC_PEERING_NAME.format(workspace_name)
     workspace_vpc_name = _get_workspace_vpc_name(workspace_name)
     _create_vpc_peering_connection(
@@ -2650,7 +2652,7 @@ def _delete_vpc_peering_connections(config, compute):
 
 
 def _delete_workspace_vpc_peering_connection(config, compute):
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     peer_name = GCP_WORKSPACE_VPC_PEERING_NAME.format(workspace_name)
     vpc_id = get_workspace_vpc_id(config, compute)
 
@@ -2667,7 +2669,7 @@ def _delete_workspace_vpc_peering_connection(config, compute):
 
 
 def _delete_working_vpc_peering_connection(config, compute):
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     peer_name = GCP_WORKING_VPC_PEERING_NAME.format(workspace_name)
     working_vpc_id = get_working_node_vpc_id(config, compute)
 
@@ -2685,7 +2687,7 @@ def _delete_working_vpc_peering_connection(config, compute):
 
 
 def get_workspace_vpc_peering_connections(config, compute, vpc_id):
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     workspace_peer_name = GCP_WORKSPACE_VPC_PEERING_NAME.format(workspace_name)
     vpc_peerings = {}
     workspace_peering = _get_vpc_peering_connection(
@@ -2733,7 +2735,7 @@ def _get_managed_database_engine(database_instance):
 
 
 def _get_workspace_service_account(config, iam, service_account_id_template):
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     service_account_id = service_account_id_template.format(workspace_name)
     email = get_service_account_email(
         account_id=service_account_id,
@@ -2966,7 +2968,7 @@ def _configure_disk_volumes_for_node(
 
 
 def _configure_disk_volumes(config):
-    provider_config = config["provider"]
+    provider_config = get_provider_config(config)
     for node_type in config["available_node_types"].values():
         node_config = node_type["node_config"]
         _configure_disk_volumes_for_node(
@@ -2998,7 +3000,7 @@ def _configure_prefer_spot_node(config):
         return config
 
     # User override, set or remove spot settings for worker node types
-    node_types = config["available_node_types"]
+    node_types = get_available_node_types(config)
     for node_type_name in node_types:
         if node_type_name == config["head_node_type"]:
             continue
@@ -3049,7 +3051,7 @@ def bootstrap_gcp(config):
 
 def bootstrap_gcp_from_workspace(config):
     if not check_gcp_workspace_integrity(config):
-        workspace_name = config["workspace_name"]
+        workspace_name = get_workspace_name(config)
         cli_logger.abort(
             "GCP workspace {} doesn't exist or is in wrong state!", workspace_name)
 
@@ -3089,7 +3091,7 @@ def bootstrap_gcp_workspace(config):
 
 
 def _configure_allowed_ssh_sources(config):
-    provider_config = config["provider"]
+    provider_config = get_provider_config(config)
     if "allowed_ssh_sources" not in provider_config:
         return
 
@@ -3129,7 +3131,7 @@ def _configure_cloud_storage_from_workspace(config):
 
 
 def _configure_managed_cloud_storage_from_workspace(config, cloud_provider):
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     managed_cloud_storage_name = _get_managed_cloud_storage_name(cloud_provider)
     gcs_bucket = get_managed_gcs_bucket(
         cloud_provider, workspace_name,
@@ -3153,7 +3155,7 @@ def _configure_cloud_database_from_workspace(config):
 
 
 def _configure_managed_cloud_database_from_workspace(config, cloud_provider):
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     managed_cloud_database_name = _get_managed_cloud_database_name(cloud_provider)
     database_instance = get_managed_database_instance(
         cloud_provider, workspace_name,
@@ -3322,7 +3324,7 @@ def _configure_key_pair(config, compute):
 
 
 def _configure_subnet_from_workspace(config, compute):
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     use_internal_ips = is_use_internal_ip(config)
 
     """Pick a reasonable subnet if not specified by the config."""

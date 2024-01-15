@@ -14,7 +14,8 @@ from cloudtik.core._private.util.core_utils import get_node_ip_address
 from cloudtik.core._private.utils import check_cidr_conflict, is_use_internal_ip, \
     is_managed_cloud_storage, is_use_managed_cloud_storage, is_worker_role_for_cloud_storage, is_use_working_vpc, \
     is_use_peering_vpc, is_peering_firewall_allow_ssh_only, is_peering_firewall_allow_working_subnet, \
-    DOCKER_CONFIG_KEY, is_gpu_runtime, _get_managed_cloud_storage_name
+    DOCKER_CONFIG_KEY, is_gpu_runtime, _get_managed_cloud_storage_name, get_provider_config, get_workspace_name, \
+    get_available_node_types, get_head_node_type
 from cloudtik.core.tags import CLOUDTIK_TAG_CLUSTER_NAME, CLOUDTIK_TAG_NODE_KIND, NODE_KIND_HEAD, \
     CLOUDTIK_TAG_WORKSPACE_NAME
 from cloudtik.core.workspace_provider import Existence, CLOUDTIK_MANAGED_CLOUD_STORAGE, \
@@ -101,12 +102,12 @@ def get_workspace_vpc_peering_name(workspace_name):
 
 
 def _create_workspace_vpc_peer_connection(config, vpc_peer_cli):
-    provider_config = config["provider"]
+    provider_config = get_provider_config(config)
     current_region_id = get_current_instance_region()
     current_vpc_peer_cli = VpcPeerClient(provider_config, current_region_id)
     
     owner_account_id = get_current_instance_owner_account_id
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     vpc_peer_name = get_workspace_vpc_peering_name(workspace_name)
     region = provider_config["region"]
     current_vpc = get_current_vpc(config)
@@ -133,7 +134,7 @@ def get_vpc_route_tables(vpc, vpc_cli):
 
 
 def get_workspace_vpc_peer_connection(config):
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     vpc_peer_name = get_workspace_vpc_peering_name(workspace_name)
     current_region_id = get_current_instance_region()
     current_vpc_peer_cli = VpcPeerClient(config["provider"], current_region_id)
@@ -151,8 +152,8 @@ def get_workspace_vpc_peer_connection_route_entry_name(workspace_name):
 
 
 def _update_route_tables_for_workspace_vpc_peer_connection(config, vpc_peer_cli):
-    provider_config = config["provider"]
-    workspace_name = config["workspace_name"]
+    provider_config = get_provider_config(config)
+    workspace_name = get_workspace_name(config)
     current_region_id = get_current_instance_region()
     current_vpc_peer_cli = VpcPeerClient(provider_config, current_region_id)
     current_vpc_cli = VpcClient(provider_config, current_region_id)
@@ -209,7 +210,7 @@ def _create_and_configure_vpc_peer_connection(config, vpc_peer_cli):
 
 
 def _create_network_resources(config, current_step, total_steps):
-    provider_config = config["provider"]
+    provider_config = get_provider_config(config)
     ecs_cli = EcsClient(provider_config)
     vpc_cli = VpcClient(provider_config)
     vpc_peer_cli = VpcPeerClient(provider_config)
@@ -389,7 +390,7 @@ def _create_managed_cloud_storage(
 
 
 def _create_workspace(config):
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     managed_cloud_storage = is_managed_cloud_storage(config)
     use_peering_vpc = is_use_peering_vpc(config)
 
@@ -433,7 +434,7 @@ def _create_workspace(config):
 
 
 def _configure_vpc(config, vpc_cli):
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     use_working_vpc = is_use_working_vpc(config)
     if use_working_vpc:
         # No need to create new vpc
@@ -561,7 +562,7 @@ def _configure_peering_vpc_cidr_block(config, current_vpc):
 
 
 def _create_vpc(config, vpc_cli):
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     vpc_name = _get_workspace_vpc_name(workspace_name)
 
     cli_logger.print(
@@ -659,7 +660,7 @@ def _configure_vswitches_cidr(vpc, vpc_cli, vswitches_count):
 
 
 def _create_vswitch_for_nat_gateway(config, vpc_cli):
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     vpc = get_workspace_vpc(config, vpc_cli)
     vpc_id = vpc.vpc_id
     cidr_list = _configure_vswitches_cidr(vpc, vpc_cli, 1)
@@ -685,7 +686,7 @@ def _create_vswitch_for_nat_gateway(config, vpc_cli):
 
 
 def _create_and_configure_vswitches(config, vpc_cli):
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     vpc = get_workspace_vpc(config, vpc_cli)
     vpc_id = vpc.vpc_id
 
@@ -1039,7 +1040,7 @@ def check_snat_entry_status(
 
 
 def _create_snat_entries(config, vpc_cli):
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     snat_entry_name = get_workspace_snat_entry_name(workspace_name)
     vpc_id = get_workspace_vpc_id(config, vpc_cli)
     workspace_vswitches = get_workspace_instance_vswitches(
@@ -1067,7 +1068,7 @@ def _create_snat_entries(config, vpc_cli):
 
 
 def _delete_snat_entries(config, vpc_cli):
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     snat_entry_name = get_workspace_snat_entry_name(workspace_name)
     nat_gateway = get_workspace_nat_gateway(config, vpc_cli)
     if nat_gateway is None:
@@ -1123,7 +1124,7 @@ def get_workspace_nat_gateway(config, vpc_cli):
 
 
 def _get_workspace_nat_gateway(config, vpc_cli):
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     nat_gateway_name = get_workspace_nat_gateway_name(workspace_name)
     vpc_id = get_workspace_vpc_id(config, vpc_cli)
     cli_logger.verbose(
@@ -1145,7 +1146,7 @@ def get_workspace_nat_gateway_name(workspace_name):
 
 
 def _create_nat_gateway(config, vpc_cli):
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     vpc_id = get_workspace_vpc_id(config, vpc_cli)
     nat_gateway_name = get_workspace_nat_gateway_name(workspace_name)
     nat_switch = get_workspace_nat_vswitches(
@@ -1207,7 +1208,7 @@ def get_workspace_elastic_ip(config, vpc_cli):
 
 
 def _get_workspace_elastic_ip(config, vpc_cli):
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     elastic_ip_name = get_workspace_elastic_ip_name(workspace_name)
     cli_logger.verbose(
         "Getting the Elastic IP for workspace: {}...", elastic_ip_name)
@@ -1277,13 +1278,13 @@ def _get_worker_instance_role_name(workspace_name):
 
 
 def _get_head_instance_role(config, ram_cli):
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     head_instance_role_name = _get_head_instance_role_name(workspace_name)
     return _get_instance_role(ram_cli, head_instance_role_name)
 
 
 def _get_worker_instance_role(config, ram_cli):
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     worker_instance_role_name = _get_worker_instance_role_name(workspace_name)
     return _get_instance_role(ram_cli, worker_instance_role_name)
 
@@ -1428,7 +1429,7 @@ def create_aliyun_workspace(config):
 
 
 def delete_aliyun_workspace(config, delete_managed_storage: bool = False):
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     use_peering_vpc = is_use_peering_vpc(config)
     managed_cloud_storage = is_managed_cloud_storage(config)
     vpc_cli = VpcClient(config["provider"])
@@ -1481,8 +1482,8 @@ def delete_aliyun_workspace(config, delete_managed_storage: bool = False):
 
 def _delete_routes_for_workspace_vpc_peering_connection(
         config, vpc_peer_cli):
-    workspace_name = config["workspace_name"]
-    provider_config = config["provider"]
+    workspace_name = get_workspace_name(config)
+    provider_config = get_provider_config(config)
     current_region_id = get_current_instance_region()
     current_vpc_cli = VpcClient(provider_config, current_region_id)
     current_vpc = get_current_vpc(config)
@@ -1565,7 +1566,7 @@ def _delete_network_resources(
         current_step, total_steps):
     use_working_vpc = is_use_working_vpc(config)
     use_peering_vpc = is_use_peering_vpc(config)
-    provider_config = config["provider"]
+    provider_config = get_provider_config(config)
     ecs_cli = EcsClient(provider_config)
     vpc_cli = VpcClient(provider_config)
     vpc_peer_cli = VpcPeerClient(provider_config)
@@ -1653,7 +1654,7 @@ def update_aliyun_workspace(
         config,
         delete_managed_storage: bool = False,
         delete_managed_database: bool = False):
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     managed_cloud_storage = is_managed_cloud_storage(config)
 
     current_step = 1
@@ -1697,7 +1698,7 @@ def update_aliyun_workspace(
 
 
 def update_workspace_firewalls(config):
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     ecs_cli = EcsClient(config["provider"])
     vpc_cli = VpcClient(config["provider"])
     vpc_id = get_workspace_vpc_id(config, vpc_cli)
@@ -1721,7 +1722,7 @@ def update_workspace_firewalls(config):
 
 
 def _configure_allowed_ssh_sources(config):
-    provider_config = config["provider"]
+    provider_config = get_provider_config(config)
     if "allowed_ssh_sources" not in provider_config:
         return
 
@@ -1793,8 +1794,8 @@ def list_aliyun_clusters(config: Dict[str, Any]) -> Optional[Dict[str, Any]]:
 
 
 def list_aliyun_storages(config: Dict[str, Any]) -> Optional[Dict[str, Any]]:
-    provider_config = config["provider"]
-    workspace_name = config["workspace_name"]
+    provider_config = get_provider_config(config)
+    workspace_name = get_workspace_name(config)
     buckets = get_managed_oss_buckets(provider_config, workspace_name)
     object_storages = {}
     if buckets is None:
@@ -1814,10 +1815,10 @@ def bootstrap_aliyun_workspace(config):
 
 
 def check_aliyun_workspace_existence(config):
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     managed_cloud_storage = is_managed_cloud_storage(config)
     use_peering_vpc = is_use_peering_vpc(config)
-    provider_config = config["provider"]
+    provider_config = get_provider_config(config)
     ecs_cli = EcsClient(provider_config)
     ram_cli = RamClient(provider_config)
     vpc_cli = VpcClient(provider_config)
@@ -1892,7 +1893,7 @@ def get_aliyun_workspace_info(config):
 
 def get_aliyun_managed_cloud_storage_info(
         config, cloud_provider, info):
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     cloud_storage_info = _get_managed_cloud_storage_info(
         cloud_provider, workspace_name)
     if cloud_storage_info:
@@ -1936,7 +1937,7 @@ def bootstrap_aliyun(config):
 
 def bootstrap_aliyun_from_workspace(config):
     if not check_aliyun_workspace_integrity(config):
-        workspace_name = config["workspace_name"]
+        workspace_name = get_workspace_name(config)
         cli_logger.abort(
             "Alibaba Cloud workspace {} doesn't exist or is in wrong state.",
             workspace_name)
@@ -1999,7 +2000,7 @@ def _configure_from_launch_template(config: Dict[str, Any]) -> Dict[str, Any]:
         template [name|id] and version, or more than one launch template is
         found.
     """
-    node_types = config["available_node_types"]
+    node_types = get_available_node_types(config)
 
     # iterate over sorted node types to support deterministic unit test stubs
     for name, node_type in sorted(node_types.items()):
@@ -2110,7 +2111,7 @@ def _configure_cloud_storage_from_workspace(config):
 
 def _configure_managed_cloud_storage_from_workspace(
         config, cloud_provider):
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     managed_cloud_storage_name = _get_managed_cloud_storage_name(
         cloud_provider)
     oss_bucket = get_managed_oss_bucket(
@@ -2151,7 +2152,7 @@ def _key_pair(i, region, key_name):
 
 
 def _configure_key_pair(config):
-    node_types = config["available_node_types"]
+    node_types = get_available_node_types(config)
 
     if "ssh_private_key" in config["auth"]:
         # If the key is not configured via the cloudinit
@@ -2235,7 +2236,7 @@ def _configure_ram_role_from_workspace(config):
 
 
 def _configure_ram_role_for_head(config):
-    head_node_type = config["head_node_type"]
+    head_node_type = get_head_node_type(config)
     head_node_config = config["available_node_types"][head_node_type][
         "node_config"]
     if "RamRoleName" in head_node_config:
@@ -2287,7 +2288,7 @@ def _configure_security_group_from_workspace(config):
 
 
 def _configure_vswitch_from_workspace(config):
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     use_internal_ips = is_use_internal_ip(config)
 
     vpc_cli = VpcClient(config["provider"])
@@ -2389,7 +2390,7 @@ def _configure_prefer_spot_node(config):
         return config
 
     # User override, set or remove spot settings for worker node types
-    node_types = config["available_node_types"]
+    node_types = get_available_node_types(config)
     for node_type_name in node_types:
         if node_type_name == config["head_node_type"]:
             continue
@@ -2417,7 +2418,7 @@ def _configure_docker_registry(config):
                 config[DOCKER_CONFIG_KEY])
 
         # Set for node type specific docker config
-        node_types = config["available_node_types"]
+        node_types = get_available_node_types(config)
         for node_type_name in node_types:
             node_type_data = node_types[node_type_name]
             if DOCKER_CONFIG_KEY in node_type_data:

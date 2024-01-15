@@ -9,7 +9,7 @@ from cloudtik.core._private.service_discovery.utils import get_canonical_service
 from cloudtik.core._private.util.database_utils import is_database_configured, \
     export_database_environment_variables
 from cloudtik.core._private.utils import export_runtime_flags, get_node_cluster_ip_of, get_runtime_config, \
-    PROVIDER_DATABASE_CONFIG_KEY, is_use_managed_cloud_database
+    PROVIDER_DATABASE_CONFIG_KEY, is_use_managed_cloud_database, get_provider_config
 from cloudtik.runtime.common.service_discovery.runtime_discovery import \
     discover_database_from_workspace, discover_database_on_head, DATABASE_CONNECT_KEY, \
     get_database_runtime_in_cluster, export_database_runtime_environment_variables, \
@@ -81,7 +81,7 @@ def _is_valid_database_config(config: Dict[str, Any], final=False):
         return True
 
     # check whether cloud database is available
-    provider_config = config["provider"]
+    provider_config = get_provider_config(config)
     if (PROVIDER_DATABASE_CONFIG_KEY in provider_config or
             (not final and is_use_managed_cloud_database(config))):
         return True

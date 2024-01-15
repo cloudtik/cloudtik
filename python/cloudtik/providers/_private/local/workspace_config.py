@@ -4,6 +4,7 @@ from typing import Any, Optional
 from typing import Dict
 
 from cloudtik.core._private.cli_logger import cli_logger, cf
+from cloudtik.core._private.utils import get_workspace_name
 from cloudtik.core.tags import CLOUDTIK_TAG_NODE_KIND, NODE_KIND_HEAD
 from cloudtik.core.workspace_provider import Existence
 from cloudtik.providers._private.local.config import get_cluster_name_from_node, \
@@ -53,7 +54,7 @@ def create_local_workspace(config):
 
 
 def _create_workspace(config):
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
 
     try:
         with cli_logger.group(
@@ -76,7 +77,7 @@ def _create_workspace(config):
 
 def delete_local_workspace(
         config):
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
 
     try:
         with cli_logger.group(
@@ -99,7 +100,7 @@ def check_local_workspace_integrity(config):
 
 
 def check_local_workspace_existence(config):
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
 
     skipped_resources = 0
     target_resources = LOCAL_WORKSPACE_TARGET_RESOURCES
@@ -122,7 +123,7 @@ def _is_local_workspace_exists(config, workspace_name):
 
 def update_local_workspace(
         config):
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     try:
         with cli_logger.group(
                 "Updating workspace: {}", workspace_name):

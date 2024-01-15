@@ -10,8 +10,8 @@ from cloudtik.core._private.service_discovery.utils import \
     define_runtime_service_on_worker
 from cloudtik.core._private.util.database_utils import DATABASE_PORT_POSTGRES_DEFAULT, \
     DATABASE_USERNAME_POSTGRES_DEFAULT, DATABASE_PASSWORD_POSTGRES_DEFAULT
-from cloudtik.core._private.utils import RUNTIME_CONFIG_KEY, is_node_seq_id_enabled, enable_node_seq_id, \
-    _sum_min_workers, get_runtime_config_for_update
+from cloudtik.core._private.utils import is_node_seq_id_enabled, enable_node_seq_id, \
+    _sum_min_workers, get_runtime_config_for_update, get_runtime_config
 from cloudtik.runtime.common.service_discovery.cluster import has_runtime_in_cluster
 
 RUNTIME_PROCESSES = [
@@ -178,7 +178,7 @@ def _bootstrap_runtime_config(
 
 
 def _validate_config(config: Dict[str, Any]):
-    runtime_config = config.get(RUNTIME_CONFIG_KEY)
+    runtime_config = get_runtime_config(config)
     postgres_config = _get_config(runtime_config)
 
     database = postgres_config.get(POSTGRES_DATABASE_CONFIG_KEY, {})

@@ -9,7 +9,7 @@ import botocore
 
 from cloudtik.core._private.cli_logger import cli_logger
 from cloudtik.core._private.utils import _is_use_managed_cloud_storage, _is_managed_cloud_storage, \
-    _is_managed_cloud_database, _is_use_managed_cloud_database
+    _is_managed_cloud_database, _is_use_managed_cloud_database, get_provider_config, get_workspace_name
 from cloudtik.core.workspace_provider import Existence
 from cloudtik.providers._private._kubernetes import core_api, log_prefix
 from cloudtik.providers._private._kubernetes.aws_eks.utils import get_root_ca_cert_thumbprint
@@ -68,7 +68,7 @@ def _check_eks_cluster_name(cloud_provider):
 
 def create_configurations_for_aws(
         config: Dict[str, Any], namespace, cloud_provider):
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     managed_cloud_storage = _is_managed_cloud_storage(cloud_provider)
     managed_cloud_database = _is_managed_cloud_database(cloud_provider)
 
@@ -198,7 +198,7 @@ def delete_configurations_for_aws(
         config: Dict[str, Any], namespace, cloud_provider,
         delete_managed_storage: bool = False,
         delete_managed_database: bool = False):
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     managed_cloud_storage = _is_managed_cloud_storage(cloud_provider)
     managed_cloud_database = _is_managed_cloud_database(cloud_provider)
 
@@ -269,7 +269,7 @@ def update_configurations_for_aws(
         config: Dict[str, Any], namespace, cloud_provider,
         delete_managed_storage: bool = False,
         delete_managed_database: bool = False):
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     managed_cloud_storage = _is_managed_cloud_storage(cloud_provider)
     managed_cloud_database = _is_managed_cloud_database(cloud_provider)
 
@@ -325,7 +325,7 @@ def _create_iam_based_access_for_kubernetes(
     # that your service accounts need. We recommend creating separate roles for
     # each unique collection of permissions that pods need.
     # 3. Associate an IAM role with a service account
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
 
     current_step = 1
     total_steps = AWS_KUBERNETES_IAM_ROLE_CREATION_NUM_STEPS
@@ -534,7 +534,7 @@ def _associate_oidc_iam_role_with_service_account(
     eks_cluster_name = cloud_provider["eks_cluster_name"]
     account_id = get_current_account_id(cloud_provider)
     role_name = get_oidc_provider_role_name(eks_cluster_name, namespace)
-    provider_config = config["provider"]
+    provider_config = get_provider_config(config)
 
     current_step = 1
     total_steps = AWS_KUBERNETES_ASSOCIATE_CREATION_NUM_STEPS
@@ -676,7 +676,7 @@ def _dissociate_oidc_iam_role_with_service_account(
         config, cloud_provider, namespace):
     # Patch head service account and worker service account
     eks_cluster_name = cloud_provider["eks_cluster_name"]
-    provider_config = config["provider"]
+    provider_config = get_provider_config(config)
 
     current_step = 1
     total_steps = AWS_KUBERNETES_ASSOCIATE_DELETION_NUM_STEPS
@@ -735,7 +735,7 @@ def _get_oidc_iam_role(cloud_provider, namespace):
 
 
 def _is_head_service_account_associated(config, cloud_provider, namespace):
-    provider_config = config["provider"]
+    provider_config = get_provider_config(config)
     head_service_account_name = _get_head_service_account_name(
         provider_config)
     associated = _is_service_account_associated(
@@ -750,7 +750,7 @@ def _is_head_service_account_associated(config, cloud_provider, namespace):
 
 
 def _is_worker_service_account_associated(config, cloud_provider, namespace):
-    provider_config = config["provider"]
+    provider_config = get_provider_config(config)
     worker_service_account_name = _get_worker_service_account_name(
         provider_config)
     associated = _is_service_account_associated(
@@ -789,7 +789,7 @@ def _is_service_account_associated(cloud_provider, namespace, name):
 
 def check_existence_for_aws(
         config: Dict[str, Any], namespace, cloud_provider):
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     managed_cloud_storage = _is_managed_cloud_storage(cloud_provider)
     managed_cloud_database = _is_managed_cloud_database(cloud_provider)
 
@@ -894,7 +894,7 @@ def create_storage_provider_for_aws(
 
 def list_storages_for_aws(
         config: Dict[str, Any], namespace, cloud_provider):
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     return _list_aws_storages(cloud_provider, workspace_name)
 
 
@@ -926,7 +926,7 @@ def create_database_provider_for_aws(
 
 def list_databases_for_aws(
         config: Dict[str, Any], namespace, cloud_provider):
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     return _list_aws_databases(cloud_provider, workspace_name)
 
 

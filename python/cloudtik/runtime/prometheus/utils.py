@@ -11,7 +11,7 @@ from cloudtik.core._private.service_discovery.utils import \
     define_runtime_service_on_head_or_all, get_service_discovery_config, SERVICE_DISCOVERY_PORT, \
     SERVICE_DISCOVERY_PROTOCOL_HTTP, \
     has_runtime_service_feature, SERVICE_DISCOVERY_FEATURE_METRICS
-from cloudtik.core._private.utils import RUNTIME_CONFIG_KEY
+from cloudtik.core._private.utils import RUNTIME_CONFIG_KEY, get_runtime_config
 
 RUNTIME_PROCESSES = [
         # The first element is the substring to filter.
@@ -118,7 +118,7 @@ def _with_runtime_environment_variables(
         runtime_config, config):
     runtime_envs = {}
     prometheus_config = _get_config(runtime_config)
-    cluster_runtime_config = config.get(RUNTIME_CONFIG_KEY)
+    cluster_runtime_config = get_runtime_config(config)
 
     service_port = _get_service_port(prometheus_config)
     runtime_envs["PROMETHEUS_SERVICE_PORT"] = service_port

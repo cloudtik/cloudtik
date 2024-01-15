@@ -2,7 +2,7 @@ from typing import Any, Dict
 
 from cloudtik.core._private.cli_logger import cli_logger
 from cloudtik.core._private.utils import _is_use_managed_cloud_storage, _is_managed_cloud_storage, \
-    _is_managed_cloud_database, _is_use_managed_cloud_database
+    _is_managed_cloud_database, _is_use_managed_cloud_database, get_provider_config, get_workspace_name
 from cloudtik.core.workspace_provider import Existence
 from cloudtik.providers._private._kubernetes import core_api, log_prefix
 from cloudtik.providers._private._kubernetes.gcp_gke.utils import get_project_id, \
@@ -64,7 +64,7 @@ def _get_kubernetes_service_account_iam_member_id(
 
 
 def create_configurations_for_gcp(config: Dict[str, Any], namespace, cloud_provider):
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     managed_cloud_storage = _is_managed_cloud_storage(cloud_provider)
     managed_cloud_database = _is_managed_cloud_database(cloud_provider)
 
@@ -145,7 +145,7 @@ def delete_configurations_for_gcp(
         config: Dict[str, Any], namespace, cloud_provider,
         delete_managed_storage: bool = False,
         delete_managed_database: bool = False):
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     managed_cloud_storage = _is_managed_cloud_storage(cloud_provider)
     managed_cloud_database = _is_managed_cloud_database(cloud_provider)
 
@@ -195,7 +195,7 @@ def update_configurations_for_gcp(
         config: Dict[str, Any], namespace, cloud_provider,
         delete_managed_storage: bool = False,
         delete_managed_database: bool = False):
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     managed_cloud_storage = _is_managed_cloud_storage(cloud_provider)
     managed_cloud_database = _is_managed_cloud_database(cloud_provider)
 
@@ -244,7 +244,7 @@ def update_configurations_for_gcp(
 
 def _create_iam_based_access_for_kubernetes(
         config: Dict[str, Any], namespace, cloud_provider):
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     current_step = 1
     total_steps = GCP_KUBERNETES_IAM_ROLE_CREATION_NUM_STEPS
 
@@ -509,7 +509,7 @@ def _create_iam_service_accounts_binding_with_kubernetes(
 def _create_iam_service_account_binding_with_kubernetes(
         config, cloud_provider, workspace_name, namespace,
         iam, account_type: AccountType):
-    provider_config = config["provider"]
+    provider_config = get_provider_config(config)
     project_id = get_project_id(cloud_provider)
 
     iam_service_account_name = _get_iam_service_account_name(
@@ -572,7 +572,7 @@ def _delete_iam_service_accounts_binding_with_kubernetes(
 def _delete_iam_service_account_binding_with_kubernetes(
         config, cloud_provider, workspace_name, namespace,
         iam, account_type: AccountType):
-    provider_config = config["provider"]
+    provider_config = get_provider_config(config)
     project_id = get_project_id(cloud_provider)
 
     iam_service_account_name = _get_iam_service_account_name(
@@ -610,7 +610,7 @@ def _delete_iam_service_account_binding_with_kubernetes(
 def _has_iam_service_account_binding_with_kubernetes(
         config, cloud_provider, workspace_name, namespace,
         iam, account_type: AccountType):
-    provider_config = config["provider"]
+    provider_config = get_provider_config(config)
     project_id = get_project_id(cloud_provider)
 
     iam_service_account_name = _get_iam_service_account_name(
@@ -665,7 +665,7 @@ def _associate_kubernetes_service_accounts_with_iam(
 def _patch_service_account_with_iam(
         config, cloud_provider, workspace_name, namespace,
         account_type: AccountType):
-    provider_config = config["provider"]
+    provider_config = get_provider_config(config)
     project_id = get_project_id(cloud_provider)
 
     service_account_name = _get_service_account_name(
@@ -728,7 +728,7 @@ def _patch_service_account_without_iam_service_account(namespace, name):
 
 def _delete_iam_based_access_for_kubernetes(
         config: Dict[str, Any], namespace, cloud_provider):
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     current_step = 1
     total_steps = GCP_KUBERNETES_IAM_ROLE_CREATION_NUM_STEPS
 
@@ -764,7 +764,7 @@ def _delete_iam_based_access_for_kubernetes(
 def _dissociate_kubernetes_service_accounts_with_iam(
         config, cloud_provider, workspace_name, namespace):
     # Patch head service account and worker service account
-    provider_config = config["provider"]
+    provider_config = get_provider_config(config)
 
     current_step = 1
     total_steps = GCP_KUBERNETES_HEAD_WORKER_FACED_NUM_STEPS
@@ -794,8 +794,8 @@ def _dissociate_kubernetes_service_accounts_with_iam(
 
 def _is_service_account_associated(
         config, cloud_provider, namespace, account_type: AccountType):
-    provider_config = config["provider"]
-    workspace_name = config["workspace_name"]
+    provider_config = get_provider_config(config)
+    workspace_name = get_workspace_name(config)
     service_account_name = _get_service_account_name(
         provider_config, account_type)
     iam_service_account_name = _get_iam_service_account_name(
@@ -844,7 +844,7 @@ def check_existence_for_gcp(
     iam = construct_iam_client(cloud_provider)
     crm = construct_crm_client(cloud_provider)
 
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     managed_cloud_storage = _is_managed_cloud_storage(cloud_provider)
     managed_cloud_database = _is_managed_cloud_database(cloud_provider)
 
@@ -934,7 +934,7 @@ def check_existence_for_gcp(
 
 def get_info_for_gcp(
         config: Dict[str, Any], namespace, cloud_provider, info):
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     head_iam_service_account_name = _get_iam_service_account_name(
         workspace_name, AccountType.HEAD)
     worker_iam_service_account_name = _get_iam_service_account_name(
@@ -968,7 +968,7 @@ def get_default_kubernetes_cloud_database_for_gcp(provider_config):
 
 def list_storages_for_gcp(
         config: Dict[str, Any], namespace, cloud_provider):
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     return _list_gcp_storages(cloud_provider, workspace_name)
 
 
@@ -979,7 +979,7 @@ def create_storage_provider_for_gcp(
 
 def list_databases_for_gcp(
         config: Dict[str, Any], namespace, cloud_provider):
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     return _list_gcp_databases(cloud_provider, workspace_name)
 
 

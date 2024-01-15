@@ -39,7 +39,8 @@ from cloudtik.core._private.state.scaling_state import ScalingStateClient
 from cloudtik.core._private.utils import prepare_config, validate_config, fill_with_defaults, \
     set_node_type_min_max_workers, DOCKER_CONFIG_KEY, RUNTIME_CONFIG_KEY, get_cluster_uri, hash_launch_conf, \
     hash_runtime_conf, is_docker_enabled, get_commands_to_run, cluster_booting_completed, merge_cluster_config, \
-    with_head_node_ip_environment_variables, prepare_config_for_runtime_hash, get_node_provider_of
+    with_head_node_ip_environment_variables, prepare_config_for_runtime_hash, get_node_provider_of, \
+    get_available_node_types
 from cloudtik.core._private.cluster import cluster_operator
 from cloudtik.core._private.cluster.cluster_metrics import ClusterMetrics
 from cloudtik.core._private.provider_factory import _NODE_PROVIDERS, _PROVIDER_HOMES, \
@@ -962,7 +963,7 @@ class CloudTikTest(unittest.TestCase):
     def testDefaultMinMaxWorkers(self):
         config = copy.deepcopy(MOCK_DEFAULT_CONFIG)
         config = prepare_config(config)
-        node_types = config["available_node_types"]
+        node_types = get_available_node_types(config)
         head_node_config = node_types["cloudtik.head.default"]
         assert head_node_config["min_workers"] == 0
         assert head_node_config["max_workers"] == 0
@@ -1286,16 +1287,17 @@ class CloudTikTest(unittest.TestCase):
     def testScaleDownMaxWorkers(self):
         """Tests terminating nodes due to max_nodes per type."""
         config = copy.deepcopy(MULTI_WORKER_CLUSTER)
-        config["available_node_types"]["m4.large"]["min_workers"] = 3
-        config["available_node_types"]["m4.large"]["max_workers"] = 3
-        config["available_node_types"]["m4.large"]["resources"] = {}
-        config["available_node_types"]["m4.16xlarge"]["resources"] = {}
-        config["available_node_types"]["p2.xlarge"]["min_workers"] = 5
-        config["available_node_types"]["p2.xlarge"]["max_workers"] = 8
-        config["available_node_types"]["p2.xlarge"]["resources"] = {}
-        config["available_node_types"]["p2.8xlarge"]["min_workers"] = 2
-        config["available_node_types"]["p2.8xlarge"]["max_workers"] = 4
-        config["available_node_types"]["p2.8xlarge"]["resources"] = {}
+        node_types = get_available_node_types(config)
+        node_types["m4.large"]["min_workers"] = 3
+        node_types["m4.large"]["max_workers"] = 3
+        node_types["m4.large"]["resources"] = {}
+        node_types["m4.16xlarge"]["resources"] = {}
+        node_types["p2.xlarge"]["min_workers"] = 5
+        node_types["p2.xlarge"]["max_workers"] = 8
+        node_types["p2.xlarge"]["resources"] = {}
+        node_types["p2.8xlarge"]["min_workers"] = 2
+        node_types["p2.8xlarge"]["max_workers"] = 4
+        node_types["p2.8xlarge"]["resources"] = {}
         config["max_workers"] = 13
 
         config_path = self.write_config(config)
@@ -1341,13 +1343,14 @@ class CloudTikTest(unittest.TestCase):
         )
 
         # Terminate some nodes
-        config["available_node_types"]["m4.large"]["min_workers"] = 2  # 3
-        config["available_node_types"]["m4.large"]["max_workers"] = 2
-        config["available_node_types"]["p2.8xlarge"]["min_workers"] = 0  # 2
-        config["available_node_types"]["p2.8xlarge"]["max_workers"] = 0
+        node_types = get_available_node_types(config)
+        node_types["m4.large"]["min_workers"] = 2  # 3
+        node_types["m4.large"]["max_workers"] = 2
+        node_types["p2.8xlarge"]["min_workers"] = 0  # 2
+        node_types["p2.8xlarge"]["max_workers"] = 0
         # And spawn one.
-        config["available_node_types"]["p2.xlarge"]["min_workers"] = 6  # 5
-        config["available_node_types"]["p2.xlarge"]["max_workers"] = 6
+        node_types["p2.xlarge"]["min_workers"] = 6  # 5
+        node_types["p2.xlarge"]["max_workers"] = 6
         config["from"] = None
         self.write_config(config)
         fill_in_node_ids(self.provider, cluster_metrics)

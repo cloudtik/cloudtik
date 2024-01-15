@@ -7,7 +7,7 @@ from cloudtik.core._private.util.runtime_utils import RUNTIME_NODE_SEQ_ID, RUNTI
     RUNTIME_NODE_QUORUM_JOIN, RUNTIME_NODE_QUORUM_ID, RUNTIME_NODE_STATUS
 from cloudtik.core._private.state.kv_store import kv_put
 from cloudtik.core._private.utils import _get_node_constraints_for_node_type, CLOUDTIK_CLUSTER_NODES_INFO_NODE_TYPE, \
-    _notify_node_constraints_reached, get_config_option
+    _notify_node_constraints_reached, get_config_option, get_available_node_types, get_head_node_type
 from cloudtik.core.tags import (
     CLOUDTIK_TAG_USER_NODE_TYPE, CLOUDTIK_TAG_NODE_SEQ_ID, CLOUDTIK_TAG_HEAD_NODE_SEQ_ID,
     CLOUDTIK_TAG_QUORUM_ID, CLOUDTIK_TAG_QUORUM_JOIN, QUORUM_JOIN_STATUS_INIT, CLOUDTIK_TAG_NODE_STATUS,
@@ -38,7 +38,7 @@ class QuorumManager:
     ):
         self.config = config
         self.provider = provider
-        self.available_node_types = config["available_node_types"] if config else None
+        self.available_node_types = get_available_node_types(config) if config else None
 
         self.published_nodes_info_hashes = {}
 
@@ -60,7 +60,7 @@ class QuorumManager:
     def reset(self, config, provider):
         self.config = config
         self.provider = provider
-        self.available_node_types = self.config["available_node_types"]
+        self.available_node_types = get_available_node_types(self.config)
 
         self.launch_with_strong_priority = get_config_option(
             config, "launch_with_strong_priority", False)
@@ -91,7 +91,7 @@ class QuorumManager:
     def _is_strong_priority_check_needed(self):
         # Return True if there are multiple worker node types
         # and there are different in launch priorities.
-        head_node_type = self.config["head_node_type"]
+        head_node_type = get_head_node_type(self.config)
         node_type_with_priority = {}
         launch_priorities = set()
         for node_type, node_type_config in self.available_node_types.items():

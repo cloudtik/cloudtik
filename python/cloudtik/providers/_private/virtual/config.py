@@ -11,9 +11,9 @@ from cloudtik.core._private.cli_logger import cli_logger
 from cloudtik.core._private.util.core_utils import get_memory_in_bytes, get_cloudtik_temp_dir, exec_with_output, \
     exec_with_call
 from cloudtik.core._private.utils import AUTH_CONFIG_KEY, DOCKER_CONFIG_KEY, \
-    FILE_MOUNTS_CONFIG_KEY, get_head_service_ports, get_head_node_config, RUNTIME_CONFIG_KEY, \
+    FILE_MOUNTS_CONFIG_KEY, get_head_service_ports, get_head_node_config, \
     get_runtime_shared_memory_ratio, get_server_process, is_permanent_data_volumes, enable_stable_node_seq_id, \
-    _is_permanent_data_volumes
+    _is_permanent_data_volumes, get_provider_config, get_available_node_types, get_runtime_config
 from cloudtik.core._private.resource_spec import ResourceSpec
 from cloudtik.core.tags import CLOUDTIK_TAG_CLUSTER_NAME
 
@@ -203,8 +203,8 @@ def _get_existing_port_mapping():
 
 
 def _configure_port_mappings(config):
-    provider = config["provider"]
-    if not provider.get("enable_port_mapping", False):
+    provider_config = get_provider_config(config)
+    if not provider_config.get("enable_port_mapping", False):
         return config
 
     # configure port mappings for head node
@@ -212,9 +212,9 @@ def _configure_port_mappings(config):
     service_ports = get_head_service_ports(runtime_config)
 
     port_mapping_base = _get_port_mapping_base(
-        provider, service_ports)
+        provider_config, service_ports)
     # The bridge_address in provider has been set
-    host_ip = provider["bridge_address"].split(":")[0]
+    host_ip = provider_config["bridge_address"].split(":")[0]
     node_config = get_head_node_config(config)
 
     port_mappings = {}
@@ -252,7 +252,7 @@ def _configure_file_mounts(config):
 
 def _configure_shared_memory_ratio(config):
     # configure shared memory ratio to node config for each type
-    runtime_config = config.get(RUNTIME_CONFIG_KEY)
+    runtime_config = get_runtime_config(config)
     if not runtime_config:
         return config
     for node_type, node_type_config in config["available_node_types"].items():
@@ -266,7 +266,7 @@ def _configure_shared_memory_ratio(config):
 
 
 def _configure_disk_volumes(config):
-    provider_config = config["provider"]
+    provider_config = get_provider_config(config)
     if _is_permanent_data_volumes(provider_config):
         provider_config["data_disks.delete_on_termination"] = False
 
@@ -317,7 +317,7 @@ def _get_request_instance_type(node_config):
 def set_node_types_resources(
             config: Dict[str, Any]):
     # Update the instance information to node type
-    available_node_types = config["available_node_types"]
+    available_node_types = get_available_node_types(config)
     for node_type in available_node_types:
         instance_type = available_node_types[node_type]["node_config"].get(
             "instance_type", {})

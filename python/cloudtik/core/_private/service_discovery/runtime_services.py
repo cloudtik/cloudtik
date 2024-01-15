@@ -5,7 +5,8 @@ from cloudtik.core._private.runtime_factory import _get_runtime, BUILT_IN_RUNTIM
 from cloudtik.core._private.service_discovery.utils import match_service_node, get_canonical_service_name, \
     define_runtime_service_on_head, get_service_discovery_config, SERVICE_DISCOVERY_FEATURE_METRICS
 from cloudtik.core._private.utils import _get_node_type_specific_runtime_config, RUNTIME_TYPES_CONFIG_KEY, \
-    RUNTIME_CONFIG_KEY, is_runtime_enabled
+    is_runtime_enabled, get_cluster_name, get_available_node_types, get_head_node_type, \
+    get_runtime_config
 
 CLOUDTIK_REDIS_SERVICE_TYPE = "cloudtik-redis"
 CLOUDTIK_CLUSTER_CONTROLLER_METRICS_SERVICE_TYPE = "cloudtik-controller-metrics"
@@ -21,9 +22,9 @@ CONSUL_CONFIG_RPC_PORT = "rpc_port"
 
 def get_runtime_services_by_node_type(config: Dict[str, Any]):
     # for all the runtimes, query its services per node type
-    cluster_name = config["cluster_name"]
-    available_node_types = config["available_node_types"]
-    head_node_type = config["head_node_type"]
+    cluster_name = get_cluster_name(config)
+    available_node_types = get_available_node_types(config)
+    head_node_type = get_head_node_type(config)
     built_in_services = _get_built_in_services(config, cluster_name)
 
     services_map = {}
@@ -59,11 +60,11 @@ def get_runtime_services_by_node_type(config: Dict[str, Any]):
 
 
 def get_services_of_runtime(config: Dict[str, Any], runtime_type):
-    cluster_name = config["cluster_name"]
+    cluster_name = get_cluster_name(config)
     if runtime_type == CLOUDTIK_RUNTIME_NAME:
         built_in_services = _get_built_in_services(config, cluster_name)
         return built_in_services
-    runtime_config = config.get(RUNTIME_CONFIG_KEY)
+    runtime_config = get_runtime_config(config)
     if not is_runtime_enabled(runtime_config, runtime_type):
         return None
 
@@ -72,7 +73,7 @@ def get_services_of_runtime(config: Dict[str, Any], runtime_type):
 
 
 def _get_built_in_services(config: Dict[str, Any], cluster_name):
-    runtime_config = config.get(RUNTIME_CONFIG_KEY, {})
+    runtime_config = get_runtime_config(config)
     service_discovery_config = get_service_discovery_config(runtime_config)
     service_name = get_canonical_service_name(
         service_discovery_config, cluster_name,

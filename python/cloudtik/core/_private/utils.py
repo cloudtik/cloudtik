@@ -393,7 +393,7 @@ def verify_config(
         config: Dict[str, Any], skip_runtime_verify: bool = False):
     """Verify the configurations. Usually verify may mean to involve slow process"""
     provider = get_node_provider_of(config)
-    provider_config = config["provider"]
+    provider_config = get_provider_config(config)
     provider.verify_config(provider_config)
 
     if not skip_runtime_verify:
@@ -755,7 +755,7 @@ def _reorder_runtimes_for_dependency_of_node_types(config):
     global_runtime_types_set = set(global_runtime_types)
 
     # Check and reorder node type specific runtime types
-    node_types = config["available_node_types"]
+    node_types = get_available_node_types(config)
     for node_type in node_types:
         node_type_config = node_types[node_type]
         if RUNTIME_CONFIG_KEY not in node_type_config:
@@ -893,7 +893,7 @@ def merge_global_runtime_config(config):
 
 
 def merge_runtime_config_for_node_types(config):
-    node_types = config["available_node_types"]
+    node_types = get_available_node_types(config)
     for node_type in node_types:
         node_type_config = node_types[node_type]
         if RUNTIME_CONFIG_KEY not in node_type_config:
@@ -957,8 +957,8 @@ def merge_global_commands(config, built_in_commands):
 
 
 def merge_commands_for_node_types(config, built_in_commands):
-    node_types = config["available_node_types"]
-    head_node_type = config["head_node_type"]
+    node_types = get_available_node_types(config)
+    head_node_type = get_head_node_type(config)
     for node_type in node_types:
         # No need for head
         if node_type == head_node_type:
@@ -1094,7 +1094,7 @@ def _get_node_type_config(config, node_type: str) -> Any:
     if node_type is None:
         return None
 
-    available_node_types = config["available_node_types"]
+    available_node_types = get_available_node_types(config)
     if node_type not in available_node_types:
         raise ValueError(f"Unknown node type: {node_type}.")
     return available_node_types[node_type]
@@ -1134,7 +1134,7 @@ def _get_node_specific_config(config, provider, node_id: str) -> Any:
 def _get_node_type_specific_config(config, node_type: str) -> Any:
     if not node_type:
         return None
-    available_node_types = config["available_node_types"]
+    available_node_types = get_available_node_types(config)
     if node_type not in available_node_types:
         raise ValueError(f"Unknown node type tag: {node_type}.")
     return available_node_types[node_type]
@@ -1379,7 +1379,7 @@ def set_default_max_workers(config):
         logger.debug("Global max workers not set. "
                      "Will set to the sum of min workers or {} which is larger.", CLOUDTIK_DEFAULT_MAX_WORKERS)
         sum_min_workers = 0
-        node_types = config["available_node_types"]
+        node_types = get_available_node_types(config)
         for node_type_name in node_types:
             node_type_data = node_types[node_type_name]
             sum_min_workers += node_type_data.get("min_workers", 0)
@@ -1395,7 +1395,7 @@ def set_node_type_min_max_workers(config):
     """
     set_default_max_workers(config)
 
-    node_types = config["available_node_types"]
+    node_types = get_available_node_types(config)
     for node_type_name in node_types:
         node_type_data = node_types[node_type_name]
 
@@ -1412,7 +1412,7 @@ def set_node_type_min_max_workers(config):
 
 
 def set_node_type_resources(config):
-    node_types = config["available_node_types"]
+    node_types = get_available_node_types(config)
     for node_type_name in node_types:
         node_type = node_types[node_type_name]
         if "resources" not in node_type:
@@ -1598,8 +1598,8 @@ def hash_contents(hasher, file_mounts):
 def hash_runtime_conf_for_node_types(
         config, file_mounts, file_mounts_str, head_node_contents_hash):
     runtime_hash_for_node_types = {}
-    available_node_types = config["available_node_types"]
-    head_node_type = config["head_node_type"]
+    available_node_types = get_available_node_types(config)
+    head_node_type = get_head_node_type(config)
 
     hash_context = {}
     if head_node_contents_hash is not None:
@@ -2044,8 +2044,9 @@ def wait_for_cluster_ip(call_context, provider, node_id, deadline):
     return None
 
 
-def get_node_working_ip(config: Dict[str, Any],
-                        provider: NodeProvider, node: str) -> str:
+def get_node_working_ip(
+        config: Dict[str, Any],
+        provider: NodeProvider, node: str) -> str:
     if is_use_internal_ip(config):
         node_ip = provider.internal_ip(node)
     else:
@@ -2053,8 +2054,9 @@ def get_node_working_ip(config: Dict[str, Any],
     return node_ip
 
 
-def get_head_working_ip(config: Dict[str, Any],
-                        provider: NodeProvider, node: str) -> str:
+def get_head_working_ip(
+        config: Dict[str, Any],
+        provider: NodeProvider, node: str) -> str:
     return get_node_working_ip(config, provider, node)
 
 
@@ -2289,6 +2291,22 @@ def _get_nodes_in_status(
 def is_node_in_status(provider, node: str, node_status: str):
     node_info = provider.get_node_info(node)
     return True if node_status == node_info.get(CLOUDTIK_TAG_NODE_STATUS) else False
+
+
+def get_provider_config(
+        config: Dict[str, Any]) -> Dict[str, Any]:
+    # provider key must exist
+    return config["provider"]
+
+
+def get_available_node_types(
+        config: Dict[str, Any]) -> Dict[str, Any]:
+    # provider key must exist
+    return config["available_node_types"]
+
+
+def get_head_node_type(config: Dict[str, Any]) -> str:
+    return config["head_node_type"]
 
 
 def get_node_provider_of(config: Dict[str, Any]):
@@ -2689,7 +2707,8 @@ def get_runtime_endpoints(config, head_cluster_ip):
 
 
 def get_enabled_runtimes(config):
-    return config.get(RUNTIME_CONFIG_KEY, {}).get(RUNTIME_TYPES_CONFIG_KEY, DEFAULT_RUNTIMES)
+    runtime_config = get_runtime_config(config)
+    return runtime_config.get(RUNTIME_TYPES_CONFIG_KEY, DEFAULT_RUNTIMES)
 
 
 def is_runtime_enabled(runtime_config, runtime_type: str):
@@ -2755,7 +2774,8 @@ def _parse_runtime_list(runtimes: str):
 
 
 def verify_runtime_list(config: Dict[str, Any], runtimes: List[str]):
-    runtime_types = config.get(RUNTIME_CONFIG_KEY, {}).get(RUNTIME_TYPES_CONFIG_KEY, [])
+    runtime_config = get_runtime_config(config)
+    runtime_types = runtime_config.get(RUNTIME_TYPES_CONFIG_KEY, [])
     for runtime in runtimes:
         if runtime in runtime_types or runtime == CLOUDTIK_RUNTIME_NAME:
             continue
@@ -2781,8 +2801,8 @@ def is_node_in_completed_status(provider, node_id) -> bool:
 
 
 def check_for_single_worker_type(config: Dict[str, Any]):
-    available_node_types = config["available_node_types"]
-    head_node_type = config["head_node_type"]
+    available_node_types = get_available_node_types(config)
+    head_node_type = get_head_node_type(config)
     num_worker_type = 0
     worker_type = None
     for node_type in available_node_types:
@@ -2801,8 +2821,8 @@ def check_for_single_worker_type(config: Dict[str, Any]):
 def get_worker_node_type(config: Dict[str, Any]):
     # Get any worker node type.
     # Usually we consider there is only one worker node type
-    available_node_types = config["available_node_types"]
-    head_node_type = config["head_node_type"]
+    available_node_types = get_available_node_types(config)
+    head_node_type = get_head_node_type(config)
     for node_type in available_node_types:
         if node_type != head_node_type:
             return node_type
@@ -2837,7 +2857,7 @@ def get_preferred_bundle_size(config: Dict[str, Any], resource_id: str) -> Optio
         return None
 
     resource_sizes = []
-    head_node_type = config["head_node_type"]
+    head_node_type = get_head_node_type(config)
     for node_type in available_node_types:
         if node_type == head_node_type:
             continue
@@ -2876,7 +2896,7 @@ def get_resource_requests_for(
 
 
 def _get_head_resource_requests(config, resource_id):
-    head_node_type = config["head_node_type"]
+    head_node_type = get_head_node_type(config)
     return _get_node_type_resource_requests(config, head_node_type, resource_id)
 
 
@@ -3257,8 +3277,8 @@ def _get_head_service_ports(runtime_types, runtime_config):
 
 
 def get_head_node_config(config: Dict[str, Any]) -> Dict[str, Any]:
-    node_types = config["available_node_types"]
-    head_node_type = config["head_node_type"]
+    node_types = get_available_node_types(config)
+    head_node_type = get_head_node_type(config)
     return node_types[head_node_type]["node_config"]
 
 
@@ -3444,7 +3464,7 @@ def convert_nodes_to_gpus(config: Dict[str, Any], nodes: int,
 def convert_nodes_to_resource(
         config: Dict[str, Any], nodes: int, resource_id,
         node_type_name: Optional[str] = None) -> int:
-    available_node_types = config["available_node_types"]
+    available_node_types = get_available_node_types(config)
     if node_type_name:
         if node_type_name not in available_node_types:
             raise RuntimeError(
@@ -3456,7 +3476,7 @@ def convert_nodes_to_resource(
                 resource_id, node_type_name, resource_total))
         return nodes * resource_total
 
-    head_node_type = config["head_node_type"]
+    head_node_type = get_head_node_type(config)
     for node_type in available_node_types:
         if node_type != head_node_type:
             resources = available_node_types[node_type].get("resources", {})
@@ -3671,7 +3691,8 @@ def run_script(script, script_args, with_output=False):
         raise err
 
 
-def get_runtime_config(config):
+def get_runtime_config(
+        config: Dict[str, Any]) -> Dict[str, Any]:
     # There key cannot be empty for current implementation
     return config.get(RUNTIME_CONFIG_KEY, {})
 
@@ -3755,11 +3776,11 @@ def get_node_type_resources(
     return cluster_resource
 
 
-def get_cluster_name(config):
+def get_cluster_name(config: Dict[str, Any]) -> str:
     return config["cluster_name"]
 
 
-def get_workspace_name(config):
+def get_workspace_name(config: Dict[str, Any]) -> str:
     return config["workspace_name"]
 
 

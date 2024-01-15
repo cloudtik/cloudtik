@@ -9,7 +9,7 @@ from typing import Dict
 
 from cloudtik.core._private.cli_logger import cli_logger, cf
 from cloudtik.core._private.util.core_utils import stop_process_tree, exec_with_output, get_host_address, get_free_port
-from cloudtik.core._private.utils import save_server_process, is_use_internal_ip
+from cloudtik.core._private.utils import save_server_process, is_use_internal_ip, get_workspace_name
 from cloudtik.core.tags import CLOUDTIK_TAG_NODE_KIND, NODE_KIND_HEAD
 from cloudtik.core.workspace_provider import Existence
 from cloudtik.providers._private.virtual.config import get_cluster_name_from_node, with_sudo, _safe_remove_file, \
@@ -73,7 +73,7 @@ def create_virtual_workspace(config):
 
 
 def _create_workspace(config):
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
 
     current_step = 1
     total_steps = VIRTUAL_WORKSPACE_NUM_CREATION_STEPS
@@ -276,7 +276,7 @@ def _is_bridge_network_exists(workspace_name):
 
 
 def delete_virtual_workspace(config):
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
 
     current_step = 1
     total_steps = VIRTUAL_WORKSPACE_NUM_DELETION_STEPS
@@ -393,7 +393,7 @@ def check_virtual_workspace_integrity(config):
 
 
 def check_virtual_workspace_existence(config):
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
 
     skipped_resources = 0
     target_resources = VIRTUAL_WORKSPACE_TARGET_RESOURCES
@@ -416,7 +416,7 @@ def check_virtual_workspace_existence(config):
 
 def update_virtual_workspace(
         config):
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     try:
         with cli_logger.group(
                 "Updating workspace: {}", workspace_name):
@@ -459,7 +459,7 @@ def bootstrap_virtual_workspace_config(config):
 
 
 def get_virtual_workspace_info(config):
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     network_name = _get_network_name(workspace_name)
     bridge_address = get_workspace_bridge_address(workspace_name)
 

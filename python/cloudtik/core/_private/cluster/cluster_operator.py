@@ -64,7 +64,8 @@ from cloudtik.core._private.util.core_utils import stop_process_tree, double_quo
     get_free_port, \
     memory_to_gb, memory_to_gb_string, address_to_ip, split_list
 from cloudtik.core._private.util.redis_utils import validate_redis_address, get_address_to_use_or_die
-from cloudtik.core._private.utils import format_info_string, get_node_provider_of
+from cloudtik.core._private.utils import format_info_string, get_node_provider_of, get_provider_config, \
+    get_cluster_name, get_available_node_types
 from cloudtik.core._private.utils import hash_runtime_conf, \
     hash_launch_conf, get_proxy_process_file, get_safe_proxy_process, \
     get_head_working_ip, get_node_cluster_ip, is_use_internal_ip, \
@@ -1666,7 +1667,7 @@ def get_memory_per_worker(config, provider):
 def get_resource_per_worker(config, provider, resource_name):
     # Assume all the worker nodes are the same
     node_type = get_worker_node_type(config)
-    available_node_types = config["available_node_types"]
+    available_node_types = get_available_node_types(config)
     resource_info = get_resource_info_of_node_type(
         node_type, available_node_types)
     return get_resource_of_node_info(resource_info, resource_name)
@@ -1934,7 +1935,7 @@ def dump_cluster_on_head(
         return None
 
     if not output:
-        cluster_name = config["cluster_name"]
+        cluster_name = get_cluster_name(config)
         filename = f"{cluster_name}_" \
                    f"{datetime.datetime.now():%Y-%m-%d_%H-%M-%S}.tar.gz"
         target = os.path.join(os.getcwd(), filename)
@@ -2036,7 +2037,7 @@ def dump_cluster(
             head_only=head_only)
 
     if not output:
-        cluster_name = config["cluster_name"]
+        cluster_name = get_cluster_name(config)
         filename = f"{cluster_name}_" \
                    f"{datetime.datetime.now():%Y-%m-%d_%H-%M-%S}.tar.gz"
         output = os.path.join(os.getcwd(), filename)
@@ -2232,7 +2233,7 @@ def show_useful_commands(
         cluster_name = override_cluster_name
     else:
         modifiers = ""
-        cluster_name = config["cluster_name"]
+        cluster_name = get_cluster_name(config)
 
     _cli_logger.newline()
     private_key_file = config["auth"].get("ssh_private_key")
@@ -2448,8 +2449,8 @@ def confirm(msg: str, yes: bool) -> Optional[bool]:
 
 def is_proxy_needed(config):
     # A flag to force proxy start and stop in any case
-    provider = config["provider"]
-    if provider.get("proxy_internal_ips", False):
+    provider_config = get_provider_config(config)
+    if provider_config.get("proxy_internal_ips", False):
         return True
     return False if is_use_internal_ip(config) else True
 
@@ -2482,7 +2483,7 @@ def _start_proxy(
         config: Dict[str, Any],
         restart: bool = False,
         bind_address: str = None):
-    cluster_name = config["cluster_name"]
+    cluster_name = get_cluster_name(config)
     proxy_process_file = get_proxy_process_file(cluster_name)
     pid, address, port = get_safe_proxy_process(proxy_process_file)
     if pid is not None:
@@ -2580,7 +2581,7 @@ def stop_ssh_proxy(
 
 
 def _stop_proxy(config: Dict[str, Any]):
-    cluster_name = config["cluster_name"]
+    cluster_name = get_cluster_name(config)
 
     proxy_process_file = get_proxy_process_file(cluster_name)
     pid, address, port = get_safe_proxy_process(proxy_process_file)
@@ -3982,7 +3983,7 @@ def _get_cluster_unfulfilled_for_bundles(
         config: Dict[str, Any],
         bundles: List[ResourceDict]):
     provider = get_node_provider_of(config)
-    node_types = config["available_node_types"]
+    node_types = get_available_node_types(config)
     workers = provider.non_terminated_nodes({
         CLOUDTIK_TAG_NODE_KIND: NODE_KIND_WORKER
     })

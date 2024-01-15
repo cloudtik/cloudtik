@@ -61,7 +61,8 @@ from cloudtik.core._private.utils import check_cidr_conflict, \
     is_peering_firewall_allow_working_subnet, is_use_internal_ip, \
     is_use_managed_cloud_storage, \
     is_use_peering_vpc, \
-    is_use_working_vpc, is_worker_role_for_cloud_storage, _get_managed_cloud_storage_name
+    is_use_working_vpc, is_worker_role_for_cloud_storage, _get_managed_cloud_storage_name, get_provider_config, \
+    get_workspace_name, get_available_node_types
 from cloudtik.core.tags import CLOUDTIK_TAG_CLUSTER_NAME, \
     CLOUDTIK_TAG_NODE_KIND, NODE_KIND_HEAD, CLOUDTIK_TAG_WORKSPACE_NAME
 from cloudtik.core.workspace_provider import \
@@ -559,8 +560,8 @@ def _update_security_group_rules(config, sg, vpc, vpc_client):
     # Clean old rule if exist
     _clean_security_group_rules(sg, vpc_client)
     # Add new rules
-    extended_rules = config["provider"].get("security_group", {}) \
-        .get("rules", [])
+    extended_rules = config["provider"].get(
+        "security_group", {}).get("rules", [])
     for _ext_rule in extended_rules:
         vpc_client.create_security_group_rule(
             CreateSecurityGroupRuleRequest(
@@ -1282,7 +1283,7 @@ def update_huaweicloud_workspace(
         config,
         delete_managed_storage: bool = False,
         delete_managed_database: bool = False):
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     managed_cloud_storage = is_managed_cloud_storage(config)
 
     current_step = 1
@@ -1333,7 +1334,7 @@ def update_huaweicloud_workspace(
 
 def update_workspace_firewalls(config):
     vpc_client = make_vpc_client(config)
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     workspace_vpc = get_workspace_vpc(vpc_client, workspace_name)
     if not workspace_vpc:
         raise RuntimeError(
@@ -1372,7 +1373,7 @@ def get_huaweicloud_workspace_info(config):
 
 def get_huaweicloud_managed_cloud_storage_info(
         config, cloud_provider, info):
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     cloud_storage_info = _get_managed_cloud_storage_info(
         cloud_provider, workspace_name)
     if cloud_storage_info:
@@ -1401,7 +1402,7 @@ def _get_object_storage_info(bucket_name):
 
 
 def check_huaweicloud_workspace_existence(config):
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     managed_cloud_storage = is_managed_cloud_storage(config)
     use_peering_vpc = is_use_peering_vpc(config)
     use_working_vpc = is_use_working_vpc(config)
@@ -1509,8 +1510,8 @@ def list_huaweicloud_clusters(config):
 
 def list_huaweicloud_storages(
         config: Dict[str, Any]) -> Optional[Dict[str, Any]]:
-    provider_config = config["provider"]
-    workspace_name = config["workspace_name"]
+    provider_config = get_provider_config(config)
+    workspace_name = get_workspace_name(config)
     buckets = _get_managed_obs_buckets(
         provider_config, workspace_name)
     object_storages = {}
@@ -1568,7 +1569,7 @@ def bootstrap_huaweicloud_workspace(config):
 
 
 def _configure_allowed_ssh_sources(config):
-    provider_config = config["provider"]
+    provider_config = get_provider_config(config)
     if "allowed_ssh_sources" not in provider_config:
         return
 
@@ -1812,7 +1813,7 @@ def _configure_prefer_spot_node(config):
 
 
 def _configure_security_group_from_workspace(config):
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     vpc_client = make_vpc_client(config)
     workspace_vpc = get_workspace_vpc(vpc_client, workspace_name)
 
@@ -1830,7 +1831,7 @@ def _configure_security_group_from_workspace(config):
 
 
 def _configure_subnet_from_workspace(config):
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     use_internal_ips = is_use_internal_ip(config)
     vpc_client = make_vpc_client(config)
     workspace_vpc = get_workspace_vpc(vpc_client, workspace_name)
@@ -1884,7 +1885,7 @@ def _configure_key_pair(config):
     # multiple clusters on the same machine, CloudTik will use the same private
     # key, if you don't want this, you should specify explicitly key pair
     # as following.
-    node_types = config["available_node_types"]
+    node_types = get_available_node_types(config)
     if 'ssh_private_key' in config['auth']:
         # Explicit cluster private key
         # Use ssh_private_key and key_name in config
@@ -1970,7 +1971,7 @@ def _configure_cloud_storage_from_workspace(config):
 
 def _configure_managed_cloud_storage_from_workspace(
         config, cloud_provider):
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     managed_cloud_storage_name = _get_managed_cloud_storage_name(
         cloud_provider)
     obs_client = _make_obs_client(cloud_provider)
@@ -1990,7 +1991,7 @@ def _configure_managed_cloud_storage_from_workspace(
 
 def _configure_instance_profile_from_workspace(config):
     worker_for_cloud_storage = is_worker_role_for_cloud_storage(config)
-    workspace_name = config["workspace_name"]
+    workspace_name = get_workspace_name(config)
     head_profile = _get_instance_profile(
         config,
         workspace_name=workspace_name,
@@ -1999,6 +2000,7 @@ def _configure_instance_profile_from_workspace(config):
         raise RuntimeError(
             "Workspace head instance profile not found!")
 
+    worker_profile = None
     if worker_for_cloud_storage:
         worker_profile = _get_instance_profile(
             config,
