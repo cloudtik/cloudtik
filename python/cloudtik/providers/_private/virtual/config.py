@@ -11,9 +11,9 @@ from cloudtik.core._private.cli_logger import cli_logger
 from cloudtik.core._private.util.core_utils import get_memory_in_bytes, get_cloudtik_temp_dir, exec_with_output, \
     exec_with_call
 from cloudtik.core._private.utils import AUTH_CONFIG_KEY, DOCKER_CONFIG_KEY, \
-    FILE_MOUNTS_CONFIG_KEY, get_head_service_ports, get_head_node_config, RUNTIME_CONFIG_KEY, \
+    FILE_MOUNTS_CONFIG_KEY, get_head_service_ports, get_head_node_config, \
     get_runtime_shared_memory_ratio, get_server_process, is_permanent_data_volumes, enable_stable_node_seq_id, \
-    _is_permanent_data_volumes, get_provider_config, get_available_node_types
+    _is_permanent_data_volumes, get_provider_config, get_available_node_types, get_runtime_config
 from cloudtik.core._private.resource_spec import ResourceSpec
 from cloudtik.core.tags import CLOUDTIK_TAG_CLUSTER_NAME
 
@@ -252,7 +252,7 @@ def _configure_file_mounts(config):
 
 def _configure_shared_memory_ratio(config):
     # configure shared memory ratio to node config for each type
-    runtime_config = config.get(RUNTIME_CONFIG_KEY)
+    runtime_config = get_runtime_config(config)
     if not runtime_config:
         return config
     for node_type, node_type_config in config["available_node_types"].items():

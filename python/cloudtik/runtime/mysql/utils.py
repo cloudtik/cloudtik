@@ -9,8 +9,8 @@ from cloudtik.core._private.service_discovery.utils import \
     get_service_discovery_config, SERVICE_DISCOVERY_FEATURE_DATABASE, define_runtime_service_on_head, \
     define_runtime_service_on_worker
 from cloudtik.core._private.util.database_utils import DATABASE_PORT_MYSQL_DEFAULT, DATABASE_PASSWORD_MYSQL_DEFAULT
-from cloudtik.core._private.utils import RUNTIME_CONFIG_KEY, is_node_seq_id_enabled, enable_node_seq_id, \
-    get_workspace_name, get_cluster_name
+from cloudtik.core._private.utils import is_node_seq_id_enabled, enable_node_seq_id, \
+    get_workspace_name, get_cluster_name, get_runtime_config
 
 RUNTIME_PROCESSES = [
         # The first element is the substring to filter.
@@ -119,7 +119,7 @@ def _bootstrap_runtime_config(
 
 
 def _validate_config(config: Dict[str, Any]):
-    runtime_config = config.get(RUNTIME_CONFIG_KEY)
+    runtime_config = get_runtime_config(config)
     mysql_config = _get_config(runtime_config)
 
     database = mysql_config.get(MYSQL_DATABASE_CONFIG_KEY, {})

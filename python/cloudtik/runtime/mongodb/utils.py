@@ -9,7 +9,7 @@ from cloudtik.core._private.service_discovery.runtime_services import get_servic
 from cloudtik.core._private.service_discovery.utils import \
     get_canonical_service_name, define_runtime_service, \
     get_service_discovery_config, define_runtime_service_on_head
-from cloudtik.core._private.utils import RUNTIME_CONFIG_KEY, is_node_seq_id_enabled, enable_node_seq_id, \
+from cloudtik.core._private.utils import is_node_seq_id_enabled, enable_node_seq_id, \
     get_runtime_config, get_node_cluster_ip_of, get_workspace_name, get_cluster_name
 from cloudtik.runtime.common.service_discovery.discovery import DiscoveryType
 from cloudtik.runtime.common.service_discovery.runtime_discovery import \
@@ -214,7 +214,7 @@ def _prepare_config_on_head(
 
 
 def _validate_config(config: Dict[str, Any], final=False):
-    runtime_config = config.get(RUNTIME_CONFIG_KEY)
+    runtime_config = get_runtime_config(config)
     mongodb_config = _get_config(runtime_config)
 
     database = mongodb_config.get(MONGODB_DATABASE_CONFIG_KEY, {})

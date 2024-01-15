@@ -7,7 +7,7 @@ from cloudtik.core._private.service_discovery.runtime_services import get_servic
 from cloudtik.core._private.service_discovery.utils import get_canonical_service_name, \
     get_service_discovery_config, define_runtime_service_on_head_or_all, \
     SERVICE_DISCOVERY_FEATURE_LOAD_BALANCER
-from cloudtik.core._private.utils import RUNTIME_CONFIG_KEY
+from cloudtik.core._private.utils import get_runtime_config
 from cloudtik.runtime.common.service_discovery.consul import get_rfc2782_service_dns_name
 from cloudtik.runtime.haproxy.admin_api import get_backend_server_name
 
@@ -139,7 +139,7 @@ def _get_runtime_processes():
 
 
 def _validate_config(config: Dict[str, Any]):
-    runtime_config = config.get(RUNTIME_CONFIG_KEY)
+    runtime_config = get_runtime_config(config)
     haproxy_config = _get_config(runtime_config)
     backend_config = _get_backend_config(haproxy_config)
 
@@ -213,7 +213,7 @@ def _with_runtime_environment_variables(
 
 
 def _get_default_load_balancer_config_mode(config, backend_config):
-    cluster_runtime_config = config.get(RUNTIME_CONFIG_KEY)
+    cluster_runtime_config = get_runtime_config(config)
     if backend_config.get(
             HAPROXY_BACKEND_SERVERS_CONFIG_KEY):
         # if there are static servers configured
@@ -274,7 +274,7 @@ def _with_runtime_envs_for_dynamic(backend_config, runtime_envs):
 
 
 def _get_default_api_gateway_config_mode(config, backend_config):
-    cluster_runtime_config = config.get(RUNTIME_CONFIG_KEY)
+    cluster_runtime_config = get_runtime_config(config)
     if not get_service_discovery_runtime(cluster_runtime_config):
         raise ValueError(
             "Service discovery runtime is needed for API gateway mode.")

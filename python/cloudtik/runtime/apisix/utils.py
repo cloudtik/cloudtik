@@ -8,7 +8,7 @@ from cloudtik.core._private.service_discovery.runtime_services import get_servic
 from cloudtik.core._private.service_discovery.utils import \
     get_canonical_service_name, define_runtime_service_on_head_or_all, \
     get_service_discovery_config, SERVICE_DISCOVERY_FEATURE_API_GATEWAY, SERVICE_DISCOVERY_PROTOCOL_HTTP
-from cloudtik.core._private.utils import get_runtime_config, RUNTIME_CONFIG_KEY
+from cloudtik.core._private.utils import get_runtime_config
 from cloudtik.runtime.common.service_discovery.runtime_discovery import discover_etcd_from_workspace, \
     discover_etcd_on_head, ETCD_URI_KEY, is_etcd_service_discovery
 
@@ -124,7 +124,7 @@ def _validate_config(config: Dict[str, Any], final=False):
             raise ValueError(
                 "ETCD must be configured for APISIX.")
 
-    cluster_runtime_config = config.get(RUNTIME_CONFIG_KEY)
+    cluster_runtime_config = get_runtime_config(config)
     if not get_service_discovery_runtime(cluster_runtime_config):
         raise ValueError(
             "Service discovery runtime is needed for APISIX.")

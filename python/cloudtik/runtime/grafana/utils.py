@@ -10,7 +10,7 @@ from cloudtik.core._private.service_discovery.utils import \
     SERVICE_DISCOVERY_PORT, SERVICE_DISCOVERY_PROTOCOL_HTTP, \
     SERVICE_DISCOVERY_FEATURE_METRICS
 from cloudtik.core._private.util.core_utils import http_address_string
-from cloudtik.core._private.utils import RUNTIME_CONFIG_KEY
+from cloudtik.core._private.utils import get_runtime_config
 
 RUNTIME_PROCESSES = [
         # The first element is the substring to filter.
@@ -79,7 +79,7 @@ def _with_runtime_environment_variables(
     runtime_envs = {}
 
     grafana_config = _get_config(runtime_config)
-    cluster_runtime_config = config.get(RUNTIME_CONFIG_KEY)
+    cluster_runtime_config = get_runtime_config(config)
 
     service_port = _get_service_port(grafana_config)
     runtime_envs["GRAFANA_SERVICE_PORT"] = service_port

@@ -412,10 +412,10 @@ def _get_virtual_network_name(
     return virtual_network_name
 
 
-def update_azure_workspace(config,
-                           delete_managed_storage: bool = False,
-                           delete_managed_database: bool = False
-                           ):
+def update_azure_workspace(
+        config,
+        delete_managed_storage: bool = False,
+        delete_managed_database: bool = False):
     workspace_name = get_workspace_name(config)
     use_working_vpc = is_use_working_vpc(config)
     managed_cloud_storage = is_managed_cloud_storage(config)
@@ -436,7 +436,8 @@ def update_azure_workspace(config,
         total_steps += 1
 
     try:
-        with cli_logger.group("Updating workspace: {}", workspace_name):
+        with cli_logger.group(
+                "Updating workspace: {}", workspace_name):
             with cli_logger.group(
                     "Updating workspace firewalls",
                     _numbered=("[]", current_step, total_steps)):
@@ -508,9 +509,10 @@ def update_workspace_firewalls(config):
         cf.bold(workspace_name))
 
 
-def delete_azure_workspace(config,
-                           delete_managed_storage: bool = False,
-                           delete_managed_database: bool = False):
+def delete_azure_workspace(
+        config,
+        delete_managed_storage: bool = False,
+        delete_managed_database: bool = False):
     workspace_name = get_workspace_name(config)
     use_working_vpc = is_use_working_vpc(config)
     use_peering_vpc = is_use_peering_vpc(config)
@@ -536,7 +538,8 @@ def delete_azure_workspace(config,
 
     try:
         # delete network resources
-        with cli_logger.group("Deleting workspace: {}", workspace_name):
+        with cli_logger.group(
+                "Deleting workspace: {}", workspace_name):
             # Delete the resources in a reverse way of creating
 
             if managed_cloud_storage and delete_managed_storage:
