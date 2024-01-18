@@ -43,6 +43,8 @@ MYSQL_DATABASE_PASSWORD_CONFIG_KEY = "password"
 
 MYSQL_SERVICE_TYPE = BUILT_IN_RUNTIME_MYSQL
 MYSQL_REPLICA_SERVICE_TYPE = MYSQL_SERVICE_TYPE + "-replica"
+MYSQL_NODE_SERVICE_TYPE = MYSQL_SERVICE_TYPE + "-node"
+
 MYSQL_SERVICE_PORT_DEFAULT = DATABASE_PORT_MYSQL_DEFAULT
 MYSQL_GROUP_REPLICATION_PORT_DEFAULT = 33061
 
@@ -230,7 +232,7 @@ def _get_runtime_services(
         # TODO: Ideally a middle layer needs to expose a client discoverable service.
         services = {
             service_name: define_runtime_service(
-                MYSQL_SERVICE_TYPE,
+                MYSQL_NODE_SERVICE_TYPE,
                 service_discovery_config, service_port,
                 features=[SERVICE_DISCOVERY_FEATURE_DATABASE]),
         }

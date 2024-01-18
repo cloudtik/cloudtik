@@ -7,7 +7,7 @@ from cloudtik.core._private.service_discovery.naming import get_cluster_head_hos
 from cloudtik.core._private.service_discovery.utils import \
     get_canonical_service_name, get_service_discovery_config, \
     SERVICE_DISCOVERY_FEATURE_DATABASE, define_runtime_service_on_head, \
-    define_runtime_service_on_worker
+    define_runtime_service_on_worker, define_runtime_service
 from cloudtik.core._private.util.database_utils import DATABASE_PORT_POSTGRES_DEFAULT, \
     DATABASE_USERNAME_POSTGRES_DEFAULT, DATABASE_PASSWORD_POSTGRES_DEFAULT
 from cloudtik.core._private.utils import is_node_seq_id_enabled, enable_node_seq_id, \
@@ -48,6 +48,8 @@ POSTGRES_DATABASE_PASSWORD_CONFIG_KEY = "password"
 
 POSTGRES_SERVICE_TYPE = BUILT_IN_RUNTIME_POSTGRES
 POSTGRES_REPLICA_SERVICE_TYPE = POSTGRES_SERVICE_TYPE + "-replica"
+POSTGRES_NODE_SERVICE_TYPE = POSTGRES_SERVICE_TYPE + "-node"
+
 POSTGRES_SERVICE_PORT_DEFAULT = DATABASE_PORT_POSTGRES_DEFAULT
 
 POSTGRES_ADMIN_USER_DEFAULT = DATABASE_USERNAME_POSTGRES_DEFAULT
@@ -326,19 +328,30 @@ def _get_runtime_services(
     service_port = _get_service_port(postgres_config)
     cluster_mode = _get_cluster_mode(postgres_config)
     if cluster_mode == POSTGRES_CLUSTER_MODE_REPLICATION:
-        # primary service on head and replica service on workers
-        replica_service_name = get_canonical_service_name(
-            service_discovery_config, cluster_name, POSTGRES_REPLICA_SERVICE_TYPE)
-        services = {
-            service_name: define_runtime_service_on_head(
-                POSTGRES_SERVICE_TYPE,
-                service_discovery_config, service_port,
-                features=[SERVICE_DISCOVERY_FEATURE_DATABASE]),
-            replica_service_name: define_runtime_service_on_worker(
-                POSTGRES_REPLICA_SERVICE_TYPE,
-                service_discovery_config, service_port,
-                features=[SERVICE_DISCOVERY_FEATURE_DATABASE]),
-        }
+        repmgr_config = _get_repmgr_config(postgres_config)
+        repmgr_enabled = _is_repmgr_enabled(repmgr_config)
+        if repmgr_enabled:
+            # every node is possible be primary and standby
+            services = {
+                service_name: define_runtime_service(
+                    POSTGRES_NODE_SERVICE_TYPE,
+                    service_discovery_config, service_port,
+                    features=[SERVICE_DISCOVERY_FEATURE_DATABASE]),
+            }
+        else:
+            # primary service on head and replica service on workers
+            replica_service_name = get_canonical_service_name(
+                service_discovery_config, cluster_name, POSTGRES_REPLICA_SERVICE_TYPE)
+            services = {
+                service_name: define_runtime_service_on_head(
+                    POSTGRES_SERVICE_TYPE,
+                    service_discovery_config, service_port,
+                    features=[SERVICE_DISCOVERY_FEATURE_DATABASE]),
+                replica_service_name: define_runtime_service_on_worker(
+                    POSTGRES_REPLICA_SERVICE_TYPE,
+                    service_discovery_config, service_port,
+                    features=[SERVICE_DISCOVERY_FEATURE_DATABASE]),
+            }
     else:
         # single standalone on head
         services = {

@@ -1,7 +1,8 @@
 import os
 
 from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_PGPOOL, BUILT_IN_RUNTIME_POSTGRES
-from cloudtik.core._private.service_discovery.utils import serialize_service_selector, include_runtime_for_selector
+from cloudtik.core._private.service_discovery.utils import serialize_service_selector, include_runtime_for_selector, \
+    include_runtime_service_for_selector
 from cloudtik.core._private.util.core_utils import exec_with_output, get_address_string, exec_with_call, \
     address_from_string
 from cloudtik.core._private.util.database_utils import DATABASE_PORT_POSTGRES_DEFAULT
@@ -9,7 +10,7 @@ from cloudtik.core._private.util.runtime_utils import get_runtime_config_from_no
 from cloudtik.core._private.utils import load_properties_file, save_properties_file
 from cloudtik.runtime.common.service_discovery.runtime_discovery import DATABASE_SERVICE_SELECTOR_KEY
 from cloudtik.runtime.pgpool.utils import _get_config, _get_home_dir, _get_backend_config, \
-    PGPOOL_BACKEND_SERVERS_CONFIG_KEY
+    PGPOOL_BACKEND_SERVERS_CONFIG_KEY, PGPOOL_DISCOVER_POSTGRES_SERVICE_TYPES
 
 PGPOOL_PULL_LOCAL_TARGETS_INTERVAL = 15
 PGPOOL_MAX_SERVERS = 1024
@@ -60,8 +61,11 @@ def start_pull_server(head):
 
     service_selector = pgpool_config.get(
         DATABASE_SERVICE_SELECTOR_KEY, {})
-    include_runtime_for_selector(
-        service_selector, BUILT_IN_RUNTIME_POSTGRES)
+
+    service_selector = include_runtime_service_for_selector(
+        service_selector,
+        runtime_type=BUILT_IN_RUNTIME_POSTGRES,
+        service_type=PGPOOL_DISCOVER_POSTGRES_SERVICE_TYPES)
 
     service_selector_str = serialize_service_selector(service_selector)
     address_type = get_runtime_node_address_type()

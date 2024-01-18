@@ -58,6 +58,16 @@ PGPOOL_POSTGRES_REPLICATION_PASSWORD_DEFAULT = DATABASE_PASSWORD_POSTGRES_DEFAUL
 
 PGPOOL_MAX_POOL_DEFAULT = 15
 
+# share values from Postgres
+PGPOOL_POSTGRES_SERVICE_TYPE = BUILT_IN_RUNTIME_POSTGRES
+PGPOOL_POSTGRES_REPLICA_SERVICE_TYPE = PGPOOL_POSTGRES_SERVICE_TYPE + "-replica"
+PGPOOL_POSTGRES_NODE_SERVICE_TYPE = PGPOOL_POSTGRES_SERVICE_TYPE + "-node"
+
+PGPOOL_DISCOVER_POSTGRES_SERVICE_TYPES = [
+    PGPOOL_POSTGRES_SERVICE_TYPE,
+    PGPOOL_POSTGRES_REPLICA_SERVICE_TYPE,
+    PGPOOL_POSTGRES_NODE_SERVICE_TYPE]
+
 
 def _get_config(runtime_config: Dict[str, Any]):
     return runtime_config.get(BUILT_IN_RUNTIME_PGPOOL, {})
@@ -144,7 +154,8 @@ def discover_postgres_on_head(
         runtime_type_config, DATABASE_SERVICE_SELECTOR_KEY,
         cluster_config=cluster_config,
         discovery_type=DiscoveryType.CLUSTER,
-        database_runtime_type=BUILT_IN_RUNTIME_POSTGRES)
+        database_runtime_type=BUILT_IN_RUNTIME_POSTGRES,
+        database_service_type=PGPOOL_DISCOVER_POSTGRES_SERVICE_TYPES)
     if database_service:
         runtime_type_config = get_config_for_update(
             runtime_config, runtime_type)
