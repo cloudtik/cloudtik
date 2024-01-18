@@ -67,7 +67,8 @@ class DiscoverDataSources(PullJob):
             admin_endpoint=None,
             service_selector=None):
         if not admin_endpoint:
-            raise RuntimeError("Grafana endpoint is needed for pulling data sources.")
+            raise RuntimeError(
+                "Grafana endpoint is needed for pulling data sources.")
 
         self.service_selector = deserialize_service_selector(
             service_selector)
@@ -142,8 +143,9 @@ class DiscoverDataSources(PullJob):
         added_data_source = add_data_source(
             self.admin_endpoint, self.auth, data_source)
         if added_data_source:
-            logger.info("Data source {} created: {}".format(
-                data_source_name, added_data_source))
+            logger.info(
+                "Data source {} created: {}".format(
+                    data_source_name, added_data_source))
         else:
             logger.error(
                 "Data source {} creation failed: {}".format(

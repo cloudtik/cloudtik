@@ -87,10 +87,10 @@ def _update_backend(backend_name, backend_servers):
 class DiscoverBackendServers(PullJob):
     """Pulling job for discovering backend targets and update HAProxy using Runtime API"""
 
-    def __init__(self,
-                 service_selector=None,
-                 backend_name=None,
-                 ):
+    def __init__(
+            self,
+            service_selector=None,
+            backend_name=None):
         self.service_selector = deserialize_service_selector(
             service_selector)
         self.backend_name = backend_name
@@ -122,12 +122,12 @@ class DiscoverAPIGatewayBackendServers(PullJob):
     """Pulling job for discovering backend targets for API gateway backends
     and update HAProxy using Runtime API"""
 
-    def __init__(self,
-                 service_selector=None,
-                 bind_ip=None,
-                 bind_port=None,
-                 balance_method=None,
-                 ):
+    def __init__(
+            self,
+            service_selector=None,
+            bind_ip=None,
+            bind_port=None,
+            balance_method=None):
         self.service_selector = deserialize_service_selector(
             service_selector)
         self.bind_ip = bind_ip
@@ -146,7 +146,8 @@ class DiscoverAPIGatewayBackendServers(PullJob):
                 service_name, service_nodes)
             backend_name = service_name
             if not backend_service.backend_servers:
-                logger.warning("No live servers return from the service selector.")
+                logger.warning(
+                    "No live servers return from the service selector.")
 
             if backend_name in active_backends:
                 # update only backend servers for active backend

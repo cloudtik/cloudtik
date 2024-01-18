@@ -53,7 +53,8 @@ class DiscoverBackendServers(DiscoverJob):
                 server_key = get_address_string(server_address[0], server_address[1])
                 backend_servers[server_key] = server_address
         if not backend_servers:
-            logger.warning("No live servers return from the service selector.")
+            logger.warning(
+                "No live servers return from the service selector.")
 
         # Finally, rebuild the configuration for reloads
         servers_hash = get_json_object_hash(backend_servers)
@@ -86,7 +87,8 @@ class DiscoverAPIGatewayBackendServers(DiscoverJob):
         for service_name in selected_services:
             service_nodes = self._query_service_nodes(service_name)
             if not service_nodes:
-                logger.warning("No live servers return from the service selector.")
+                logger.warning(
+                    "No live servers return from the service selector.")
             else:
                 backend_name = service_name
                 backend_service = self.get_backend_service(
@@ -132,7 +134,8 @@ class DiscoverAPIGatewayBackends(DiscoverJob):
         for service_name in selected_services:
             service_nodes = self._query_service_nodes(service_name)
             if not service_nodes:
-                logger.warning("No live servers return from the service selector.")
+                logger.warning(
+                    "No live servers return from the service selector.")
             else:
                 backend_name = service_name
                 backend_service = self.get_dns_backend_service(

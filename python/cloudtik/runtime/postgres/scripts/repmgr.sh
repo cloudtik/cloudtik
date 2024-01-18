@@ -76,12 +76,12 @@ repmgr_get_primary_conninfo_password() {
 # Returns:
 #   None
 #########################
-repmgr_generate_password_file(){
+repmgr_generate_password_file() {
     if [[ "$POSTGRES_REPMGR_USE_PASSFILE" = "true" ]]; then
         if [[ -f "${POSTGRES_REPMGR_PASSFILE_PATH}" ]]; then
             rm -f "${POSTGRES_REPMGR_PASSFILE_PATH}"
         fi
-        local -r replication_user="${POSTGRES_REPLICATON_USER:-repl_user}"
+        local -r replication_user="${POSTGRES_REPLICATION_USER}"
         echo "*:*:*:${replication_user}:${POSTGRES_REPLICATION_PASSWORD}" >"${POSTGRES_REPMGR_PASSFILE_PATH}"
         echo "*:*:*:${POSTGRES_REPMGR_USER}:${POSTGRES_REPMGR_PASSWORD}" >>"${POSTGRES_REPMGR_PASSFILE_PATH}"
         chmod 600 "${POSTGRES_REPMGR_PASSFILE_PATH}"
@@ -429,8 +429,8 @@ repmgr_rewind() {
         else
             info "Successfully pg_rewind to primary node."
             # pg_backup use generate recovery config while pg_rewind will not
-            local password_str=$(repmgr_get_primary_conninfo_password)
-            postgres_configure_recovery "repl_user" "$password_str"
+            local -r password_str=$(repmgr_get_primary_conninfo_password)
+            postgres_configure_recovery "${POSTGRES_REPLICATION_USER}" "$password_str"
         fi
     else
         repmgr_clone_primary

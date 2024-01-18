@@ -13,7 +13,8 @@ def update_spark_configurations():
     if not spark_config:
         return
 
-    spark_conf_file = os.path.join(os.getenv("SPARK_HOME"), "conf/spark-defaults.conf")
+    spark_conf_file = os.path.join(
+        os.getenv("SPARK_HOME"), "conf/spark-defaults.conf")
 
     # Read in the existing configurations
     spark_conf, comments = load_properties_file(spark_conf_file, ' ')
@@ -22,4 +23,5 @@ def update_spark_configurations():
     spark_conf.update(spark_config)
 
     # Write back the configuration file
-    save_properties_file(spark_conf_file, spark_conf, separator=' ', comments=comments)
+    save_properties_file(
+        spark_conf_file, spark_conf, separator=' ', comments=comments)

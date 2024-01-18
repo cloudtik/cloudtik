@@ -10,7 +10,7 @@ from cloudtik.core._private.util.runtime_utils import get_runtime_node_type, get
     load_and_save_json, get_runtime_value, get_runtime_cluster_name
 from cloudtik.core._private.service_discovery.utils import SERVICE_DISCOVERY_PORT, \
     SERVICE_DISCOVERY_TAGS, SERVICE_DISCOVERY_LABELS, SERVICE_DISCOVERY_CHECK_INTERVAL, \
-    SERVICE_DISCOVERY_CHECK_TIMEOUT, SERVICE_DISCOVERY_LABEL_CLUSTER
+    SERVICE_DISCOVERY_CHECK_TIMEOUT, SERVICE_DISCOVERY_LABEL_CLUSTER, SERVICE_DISCOVERY_LABEL_SEQ
 from cloudtik.core._private.service_discovery.naming import get_cluster_node_name
 from cloudtik.core.tags import QUORUM_JOIN_STATUS_INIT
 from cloudtik.runtime.consul.utils import _get_home_dir, _is_disable_cluster_node_name, _get_config, \
@@ -93,8 +93,11 @@ def _update_agent_config(consul_config, join_list, cluster_name):
         if cluster_name:
             node_meta = get_config_for_update(config_object, "node_meta")
             node_meta[SERVICE_DISCOVERY_LABEL_CLUSTER] = cluster_name
+            seq_id = get_runtime_value(CLOUDTIK_RUNTIME_ENV_NODE_SEQ_ID)
+            if seq_id:
+                node_meta[SERVICE_DISCOVERY_LABEL_SEQ] = seq_id
             if not _is_disable_cluster_node_name(consul_config):
-                seq_id = get_runtime_value(CLOUDTIK_RUNTIME_ENV_NODE_SEQ_ID)
+
                 if seq_id and is_valid_dns_name(cluster_name):
                     config_object["node_name"] = get_cluster_node_name(
                         cluster_name, seq_id)
