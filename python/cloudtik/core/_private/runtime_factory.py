@@ -53,6 +53,7 @@ BUILT_IN_RUNTIME_APISIX = "apisix"
 BUILT_IN_RUNTIME_REDIS = "redis"
 BUILT_IN_RUNTIME_MONGODB = "mongodb"
 BUILT_IN_RUNTIME_ELASTICSEARCH = "elasticsearch"
+BUILT_IN_RUNTIME_PGPOOL = "pgpool"
 
 DEFAULT_RUNTIMES = [BUILT_IN_RUNTIME_NODEX, BUILT_IN_RUNTIME_PROMETHEUS, BUILT_IN_RUNTIME_SPARK]
 
@@ -217,6 +218,11 @@ def _import_elasticsearch():
     return ElasticSearchRuntime
 
 
+def _import_pgpool():
+    from cloudtik.runtime.pgpool.runtime import PgpoolRuntime
+    return PgpoolRuntime
+
+
 _RUNTIMES = {
     BUILT_IN_RUNTIME_AI: _import_ai,
     BUILT_IN_RUNTIME_SPARK: _import_spark,
@@ -250,6 +256,7 @@ _RUNTIMES = {
     BUILT_IN_RUNTIME_REDIS: _import_redis,
     BUILT_IN_RUNTIME_MONGODB: _import_mongodb,
     BUILT_IN_RUNTIME_ELASTICSEARCH: _import_elasticsearch,
+    BUILT_IN_RUNTIME_PGPOOL: _import_pgpool,
 }
 
 

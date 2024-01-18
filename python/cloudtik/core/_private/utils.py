@@ -3177,17 +3177,18 @@ def load_properties_file(
     with open(properties_file, "r") as f:
         for line in f.readlines():
             # Strip all the spaces and tabs
-            line = line.strip()
-            if line == "":
+            striped_line = line.strip()
+            if striped_line == "":
                 # Empty line, reset comments for key
                 comments_for_key = []
-            elif line.startswith("#") or line.startswith("!"):
+            elif striped_line.startswith("#") or striped_line.startswith("!"):
                 # Consider a comment for current key
-                comments_for_key += [line[1:]]
+                # The comment is kept as it was instead of striped
+                comments_for_key += [line]
             else:
                 # Filtering out the empty and comment lines
                 # Use split() instead of split(" ") to split value with multiple spaces
-                key_value = line.split(separator)
+                key_value = striped_line.split(separator)
                 key = key_value[0].strip()
                 value = separator.join(key_value[1:]).strip()
                 properties[key] = value
@@ -3207,7 +3208,9 @@ def save_properties_file(
                 comments_for_key = comments[key]
                 f.write("\n")
                 for comment in comments_for_key:
-                    f.write("#{}\n".format(comment))
+                    # The comment line is kept as it was
+                    f.write(comment)
+                    f.write("\n")
 
             f.write("{}{}{}\n".format(key, separator, value))
 

@@ -866,12 +866,12 @@
                 "admin_user": {
                     "type": "string",
                     "default": "cloudtik",
-                    "description": "Specify the admin username when initializing the MySQL instance."
+                    "description": "Specify the admin username when initializing the Postgres instance."
                 },
                 "admin_password": {
                     "type": "string",
                     "default": "cloudtik",
-                    "description": "Specify the admin password when initializing the MySQL instance."
+                    "description": "Specify the admin password when initializing the Postgres instance."
                 },
                 "replication_user": {
                     "type": "string",
@@ -881,7 +881,7 @@
                 "replication_password": {
                     "type": "string",
                     "default": "cloudtik",
-                    "description": "Specify the replication password for replication cluster."
+                    "description": "Specify the replication password for replication user."
                 },
                 "archive_mode": {
                     "type": "boolean",
@@ -1316,6 +1316,77 @@
                                     },
                                     "description": "The list of roles of the node type."
                                 }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "pgpool": {
+            "type": "object",
+            "description": "Pgpool runtime configurations",
+            "additionalProperties": true,
+            "properties": {
+                "port": {
+                    "type": "integer",
+                    "default": 9999,
+                    "description": "The Pgpool server port."
+                },
+                "high_availability": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Whether to run a server on each node for high availability."
+                },
+                "admin_user": {
+                    "type": "string",
+                    "default": "cloudtik",
+                    "description": "Specify the Pgpool admin username."
+                },
+                "admin_password": {
+                    "type": "string",
+                    "default": "cloudtik",
+                    "description": "Specify the Pgpool admin password."
+                },
+                "postgres_admin_user": {
+                    "type": "string",
+                    "default": "postgres",
+                    "description": "Specify the Postgres admin username."
+                },
+                "postgres_admin_password": {
+                    "type": "string",
+                    "default": "cloudtik",
+                    "description": "Specify the Postgres admin password."
+                },
+                "replication_user": {
+                    "type": "string",
+                    "default": "repl_user",
+                    "description": "Specify the replication user."
+                },
+                "replication_password": {
+                    "type": "string",
+                    "default": "cloudtik",
+                    "description": "Specify the replication password for replication user."
+                },
+                "max_pool": {
+                    "type": "integer",
+                    "default": 15,
+                    "description": "The maximum number of cached connections in each child process."
+                },
+                "backend": {
+                    "type": "object",
+                    "description": "Backend configurations",
+                    "properties": {
+                        "config_mode": {
+                            "type": "string",
+                            "default": "dynamic",
+                            "description": "How the backend is configured: static, dynamic"
+                        },
+                        "servers": {
+                            "type": "array",
+                            "description": "Array of static servers for the backend.",
+                            "items": {
+                                "type": "string",
+                                "description": "Server entry in format: host:port."
                             }
                         }
                     }
