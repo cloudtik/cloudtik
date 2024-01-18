@@ -6,7 +6,8 @@ from cloudtik.core._private.service_discovery.utils import SERVICE_SELECTOR_SERV
     SERVICE_SELECTOR_LABELS, SERVICE_SELECTOR_EXCLUDE_LABELS, SERVICE_DISCOVERY_LABEL_CLUSTER, \
     SERVICE_SELECTOR_RUNTIMES, SERVICE_SELECTOR_CLUSTERS, SERVICE_SELECTOR_EXCLUDE_JOINED_LABELS, \
     SERVICE_DISCOVERY_TAG_CLUSTER_PREFIX, SERVICE_DISCOVERY_TAG_SYSTEM_PREFIX, ServiceAddressType, \
-    SERVICE_DISCOVERY_LABEL_RUNTIME, SERVICE_SELECTOR_SERVICE_TYPES, SERVICE_DISCOVERY_LABEL_SERVICE
+    SERVICE_DISCOVERY_LABEL_RUNTIME, SERVICE_SELECTOR_SERVICE_TYPES, SERVICE_DISCOVERY_LABEL_SERVICE, \
+    SERVICE_DISCOVERY_LABEL_SEQ
 from cloudtik.core._private.util.rest_api import rest_api_get_json
 from cloudtik.runtime.common.service_discovery.utils import ServiceInstance
 
@@ -213,6 +214,18 @@ def get_service_label_of_node(service_node, label_name):
     service_meta = service_node.get(
         "ServiceMeta", {})
     return service_meta.get(label_name)
+
+
+def get_node_label_of_node(service_node, label_name):
+    node_meta = service_node.get(
+        "NodeMeta", {})
+    return node_meta.get(label_name)
+
+
+def get_node_seq_id_of_node(service_node):
+    node_meta = service_node.get(
+        "NodeMeta", {})
+    return node_meta.get(SERVICE_DISCOVERY_LABEL_SEQ)
 
 
 def get_service_dns_name(

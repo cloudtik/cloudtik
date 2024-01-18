@@ -180,10 +180,12 @@ def run_bash_scripts(script_path: str, command: str, script_args):
 
 def load_yaml_config(config_file):
     def handle_yaml_error(e):
-        cli_logger.error("YAML configuration invalid")
+        cli_logger.error(
+            "YAML configuration invalid")
         cli_logger.newline()
-        cli_logger.error("Failed to load YAML file " + cf.bold("{}"),
-                         config_file)
+        cli_logger.error(
+            "Failed to load YAML file " + cf.bold("{}"),
+            config_file)
         cli_logger.newline()
         with cli_logger.verbatim_error_ctx("PyYAML error:"):
             cli_logger.error(e)
@@ -227,7 +229,8 @@ def load_config_from_cache(
             config_cache = json.loads(f.read())
         if config_cache.get("_version", -1) == cache_version:
             cached_config = decrypt_config(config_cache["config"])
-            if log_once("_printed_cached_config_warning"):
+            if log_once(
+                    "_printed_cached_config_warning"):
                 cli_logger.verbose_warning(
                     "Loaded cached configuration "
                     "from " + cf.bold("{}"), cache_key)
@@ -285,9 +288,10 @@ def format_error_message(exception_message, task_exception=False):
     return "\n".join(lines)
 
 
-def publish_error(error_type,
-                  message,
-                  redis_client=None):
+def publish_error(
+        error_type,
+        message,
+        redis_client=None):
     """Push an error message to Redis.
 
     Args:
@@ -300,17 +304,19 @@ def publish_error(error_type,
     if redis_client:
         message = (f"ERROR: {time.time()}: {error_type}: \n"
                    f"{message}")
-        redis_client.publish("ERROR_INFO",
-                             message)
+        redis_client.publish(
+            "ERROR_INFO",
+            message)
     else:
         raise ValueError(
             "redis_client needs to be specified!")
 
 
-def run_in_parallel_on_nodes(run_exec,
-                             call_context: CallContext,
-                             nodes,
-                             max_workers=MAX_PARALLEL_EXEC_NODES) -> Tuple[int, int, int]:
+def run_in_parallel_on_nodes(
+        run_exec,
+        call_context: CallContext,
+        nodes,
+        max_workers=MAX_PARALLEL_EXEC_NODES) -> Tuple[int, int, int]:
     # This is to ensure that the parallel SSH calls below do not mess with
     # the users terminal.
     output_redir = call_context.is_output_redirected()
@@ -334,16 +340,19 @@ def run_in_parallel_on_nodes(run_exec,
                 result = future.result()
             except ParallelTaskSkipped as se:
                 skipped += 1
-                _cli_logger.warning("Task skipped on node {}: {}", node_id, str(se)),
+                _cli_logger.warning(
+                    "Task skipped on node {}: {}", node_id, str(se)),
             except Exception as e:
                 failures += 1
-                _cli_logger.error("Task failed on node {}: {}", node_id, str(e))
+                _cli_logger.error(
+                    "Task failed on node {}: {}", node_id, str(e))
 
     call_context.set_output_redirected(output_redir)
     call_context.set_allow_interactive(allow_interactive)
 
     if failures > 1 or skipped > 1:
-        _cli_logger.print("Total {} tasks failed. Total {} tasks skipped.", failures, skipped)
+        _cli_logger.print(
+            "Total {} tasks failed. Total {} tasks skipped.", failures, skipped)
 
     return len(nodes) - failures - skipped, failures, skipped
 
@@ -352,7 +361,8 @@ def validate_config(
         config: Dict[str, Any], skip_runtime_validate: bool = False) -> None:
     """Required Dicts indicate that no extra fields can be introduced."""
     if not isinstance(config, dict):
-        raise ValueError("Config {} is not a dictionary".format(config))
+        raise ValueError(
+            "Config {} is not a dictionary".format(config))
 
     validate_schema_by_name(config, CLUSTER_SCHEMA_NAME, CLUSTER_SCHEMA_REFS)
 
@@ -386,7 +396,8 @@ def validate_config(
 
     if not skip_runtime_validate:
         # add runtime config validate and testing
-        runtime_validate_config(config.get(RUNTIME_CONFIG_KEY), config)
+        runtime_validate_config(
+            config.get(RUNTIME_CONFIG_KEY), config)
 
 
 def verify_config(
@@ -452,7 +463,8 @@ def _get_user_template_file(template_name: str):
     if constants.CLOUDTIK_USER_TEMPLATES in os.environ:
         user_template_dirs_str = os.environ[constants.CLOUDTIK_USER_TEMPLATES]
         if user_template_dirs_str:
-            user_template_dirs = [user_template_dir.strip() for user_template_dir in user_template_dirs_str.split(',')]
+            user_template_dirs = [
+                user_template_dir.strip() for user_template_dir in user_template_dirs_str.split(',')]
             for user_template_dir in user_template_dirs:
                 template_file = os.path.join(user_template_dir, template_name)
                 if os.path.exists(template_file):
@@ -461,7 +473,8 @@ def _get_user_template_file(template_name: str):
     return None
 
 
-def _get_template_config(template_name: str, system: bool = False) -> Dict[str, Any]:
+def _get_template_config(
+        template_name: str, system: bool = False) -> Dict[str, Any]:
     """Load the template config"""
     import cloudtik as cloudtik_home
 
@@ -487,40 +500,49 @@ def _get_template_config(template_name: str, system: bool = False) -> Dict[str, 
     return template_config
 
 
-def merge_config(config: Dict[str, Any], updates: Dict[str, Any]) -> Dict[str, Any]:
+def merge_config(
+        config: Dict[str, Any], updates: Dict[str, Any]) -> Dict[str, Any]:
     return update_nested_dict(config, updates)
 
 
-def get_merged_base_config(provider, base_config_name: str,
-                           system: bool = False, object_name: str = None) -> Dict[str, Any]:
+def get_merged_base_config(
+        provider, base_config_name: str,
+        system: bool = False, object_name: str = None) -> Dict[str, Any]:
     template_config = _get_template_config(base_config_name, system=system)
 
     # if provider config exists, verify the provider.type are the same
-    template_provider_type = template_config.get("provider", {}).get("type", None)
+    template_provider_type = template_config.get(
+        "provider", {}).get("type", None)
     if template_provider_type and template_provider_type != provider["type"]:
-        raise RuntimeError("Template provider type ({}) doesn't match ({})!".format(
-            template_provider_type, provider["type"]))
+        raise RuntimeError(
+            "Template provider type ({}) doesn't match ({})!".format(
+                template_provider_type, provider["type"]))
 
-    merged_config = merge_config_hierarchy(provider, template_config,
-                                           system=system, object_name=object_name)
+    merged_config = merge_config_hierarchy(
+        provider, template_config,
+        system=system, object_name=object_name)
     return merged_config
 
 
-def get_merged_default_config(provider, object_name: str = None) -> Dict[str, Any]:
+def get_merged_default_config(
+        provider, object_name: str = None) -> Dict[str, Any]:
     if object_name is None:
         config_object = _get_default_config(provider)
     else:
         config_object = _get_provider_config_object(provider, object_name)
-    return merge_config_hierarchy(provider, config_object, system=True, object_name=object_name)
+    return merge_config_hierarchy(
+        provider, config_object, system=True, object_name=object_name)
 
 
-def merge_config_hierarchy(provider, config: Dict[str, Any],
-                           system: bool = False, object_name: str = None) -> Dict[str, Any]:
+def merge_config_hierarchy(
+        provider, config: Dict[str, Any],
+        system: bool = False, object_name: str = None) -> Dict[str, Any]:
     base_config_name = config.get("from", None)
     if base_config_name:
         # base config is provided, we need to merge with base configuration
-        merged_base_config = get_merged_base_config(provider, base_config_name,
-                                                    system, object_name)
+        merged_base_config = get_merged_base_config(
+            provider, base_config_name,
+            system, object_name)
         merged_config = merge_config(merged_base_config, config)
     elif system:
         merged_config = config
@@ -533,7 +555,8 @@ def merge_config_hierarchy(provider, config: Dict[str, Any],
     return merged_config
 
 
-def _get_rooted_template_config(root: str, template_name: str) -> Dict[str, Any]:
+def _get_rooted_template_config(
+        root: str, template_name: str) -> Dict[str, Any]:
     """Load the template config from root"""
     # Append .yaml extension if the name doesn't include
     if not template_name.endswith(".yaml"):
@@ -546,16 +569,18 @@ def _get_rooted_template_config(root: str, template_name: str) -> Dict[str, Any]
     return template_config
 
 
-def get_rooted_merged_base_config(root: str, base_config_name: str,
-                                  object_name: str = None) -> Dict[str, Any]:
+def get_rooted_merged_base_config(
+        root: str, base_config_name: str,
+        object_name: str = None) -> Dict[str, Any]:
     template_config = _get_rooted_template_config(root, base_config_name)
     merged_config = merge_rooted_config_hierarchy(
         root, template_config, object_name=object_name)
     return merged_config
 
 
-def merge_rooted_config_hierarchy(root: str, config: Dict[str, Any],
-                                  object_name: str = None) -> Dict[str, Any]:
+def merge_rooted_config_hierarchy(
+        root: str, config: Dict[str, Any],
+        object_name: str = None) -> Dict[str, Any]:
     base_config_name = config.get("from", None)
     if base_config_name:
         # base config is provided, we need to merge with base configuration
@@ -764,7 +789,8 @@ def _reorder_runtimes_for_dependency_of_node_types(config):
         if RUNTIME_TYPES_CONFIG_KEY not in node_type_runtime_config:
             continue
 
-        node_type_runtime_types = node_type_runtime_config.get(RUNTIME_TYPES_CONFIG_KEY, [])
+        node_type_runtime_types = node_type_runtime_config.get(
+            RUNTIME_TYPES_CONFIG_KEY, [])
         # Make sure it is a subset of the global runtime types
         node_type_runtime_types_set = set(node_type_runtime_types)
 
@@ -796,7 +822,8 @@ def _get_required_runtimes_of(runtime_type, chain=None):
     if chain:
         loop = chain.intersection(required)
         if loop:
-            raise RuntimeError("There is a loop in the required runtimes.")
+            raise RuntimeError(
+                "There is a loop in the required runtimes.")
         chain = copy.deepcopy(chain)
         chain.add(runtime_type)
     else:
@@ -1053,14 +1080,16 @@ def clean_temporary_commands(merged_commands):
 
 def combine_initialization_commands_from_docker(config, merged_commands):
     for command_key in DOCKER_COMMAND_KEYS:
-        combine_commands_from_docker(config, merged_commands, command_key)
+        combine_commands_from_docker(
+            config, merged_commands, command_key)
 
 
 def combine_commands_from_docker(config, merged_commands, command_key):
     # Check if docker enabled
     commands = merged_commands[command_key]
     if is_docker_enabled(config):
-        docker_commands = merged_commands.get(DOCKER_CONFIG_KEY, {}).get(command_key)
+        docker_commands = merged_commands.get(
+            DOCKER_CONFIG_KEY, {}).get(command_key)
         if docker_commands:
             commands += docker_commands
 
@@ -1084,8 +1113,9 @@ def _get_node_type_specific_runtime_types(config, node_type: str):
     return get_enabled_runtimes(config)
 
 
-def _get_node_specific_commands(config, provider, node_id: str,
-                                command_key: str) -> Any:
+def _get_node_specific_commands(
+        config, provider, node_id: str,
+        command_key: str) -> Any:
     node_type = get_node_type(provider, node_id)
     return _get_node_type_specific_commands(config, node_type, command_key)
 
@@ -1096,12 +1126,14 @@ def _get_node_type_config(config, node_type: str) -> Any:
 
     available_node_types = get_available_node_types(config)
     if node_type not in available_node_types:
-        raise ValueError(f"Unknown node type: {node_type}.")
+        raise ValueError(
+            f"Unknown node type: {node_type}.")
     return available_node_types[node_type]
 
 
-def _get_node_type_specific_fields(config, node_type: str,
-                                   fields_key: str) -> Any:
+def _get_node_type_specific_fields(
+        config, node_type: str,
+        fields_key: str) -> Any:
     fields = None
     node_type_config = _get_node_type_config(config, node_type)
     if (node_type_config is not None) and (
@@ -1112,11 +1144,13 @@ def _get_node_type_specific_fields(config, node_type: str,
 
 
 def _has_node_type_specific_commands(config, node_type: str):
-    return _has_node_type_specific_config(config, node_type, MERGED_COMMAND_KEY)
+    return _has_node_type_specific_config(
+        config, node_type, MERGED_COMMAND_KEY)
 
 
-def _get_node_type_specific_commands(config, node_type: str,
-                                     command_key: str) -> Any:
+def _get_node_type_specific_commands(
+        config, node_type: str,
+        command_key: str) -> Any:
     commands = get_commands_to_run(config, command_key)
     node_type_config = _get_node_type_config(config, node_type)
     if (node_type_config is not None) and (
@@ -1136,14 +1170,17 @@ def _get_node_type_specific_config(config, node_type: str) -> Any:
         return None
     available_node_types = get_available_node_types(config)
     if node_type not in available_node_types:
-        raise ValueError(f"Unknown node type tag: {node_type}.")
+        raise ValueError(
+            f"Unknown node type tag: {node_type}.")
     return available_node_types[node_type]
 
 
-def _get_node_specific_fields(config, provider, node_id: str,
-                              fields_key: str) -> Any:
+def _get_node_specific_fields(
+        config, provider, node_id: str,
+        fields_key: str) -> Any:
     fields = None
-    node_specific_config = _get_node_specific_config(config, provider, node_id)
+    node_specific_config = _get_node_specific_config(
+        config, provider, node_id)
     if (node_specific_config is not None) and (
             fields_key in node_specific_config):
         fields = node_specific_config[fields_key]
@@ -1214,13 +1251,15 @@ def get_node_specific_commands_of_runtimes(
     return filter_commands_of_runtimes(commands_to_run, runtimes)
 
 
-def get_commands_of_runtimes(config, command_key,
-                             runtimes: Optional[List[str]] = None):
+def get_commands_of_runtimes(
+        config, command_key,
+        runtimes: Optional[List[str]] = None):
     commands_to_run = get_commands_to_run(config, command_key)
     return filter_commands_of_runtimes(commands_to_run, runtimes)
 
 
-def filter_commands_of_runtimes(commands_to_run, runtimes: Optional[List[str]] = None):
+def filter_commands_of_runtimes(
+        commands_to_run, runtimes: Optional[List[str]] = None):
     if runtimes is None:
         return commands_to_run
 
@@ -1244,8 +1283,9 @@ def get_default_python_version(config):
 def get_python_tag_from_version(version):
     parts = version.split('.')
     if len(parts) < 2 or len(parts) > 3:
-        raise ValueError("Invalid python version: {}. "
-                         "Must specify the major and minor version.".format(version))
+        raise ValueError(
+            "Invalid python version: {}. "
+            "Must specify the major and minor version.".format(version))
     return "{}{}".format(parts[0], parts[1])
 
 
@@ -1376,8 +1416,10 @@ def _sum_min_workers(config: Dict[str, Any]):
 
 def set_default_max_workers(config):
     if "max_workers" not in config:
-        logger.debug("Global max workers not set. "
-                     "Will set to the sum of min workers or {} which is larger.", CLOUDTIK_DEFAULT_MAX_WORKERS)
+        logger.debug(
+            "Global max workers not set. "
+            "Will set to the sum of min workers or {} which is larger.",
+            CLOUDTIK_DEFAULT_MAX_WORKERS)
         sum_min_workers = 0
         node_types = get_available_node_types(config)
         for node_type_name in node_types:
@@ -1402,12 +1444,14 @@ def set_node_type_min_max_workers(config):
         node_type_data.setdefault("min_workers", 0)
         if "max_workers" not in node_type_data:
             if node_type_name == config["head_node_type"]:
-                logger.debug("setting max workers for head node type to 0")
+                logger.debug(
+                    "setting max workers for head node type to 0")
                 node_type_data.setdefault("max_workers", 0)
             else:
                 global_max_workers = config["max_workers"]
-                logger.debug(f"setting max workers for {node_type_name} to "
-                             f"{global_max_workers}")
+                logger.debug(
+                    f"setting max workers for {node_type_name} to "
+                    f"{global_max_workers}")
                 node_type_data.setdefault("max_workers", global_max_workers)
 
 
@@ -1437,12 +1481,14 @@ def with_node_ip_environment_variables(
     if node_ip is None:
         # Waiting for node internal ip for node
         if (provider is None) or (node_id is None):
-            raise RuntimeError("Missing provider or node id for retrieving node ip.")
+            raise RuntimeError(
+                "Missing provider or node id for retrieving node ip.")
 
         deadline = time.time() + CLOUDTIK_NODE_START_WAIT_S
         node_ip = wait_for_cluster_ip(call_context, provider, node_id, deadline)
         if node_ip is None:
-            raise RuntimeError("Failed to get node ip for node {}.".format(node_id))
+            raise RuntimeError(
+                "Failed to get node ip for node {}.".format(node_id))
 
     ip_envs = {CLOUDTIK_RUNTIME_ENV_NODE_IP: node_ip}
     return ip_envs
@@ -1530,13 +1576,14 @@ def load_runtime_hash(hash_context: Dict[str, Any], file_mounts, hash_str: str):
     return runtime_hasher.hexdigest()
 
 
-def hash_runtime_conf(file_mounts,
-                      cluster_synced_files,
-                      extra_objs,
-                      generate_runtime_hash=True,
-                      generate_file_mounts_contents_hash=False,
-                      generate_node_types_runtime_hash=False,
-                      config: Dict[str, Any] = None):
+def hash_runtime_conf(
+        file_mounts,
+        cluster_synced_files,
+        extra_objs,
+        generate_runtime_hash=True,
+        generate_file_mounts_contents_hash=False,
+        generate_node_types_runtime_hash=False,
+        config: Dict[str, Any] = None):
     """Returns two hashes, a runtime hash and file_mounts_content hash.
 
     The runtime hash is used to determine if the configuration or file_mounts
@@ -1549,14 +1596,18 @@ def hash_runtime_conf(file_mounts,
     """
     contents_hasher = hashlib.sha1()
     hash_context = {HASH_CONTEXT_CONTENTS_HASHER: contents_hasher}
-    file_mounts_str = json.dumps(file_mounts, sort_keys=True).encode("utf-8")
+    file_mounts_str = json.dumps(
+        file_mounts, sort_keys=True).encode("utf-8")
 
     if generate_runtime_hash:
-        extra_objs_str = json.dumps(extra_objs, sort_keys=True).encode("utf-8")
+        extra_objs_str = json.dumps(
+            extra_objs, sort_keys=True).encode("utf-8")
         conf_str = (file_mounts_str + extra_objs_str)
         runtime_hash = _hash_cache.get(
-                conf_str, load_runtime_hash,
-                hash_context=hash_context, file_mounts=file_mounts, hash_str=conf_str)
+            conf_str, load_runtime_hash,
+            hash_context=hash_context,
+            file_mounts=file_mounts,
+            hash_str=conf_str)
     else:
         runtime_hash = None
 
@@ -1574,7 +1625,8 @@ def hash_runtime_conf(file_mounts,
                 # For cluster_synced_files, we let the path be non-existant
                 # because its possible that the source directory gets set up
                 # anytime over the life of the head node.
-                add_content_hashes(contents_hasher, local_path, allow_non_existing_paths=True)
+                add_content_hashes(
+                    contents_hasher, local_path, allow_non_existing_paths=True)
 
         file_mounts_contents_hash = contents_hasher.hexdigest()
     else:
@@ -1624,12 +1676,15 @@ def hash_runtime_conf_for_node_types(
                 config, node_type)
         }
 
-        extra_objs_str = json.dumps(node_type_runtime_conf, sort_keys=True).encode("utf-8")
+        extra_objs_str = json.dumps(
+            node_type_runtime_conf, sort_keys=True).encode("utf-8")
         node_type_conf_str = (file_mounts_str + extra_objs_str)
 
         runtime_hash_for_node_types[node_type] = _hash_cache.get(
             node_type_conf_str, load_runtime_hash,
-            hash_context=hash_context, file_mounts=file_mounts, hash_str=node_type_conf_str)
+            hash_context=hash_context,
+            file_mounts=file_mounts,
+            hash_str=node_type_conf_str)
 
     return runtime_hash_for_node_types
 
@@ -2011,7 +2066,8 @@ def is_peering_firewall_allow_working_subnet(config: Dict[str, Any]) -> bool:
 
 
 def is_peering_firewall_allow_ssh_only(config: Dict[str, Any]) -> bool:
-    return config.get("provider", {}).get("peering_firewall_allow_ssh_only", True)
+    return config.get("provider", {}).get(
+        "peering_firewall_allow_ssh_only", True)
 
 
 def get_node_cluster_ip(provider: NodeProvider, node: str) -> str:
@@ -2138,9 +2194,10 @@ def _append_list(target_dict, list_appending):
                 target_dict[to_key] = v
 
 
-def update_nested_dict(target_dict, new_dict,
-                       match_list_item_with_name: bool = True,
-                       advanced_list_appending: bool = True):
+def update_nested_dict(
+        target_dict, new_dict,
+        match_list_item_with_name: bool = True,
+        advanced_list_appending: bool = True):
     list_appending = {}
     for k, v in new_dict.items():
         if isinstance(v, collections.abc.Mapping):
@@ -2192,10 +2249,12 @@ def is_alive_time_at(report_time, current_time):
 
 
 def get_head_bootstrap_config():
-    bootstrap_config_file = os.path.expanduser("~/cloudtik_bootstrap_config.yaml")
+    bootstrap_config_file = os.path.expanduser(
+        "~/cloudtik_bootstrap_config.yaml")
     if os.path.exists(bootstrap_config_file):
         return bootstrap_config_file
-    raise RuntimeError("Cluster bootstrap config not found. Incorrect head environment!")
+    raise RuntimeError(
+        "Cluster bootstrap config not found. Incorrect head environment!")
 
 
 def load_head_cluster_config() -> Dict[str, Any]:
@@ -2206,9 +2265,10 @@ def load_head_cluster_config() -> Dict[str, Any]:
     return config
 
 
-def get_attach_command(use_screen: bool,
-                       use_tmux: bool,
-                       new: bool = False):
+def get_attach_command(
+        use_screen: bool,
+        use_tmux: bool,
+        new: bool = False):
     if use_tmux:
         if new:
             cmd = "tmux new"
@@ -2232,14 +2292,16 @@ def is_docker_enabled(config: Dict[str, Any]) -> bool:
     return config.get(DOCKER_CONFIG_KEY, {}).get("enabled", False)
 
 
-def get_nodes_info(provider, nodes, extras: bool = False,
-                   available_node_types: Dict[str, Any] = None):
+def get_nodes_info(
+        provider, nodes, extras: bool = False,
+        available_node_types: Dict[str, Any] = None):
     return [get_node_info(
         provider, node, extras, available_node_types) for node in nodes]
 
 
-def get_node_info(provider, node, extras: bool = False,
-                  available_node_types: Dict[str, Any] = None):
+def get_node_info(
+        provider, node, extras: bool = False,
+        available_node_types: Dict[str, Any] = None):
     node_info = provider.get_node_info(node)
     node_info["node"] = node
 
@@ -2406,7 +2468,8 @@ def _get_workers_ready(config: Dict[str, Any], provider):
     workers_info = get_nodes_info(provider, workers)
 
     # get working nodes which are ready
-    workers_ready = _get_number_of_node_in_status(workers_info, STATUS_UP_TO_DATE)
+    workers_ready = _get_number_of_node_in_status(
+        workers_info, STATUS_UP_TO_DATE)
     return workers_ready
 
 
@@ -2524,7 +2587,8 @@ def with_environment_variables_from_config(config, node_type: str):
     return config_envs
 
 
-def with_runtime_environment_variables(runtime_config, config, provider, node_id: str):
+def with_runtime_environment_variables(
+        runtime_config, config, provider, node_id: str):
     all_runtime_envs = {}
     if runtime_config is None:
         return all_runtime_envs
@@ -2543,7 +2607,8 @@ def with_runtime_environment_variables(runtime_config, config, provider, node_id
     runtime_types = runtime_config.get(RUNTIME_TYPES_CONFIG_KEY, [])
 
     if len(runtime_types) > 0:
-        all_runtime_envs[constants.CLOUDTIK_RUNTIME_ENV_RUNTIMES] = ",".join(runtime_types)
+        all_runtime_envs[constants.CLOUDTIK_RUNTIME_ENV_RUNTIMES] = ",".join(
+            runtime_types)
 
     # Iterate through all the runtimes
     for runtime_type in runtime_types:
@@ -2779,7 +2844,8 @@ def verify_runtime_list(config: Dict[str, Any], runtimes: List[str]):
     for runtime in runtimes:
         if runtime in runtime_types or runtime == CLOUDTIK_RUNTIME_NAME:
             continue
-        raise ValueError(f"Runtime {runtime} is not enabled in config.")
+        raise ValueError(
+            f"Runtime {runtime} is not enabled in config.")
 
 
 def get_verified_runtime_list(config: Dict[str, Any], runtimes: str):
@@ -2811,9 +2877,11 @@ def check_for_single_worker_type(config: Dict[str, Any]):
             worker_type = node_type
 
     if num_worker_type == 0:
-        raise ValueError("No worker type defined for cluster.")
+        raise ValueError(
+            "No worker type defined for cluster.")
     elif num_worker_type > 1:
-        raise ValueError("There are more than one worker types defined.")
+        raise ValueError(
+            "There are more than one worker types defined.")
 
     return worker_type
 
@@ -2827,7 +2895,8 @@ def get_worker_node_type(config: Dict[str, Any]):
         if node_type != head_node_type:
             return node_type
 
-    raise ValueError("No worker node type defined.")
+    raise ValueError(
+        "No worker node type defined.")
 
 
 def _gcd_of_numbers(numbers):
@@ -2839,19 +2908,26 @@ def _gcd_of_numbers(numbers):
     return gcd
 
 
-def get_preferred_cpu_bundle_size(config: Dict[str, Any]) -> Optional[int]:
-    return get_preferred_bundle_size(config, constants.CLOUDTIK_RESOURCE_CPU)
+def get_preferred_cpu_bundle_size(
+        config: Dict[str, Any]) -> Optional[int]:
+    return get_preferred_bundle_size(
+        config, constants.CLOUDTIK_RESOURCE_CPU)
 
 
-def get_preferred_gpu_bundle_size(config: Dict[str, Any]) -> Optional[int]:
-    return get_preferred_bundle_size(config, constants.CLOUDTIK_RESOURCE_GPU)
+def get_preferred_gpu_bundle_size(
+        config: Dict[str, Any]) -> Optional[int]:
+    return get_preferred_bundle_size(
+        config, constants.CLOUDTIK_RESOURCE_GPU)
 
 
-def get_preferred_memory_bundle_size(config: Dict[str, Any]) -> Optional[int]:
-    return get_preferred_bundle_size(config, constants.CLOUDTIK_RESOURCE_MEMORY)
+def get_preferred_memory_bundle_size(
+        config: Dict[str, Any]) -> Optional[int]:
+    return get_preferred_bundle_size(
+        config, constants.CLOUDTIK_RESOURCE_MEMORY)
 
 
-def get_preferred_bundle_size(config: Dict[str, Any], resource_id: str) -> Optional[int]:
+def get_preferred_bundle_size(
+        config: Dict[str, Any], resource_id: str) -> Optional[int]:
     available_node_types = config.get("available_node_types")
     if available_node_types is None:
         return None
@@ -2907,7 +2983,9 @@ def _get_node_type_resource_requests(config, node_type, resource_id):
         return resource_requests
 
     if node_type not in available_node_types:
-        raise RuntimeError("Invalid configuration. Node type {} is not defined.".format(node_type))
+        raise RuntimeError(
+            "Invalid configuration. Node type {} is not defined.".format(
+                node_type))
 
     node_type_config = available_node_types[node_type]
     resources = node_type_config.get("resources", {})
@@ -2964,7 +3042,8 @@ def get_node_type(provider, node_id: str):
 def get_node_type_config(config, provider, node_id: str):
     node_type = get_node_type(provider, node_id)
     if node_type is None:
-        raise RuntimeError("Node type of node {} is unknown.".format(node_id))
+        raise RuntimeError(
+            "Node type of node {} is unknown.".format(node_id))
 
     return get_node_type_config_of_node_type(config, node_type)
 
@@ -2995,7 +3074,8 @@ def decode_cluster_secrets(encoded_secrets):
 
 def get_runtime_config_key(node_type: str):
     if node_type and len(node_type) > 0:
-        runtime_config_key = CLOUDTIK_CLUSTER_RUNTIME_CONFIG_NODE_TYPE.format(node_type)
+        runtime_config_key = CLOUDTIK_CLUSTER_RUNTIME_CONFIG_NODE_TYPE.format(
+            node_type)
     else:
         runtime_config_key = CLOUDTIK_CLUSTER_RUNTIME_CONFIG
     return runtime_config_key
@@ -3065,7 +3145,8 @@ def get_running_head_node(
             head_node = node
         else:
             _backup_head_node = node
-            cli_logger.warning(f"Head node ({node}) is in state {node_state}.")
+            cli_logger.warning(
+                f"Head node ({node}) is in state {node_state}.")
 
     if head_node is not None:
         return head_node
@@ -3088,7 +3169,8 @@ def get_running_head_node(
                     config["cluster_name"]))
 
 
-def load_properties_file(properties_file, separator='=') -> Tuple[Dict[str, str], Dict[str, List[str]]]:
+def load_properties_file(
+        properties_file, separator='=') -> Tuple[Dict[str, str], Dict[str, List[str]]]:
     properties = {}
     comments = {}
     comments_for_key = []
@@ -3116,8 +3198,9 @@ def load_properties_file(properties_file, separator='=') -> Tuple[Dict[str, str]
     return properties, comments
 
 
-def save_properties_file(properties_file,  properties: Dict[str, str], separator='=',
-                         comments: Dict[str, List[str]] = None):
+def save_properties_file(
+        properties_file,  properties: Dict[str, str], separator='=',
+        comments: Dict[str, List[str]] = None):
     with open(properties_file, "w+") as f:
         for key, value in properties.items():
             if comments and key in comments:
@@ -3309,7 +3392,8 @@ def process_key_with_privacy(v, param):
     return v
 
 
-def process_config_with_privacy(config, func=process_key_with_privacy, param=None):
+def process_config_with_privacy(
+        config, func=process_key_with_privacy, param=None):
     if config is None:
         return
 
@@ -3409,7 +3493,8 @@ def _get_scaling_policy_cls(class_path):
     """
     scaling_policy_class = load_class(path=class_path)
     if scaling_policy_class is None:
-        raise NotImplementedError("Cannot load external scaling policy class: {}".format(class_path))
+        raise NotImplementedError(
+            "Cannot load external scaling policy class: {}".format(class_path))
 
     return scaling_policy_class
 
@@ -3421,7 +3506,8 @@ def _get_user_scaling_policy(runtime_config, config, head_host):
     if "scaling_policy_class" not in scaling_config:
         return None
 
-    scaling_policy_cls = _get_scaling_policy_cls(scaling_config["scaling_policy_class"])
+    scaling_policy_cls = _get_scaling_policy_cls(
+        scaling_config["scaling_policy_class"])
     return scaling_policy_cls(config, head_host)
 
 
@@ -3443,20 +3529,23 @@ def merge_scaling_state(scaling_state: ScalingState, new_scaling_state: ScalingS
     return ScalingState(autoscaling_instructions, node_resource_states, lost_nodes)
 
 
-def convert_nodes_to_cpus(config: Dict[str, Any], nodes: int,
-                          node_type: Optional[str] = None) -> int:
+def convert_nodes_to_cpus(
+        config: Dict[str, Any], nodes: int,
+        node_type: Optional[str] = None) -> int:
     return convert_nodes_to_resource(
         config, nodes, constants.CLOUDTIK_RESOURCE_CPU, node_type)
 
 
-def convert_nodes_to_memory(config: Dict[str, Any], nodes: int,
-                            node_type: Optional[str] = None) -> int:
+def convert_nodes_to_memory(
+        config: Dict[str, Any], nodes: int,
+        node_type: Optional[str] = None) -> int:
     return convert_nodes_to_resource(
         config, nodes, constants.CLOUDTIK_RESOURCE_MEMORY, node_type)
 
 
-def convert_nodes_to_gpus(config: Dict[str, Any], nodes: int,
-                          node_type: Optional[str] = None) -> int:
+def convert_nodes_to_gpus(
+        config: Dict[str, Any], nodes: int,
+        node_type: Optional[str] = None) -> int:
     return convert_nodes_to_resource(
         config, nodes, constants.CLOUDTIK_RESOURCE_GPU, node_type)
 
@@ -3472,8 +3561,9 @@ def convert_nodes_to_resource(
         resources = available_node_types[node_type_name].get("resources", {})
         resource_total = resources.get(resource_id, 0)
         if resource_total <= 0:
-            raise ValueError("The amount of {} resource for {} is invalid {}".format(
-                resource_id, node_type_name, resource_total))
+            raise ValueError(
+                "The amount of {} resource for {} is invalid {}".format(
+                    resource_id, node_type_name, resource_total))
         return nodes * resource_total
 
     head_node_type = get_head_node_type(config)
@@ -3559,10 +3649,10 @@ def validate_resources(resources, name="Resources"):
             for key in resources.keys():
                 if not (isinstance(key, str) and isinstance(resources[key], int)):
                     raise TypeError(
-                        f"{name} key should be str and value as int."
-                    )
+                        f"{name} key should be str and value as int.")
         else:
-            raise TypeError(f"{name} should be a Dict.")
+            raise TypeError(
+                f"{name} should be a Dict.")
 
 
 def parse_resources_json(
@@ -3573,7 +3663,8 @@ def parse_resources_json(
         if not isinstance(resources, dict):
             raise ValueError
     except Exception:
-        cli_logger.error("`{}` is not a valid JSON string.", cf.bold(command_arg))
+        cli_logger.error(
+            "`{}` is not a valid JSON string.", cf.bold(command_arg))
         cli_logger.abort(
             "Valid values look like this: `{}`",
             cf.bold(
@@ -3590,7 +3681,8 @@ def validate_bundles(bundles):
             for bundle in bundles:
                 validate_resources(bundle, "Bundle")
         else:
-            raise TypeError("Bundles should be of type List")
+            raise TypeError(
+                "Bundles should be of type List")
 
 
 def parse_bundles_json(
@@ -3600,7 +3692,8 @@ def parse_bundles_json(
         bundles = json.loads(bundles)
         validate_bundles(bundles)
     except Exception:
-        cli_logger.error("`{}` is not a valid JSON string.", cf.bold(command_arg))
+        cli_logger.error(
+            "`{}` is not a valid JSON string.", cf.bold(command_arg))
         cli_logger.abort(
             "Valid values look like this: `{}`",
             cf.bold(

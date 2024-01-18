@@ -873,6 +873,11 @@
                     "default": "cloudtik",
                     "description": "Specify the admin password when initializing the MySQL instance."
                 },
+                "replication_user": {
+                    "type": "string",
+                    "default": "repl_user",
+                    "description": "Specify the replication user for replication cluster."
+                },
                 "replication_password": {
                     "type": "string",
                     "default": "cloudtik",

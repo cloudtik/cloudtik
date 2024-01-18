@@ -39,9 +39,9 @@ def _get_delete_backends(backends, existing_backends):
 
 
 class DiscoverJob(PullJob):
-    def __init__(self,
-                 service_selector=None,
-                 ):
+    def __init__(
+            self,
+            service_selector=None):
         self.service_selector = deserialize_service_selector(
             service_selector)
         self.last_config_hash = None
@@ -57,12 +57,13 @@ class DiscoverBackendServers(DiscoverJob):
     """Pulling job for discovering backend targets for API gateway
     """
 
-    def __init__(self,
-                 service_selector=None,
-                 config_mode=None,
-                 balance_method=None,
-                 admin_endpoint=None,
-                 ):
+    def __init__(
+            self,
+            service_selector=None,
+            config_mode=None,
+            balance_method=None,
+            admin_endpoint=None,
+    ):
         super().__init__(service_selector)
         self.config_mode = config_mode
         self.balance_method = balance_method
@@ -75,7 +76,8 @@ class DiscoverBackendServers(DiscoverJob):
         for service_name in selected_services:
             service_nodes = self._query_service_nodes(service_name)
             if not service_nodes:
-                logger.warning("No live servers return from the service selector.")
+                logger.warning(
+                    "No live servers return from the service selector.")
             else:
                 backend_name = service_name
                 try:
@@ -174,18 +176,22 @@ class DiscoverBackendServers(DiscoverJob):
             add_or_update_backend(
                 self.admin_endpoint, backend_name,
                 self.balance_method, backend_service)
-            logger.info("Backend {} created or updated.".format(
-                backend_name))
+            logger.info(
+                "Backend {} created or updated.".format(
+                    backend_name))
         except Exception as e:
-            logger.error("Backend {} created or updated failed: {}".format(
-                backend_name, str(e)))
+            logger.error(
+                "Backend {} created or updated failed: {}".format(
+                    backend_name, str(e)))
 
     def _delete_backend(self, backend_name):
         try:
             delete_backend(
                 self.admin_endpoint, backend_name)
-            logger.info("Backend {} deleted successfully.".format(
-                backend_name))
+            logger.info(
+                "Backend {} deleted successfully.".format(
+                    backend_name))
         except Exception as e:
-            logger.error("Backend {} deletion failed: {}.".format(
-                backend_name, str(e)))
+            logger.error(
+                "Backend {} deletion failed: {}.".format(
+                    backend_name, str(e)))

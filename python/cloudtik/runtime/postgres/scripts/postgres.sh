@@ -197,7 +197,7 @@ postgres_init_db_and_user() {
 
 postgres_setup_replication_user() {
 	POSTGRES_REPLICATION_PASSWORD="${POSTGRES_REPLICATION_PASSWORD:-cloudtik}"
-	postgres_process_sql <<<"CREATE ROLE repl_user WITH REPLICATION LOGIN PASSWORD '$POSTGRES_REPLICATION_PASSWORD';"
+	postgres_process_sql <<<"CREATE ROLE $POSTGRES_REPLICATION_USER WITH REPLICATION LOGIN PASSWORD '$POSTGRES_REPLICATION_PASSWORD';"
 }
 
 # usage: postgres_process_init_files [file [file [...]]]
@@ -302,7 +302,7 @@ pg_setup_hba_conf() {
 			printf '# see https://www.postgresql.org/docs/12/auth-trust.html\n'
 		fi
 		printf 'host all all all %s\n' "$POSTGRES_HOST_AUTH_METHOD"
-		printf 'host replication repl_user all %s\n' "$POSTGRES_HOST_AUTH_METHOD"
+		printf 'host replication %s all %s\n' "${POSTGRES_REPLICATION_USER}" "$POSTGRES_HOST_AUTH_METHOD"
 	} >> "$PGDATA/pg_hba.conf"
 }
 
@@ -501,7 +501,7 @@ postgres_get_waldir() {
 #########################
 postgres_configure_recovery() {
     info "Setting up streaming replication slave..."
-    local -r replication_user="${1:-repl_user}"
+    local -r replication_user="${1:-${POSTGRES_REPLICATION_USER}}"
     local -r escaped_password="${POSTGRES_REPLICATION_PASSWORD//\&/\\&}"
     local -r password_str="${2:-"password=${escaped_password}"}"
     local -r application_name="${POSTGRES_APP_NAME:-"${POSTGRES_SERVER_NAME}"}"
@@ -531,7 +531,7 @@ postgres_clone_primary() {
       replication_slot_options="-C -S $POSTGRES_REPLICATION_SLOT_NAME"
     fi
     pg_basebackup -h ${POSTGRES_PRIMARY_HOST} \
-      -U repl_user --no-password ${replication_slot_options} \
+      -U ${POSTGRES_REPLICATION_USER} --no-password ${replication_slot_options} \
       -X stream -R -D $PGDATA
     unset PGPASSWORD
 }
