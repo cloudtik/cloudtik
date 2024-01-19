@@ -3172,8 +3172,10 @@ def get_running_head_node(
 def load_properties_file(
         properties_file, separator='=') -> Tuple[Dict[str, str], Dict[str, List[str]]]:
     properties = {}
+    # the comments will attach to key before it
     comments = {}
     comments_for_key = []
+    last_key = None
     with open(properties_file, "r") as f:
         for line in f.readlines():
             # Strip all the spaces and tabs
@@ -3185,20 +3187,28 @@ def load_properties_file(
                 # The comment is kept as it was instead of striped
                 comments_for_key += [line.rstrip('\n')]
             else:
-                # Filtering out the empty and comment lines
+                if len(comments_for_key) > 0:
+                    if last_key:
+                        comments[last_key] = comments_for_key
+                    else:
+                        # header comments
+                        comments[""] = comments_for_key
+                    comments_for_key = []
+
                 # Use split() instead of split(" ") to split value with multiple spaces
                 key_value = striped_line.split(separator)
                 key = key_value[0].strip()
                 value = separator.join(key_value[1:]).strip()
                 properties[key] = value
-                if len(comments_for_key) > 0:
-                    comments[key] = comments_for_key
-                    comments_for_key = []
+                last_key = key
 
-    # if there are trailing comments without key
+    # if there are head comments without key
     if len(comments_for_key) > 0:
-        # store it to an empty key
-        comments[""] = comments_for_key
+        if last_key:
+            comments[last_key] = comments_for_key
+        else:
+            # header comments
+            comments[""] = comments_for_key
 
     return properties, comments
 
@@ -3207,24 +3217,24 @@ def save_properties_file(
         properties_file,  properties: Dict[str, str], separator='=',
         comments: Dict[str, List[str]] = None):
     with open(properties_file, "w+") as f:
-        for key, value in properties.items():
-            if comments and key in comments:
-                comments_for_key = comments[key]
-                f.write("\n")
-                for comment in comments_for_key:
-                    # The comment line is kept as it was
-                    f.write(comment)
-                    f.write("\n")
-
-            f.write("{}{}{}\n".format(key, separator, value))
-
-        # write trailing comments if there are any
+        # write head comments if there are any
         comments_for_key = comments.get("") if comments else None
         if comments_for_key:
             for comment in comments_for_key:
                 # The comment line is kept as it was
                 f.write(comment)
                 f.write("\n")
+
+        for key, value in properties.items():
+            f.write("{}{}{}\n".format(key, separator, value))
+
+            # write comments after key
+            if comments and key in comments:
+                comments_for_key = comments[key]
+                for comment in comments_for_key:
+                    # The comment line is kept as it was
+                    f.write(comment)
+                    f.write("\n")
 
 
 def is_managed_cloud_storage(workspace_config: Dict[str, Any]) -> bool:

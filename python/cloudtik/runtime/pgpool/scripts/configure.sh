@@ -44,13 +44,25 @@ configure_variable() {
 }
 
 configure_service_init() {
-    echo "# Pgpool init variables" > ${PGPOOL_CONFIG_DIR}/pgpool
+    local -r var_file=${PGPOOL_CONFIG_DIR}/pgpool
+    echo "# Pgpool init variables" > $var_file
 
     configure_variable PGPOOL_CONF_FILE "${PGPOOL_CONFIG_DIR}/pgpool.conf"
     configure_variable PGPOOL_PCP_FILE "${PGPOOL_CONFIG_DIR}/pcp.conf"
     configure_variable PGPOOL_HBA_FILE "${PGPOOL_CONFIG_DIR}/pool_hba.conf"
     configure_variable PGPOOL_AUTHENTICATION_METHOD "${PGPOOL_AUTHENTICATION_METHOD:-scram-sha-256}"
     configure_variable PGPOOLKEYFILE "${PGPOOL_CONFIG_DIR}/.pgpoolkey"
+
+    configure_variable PGPOOL_PORT ${PGPOOL_SERVICE_PORT}
+    configure_variable PGPOOL_PCP_PORT ${PGPOOL_PCP_PORT}
+    # TODO: further improve the security of the password in file
+    configure_variable PGPOOL_ADMIN_USER "${PGPOOL_ADMIN_USER}"
+    configure_variable PGPOOL_ADMIN_PASSWORD "${PGPOOL_ADMIN_PASSWORD}"
+    configure_variable PGPOOL_POSTGRES_USER "${PGPOOL_POSTGRES_USER}"
+    configure_variable PGPOOL_POSTGRES_PASSWORD "${PGPOOL_POSTGRES_PASSWORD}"
+
+    # make it owner only read/write for security
+    chmod 0600 "$var_file"
 }
 
 configure_pgpool() {
@@ -59,12 +71,16 @@ configure_pgpool() {
     config_template_file=${output_dir}/pgpool.conf
 
     mkdir -p ${PGPOOL_HOME}/logs
+    mkdir -p ${PGPOOL_HOME}/run
+    mkdir -p ${PGPOOL_HOME}/data
+
     PGPOOL_CONFIG_DIR=${PGPOOL_HOME}/conf
     mkdir -p ${PGPOOL_CONFIG_DIR}
 
     # The listen_addresses cannot be ip address list. So we bind all.
     # update_place_holder "listen.address" "${NODE_IP_ADDRESS}"
     update_place_holder "listen.port" "${PGPOOL_SERVICE_PORT}"
+    update_place_holder "pcp.port" "${PGPOOL_PCP_PORT}"
     update_place_holder "pgpool.home" "${PGPOOL_HOME}"
 
     # max.pool
@@ -76,6 +92,9 @@ configure_pgpool() {
     update_place_holder "health.check.password" "${PGPOOL_REPLICATION_PASSWORD}"
 
     cp $config_template_file ${PGPOOL_CONFIG_DIR}/pgpool.conf
+    # make it owner only read/write for security
+    chmod 0600 "${PGPOOL_CONFIG_DIR}/pgpool.conf"
+
     cp $output_dir/pcp.conf ${PGPOOL_CONFIG_DIR}/pcp.conf
     cp $output_dir/pool_hba.conf ${PGPOOL_CONFIG_DIR}/pool_hba.conf
 

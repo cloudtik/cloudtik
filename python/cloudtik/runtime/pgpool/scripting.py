@@ -20,9 +20,21 @@ PGPOOL_MAX_SERVERS = 1024
 ###################################
 
 
-def _get_config_file():
+def _get_config_dir():
     home_dir = _get_home_dir()
-    return os.path.join(home_dir, "conf", "pgpool.conf")
+    return os.path.join(home_dir, "conf")
+
+
+def _get_config_file():
+    return os.path.join(_get_config_dir(), "pgpool.conf")
+
+
+def _get_pcp_file():
+    return os.path.join(_get_config_dir(), "pcp.conf")
+
+
+def _get_hba_file():
+    return os.path.join(_get_config_dir(), "pool_hba.conf")
 
 
 def _get_initial_backend_servers(pgpool_config):
@@ -93,7 +105,17 @@ def stop_pull_server():
 def update_configuration(backend_servers):
     if _update_backends(backend_servers):
         # the conf is changed, reload the service
-        exec_with_call("pgpool reload")
+        config_file = _get_config_file()
+        pcp_file = _get_pcp_file()
+        hba_file = _get_hba_file()
+        cmd = [
+            "pgpool",
+            "-f", config_file,
+            "-F", pcp_file,
+            "-a", hba_file,
+            "reload"]
+        cmd_str = " ".join(cmd)
+        exec_with_call(cmd_str)
 
 
 def _update_backends(backend_servers):
@@ -155,6 +177,7 @@ def _add_backend_servers_to_config(
     for server_address in new_server_addresses:
         _add_backend_server_to_config(
             config_object, start_index, server_address)
+        start_index += 1
 
 
 def _add_backend_server_to_config(
@@ -162,7 +185,12 @@ def _add_backend_server_to_config(
     backend_hostname_key = f"backend_hostname{index}"
     backend_port_key = f"backend_port{index}"
     backend_weight_key = f"backend_weight{index}"
+    backend_data_directory_key = f"backend_data_directory{index}"
+    backend_flag_key = f"backend_flag{index}"
 
+    data_dir = os.path.join(_get_home_dir(), "data")
     config_object[backend_hostname_key] = server_address[0]
     config_object[backend_port_key] = server_address[1]
     config_object[backend_weight_key] = str(1)
+    config_object[backend_data_directory_key] = data_dir
+    config_object[backend_flag_key] = "ALLOW_TO_FAILOVER"

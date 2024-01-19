@@ -14,9 +14,7 @@ set_head_option "$@"
 set_service_command "$@"
 set_node_address
 
-USER_HOME=/home/$(whoami)
-RUNTIME_PATH=$USER_HOME/runtime
-PGPOOL_HOME=$RUNTIME_PATH/pgpool
+PGPOOL_HOME=$(get_runtime_home pgpool)
 
 case "$SERVICE_COMMAND" in
 start)
@@ -28,7 +26,7 @@ start)
           --config-file=${PGPOOL_CONF_FILE} \
           --pcp-file=${PGPOOL_PCP_FILE} \
           --hba-file=${PGPOOL_HBA_FILE} \
-          >${PGPOOL_HOME}/logs/pgpool-start.log 2>&1
+          --discard-status >${PGPOOL_HOME}/logs/pgpool-start.log 2>&1
     fi
     ;;
 stop)
@@ -36,10 +34,14 @@ stop)
         || [ "${IS_HEAD_NODE}" == "true" ]; then
         # source to get the variables needed
         . ${PGPOOL_HOME}/conf/pgpool
-        pgpool \
-          --config-file=${PGPOOL_CONF_FILE} \
-          --pcp-file=${PGPOOL_PCP_FILE} \
-          -m fast stop
+        local -r pid_file=${PGPOOL_HOME}/run/pgpool.pid
+        if [[ -f "$pid_file" ]]; then
+            pgpool \
+              --config-file=${PGPOOL_CONF_FILE} \
+              --pcp-file=${PGPOOL_PCP_FILE} \
+              --hba-file=${PGPOOL_HBA_FILE} \
+              -m fast stop
+        fi
     fi
     ;;
 -h|--help)
