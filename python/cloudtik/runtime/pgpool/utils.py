@@ -9,7 +9,7 @@ from cloudtik.core._private.service_discovery.utils import \
     define_runtime_service_on_head_or_all, get_service_discovery_config, SERVICE_DISCOVERY_FEATURE_DATABASE
 from cloudtik.core._private.util.core_utils import get_config_for_update, address_string, get_address_string
 from cloudtik.core._private.util.database_utils import \
-    DATABASE_PASSWORD_POSTGRES_DEFAULT, DATABASE_USERNAME_POSTGRES_DEFAULT
+    DATABASE_PASSWORD_POSTGRES_DEFAULT, DATABASE_USERNAME_POSTGRES_DEFAULT, DATABASE_PORT_POSTGRES_DEFAULT
 from cloudtik.core._private.utils import RUNTIME_CONFIG_KEY, get_runtime_config
 from cloudtik.runtime.common.service_discovery.discovery import DiscoveryType
 from cloudtik.runtime.common.service_discovery.runtime_discovery import \
@@ -41,13 +41,14 @@ PGPOOL_POSTGRES_REPLICATION_PASSWORD_CONFIG_KEY = "replication_password"
 
 PGPOOL_MAX_POOL_CONFIG_KEY = "max_pool"
 
+PGPOOL_SERVICE_NAME = BUILT_IN_RUNTIME_PGPOOL
 PGPOOL_SERVICE_TYPE = BUILT_IN_RUNTIME_POSTGRES
-PGPOOL_SERVICE_PORT_DEFAULT = 9999
+PGPOOL_SERVICE_PORT_DEFAULT = DATABASE_PORT_POSTGRES_DEFAULT
 
 PGPOOL_CONFIG_MODE_STATIC = "static"
 PGPOOL_CONFIG_MODE_DYNAMIC = "dynamic"
 
-PGPOOL_ADMIN_USER_DEFAULT = "admin"
+PGPOOL_ADMIN_USER_DEFAULT = DATABASE_USERNAME_POSTGRES_DEFAULT
 PGPOOL_ADMIN_PASSWORD_DEFAULT = DATABASE_PASSWORD_POSTGRES_DEFAULT
 
 PGPOOL_POSTGRES_ADMIN_USER_DEFAULT = DATABASE_USERNAME_POSTGRES_DEFAULT
@@ -310,7 +311,7 @@ def _get_runtime_services(
     pgpool_config = _get_config(runtime_config)
     service_discovery_config = get_service_discovery_config(pgpool_config)
     service_name = get_canonical_service_name(
-        service_discovery_config, cluster_name, PGPOOL_SERVICE_TYPE)
+        service_discovery_config, cluster_name, PGPOOL_SERVICE_NAME)
     service_port = _get_service_port(pgpool_config)
     services = {
         service_name: define_runtime_service_on_head_or_all(

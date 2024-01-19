@@ -19,7 +19,9 @@ class DiscoverBackendServers(PullJob):
             address_type=None):
         self.service_selector = deserialize_service_selector(
             service_selector)
-        if address_type is None:
+        if address_type:
+            address_type = ServiceAddressType.from_str(address_type)
+        else:
             address_type = ServiceAddressType.NODE_IP
         self.address_type = address_type
         self.last_config_hash = None

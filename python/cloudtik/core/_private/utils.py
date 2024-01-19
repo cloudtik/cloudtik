@@ -3178,13 +3178,12 @@ def load_properties_file(
         for line in f.readlines():
             # Strip all the spaces and tabs
             striped_line = line.strip()
-            if striped_line == "":
-                # Empty line, reset comments for key
-                comments_for_key = []
-            elif striped_line.startswith("#") or striped_line.startswith("!"):
+            if (striped_line == ""
+                    or striped_line.startswith("#")
+                    or striped_line.startswith("!")):
                 # Consider a comment for current key
                 # The comment is kept as it was instead of striped
-                comments_for_key += [line]
+                comments_for_key += [line.rstrip('\n')]
             else:
                 # Filtering out the empty and comment lines
                 # Use split() instead of split(" ") to split value with multiple spaces
@@ -3195,6 +3194,11 @@ def load_properties_file(
                 if len(comments_for_key) > 0:
                     comments[key] = comments_for_key
                     comments_for_key = []
+
+    # if there are trailing comments without key
+    if len(comments_for_key) > 0:
+        # store it to an empty key
+        comments[""] = comments_for_key
 
     return properties, comments
 
@@ -3213,6 +3217,14 @@ def save_properties_file(
                     f.write("\n")
 
             f.write("{}{}{}\n".format(key, separator, value))
+
+        # write trailing comments if there are any
+        comments_for_key = comments.get("") if comments else None
+        if comments_for_key:
+            for comment in comments_for_key:
+                # The comment line is kept as it was
+                f.write(comment)
+                f.write("\n")
 
 
 def is_managed_cloud_storage(workspace_config: Dict[str, Any]) -> bool:
