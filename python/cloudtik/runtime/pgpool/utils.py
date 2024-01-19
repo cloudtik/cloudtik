@@ -40,10 +40,12 @@ PGPOOL_POSTGRES_REPLICATION_USER_CONFIG_KEY = "replication_user"
 PGPOOL_POSTGRES_REPLICATION_PASSWORD_CONFIG_KEY = "replication_password"
 
 PGPOOL_MAX_POOL_CONFIG_KEY = "max_pool"
+PGPOOL_PCP_PORT_CONFIG_KEY = "pcp_port"
 
 PGPOOL_SERVICE_NAME = BUILT_IN_RUNTIME_PGPOOL
 PGPOOL_SERVICE_TYPE = BUILT_IN_RUNTIME_POSTGRES
 PGPOOL_SERVICE_PORT_DEFAULT = DATABASE_PORT_POSTGRES_DEFAULT
+PGPOOL_PCP_PORT_DEFAULT = 9898
 
 PGPOOL_CONFIG_MODE_STATIC = "static"
 PGPOOL_CONFIG_MODE_DYNAMIC = "dynamic"
@@ -161,8 +163,9 @@ def discover_postgres_on_head(
         runtime_type_config = get_config_for_update(
             runtime_config, runtime_type)
         _, service_addresses = database_service
-        # TODO: set the backend servers
-        _set_backend_servers_config(runtime_type_config, service_addresses)
+        # set the backend servers
+        _set_backend_servers_config(
+            runtime_type_config, service_addresses)
 
     return cluster_config
 
@@ -256,6 +259,8 @@ def _with_runtime_environment_variables(
 
     runtime_envs["PGPOOL_MAX_POOL"] = pgpool_config.get(
         PGPOOL_MAX_POOL_CONFIG_KEY, PGPOOL_MAX_POOL_DEFAULT)
+    runtime_envs["PGPOOL_PCP_PORT"] = pgpool_config.get(
+        PGPOOL_PCP_PORT_CONFIG_KEY, PGPOOL_PCP_PORT_DEFAULT)
 
     high_availability = _is_high_availability(pgpool_config)
     if high_availability:

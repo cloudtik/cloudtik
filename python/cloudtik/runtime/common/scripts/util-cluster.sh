@@ -209,3 +209,16 @@ get_data_disk_dirs_of() {
     fi
     echo "${data_disk_dirs}"
 }
+
+########################
+# Get the runtime home dir given the runtime name
+# Arguments:
+#   The runtime name
+# Returns:
+#   The runtime home dir
+#########################
+get_runtime_home() {
+    local -r runtime_name="${1:?The runtime name is required}"
+    local -r runtime_home=/home/$(whoami)/runtime/${runtime_name}
+    echo "${runtime_home}"
+}

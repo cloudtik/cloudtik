@@ -13,6 +13,13 @@ logger = logging.getLogger(__name__)
 
 class PgpoolRuntime(RuntimeBase):
     """Implementation for Pgpool-II Runtime for proxy a Postgres cluster for client.
+
+    Warning:
+        There is a bug in PGPool that when the node-id 0 is not primary,
+        the PCP process will fail to start
+    Hints:
+    1. Checking status:
+        PGPASSWORD=password psql -p 5432 -h localhost --username=cloudtik <<< "show pool_nodes;"
     """
 
     def __init__(self, runtime_config: Dict[str, Any]) -> None:

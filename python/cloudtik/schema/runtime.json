@@ -1372,6 +1372,11 @@
                     "default": 15,
                     "description": "The maximum number of cached connections in each child process."
                 },
+                "pcp_port": {
+                    "type": "integer",
+                    "default": 9898,
+                    "description": "The pgpool Communication Manager port."
+                },
                 "backend": {
                     "type": "object",
                     "description": "Backend configurations",
