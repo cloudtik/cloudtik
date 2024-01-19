@@ -34,8 +34,8 @@ stop)
         || [ "${IS_HEAD_NODE}" == "true" ]; then
         # source to get the variables needed
         . ${PGPOOL_HOME}/conf/pgpool
-        local -r pid_file=${PGPOOL_HOME}/run/pgpool.pid
-        if [[ -f "$pid_file" ]]; then
+        PID_FILE=${PGPOOL_HOME}/run/pgpool.pid
+        if [[ -f "$PID_FILE" ]]; then
             pgpool \
               --config-file=${PGPOOL_CONF_FILE} \
               --pcp-file=${PGPOOL_PCP_FILE} \

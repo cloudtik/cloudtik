@@ -48,11 +48,12 @@ class PullServer:
     python script, or shell script to run.
     """
 
-    def __init__(self,
-                 identifier,
-                 pull_class, pull_script,
-                 pull_args=None, interval=None,
-                 stop_event: Optional[Event] = None):
+    def __init__(
+            self,
+            identifier,
+            pull_class, pull_script,
+            pull_args=None, interval=None,
+            stop_event: Optional[Event] = None):
         self.identifier = identifier
         self.pull_class = pull_class
         self.pull_script = pull_script
@@ -67,7 +68,8 @@ class PullServer:
 
         self.pull_job = self._create_pull_job()
 
-        logger.info("Pull Server: Started")
+        logger.info(
+            "Pull Server: Started")
 
     def _create_pull_job(self):
         if self.pull_class:
@@ -86,14 +88,17 @@ class PullServer:
             try:
                 self.pull_job.pull()
             except Exception as e:
-                logger.exception("Error happened when pulling: " + str(e))
+                logger.exception(
+                    "Error happened when pulling: " + str(e))
             time.sleep(self.interval)
 
     def _handle_failure(self, error):
-        logger.exception(f"Error in pulling loop:\n{error}")
+        logger.exception(
+            f"Error in pulling loop:\n{error}")
 
     def _signal_handler(self, sig, frame):
-        logger.info(f"Terminated with signal {sig}")
+        logger.info(
+            f"Terminated with signal {sig}")
         sys.exit(sig + 128)
 
     def run(self):
@@ -181,10 +186,14 @@ def main():
         max_bytes=args.logging_rotate_bytes,
         backup_count=args.logging_rotate_backup_count)
 
-    logger.info(f"Starting Pull Server using CloudTik installation: {cloudtik.__file__}")
-    logger.info(f"CloudTik version: {cloudtik.__version__}")
-    logger.info(f"CloudTik commit: {cloudtik.__commit__}")
-    logger.info(f"Pull Server started with command: {sys.argv}")
+    logger.info(
+        f"Starting Pull Server using CloudTik installation: {cloudtik.__file__}")
+    logger.info(
+        f"CloudTik version: {cloudtik.__version__}")
+    logger.info(
+        f"CloudTik commit: {cloudtik.__commit__}")
+    logger.info(
+        f"Pull Server started with command: {sys.argv}")
 
     pull_server = PullServer(
         args.identifier,

@@ -132,8 +132,9 @@ def start_pull_server(
     pull_server_process_file = get_pull_server_process_file(identifier)
     pid = get_pull_server_pid(pull_server_process_file)
     if pid is not None:
-        cli_logger.print("The pull server for {} is already running. "
-                         "If you want to restart, stop it first and start.", identifier)
+        cli_logger.print(
+            "The pull server for {} is already running. "
+            "If you want to restart, stop it first and start.", identifier)
         return
 
     if not logs_dir:
@@ -148,14 +149,17 @@ def start_pull_server(
         redirect_output=redirect_output)
 
     # Configure log parameters.
-    logging_level = os.getenv(constants.CLOUDTIK_LOGGING_LEVEL_ENV,
-                              constants.LOGGER_LEVEL_INFO)
+    logging_level = os.getenv(
+        constants.CLOUDTIK_LOGGING_LEVEL_ENV,
+        constants.LOGGER_LEVEL_INFO)
     max_bytes = int(
-        os.getenv(constants.CLOUDTIK_LOGGING_ROTATE_MAX_BYTES_ENV,
-                  constants.LOGGING_ROTATE_MAX_BYTES))
+        os.getenv(
+            constants.CLOUDTIK_LOGGING_ROTATE_MAX_BYTES_ENV,
+            constants.LOGGING_ROTATE_MAX_BYTES))
     backup_count = int(
-        os.getenv(constants.CLOUDTIK_LOGGING_ROTATE_BACKUP_COUNT_ENV,
-                  constants.LOGGING_ROTATE_BACKUP_COUNT))
+        os.getenv(
+            constants.CLOUDTIK_LOGGING_ROTATE_BACKUP_COUNT_ENV,
+            constants.LOGGING_ROTATE_BACKUP_COUNT))
 
     process_info = _start_pull_server(
         identifier,
@@ -184,9 +188,11 @@ def _stop_pull_server(identifier):
     pull_server_process_file = get_pull_server_process_file(identifier)
     pid = get_pull_server_pid(pull_server_process_file)
     if pid is None:
-        cli_logger.print("The pull server for {} was not started.", identifier)
+        cli_logger.print(
+            "The pull server for {} was not started.", identifier)
         return
 
     stop_process_tree(pid)
     save_server_process(pull_server_process_file, {})
-    cli_logger.print("Successfully stopped pull server of {}.", identifier)
+    cli_logger.print(
+        "Successfully stopped pull server of {}.", identifier)

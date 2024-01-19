@@ -1,13 +1,14 @@
 import os
+from shlex import quote
 
 from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_PGPOOL, BUILT_IN_RUNTIME_POSTGRES
-from cloudtik.core._private.service_discovery.utils import serialize_service_selector, include_runtime_for_selector, \
+from cloudtik.core._private.service_discovery.utils import serialize_service_selector, \
     include_runtime_service_for_selector
 from cloudtik.core._private.util.core_utils import exec_with_output, get_address_string, exec_with_call, \
     address_from_string
 from cloudtik.core._private.util.database_utils import DATABASE_PORT_POSTGRES_DEFAULT
 from cloudtik.core._private.util.runtime_utils import get_runtime_config_from_node, get_runtime_node_address_type
-from cloudtik.core._private.utils import load_properties_file, save_properties_file
+from cloudtik.core._private.utils import load_properties_file, save_properties_file, run_system_command
 from cloudtik.runtime.common.service_discovery.runtime_discovery import DATABASE_SERVICE_SELECTOR_KEY
 from cloudtik.runtime.pgpool.utils import _get_config, _get_home_dir, _get_backend_config, \
     PGPOOL_BACKEND_SERVERS_CONFIG_KEY, PGPOOL_DISCOVER_POSTGRES_SERVICE_TYPES
@@ -192,5 +193,19 @@ def _add_backend_server_to_config(
     config_object[backend_hostname_key] = server_address[0]
     config_object[backend_port_key] = server_address[1]
     config_object[backend_weight_key] = str(1)
-    config_object[backend_data_directory_key] = data_dir
+    # manually quote for path
+    config_object[backend_data_directory_key] = "'{}'".format(data_dir)
     config_object[backend_flag_key] = "ALLOW_TO_FAILOVER"
+
+
+def do_health_check():
+    this_dir = os.path.dirname(__file__)
+    shell_path = os.path.join(
+        this_dir, "scripts", "pgpool-healthcheck.sh")
+    cmds = [
+        "bash",
+        quote(shell_path),
+    ]
+
+    final_cmd = " ".join(cmds)
+    run_system_command(final_cmd)

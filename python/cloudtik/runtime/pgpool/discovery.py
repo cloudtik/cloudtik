@@ -5,7 +5,7 @@ from cloudtik.core._private.util.core_utils import get_json_object_hash, get_add
 from cloudtik.core._private.util.pull.pull_job import PullJob
 from cloudtik.runtime.common.service_discovery.consul import query_services, query_service_nodes, \
     get_service_address_of_node
-from cloudtik.runtime.pgpool.scripting import update_configuration
+from cloudtik.runtime.pgpool.scripting import update_configuration, do_health_check
 
 logger = logging.getLogger(__name__)
 
@@ -27,6 +27,19 @@ class DiscoverBackendServers(PullJob):
         self.last_config_hash = None
 
     def pull(self):
+        try:
+            self.update_backend()
+        except Exception as e:
+            logger.exception(
+                "Error happened when discovering and updating backend: " + str(e))
+
+        try:
+            self.check_health()
+        except Exception as e:
+            logger.exception(
+                "Check health failed: " + str(e))
+
+    def update_backend(self):
         selected_services = self._query_services()
         backend_servers = {}
 
@@ -47,6 +60,9 @@ class DiscoverBackendServers(PullJob):
             # save config file and reload only when data changed
             update_configuration(backend_servers)
             self.last_config_hash = servers_hash
+
+    def check_health(self):
+        do_health_check()
 
     def _query_services(self):
         return query_services(self.service_selector)
