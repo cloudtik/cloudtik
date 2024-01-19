@@ -1349,7 +1349,7 @@
                 },
                 "postgres_admin_user": {
                     "type": "string",
-                    "default": "postgres",
+                    "default": "cloudtik",
                     "description": "Specify the Postgres admin username."
                 },
                 "postgres_admin_password": {

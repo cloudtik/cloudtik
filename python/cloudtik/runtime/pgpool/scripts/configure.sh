@@ -62,7 +62,8 @@ configure_pgpool() {
     PGPOOL_CONFIG_DIR=${PGPOOL_HOME}/conf
     mkdir -p ${PGPOOL_CONFIG_DIR}
 
-    update_place_holder "listen.address" "${NODE_IP_ADDRESS}"
+    # The listen_addresses cannot be ip address list. So we bind all.
+    # update_place_holder "listen.address" "${NODE_IP_ADDRESS}"
     update_place_holder "listen.port" "${PGPOOL_SERVICE_PORT}"
     update_place_holder "pgpool.home" "${PGPOOL_HOME}"
 
