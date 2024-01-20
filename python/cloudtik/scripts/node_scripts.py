@@ -9,8 +9,9 @@ import click
 import psutil
 
 from cloudtik.core._private import services
-from cloudtik.core._private.cli_logger import (add_click_logging_options,
-                                               cli_logger, cf)
+from cloudtik.core._private.cli_logger import (
+    add_click_logging_options,
+    cli_logger, cf)
 from cloudtik.core._private.cluster.cluster_operator import (
     dump_local)
 from cloudtik.core._private.constants import CLOUDTIK_PROCESSES, \

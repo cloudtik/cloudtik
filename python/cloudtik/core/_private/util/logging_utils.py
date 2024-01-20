@@ -27,14 +27,15 @@ def setup_logger(logging_level, logging_format):
     logger.propagate = False
 
 
-def setup_component_logger(*,
-                           logging_level,
-                           logging_format,
-                           log_dir,
-                           filename,
-                           max_bytes,
-                           backup_count,
-                           logger_name=""):
+def setup_component_logger(
+        *,
+        logging_level,
+        logging_format,
+        log_dir,
+        filename,
+        max_bytes,
+        backup_count,
+        logger_name=""):
     """Configure the root logger that is used for CloudTik's python components.
 
     For example, it should be used for controller, and log monitor.
@@ -133,14 +134,15 @@ class StandardFdRedirectionRotatingFileHandler(RotatingFileHandler):
     that it actually duplicates the OS level fd using os.dup2.
     """
 
-    def __init__(self,
-                 filename,
-                 mode="a",
-                 maxBytes=0,
-                 backupCount=0,
-                 encoding=None,
-                 delay=False,
-                 is_for_stdout=True):
+    def __init__(
+            self,
+            filename,
+            mode="a",
+            maxBytes=0,
+            backupCount=0,
+            encoding=None,
+            delay=False,
+            is_for_stdout=True):
         super().__init__(
             filename,
             mode=mode,
