@@ -60,15 +60,38 @@ def get_database_runtime_in_cluster(runtime_config):
 
 def get_database_engine_for_runtime(runtime_type):
     # The engine and runtime type is the same
-    return runtime_type
+    if runtime_type in BUILT_IN_DATABASE_RUNTIMES:
+        return runtime_type
+
+    # TODO: other possibilities such as the proxies?
+    raise RuntimeError(
+        "The runtime {} is not a recognized database runtime.".format(
+            runtime_type))
+
+
+def get_database_engine_for_service_type(service_type):
+    # For case that the service type is the runtime primary service
+    if service_type in BUILT_IN_DATABASE_RUNTIMES:
+        return service_type
+
+    # other service types that start with the runtime names
+    # such as runtime_type-replica, runtime_type-node
+    service_type_parts = service_type.split('-')
+    runtime_type = service_type_parts[0]
+    if runtime_type in BUILT_IN_DATABASE_RUNTIMES:
+        return runtime_type
+
+    raise RuntimeError(
+        "The service type {} is not a recognized database service type.".format(
+            service_type))
 
 
 def discover_runtime_service(
         config: Dict[str, Any],
         service_selector_key: str,
-        runtime_type: Union[str, List[str]],
         cluster_config: Dict[str, Any],
         discovery_type: DiscoveryType,
+        runtime_type: Optional[Union[str, List[str]]] = None,
         service_type: Optional[Union[str, List[str]]] = None):
     # decide address type based on cluster configuration
     address_type = get_cluster_node_address_type(cluster_config)
@@ -86,13 +109,14 @@ def discover_runtime_service(
 def discover_runtime_service_addresses(
         config: Dict[str, Any],
         service_selector_key: str,
-        runtime_type: Union[str, List[str]],
         cluster_config: Dict[str, Any],
         discovery_type: DiscoveryType,
+        runtime_type: Optional[Union[str, List[str]]] = None,
         service_type: Optional[Union[str, List[str]]] = None):
     service_instance = discover_runtime_service(
         config, service_selector_key,
-        runtime_type, cluster_config, discovery_type,
+        cluster_config, discovery_type,
+        runtime_type=runtime_type,
         service_type=service_type)
     if not service_instance:
         return None
@@ -127,9 +151,9 @@ def discover_consul(
         discovery_type: DiscoveryType,):
     return discover_runtime_service_addresses(
         config, service_selector_key,
-        runtime_type=BUILT_IN_RUNTIME_CONSUL,
         cluster_config=cluster_config,
         discovery_type=discovery_type,
+        runtime_type=BUILT_IN_RUNTIME_CONSUL,
     )
 
 
@@ -140,9 +164,9 @@ def discover_zookeeper(
         discovery_type: DiscoveryType,):
     service_addresses = discover_runtime_service_addresses(
         config, service_selector_key,
-        runtime_type=BUILT_IN_RUNTIME_ZOOKEEPER,
         cluster_config=cluster_config,
         discovery_type=discovery_type,
+        runtime_type=BUILT_IN_RUNTIME_ZOOKEEPER,
     )
     if not service_addresses:
         return None
@@ -156,9 +180,9 @@ def discover_hdfs(
         discovery_type: DiscoveryType,):
     service_addresses = discover_runtime_service_addresses(
         config, service_selector_key,
-        runtime_type=BUILT_IN_RUNTIME_HDFS,
         cluster_config=cluster_config,
         discovery_type=discovery_type,
+        runtime_type=BUILT_IN_RUNTIME_HDFS,
     )
     if not service_addresses:
         return None
@@ -175,9 +199,9 @@ def discover_minio(
         discovery_type: DiscoveryType,):
     service_addresses = discover_runtime_service_addresses(
         config, service_selector_key,
-        runtime_type=BUILT_IN_RUNTIME_MINIO,
         cluster_config=cluster_config,
         discovery_type=discovery_type,
+        runtime_type=BUILT_IN_RUNTIME_MINIO,
     )
     if not service_addresses:
         return None
@@ -194,9 +218,9 @@ def discover_metastore(
         discovery_type: DiscoveryType,):
     service_addresses = discover_runtime_service_addresses(
         config, service_selector_key,
-        runtime_type=BUILT_IN_RUNTIME_METASTORE,
         cluster_config=cluster_config,
         discovery_type=discovery_type,
+        runtime_type=BUILT_IN_RUNTIME_METASTORE,
     )
     if not service_addresses:
         return None
@@ -212,29 +236,27 @@ def discover_database(
         service_selector_key: str,
         cluster_config: Dict[str, Any],
         discovery_type: DiscoveryType,
-        database_runtime_type=None,
+        database_runtime_type: Optional[Union[str, List[str]]] = None,
         database_service_type: Optional[Union[str, List[str]]] = None):
     # TODO: because feature tag is not supported for workspace based discovery
-    #   Use a list of database runtimes here.
-    if not database_runtime_type:
-        # if no specific database type, default to all known types
-        database_runtime_type = BUILT_IN_DATABASE_RUNTIMES
-    if not database_service_type:
+    #   Use a list of database service types here. Runtime names are not used
+    #   for the cases that proxies or pool runtimes which is not named in the list.
+    if database_service_type is None:
         # if no specific service type, default to all known service types that can read-write
         # The default service types that can read write are the same as runtimes by convention
         database_service_type = BUILT_IN_DATABASE_RUNTIMES
 
     service_instance = discover_runtime_service(
         config, service_selector_key,
-        runtime_type=database_runtime_type,
         cluster_config=cluster_config,
         discovery_type=discovery_type,
+        runtime_type=database_runtime_type,
         service_type=database_service_type,
     )
     if not service_instance:
         return None
-    engine = get_database_engine_for_runtime(
-        service_instance.runtime_type)
+    engine = get_database_engine_for_service_type(
+        service_instance.service_type)
     return engine, service_instance.service_addresses
 
 
@@ -245,9 +267,9 @@ def discover_etcd(
         discovery_type: DiscoveryType,):
     service_addresses = discover_runtime_service_addresses(
         config, service_selector_key,
-        runtime_type=BUILT_IN_RUNTIME_ETCD,
         cluster_config=cluster_config,
         discovery_type=discovery_type,
+        runtime_type=BUILT_IN_RUNTIME_ETCD,
     )
     if not service_addresses:
         return None
@@ -548,6 +570,7 @@ def discover_database_from_workspace(
 def discover_database_on_head(
         cluster_config: Dict[str, Any], runtime_type,
         database_runtime_type=None,
+        database_service_type=None,
         allow_local=True):
     runtime_config = get_runtime_config(cluster_config)
     runtime_type_config = runtime_config.get(runtime_type, {})
@@ -565,7 +588,8 @@ def discover_database_on_head(
         runtime_type_config, DATABASE_SERVICE_SELECTOR_KEY,
         cluster_config=cluster_config,
         discovery_type=DiscoveryType.CLUSTER,
-        database_runtime_type=database_runtime_type)
+        database_runtime_type=database_runtime_type,
+        database_service_type=database_service_type)
     if database_service:
         runtime_type_config = get_config_for_update(
             runtime_config, runtime_type)

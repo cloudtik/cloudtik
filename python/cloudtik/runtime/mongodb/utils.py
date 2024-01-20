@@ -599,9 +599,9 @@ def discover_config_server(
         discovery_type: DiscoveryType,):
     service_instance = discover_runtime_service(
         config, service_selector_key,
-        runtime_type=BUILT_IN_RUNTIME_MONGODB,
         cluster_config=cluster_config,
         discovery_type=discovery_type,
+        runtime_type=BUILT_IN_RUNTIME_MONGODB,
         service_type=MONGODB_CONFIG_SERVER_SERVICE_TYPE,
     )
     if service_instance is None:
