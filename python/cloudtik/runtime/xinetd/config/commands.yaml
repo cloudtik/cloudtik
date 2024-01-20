@@ -1,0 +1,27 @@
+# Custom commands that will be run on the head node after common setup.
+head_setup_commands:
+    - cloudtik runtime install xinetd --head
+    - cloudtik runtime configure xinetd --head
+
+# Custom commands that will be run on worker nodes after common setup.
+worker_setup_commands:
+    - cloudtik runtime install xinetd
+    - cloudtik runtime configure xinetd
+
+# Command to start on the head node. You don't need to change this.
+head_start_commands:
+    - cloudtik runtime services xinetd stop --head
+    - cloudtik runtime services xinetd start --head
+
+# Command to start on worker nodes. You don't need to change this.
+worker_start_commands:
+    - cloudtik runtime services xinetd stop
+    - cloudtik runtime services xinetd start
+
+# Command to start on the head node. You don't need to change this.
+head_stop_commands:
+    - cloudtik runtime services xinetd stop --head
+
+# Command to start on worker nodes. You don't need to change this.
+worker_stop_commands:
+    - cloudtik runtime services xinetd stop

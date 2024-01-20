@@ -18,8 +18,6 @@ export REDIS_HOME=$RUNTIME_PATH/redis
 
 install_redis() {
     if [ ! -d "${REDIS_HOME}" ]; then
-        mkdir -p $RUNTIME_PATH
-
         curl -fsSL https://packages.redis.io/gpg \
           | sudo gpg --yes --dearmor -o /usr/share/keyrings/redis-archive-keyring.gpg \
           && echo "deb [signed-by=/usr/share/keyrings/redis-archive-keyring.gpg] https://packages.redis.io/deb $(lsb_release -cs) main" \
@@ -33,6 +31,7 @@ install_redis() {
             echo "Redis installation failed."
             exit 1
         fi
+        mkdir -p ${REDIS_HOME}
         echo "export REDIS_HOME=$REDIS_HOME" >> ${USER_HOME}/.bashrc
         echo "export PATH=\$REDIS_HOME/bin:\$PATH" >> ${USER_HOME}/.bashrc
     fi
