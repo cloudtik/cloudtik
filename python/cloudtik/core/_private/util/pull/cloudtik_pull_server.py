@@ -22,6 +22,9 @@ logger = logging.getLogger(__name__)
 DEFAULT_PULL_INTERVAL = 10
 LOG_FILE_NAME_PULL_SERVER = f"{PROCESS_PULL_SERVER}.log"
 
+# print every 30 minutes for repeating errors
+LOG_ERROR_REPEAT_SECONDS = 30 * 60
+
 
 def cmd_args_to_call_args(cmd_args):
     args = []
@@ -81,16 +84,36 @@ class PullServer:
 
     def _run(self):
         """Run the main loop."""
+        last_error_str = None
+        last_error_num = 0
+        interval = self.interval
+        log_repeat_errors = LOG_ERROR_REPEAT_SECONDS // interval
         while True:
             if self.stop_event and self.stop_event.is_set():
                 break
 
             try:
                 self.pull_job.pull()
+                if last_error_str is not None:
+                    # if this is a recover from many errors, we print a recovering message
+                    if last_error_num >= log_repeat_errors:
+                        logger.info(
+                            "Recovering from {} repeated errors.".format(last_error_num))
+                    last_error_str = None
             except Exception as e:
-                logger.exception(
-                    "Error happened when pulling: " + str(e))
-            time.sleep(self.interval)
+                error_str = str(e)
+                if last_error_str != error_str:
+                    logger.exception(
+                        "Error happened when pulling: " + error_str)
+                    last_error_str = error_str
+                    last_error_num = 1
+                else:
+                    last_error_num += 1
+                    if last_error_num % log_repeat_errors == 0:
+                        logger.error(
+                            "Error happened {} times for pulling: {}".format(
+                                last_error_num, error_str))
+            time.sleep(interval)
 
     def _handle_failure(self, error):
         logger.exception(
