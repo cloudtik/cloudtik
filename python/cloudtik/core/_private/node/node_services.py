@@ -98,16 +98,25 @@ class NodeServicesStarter:
         self._localhost = socket.gethostbyname("localhost")
         self._start_params = start_params
         self._redis_address = start_params.redis_address
+        if head and not self._is_starting_state():
+            # For head, start_redis will update redis address to the right one
+            # set redis address to use as we don't start redis here
+            # TODO: handle dynamic port allocated if the default is in use
+            self._redis_address = address_string(
+                self._node_ip_address, constants.CLOUDTIK_DEFAULT_PORT)
 
         # Configure log parameters.
-        self.logging_level = os.getenv(constants.CLOUDTIK_LOGGING_LEVEL_ENV,
-                                       constants.LOGGER_LEVEL_INFO)
+        self.logging_level = os.getenv(
+            constants.CLOUDTIK_LOGGING_LEVEL_ENV,
+            constants.LOGGER_LEVEL_INFO)
         self.max_bytes = int(
-            os.getenv(constants.CLOUDTIK_LOGGING_ROTATE_MAX_BYTES_ENV,
-                      constants.LOGGING_ROTATE_MAX_BYTES))
+            os.getenv(
+                constants.CLOUDTIK_LOGGING_ROTATE_MAX_BYTES_ENV,
+                constants.LOGGING_ROTATE_MAX_BYTES))
         self.backup_count = int(
-            os.getenv(constants.CLOUDTIK_LOGGING_ROTATE_BACKUP_COUNT_ENV,
-                      constants.LOGGING_ROTATE_BACKUP_COUNT))
+            os.getenv(
+                constants.CLOUDTIK_LOGGING_ROTATE_BACKUP_COUNT_ENV,
+                constants.LOGGING_ROTATE_BACKUP_COUNT))
 
         assert self.max_bytes >= 0
         assert self.backup_count >= 0
@@ -115,8 +124,8 @@ class NodeServicesStarter:
         if head:
             start_params.update_if_absent(num_redis_shards=1)
 
-        # Register the session and home dir.
-        if head:
+        # Register the session and home dir when starting state
+        if self._is_starting_state():
             # date including microsecond
             date_str = datetime.datetime.today().strftime(
                 "%Y-%m-%d_%H-%M-%S_%f")
@@ -170,11 +179,14 @@ class NodeServicesStarter:
 
         set_sigterm_handler(sigterm_handler)
 
+    def _is_starting_state(self):
+        return self.head and self._start_params.state
+
     def _init_home_dir(self):
         # Create a dictionary to store temp file index.
         self._incremental_dict = collections.defaultdict(lambda: 0)
 
-        if self.head:
+        if self._is_starting_state():
             self._home_dir = self._start_params.home_dir
         else:
             home_dir = self._kv_get_with_retry(
@@ -183,7 +195,7 @@ class NodeServicesStarter:
 
         create_directory(self._home_dir)
 
-        if self.head:
+        if self._is_starting_state():
             self._session_dir = os.path.join(self._home_dir, self.session_name)
         else:
             session_dir = self._kv_get_with_retry(
@@ -191,7 +203,6 @@ class NodeServicesStarter:
             self._session_dir = core_utils.decode(session_dir)
         session_symlink = os.path.join(self._home_dir, constants.SESSION_LATEST)
 
-        # Send a warning message if the session exists.
         create_directory(self._session_dir)
         try_to_symlink(session_symlink, self._session_dir)
 
@@ -229,9 +240,10 @@ class NodeServicesStarter:
             for key in set(env_dict.keys()).intersection(
                     set(params_dict.keys())):
                 if params_dict[key] != env_dict[key]:
-                    logger.warning("Cluster Scaler is overriding your resource:"
-                                   "{}: {} with {}.".format(
-                                       key, params_dict[key], env_dict[key]))
+                    logger.warning(
+                        "Cluster Scaler is overriding your resource:"
+                        "{}: {} with {}.".format(
+                            key, params_dict[key], env_dict[key]))
             return num_cpus, num_gpus, memory,  result
 
         if not self._resource_spec:
@@ -242,7 +254,8 @@ class NodeServicesStarter:
                 try:
                     env_resources = json.loads(env_string)
                 except Exception:
-                    logger.exception("Failed to load {}".format(env_string))
+                    logger.exception(
+                        "Failed to load {}".format(env_string))
                     raise
                 logger.debug(
                     f"Cluster Scaler overriding resources: {env_resources}.")
@@ -319,7 +332,8 @@ class NodeServicesStarter:
                     break
                 except Exception as e:
                     time.sleep(1)
-                    logger.debug(f"Waiting for gcs up {e}")
+                    logger.debug(
+                        f"Waiting for gcs up {e}")
             assert self._state_client is not None
             kv_store.kv_initialize(
                 self._state_client)
@@ -373,8 +387,9 @@ class NodeServicesStarter:
                 self._incremental_dict[suffix, prefix, directory_name] = index
                 return filename
 
-        raise FileExistsError(errno.EEXIST,
-                              "No usable temporary filename found")
+        raise FileExistsError(
+            errno.EEXIST,
+            "No usable temporary filename found")
 
     def get_log_file_handles(self, name, unique=False):
         """Open log files with partially randomized filenames, returning the
@@ -450,7 +465,8 @@ class NodeServicesStarter:
             s.close()
             new_s.close()
             return new_port
-        logger.error("Unable to succeed in selecting a random port.")
+        logger.error(
+            "Unable to succeed in selecting a random port.")
         s.close()
         return port
 
@@ -598,28 +614,24 @@ class NodeServicesStarter:
 
     def start_head_processes(self):
         """Start head processes on the node."""
-        logger.debug(f"Process STDOUT and STDERR is being "
-                     f"redirected to {self._logs_dir}.")
-        assert self._redis_address is None
+        logger.debug(
+            f"Process STDOUT and STDERR is being "
+            f"redirected to {self._logs_dir}.")
 
         # If this is the head node, start the relevant head node processes.
         if self._start_params.state:
+            assert self._redis_address is None
             self.start_redis()
             self._write_cluster_info_to_state()
-        else:
-            # For head, start_redis will update redis address to the right one
-            # set redis address to use as we don't start redis here
-            # TODO: handle dynamic port allocated if the default is in use
-            self._redis_address = address_string(
-                self._node_ip_address, constants.CLOUDTIK_DEFAULT_PORT)
 
         if self._start_params.controller:
             self.start_cluster_controller()
 
     def start_node_processes(self):
         """Start all of the processes on the node."""
-        logger.debug(f"Process STDOUT and STDERR is being "
-                     f"redirected to {self._logs_dir}.")
+        logger.debug(
+            f"Process STDOUT and STDERR is being "
+            f"redirected to {self._logs_dir}.")
         # TODO (haifeng): any service needs start on each worker node management
         self.start_node_monitor()
         if not self._start_params.no_log_monitor:
@@ -856,17 +868,20 @@ class NodeServicesStarter:
             try:
                 result = self.get_state_client().kv_get(key, namespace)
             except Exception as e:
-                logger.error(f"ERROR as {e}")
+                logger.error(
+                    f"ERROR as {e}")
                 result = None
 
             if result is not None:
                 break
             else:
-                logger.debug(f"Fetched {key}=None from redis. Retrying.")
+                logger.debug(
+                    f"Fetched {key}=None from redis. Retrying.")
                 time.sleep(2)
         if not result:
-            raise RuntimeError(f"Could not read '{key}' from GCS (redis). "
-                               "Has redis started correctly on the head node?")
+            raise RuntimeError(
+                f"Could not read '{key}' from GCS (redis). "
+                "Has redis started correctly on the head node?")
         return result
 
     def start_log_monitor(self):
