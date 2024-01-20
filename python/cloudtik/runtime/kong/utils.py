@@ -111,7 +111,7 @@ def _prepare_config(cluster_config: Dict[str, Any]) -> Dict[str, Any]:
 def _prepare_config_on_head(cluster_config: Dict[str, Any]):
     cluster_config = discover_database_on_head(
         cluster_config, BUILT_IN_RUNTIME_KONG,
-        database_runtime_type=BUILT_IN_RUNTIME_POSTGRES,
+        database_service_type=BUILT_IN_RUNTIME_POSTGRES,
         allow_local=False)
 
     _validate_config(cluster_config, final=True)
