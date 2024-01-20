@@ -132,7 +132,7 @@ def _get_runtime_processes():
 def _get_runtime_logs():
     home_dir = _get_home_dir()
     logs_dir = os.path.join(home_dir, "logs")
-    return {"elasticsearch": logs_dir}
+    return {BUILT_IN_RUNTIME_ELASTICSEARCH: logs_dir}
 
 
 def _match_roles_for_node_type(node_type, roles_matched):

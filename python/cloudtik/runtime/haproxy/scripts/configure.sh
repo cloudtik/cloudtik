@@ -83,8 +83,8 @@ configure_api_gateway() {
 
 configure_haproxy() {
     prepare_base_conf
-
     haproxy_config_file=${output_dir}/haproxy.cfg
+    mkdir -p ${HAPROXY_HOME}/logs
 
     ETC_DEFAULT=/etc/default
     sudo mkdir -p ${ETC_DEFAULT}

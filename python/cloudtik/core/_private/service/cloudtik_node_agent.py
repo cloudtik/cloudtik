@@ -25,8 +25,8 @@ from cloudtik.core._private.utils import get_runtime_processes, make_node_id
 
 logger = logging.getLogger(__name__)
 
-# print every 5 minutes for repeating errors
-LOG_ERROR_REPEAT_SECONDS = 300
+# print every 30 minutes for repeating errors
+LOG_ERROR_REPEAT_SECONDS = 30 * 60
 
 
 class NodeMonitor:
@@ -120,12 +120,17 @@ class NodeMonitor:
             try:
                 self._update_processes()
                 self._update_metrics()
-                last_error_str = None
+                if last_error_str is not None:
+                    # if this is a recover from many errors, we print a recovering message
+                    if last_error_num >= log_repeat_errors:
+                        logger.info(
+                            "Recovering from {} repeated errors.".format(last_error_num))
+                    last_error_str = None
             except Exception as e:
                 error_str = str(e)
                 if last_error_str != error_str:
                     logger.exception(
-                        "Error happened when updating: " + str(e))
+                        "Error happened when updating: " + error_str)
                     logger.exception(traceback.format_exc())
                     last_error_str = error_str
                     last_error_num = 1
@@ -165,7 +170,12 @@ class NodeMonitor:
             node_info_as_json = json.dumps(self.node_info)
             try:
                 self.node_table.put(self.node_id, node_info_as_json)
-                last_error_str = None
+                if last_error_str is not None:
+                    # if this is a recover from many errors, we print a recovering message
+                    if last_error_num >= log_repeat_errors:
+                        logger.info(
+                            "Recovering from {} repeated errors.".format(last_error_num))
+                    last_error_str = None
             except Exception as e:
                 error_str = str(e)
                 if last_error_str != error_str:

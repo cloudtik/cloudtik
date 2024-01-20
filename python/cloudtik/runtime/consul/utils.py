@@ -195,13 +195,13 @@ def _with_runtime_environment_variables(
 
 def _get_home_dir():
     return os.path.join(
-        os.getenv("HOME"), "runtime", "consul")
+        os.getenv("HOME"), "runtime", BUILT_IN_RUNTIME_CONSUL)
 
 
 def _get_runtime_logs():
     home_dir = _get_home_dir()
     logs_dir = os.path.join(home_dir, "logs")
-    return {"consul": logs_dir}
+    return {BUILT_IN_RUNTIME_CONSUL: logs_dir}
 
 
 def _get_runtime_endpoints(

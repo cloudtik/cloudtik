@@ -5,7 +5,7 @@ from cloudtik.core.node_provider import NodeProvider
 from cloudtik.runtime.common.runtime_base import RuntimeBase
 from cloudtik.runtime.haproxy.utils import _get_runtime_processes, \
     _get_runtime_endpoints, _get_head_service_ports, _get_runtime_services, _with_runtime_environment_variables, \
-    _validate_config
+    _validate_config, _get_runtime_logs
 
 logger = logging.getLogger(__name__)
 
@@ -39,6 +39,10 @@ class HAProxyRuntime(RuntimeBase):
 
     def get_runtime_services(self, cluster_name: str):
         return _get_runtime_services(self.runtime_config, cluster_name)
+
+    @staticmethod
+    def get_logs() -> Dict[str, str]:
+        return _get_runtime_logs()
 
     @staticmethod
     def get_processes():

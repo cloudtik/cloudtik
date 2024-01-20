@@ -8,7 +8,7 @@ from cloudtik.core._private.service_discovery.utils import \
     exclude_runtime_of_cluster, serialize_service_selector
 from cloudtik.runtime.common.utils import stop_pull_server_by_identifier
 from cloudtik.runtime.kong.utils import _get_config, KONG_ADMIN_PORT_DEFAULT, _get_backend_config, _get_config_mode, \
-    KONG_BACKEND_SELECTOR_CONFIG_KEY
+    KONG_BACKEND_SELECTOR_CONFIG_KEY, _get_logs_dir
 
 KONG_DISCOVER_BACKEND_SERVERS_INTERVAL = 15
 
@@ -42,11 +42,14 @@ def start_pull_server(head):
         service_selector, BUILT_IN_RUNTIME_KONG, cluster_name)
     service_selector_str = serialize_service_selector(service_selector)
     pull_identifier = _get_pull_identifier()
+    logs_dir = _get_logs_dir()
 
     cmd = ["cloudtik", "node", "pull", pull_identifier, "start"]
     cmd += ["--pull-class=cloudtik.runtime.kong.discovery.DiscoverBackendServers"]
     cmd += ["--interval={}".format(
         KONG_DISCOVER_BACKEND_SERVERS_INTERVAL)]
+    cmd += ["--logs-dir={}".format(quote(logs_dir))]
+
     # job parameters
     cmd += ["admin_endpoint={}".format(quote(admin_endpoint))]
     if service_selector_str:

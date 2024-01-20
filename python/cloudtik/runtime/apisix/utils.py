@@ -92,9 +92,13 @@ def _get_runtime_processes():
     return RUNTIME_PROCESSES
 
 
-def _get_runtime_logs():
+def _get_logs_dir():
     home_dir = _get_home_dir()
-    logs_dir = os.path.join(home_dir, "logs")
+    return os.path.join(home_dir, "logs")
+
+
+def _get_runtime_logs():
+    logs_dir = _get_logs_dir()
     return {BUILT_IN_RUNTIME_APISIX: logs_dir}
 
 

@@ -15,7 +15,7 @@ PROCESS_PULL_SERVER = "cloudtik_pull_server"
 
 
 def _get_logging_name(identifier):
-    return f"{PROCESS_PULL_SERVER}_{identifier}"
+    return identifier
 
 
 def pull_server(

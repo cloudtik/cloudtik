@@ -4,13 +4,14 @@ from shlex import quote
 
 from cloudtik.core._private.util.core_utils import exec_with_output, exec_with_call, JSONSerializableObject
 from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_HAPROXY
-from cloudtik.core._private.util.runtime_utils import get_runtime_config_from_node, get_runtime_value, get_runtime_node_ip, \
+from cloudtik.core._private.util.runtime_utils import \
+    get_runtime_config_from_node, get_runtime_value, get_runtime_node_ip, \
     get_runtime_cluster_name
 from cloudtik.core._private.service_discovery.utils import serialize_service_selector, exclude_runtime_of_cluster
 from cloudtik.runtime.haproxy.utils import _get_config, HAPROXY_APP_MODE_LOAD_BALANCER, HAPROXY_CONFIG_MODE_STATIC, \
     HAPROXY_BACKEND_SERVERS_CONFIG_KEY, _get_home_dir, _get_backend_config, get_default_server_name, \
     HAPROXY_BACKEND_SELECTOR_CONFIG_KEY, HAPROXY_SERVICE_PORT_DEFAULT, HAPROXY_SERVICE_PROTOCOL_HTTP, \
-    HAPROXY_BACKEND_NAME_DEFAULT, HAPROXY_BACKEND_DYNAMIC_FREE_SLOTS
+    HAPROXY_BACKEND_NAME_DEFAULT, HAPROXY_BACKEND_DYNAMIC_FREE_SLOTS, _get_logs_dir
 
 HAPROXY_DISCOVER_BACKEND_SERVERS_INTERVAL = 15
 
@@ -69,12 +70,15 @@ def start_pull_server(head):
     service_selector_str = serialize_service_selector(service_selector)
 
     pull_identifier = _get_pull_identifier()
+    logs_dir = _get_logs_dir()
 
     cmd = ["cloudtik", "node", "pull", pull_identifier, "start"]
     cmd += ["--pull-class=cloudtik.runtime.haproxy.discovery.{}".format(
         discovery_class)]
     cmd += ["--interval={}".format(
         HAPROXY_DISCOVER_BACKEND_SERVERS_INTERVAL)]
+    cmd += ["--logs-dir={}".format(quote(logs_dir))]
+
     # job parameters
     if service_selector_str:
         cmd += ["service_selector={}".format(service_selector_str)]
