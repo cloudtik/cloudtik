@@ -103,7 +103,7 @@ def _get_runtime_processes():
 def _get_runtime_logs():
     home_dir = _get_home_dir()
     logs_dir = os.path.join(home_dir, "logs")
-    return {"redis": logs_dir}
+    return {BUILT_IN_RUNTIME_REDIS: logs_dir}
 
 
 def update_master_size(cluster_config, master_size):

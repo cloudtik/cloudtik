@@ -89,13 +89,13 @@ def _get_home_dir():
         os.getenv("HOME"), "runtime", BUILT_IN_RUNTIME_KONG)
 
 
-def _get_runtime_processes():
-    return RUNTIME_PROCESSES
+def _get_logs_dir():
+    home_dir = _get_home_dir()
+    return os.path.join(home_dir, "logs")
 
 
 def _get_runtime_logs():
-    home_dir = _get_home_dir()
-    logs_dir = os.path.join(home_dir, "logs")
+    logs_dir = _get_logs_dir()
     return {BUILT_IN_RUNTIME_KONG: logs_dir}
 
 

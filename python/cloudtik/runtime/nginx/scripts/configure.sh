@@ -101,6 +101,8 @@ configure_nginx() {
     prepare_base_conf
     nginx_config_file=${output_dir}/nginx.conf
 
+    mkdir -p ${NGINX_HOME}/logs
+
     ETC_DEFAULT=/etc/default
     sudo mkdir -p ${ETC_DEFAULT}
 

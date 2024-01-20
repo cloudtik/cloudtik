@@ -153,7 +153,7 @@ def _get_runtime_processes():
 def _get_runtime_logs():
     home_dir = _get_home_dir()
     logs_dir = os.path.join(home_dir, "logs")
-    return {"postgres": logs_dir}
+    return {BUILT_IN_RUNTIME_POSTGRES: logs_dir}
 
 
 def _bootstrap_runtime_config(

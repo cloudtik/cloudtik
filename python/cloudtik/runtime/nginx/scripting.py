@@ -10,7 +10,7 @@ from cloudtik.core._private.service_discovery.utils import exclude_runtime_of_cl
     serialize_service_selector
 from cloudtik.runtime.nginx.utils import _get_config, NGINX_APP_MODE_LOAD_BALANCER, NGINX_CONFIG_MODE_STATIC, \
     _get_home_dir, _get_backend_config, NGINX_BACKEND_SERVERS_CONFIG_KEY, NGINX_LOAD_BALANCER_UPSTREAM_NAME, \
-    NGINX_BACKEND_BALANCE_ROUND_ROBIN, NGINX_CONFIG_MODE_DNS, NGINX_BACKEND_SELECTOR_CONFIG_KEY
+    NGINX_BACKEND_BALANCE_ROUND_ROBIN, NGINX_CONFIG_MODE_DNS, NGINX_BACKEND_SELECTOR_CONFIG_KEY, _get_logs_dir
 
 NGINX_DISCOVER_BACKEND_SERVERS_INTERVAL = 15
 
@@ -121,12 +121,15 @@ def start_pull_server(head):
     service_selector_str = serialize_service_selector(service_selector)
 
     pull_identifier = _get_pull_identifier()
+    logs_dir = _get_logs_dir()
 
     cmd = ["cloudtik", "node", "pull", pull_identifier, "start"]
     cmd += ["--pull-class=cloudtik.runtime.nginx.discovery.{}".format(
         discovery_class)]
     cmd += ["--interval={}".format(
         NGINX_DISCOVER_BACKEND_SERVERS_INTERVAL)]
+    cmd += ["--logs-dir={}".format(quote(logs_dir))]
+
     # job parameters
     if service_selector_str:
         cmd += ["service_selector={}".format(service_selector_str)]

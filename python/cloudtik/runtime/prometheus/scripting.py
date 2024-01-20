@@ -1,4 +1,5 @@
 import os
+from shlex import quote
 from typing import Any, Dict
 
 from cloudtik.core._private import constants
@@ -16,7 +17,7 @@ from cloudtik.core._private.service_discovery.utils import \
 from cloudtik.runtime.prometheus.utils import PROMETHEUS_SERVICE_DISCOVERY_CONSUL, \
     PROMETHEUS_SCRAPE_SERVICES_CONFIG_KEY, _get_config, PROMETHEUS_SCRAPE_SCOPE_WORKSPACE, _get_home_dir, \
     PROMETHEUS_SCRAPE_SCOPE_FEDERATION, PROMETHEUS_SERVICE_DISCOVERY_FILE, _get_federation_targets, \
-    PROMETHEUS_PULL_NODE_TYPES_CONFIG_KEY, PROMETHEUS_PULL_SERVICES_CONFIG_KEY
+    PROMETHEUS_PULL_NODE_TYPES_CONFIG_KEY, PROMETHEUS_PULL_SERVICES_CONFIG_KEY, _get_logs_dir
 
 PROMETHEUS_PULL_LOCAL_TARGETS_INTERVAL = 15
 
@@ -196,6 +197,7 @@ def start_pull_server(head):
     pull_services = prometheus_config.get(PROMETHEUS_PULL_SERVICES_CONFIG_KEY)
 
     pull_identifier = _get_pull_identifier()
+    logs_dir = _get_logs_dir()
 
     redis_host = get_runtime_head_host(head)
     redis_address = get_address_string(redis_host, constants.CLOUDTIK_DEFAULT_PORT)
@@ -207,6 +209,8 @@ def start_pull_server(head):
     cmd += ["--pull-class=cloudtik.runtime.prometheus.discovery.DiscoverLocalTargets"]
     cmd += ["--interval={}".format(
         PROMETHEUS_PULL_LOCAL_TARGETS_INTERVAL)]
+    cmd += ["--logs-dir={}".format(quote(logs_dir))]
+
     # job parameters
     if pull_services:
         pull_services_str = _get_pull_services_str(pull_services)

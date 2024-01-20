@@ -161,7 +161,7 @@ def _get_runtime_processes():
 def _get_runtime_logs():
     home_dir = _get_home_dir()
     logs_dir = os.path.join(home_dir, "logs")
-    return {"mongodb": logs_dir}
+    return {BUILT_IN_RUNTIME_MONGODB: logs_dir}
 
 
 def _is_config_server_needed(mongodb_config):

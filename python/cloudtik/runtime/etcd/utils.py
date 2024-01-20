@@ -38,7 +38,7 @@ def _get_home_dir():
 def _get_runtime_logs():
     home_dir = _get_home_dir()
     logs_dir = os.path.join(home_dir, "logs")
-    return {"etcd": logs_dir}
+    return {BUILT_IN_RUNTIME_ETCD: logs_dir}
 
 
 def _get_runtime_processes():

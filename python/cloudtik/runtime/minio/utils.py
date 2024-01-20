@@ -86,7 +86,7 @@ def _get_runtime_processes():
 def _get_runtime_logs():
     home_dir = _get_home_dir()
     logs_dir = os.path.join(home_dir, "logs")
-    return {"minio": logs_dir}
+    return {BUILT_IN_RUNTIME_MINIO: logs_dir}
 
 
 def _bootstrap_runtime_config(cluster_config: Dict[str, Any]) -> Dict[str, Any]:

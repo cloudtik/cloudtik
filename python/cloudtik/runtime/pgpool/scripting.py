@@ -11,7 +11,7 @@ from cloudtik.core._private.util.runtime_utils import get_runtime_config_from_no
 from cloudtik.core._private.utils import load_properties_file, save_properties_file, run_system_command
 from cloudtik.runtime.common.service_discovery.runtime_discovery import DATABASE_SERVICE_SELECTOR_KEY
 from cloudtik.runtime.pgpool.utils import _get_config, _get_home_dir, _get_backend_config, \
-    PGPOOL_BACKEND_SERVERS_CONFIG_KEY, PGPOOL_DISCOVER_POSTGRES_SERVICE_TYPES
+    PGPOOL_BACKEND_SERVERS_CONFIG_KEY, PGPOOL_DISCOVER_POSTGRES_SERVICE_TYPES, _get_logs_dir
 
 PGPOOL_PULL_LOCAL_TARGETS_INTERVAL = 15
 PGPOOL_MAX_SERVERS = 1024
@@ -71,6 +71,7 @@ def start_pull_server(head):
     pgpool_config = _get_config(runtime_config)
 
     pull_identifier = _get_pull_identifier()
+    logs_dir = _get_logs_dir()
 
     service_selector = pgpool_config.get(
         DATABASE_SERVICE_SELECTOR_KEY, {})
@@ -87,6 +88,8 @@ def start_pull_server(head):
     cmd += ["--pull-class=cloudtik.runtime.pgpool.discovery.DiscoverBackendServers"]
     cmd += ["--interval={}".format(
         PGPOOL_PULL_LOCAL_TARGETS_INTERVAL)]
+    cmd += ["--logs-dir={}".format(quote(logs_dir))]
+
     # job parameters
     if service_selector_str:
         cmd += ["service_selector={}".format(service_selector_str)]

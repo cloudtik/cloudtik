@@ -134,6 +134,16 @@ def _get_home_dir():
         os.getenv("HOME"), "runtime", BUILT_IN_RUNTIME_HAPROXY)
 
 
+def _get_logs_dir():
+    home_dir = _get_home_dir()
+    return os.path.join(home_dir, "logs")
+
+
+def _get_runtime_logs():
+    logs_dir = _get_logs_dir()
+    return {BUILT_IN_RUNTIME_HAPROXY: logs_dir}
+
+
 def _get_runtime_processes():
     return RUNTIME_PROCESSES
 
