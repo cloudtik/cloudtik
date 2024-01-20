@@ -54,6 +54,7 @@ BUILT_IN_RUNTIME_REDIS = "redis"
 BUILT_IN_RUNTIME_MONGODB = "mongodb"
 BUILT_IN_RUNTIME_ELASTICSEARCH = "elasticsearch"
 BUILT_IN_RUNTIME_PGPOOL = "pgpool"
+BUILT_IN_RUNTIME_XINETD = "xinetd"
 
 DEFAULT_RUNTIMES = [BUILT_IN_RUNTIME_NODEX, BUILT_IN_RUNTIME_PROMETHEUS, BUILT_IN_RUNTIME_SPARK]
 
@@ -223,6 +224,11 @@ def _import_pgpool():
     return PgpoolRuntime
 
 
+def _import_xinetd():
+    from cloudtik.runtime.xinetd.runtime import XinetdRuntime
+    return XinetdRuntime
+
+
 _RUNTIMES = {
     BUILT_IN_RUNTIME_AI: _import_ai,
     BUILT_IN_RUNTIME_SPARK: _import_spark,
@@ -257,6 +263,7 @@ _RUNTIMES = {
     BUILT_IN_RUNTIME_MONGODB: _import_mongodb,
     BUILT_IN_RUNTIME_ELASTICSEARCH: _import_elasticsearch,
     BUILT_IN_RUNTIME_PGPOOL: _import_pgpool,
+    BUILT_IN_RUNTIME_XINETD: _import_xinetd,
 }
 
 
