@@ -893,6 +893,11 @@
                     "default": false,
                     "description": "Whether to enable replication slot for WAL bookkeeping."
                 },
+                "health_check_port": {
+                    "type": "integer",
+                    "default": 15432,
+                    "description": "Postgres health check port if there is super-server daemon."
+                },
                 "replication_synchronous": {
                     "type": "object",
                     "description": "Database configurations",
