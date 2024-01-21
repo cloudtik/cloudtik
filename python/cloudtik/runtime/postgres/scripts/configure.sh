@@ -107,6 +107,13 @@ configure_service_init() {
             configure_variable POSTGRES_REPMGR_PASSFILE_PATH "${POSTGRES_REPMGR_PASSFILE_PATH}"
         fi
     fi
+
+    # TODO: further improve the security of the password in file
+    configure_variable POSTGRES_REPLICATION_USER "${POSTGRES_REPLICATION_USER}"
+    configure_variable POSTGRES_REPLICATION_PASSWORD "${POSTGRES_REPLICATION_PASSWORD}"
+
+    # make it owner only read/write for security
+    chmod 0600 "${POSTGRES_CONFIG_DIR}/postgres"
 }
 
 update_repmgr_node_id() {

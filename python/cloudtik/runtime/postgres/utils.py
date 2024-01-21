@@ -1,5 +1,5 @@
 import os
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 from cloudtik.core._private.util.core_utils import get_config_for_update
 from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_POSTGRES, BUILT_IN_RUNTIME_MOUNT
@@ -45,6 +45,8 @@ POSTGRES_DATABASE_CONFIG_KEY = "database"
 POSTGRES_DATABASE_NAME_CONFIG_KEY = "name"
 POSTGRES_DATABASE_USER_CONFIG_KEY = "user"
 POSTGRES_DATABASE_PASSWORD_CONFIG_KEY = "password"
+
+POSTGRES_HEALTH_CHECK_PORT_CONFIG_KEY = "health_check_port"
 
 POSTGRES_SERVICE_TYPE = BUILT_IN_RUNTIME_POSTGRES
 POSTGRES_REPLICA_SERVICE_TYPE = POSTGRES_SERVICE_TYPE + "-replica"
@@ -139,6 +141,12 @@ def _get_repmgr_config(postgres_config: Dict[str, Any]):
 
 def _is_repmgr_enabled(repmgr_config):
     return repmgr_config.get(POSTGRES_REPMGR_ENABLED, True)
+
+
+def _get_health_check_port(postgres_config: Dict[str, Any]):
+    default_port = 10000 + _get_service_port(postgres_config)
+    return postgres_config.get(
+        POSTGRES_HEALTH_CHECK_PORT_CONFIG_KEY, default_port)
 
 
 def _get_home_dir():
@@ -361,3 +369,15 @@ def _get_runtime_services(
                 features=[SERVICE_DISCOVERY_FEATURE_DATABASE]),
         }
     return services
+
+
+def _get_health_check(
+        runtime_config: Dict[str, Any],
+        cluster_config: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    postgres_config = _get_config(runtime_config)
+    health_check_port = _get_health_check_port(postgres_config)
+    health_check = {
+        "port": health_check_port,
+        "script": "scripts/postgres-health-check.sh"
+    }
+    return health_check

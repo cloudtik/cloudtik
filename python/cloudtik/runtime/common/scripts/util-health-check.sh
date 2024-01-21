@@ -15,7 +15,7 @@ MAX_HTTP_POST_LENGTH=1024
 #########################
 http_parse_request_uri() {
     # example: /test123?r=123
-    local -r request_uri="${1:?Request URI is required}"
+    local -r request_uri="${1:-}"
     export HTTP_REQ_URI_PATH="$(echo "${request_uri}" | cut -d"?" -f 1)"
     if echo "$request_uri" | grep -q '?'; then
       export HTTP_REQ_URI_PARAMS="$(echo "${request_uri}" | cut -d"?" -f 2-)"
@@ -243,7 +243,7 @@ http_response () {
 #########################
 response () {
     local -r code=$1
-    local -r message=${2:-MESSAGE UNKNOWN}
+    local -r message=${2:-Unknown}
     if [ ! -z "$HTTP_REQ_METHOD" ]; then
         http_response "$code" "$message"
     else

@@ -201,10 +201,10 @@ def _add_backend_server_to_config(
     config_object[backend_flag_key] = "ALLOW_TO_FAILOVER"
 
 
-def do_health_check():
+def do_node_check():
     this_dir = os.path.dirname(__file__)
     shell_path = os.path.join(
-        this_dir, "scripts", "pgpool-healthcheck.sh")
+        this_dir, "scripts", "pgpool-node-check.sh")
     cmds = [
         "bash",
         quote(shell_path),

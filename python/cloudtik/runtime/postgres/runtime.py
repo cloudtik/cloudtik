@@ -8,7 +8,7 @@ from cloudtik.runtime.common.runtime_base import RuntimeBase
 from cloudtik.runtime.postgres.utils import _get_runtime_processes, \
     _get_runtime_services, _with_runtime_environment_variables, \
     _get_runtime_logs, _get_runtime_endpoints, _get_head_service_ports, \
-    _validate_config, _bootstrap_runtime_config
+    _validate_config, _bootstrap_runtime_config, _get_health_check
 
 logger = logging.getLogger(__name__)
 
@@ -66,6 +66,11 @@ class PostgresRuntime(RuntimeBase):
 
     def get_runtime_services(self, cluster_name: str):
         return _get_runtime_services(self.runtime_config, cluster_name)
+
+    def get_health_check(
+            self,
+            cluster_config: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        return _get_health_check(self.runtime_config, cluster_config)
 
     @staticmethod
     def get_logs() -> Dict[str, str]:
