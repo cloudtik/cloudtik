@@ -95,7 +95,7 @@ After you've updated the parameters in the configuration file,
 run the following commands to generate the final configuration file:
 ```buildoutcfg
 # Upload the customized template to head
-cloudtik rsync-up your-cluster-config.yaml [your-local-path-for-configuration] [the-remote-path-for-configuration]
+cloudtik upload your-cluster-config.yaml [your-local-path-for-configuration] [the-remote-path-for-configuration]
 # Generate the final configuration based on the customized template
 cloudtik exec your-cluster-config.yaml 'python ~/runtime/benchmark-tools/tpcx-ai/configure_default_spark_yaml.py --config [the-remote-path-for-configuration]'
 ```

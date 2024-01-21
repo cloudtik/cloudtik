@@ -797,16 +797,16 @@ def scale(
     required=False,
     type=str,
     default=None,
-    help="The node ip address of the node to rsync with")
+    help="The node ip address of the node to upload to")
 @click.option(
     "--all-nodes/--no-all-nodes",
     is_flag=True,
     default=False,
-    help="Whether to sync the file to all nodes.")
+    help="Whether to upload to all nodes.")
 @add_click_logging_options
-def rsync_up(
+def upload(
         cluster_config_file, source, target, cluster_name, node_ip, all_nodes):
-    """Upload specific files to a cluster or a specified node."""
+    """Upload files to a cluster or a specified node."""
 
     try:
         config = _load_cluster_config(
@@ -838,11 +838,11 @@ def rsync_up(
     required=False,
     type=str,
     default=None,
-    help="The node ip address of the node to rsync with")
+    help="The node ip address of the node from which to download")
 @add_click_logging_options
-def rsync_down(
+def download(
         cluster_config_file, source, target, cluster_name, node_ip):
-    """Download specific files from a cluster or a specified node."""
+    """Download files from a cluster or a specified node."""
     try:
         config = _load_cluster_config(
             cluster_config_file, cluster_name)
@@ -1505,10 +1505,12 @@ cli.add_command(submit)
 cli.add_command(run)
 cli.add_command(scale)
 
-cli.add_command(rsync_up)
-_add_command_alias(rsync_up, name="rsync_up", hidden=True)
-cli.add_command(rsync_down)
-_add_command_alias(rsync_down, name="rsync_down", hidden=True)
+cli.add_command(upload)
+_add_command_alias(upload, name="rsync-up", hidden=True)
+_add_command_alias(upload, name="rsync_up", hidden=True)
+cli.add_command(download)
+_add_command_alias(download, name="rsync-down", hidden=True)
+_add_command_alias(download, name="rsync_down", hidden=True)
 
 # commands running on working node for information and status
 cli.add_command(status)

@@ -327,16 +327,16 @@ def scale(
     required=False,
     type=str,
     default=None,
-    help="The worker node ip to rsync up.")
+    help="The worker node ip to upload.")
 @click.option(
     "--all-workers/--no-all-workers",
     is_flag=True,
     default=False,
-    help="Whether to sync the file to all workers.")
+    help="Whether to upload to all workers.")
 @add_click_logging_options
-def rsync_up(
+def upload(
         source, target, node_ip, all_workers):
-    """Rsync up specific file from or to the worker node."""
+    """Upload files to a specified worker node or all nodes."""
     config = load_head_cluster_config()
     call_context = cli_call_context()
     rsync_node_on_head(
@@ -357,10 +357,10 @@ def rsync_up(
     "-n",
     required=True,
     type=str,
-    help="The worker node ip to rsync from.")
+    help="The worker node ip from which to download.")
 @add_click_logging_options
-def rsync_down(source, target, node_ip):
-    """Rsync down specific file from or to the worker node."""
+def download(source, target, node_ip):
+    """Download files from worker node."""
     config = load_head_cluster_config()
     call_context = cli_call_context()
     rsync_node_on_head(
@@ -1029,7 +1029,7 @@ def stop(
         do_stop_node()
 
 
-def runtime_add_command_alias(command, name, hidden):
+def _add_runtime_command_alias(command, name, hidden):
     add_command_alias(runtime, command, name, hidden)
 
 
@@ -1042,8 +1042,10 @@ head.add_command(exec)
 head.add_command(run)
 head.add_command(scale)
 
-head.add_command(rsync_up)
-head.add_command(rsync_down)
+head.add_command(upload)
+head.add_command(download)
+_add_runtime_command_alias(upload, name="rsync-up", hidden=True)
+_add_runtime_command_alias(download, name="rsync-down", hidden=True)
 
 head.add_command(status)
 head.add_command(info)
