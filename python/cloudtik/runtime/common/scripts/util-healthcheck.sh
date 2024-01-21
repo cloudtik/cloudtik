@@ -270,5 +270,3 @@ show_request_info() {
       response 200 "No request information."
     fi
 }
-
-}
