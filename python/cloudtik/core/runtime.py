@@ -223,6 +223,23 @@ class Runtime:
         """
         return None
 
+    def get_health_check(
+            self,
+            cluster_config: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """
+        If the runtime needs health check script exported by xinet, return the information.
+        For example:
+        {
+            "port": 9201
+            "script": "/the/path/to/health/check/script.sh"
+        }
+        Note: The script must be available and identical on each node.
+        If it is a relative path, it is relative to the final runtime class dir.
+        If the port provided but the script is not provided, it will default to
+        /runtime_class_dir/scripts/runtime_name-health-check.sh
+        """
+        return None
+
     @staticmethod
     def get_logs() -> Dict[str, str]:
         """Return a dictionary of name to log paths.
