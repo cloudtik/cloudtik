@@ -107,12 +107,12 @@ update_hibench_config() {
     for conf in $HIBENCH_TMP_CONFIG_DIR/*; do
         if [ $(contains "${HIBENCH_BASIC_CONFS[@]}" "$(basename  $conf)") == "y"  ]; then
             echo "Upload local conf: $conf to head node: runtime/benchmark-tools/HiBench/conf/$(basename  $conf)..."
-            cloudtik rsync-up "$CLUSTER_CONFIG" "$conf"  "runtime/benchmark-tools/HiBench/conf/$(basename  $conf)"
+            cloudtik upload "$CLUSTER_CONFIG" "$conf" "runtime/benchmark-tools/HiBench/conf/$(basename  $conf)"
         else
             remote_hibench_conf=$(cloudtik exec "$CLUSTER_CONFIG" "find runtime/benchmark-tools/HiBench/conf -name $(basename  $conf)")
             remote_hibench_conf=`echo ${remote_hibench_conf//$'\015'}`
             echo "Upload local conf: $conf to head node: $remote_hibench_conf..."
-            cloudtik rsync-up "$CLUSTER_CONFIG" "$conf"  "$remote_hibench_conf"
+            cloudtik upload "$CLUSTER_CONFIG" "$conf" "$remote_hibench_conf"
         fi
     done
 }
@@ -133,7 +133,7 @@ hibench_run_benchmark() {
     if [ $? -eq 0 ]; then
         echo "Succeed to run the workload: $WORKLOAD."
         mkdir -p $HIBENCH_CONFIG_DIR/result/
-        cloudtik rsync-down "$CLUSTER_CONFIG"  "runtime/benchmark-tools/HiBench/report/hibench.report" $HIBENCH_CONFIG_DIR/result/
+        cloudtik download "$CLUSTER_CONFIG" "runtime/benchmark-tools/HiBench/report/hibench.report" $HIBENCH_CONFIG_DIR/result/
         cat $HIBENCH_CONFIG_DIR/result/hibench.report
     else
         echo "Failed to run the workload: $WORKLOAD."

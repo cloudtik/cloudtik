@@ -1544,9 +1544,9 @@ def rsync_to_node_from_head(
         "head",
     ]
     if down:
-        cmds += ["rsync-down"]
+        cmds += ["download"]
     else:
-        cmds += ["rsync-up"]
+        cmds += ["upload"]
     if source and target:
         cmds += [quote(source)]
         cmds += [quote(target)]
@@ -2265,11 +2265,11 @@ def show_useful_commands(
 
         with _cli_logger.group("Upload files or folders to cluster:"):
             _cli_logger.print(
-                cf.bold("cloudtik rsync-up {}{} [source] [target]"), config_file, modifiers)
+                cf.bold("cloudtik upload {}{} [source] [target]"), config_file, modifiers)
 
         with _cli_logger.group("Download files or folders from cluster:"):
             _cli_logger.print(
-                cf.bold("cloudtik rsync-down {}{} [source] [target]"), config_file, modifiers)
+                cf.bold("cloudtik download {}{} [source] [target]"), config_file, modifiers)
 
         with _cli_logger.group("Submit job to cluster to run with:"):
             _cli_logger.print(

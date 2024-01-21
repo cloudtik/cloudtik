@@ -182,10 +182,10 @@ cloudtik submit /path/to/your-cluster-config.yaml $CLOUTIK_HOME/tools/benchmarks
 ### Manage Files
 
 #### Upload files or directories to cluster
-Use rsync-up command to upload files to cluster.
+Use upload command to upload files to cluster.
 
 ``` 
-cloudtik rsync-up /path/to/your-cluster-config.yaml [source] [target]
+cloudtik upload /path/to/your-cluster-config.yaml [source] [target]
 ```
 
 If not --node-ip parameter is specified, it will default upload to the head node.
@@ -202,10 +202,10 @@ For example, "runtime" will refer the same path as '~/runtime'.
 
 
 #### Download files or directories from cluster
-Use rsync-down command to download files from cluster.
+Use download command to download files from cluster.
 
 ```
-cloudtik rsync-down /path/to/your-cluster-config.yaml [source] [target]
+cloudtik download /path/to/your-cluster-config.yaml [source] [target]
 ```
 
 ### Start or Stop Runtime Services

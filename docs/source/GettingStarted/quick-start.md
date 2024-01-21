@@ -257,13 +257,13 @@ cloudtik exec /path/to/your-cluster-config.yaml [command]
 Upload files or directories to cluster.
 
 ``` 
-cloudtik rsync-up /path/to/your-cluster-config.yaml [source] [target]
+cloudtik upload /path/to/your-cluster-config.yaml [source] [target]
 ```
   
 Download files or directories from cluster.
 
 ```
-cloudtik rsync-down /path/to/your-cluster-config.yaml [source] [target]
+cloudtik download /path/to/your-cluster-config.yaml [source] [target]
 ```
 
 ### 8. Tearing Down
