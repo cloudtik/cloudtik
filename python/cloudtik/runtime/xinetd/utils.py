@@ -10,7 +10,7 @@ from cloudtik.core._private.util.core_utils import get_config_for_update, http_a
 from cloudtik.core._private.utils import get_runtime_config_for_update, get_available_node_types, \
     get_head_node_type, _get_node_type_specific_runtime_config, get_runtime_types, \
     get_runtime_config, get_cluster_name
-from cloudtik.runtime.common.health_check import HEALTH_CHECK_PORT, match_health_check_node
+from cloudtik.runtime.common.health_check import HEALTH_CHECK_PORT, match_health_check_node, HEALTH_CHECK_NODE_KIND
 
 RUNTIME_PROCESSES = [
         # The first element is the substring to filter.
@@ -153,5 +153,6 @@ def _get_runtime_services(
             services[service_name] = define_runtime_service(
                 service_type,
                 service_discovery_config, port,
+                node_kind=health_check.get(HEALTH_CHECK_NODE_KIND),
                 protocol=SERVICE_DISCOVERY_PROTOCOL_HTTP)
     return services
