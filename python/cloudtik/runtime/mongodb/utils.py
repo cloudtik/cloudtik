@@ -513,7 +513,9 @@ def _get_sharding_runtime_services(
 
 
 def _get_runtime_services(
-        runtime_config: Dict[str, Any], cluster_name: str) -> Dict[str, Any]:
+        runtime_config: Dict[str, Any],
+        cluster_config: Dict[str, Any]) -> Dict[str, Any]:
+    cluster_name = get_cluster_name(cluster_config)
     mongodb_config = _get_config(runtime_config)
     service_discovery_config = get_service_discovery_config(mongodb_config)
     service_port = _get_service_port(mongodb_config)

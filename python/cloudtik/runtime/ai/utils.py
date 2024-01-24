@@ -7,7 +7,7 @@ from cloudtik.core._private.service_discovery.naming import get_cluster_head_hos
 from cloudtik.core._private.service_discovery.utils import get_canonical_service_name, \
     get_service_discovery_config, SERVICE_DISCOVERY_PROTOCOL_HTTP, define_runtime_service_on_head_or_all
 from cloudtik.core._private.util.database_utils import is_database_configured, export_database_environment_variables
-from cloudtik.core._private.utils import export_runtime_flags, get_node_cluster_ip_of
+from cloudtik.core._private.utils import export_runtime_flags, get_node_cluster_ip_of, get_cluster_name
 from cloudtik.runtime.common.service_discovery.runtime_discovery import discover_hdfs_on_head, \
     discover_hdfs_from_workspace, HDFS_URI_KEY, discover_database_from_workspace, discover_database_on_head, \
     DATABASE_CONNECT_KEY, get_database_runtime_in_cluster, export_database_runtime_environment_variables
@@ -164,7 +164,9 @@ def get_runtime_endpoints(config: Dict[str, Any]):
 
 
 def _get_runtime_services(
-        runtime_config: Dict[str, Any], cluster_name: str) -> Dict[str, Any]:
+        runtime_config: Dict[str, Any],
+        cluster_config: Dict[str, Any]) -> Dict[str, Any]:
+    cluster_name = get_cluster_name(cluster_config)
     ai_config = _get_config(runtime_config)
     service_discovery_config = get_service_discovery_config(ai_config)
     service_name = get_canonical_service_name(

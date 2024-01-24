@@ -6,6 +6,7 @@ from cloudtik.core._private.service_discovery.naming import get_cluster_head_hos
 from cloudtik.core._private.service_discovery.utils import get_canonical_service_name, define_runtime_service_on_head, \
     get_service_discovery_config, SERVICE_DISCOVERY_FEATURE_SCHEDULER
 from cloudtik.core._private.util.core_utils import http_address_string, address_string
+from cloudtik.core._private.utils import get_cluster_name
 from cloudtik.core.scaling_policy import ScalingPolicy
 from cloudtik.runtime.ray.scaling_policy import RayScalingPolicy
 
@@ -109,7 +110,9 @@ def _get_scaling_policy(
 
 
 def _get_runtime_services(
-        runtime_config: Dict[str, Any], cluster_name: str) -> Dict[str, Any]:
+        runtime_config: Dict[str, Any],
+        cluster_config: Dict[str, Any]) -> Dict[str, Any]:
+    cluster_name = get_cluster_name(cluster_config)
     ray_config = _get_config(runtime_config)
     service_discovery_config = get_service_discovery_config(ray_config)
     service_name = get_canonical_service_name(

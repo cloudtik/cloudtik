@@ -6,7 +6,7 @@ from cloudtik.core._private.service_discovery.naming import get_cluster_head_hos
 from cloudtik.core._private.service_discovery.utils import get_canonical_service_name, define_runtime_service_on_head, \
     get_service_discovery_config, SERVICE_DISCOVERY_FEATURE_STORAGE
 from cloudtik.core._private.util.core_utils import http_address_string
-from cloudtik.core._private.utils import get_node_cluster_ip_of
+from cloudtik.core._private.utils import get_node_cluster_ip_of, get_cluster_name
 from cloudtik.runtime.common.service_discovery.workspace import register_service_to_workspace
 
 RUNTIME_PROCESSES = [
@@ -96,10 +96,12 @@ def _get_head_service_ports(
 
 
 def _get_runtime_services(
-        runtime_config: Dict[str, Any], cluster_name: str) -> Dict[str, Any]:
+        runtime_config: Dict[str, Any],
+        cluster_config: Dict[str, Any]) -> Dict[str, Any]:
     # service name is decided by the runtime itself
     # For in services backed by the collection of nodes of the cluster
     # service name is a combination of cluster_name + runtime_service_name
+    cluster_name = get_cluster_name(cluster_config)
     hdfs_config = _get_config(runtime_config)
     service_discovery_config = get_service_discovery_config(hdfs_config)
     service_name = get_canonical_service_name(

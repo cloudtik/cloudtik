@@ -10,7 +10,7 @@ from cloudtik.core._private.service_discovery.utils import \
 from cloudtik.core._private.util.core_utils import get_config_for_update, address_string, get_address_string
 from cloudtik.core._private.util.database_utils import \
     DATABASE_PASSWORD_POSTGRES_DEFAULT, DATABASE_USERNAME_POSTGRES_DEFAULT, DATABASE_PORT_POSTGRES_DEFAULT
-from cloudtik.core._private.utils import RUNTIME_CONFIG_KEY, get_runtime_config
+from cloudtik.core._private.utils import RUNTIME_CONFIG_KEY, get_runtime_config, get_cluster_name
 from cloudtik.runtime.common.service_discovery.discovery import DiscoveryType
 from cloudtik.runtime.common.service_discovery.runtime_discovery import \
     is_database_service_discovery, get_database_runtime_in_cluster, DATABASE_SERVICE_SELECTOR_KEY, discover_database
@@ -316,7 +316,9 @@ def _get_head_service_ports(runtime_config: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def _get_runtime_services(
-        runtime_config: Dict[str, Any], cluster_name: str) -> Dict[str, Any]:
+        runtime_config: Dict[str, Any],
+        cluster_config: Dict[str, Any]) -> Dict[str, Any]:
+    cluster_name = get_cluster_name(cluster_config)
     pgpool_config = _get_config(runtime_config)
     service_discovery_config = get_service_discovery_config(pgpool_config)
     service_name = get_canonical_service_name(

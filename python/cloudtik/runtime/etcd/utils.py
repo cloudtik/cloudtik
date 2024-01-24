@@ -8,7 +8,7 @@ from cloudtik.core._private.service_discovery.naming import get_cluster_node_add
 from cloudtik.core._private.service_discovery.utils import \
     get_canonical_service_name, define_runtime_service_on_worker, \
     get_service_discovery_config, ServiceRegisterException, SERVICE_DISCOVERY_FEATURE_KEY_VALUE
-from cloudtik.core._private.utils import is_node_seq_id_enabled, enable_node_seq_id
+from cloudtik.core._private.utils import is_node_seq_id_enabled, enable_node_seq_id, get_cluster_name
 from cloudtik.runtime.common.service_discovery.workspace import register_service_to_workspace
 
 logger = logging.getLogger(__name__)
@@ -89,7 +89,9 @@ def _get_runtime_endpoints(
 
 
 def _get_runtime_services(
-        runtime_config: Dict[str, Any], cluster_name: str) -> Dict[str, Any]:
+        runtime_config: Dict[str, Any],
+        cluster_config: Dict[str, Any]) -> Dict[str, Any]:
+    cluster_name = get_cluster_name(cluster_config)
     etcd_config = _get_config(runtime_config)
     service_discovery_config = get_service_discovery_config(etcd_config)
     service_name = get_canonical_service_name(

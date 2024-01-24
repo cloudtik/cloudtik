@@ -46,7 +46,7 @@ def get_runtime_services_by_node_type(config: Dict[str, Any]):
                     continue
 
                 runtime = _get_runtime(runtime_type, runtime_config)
-                services = runtime.get_runtime_services(cluster_name)
+                services = runtime.get_runtime_services(config)
                 if not services:
                     continue
 
@@ -69,7 +69,7 @@ def get_services_of_runtime(config: Dict[str, Any], runtime_type):
         return None
 
     runtime = _get_runtime(runtime_type, runtime_config)
-    return runtime.get_runtime_services(cluster_name)
+    return runtime.get_runtime_services(config)
 
 
 def _get_built_in_services(config: Dict[str, Any], cluster_name):

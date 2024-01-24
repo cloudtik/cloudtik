@@ -10,7 +10,7 @@ from cloudtik.core._private.service_discovery.utils import \
     get_service_discovery_config, SERVICE_DISCOVERY_FEATURE_KEY_VALUE, define_runtime_service_on_head, \
     define_runtime_service_on_worker
 from cloudtik.core._private.utils import is_node_seq_id_enabled, enable_node_seq_id, \
-    _sum_min_workers, get_runtime_config_for_update
+    _sum_min_workers, get_runtime_config_for_update, get_cluster_name
 
 RUNTIME_PROCESSES = [
         # The first element is the substring to filter.
@@ -261,7 +261,9 @@ def _get_head_service_ports(
 
 
 def _get_runtime_services(
-        runtime_config: Dict[str, Any], cluster_name: str) -> Dict[str, Any]:
+        runtime_config: Dict[str, Any],
+        cluster_config: Dict[str, Any]) -> Dict[str, Any]:
+    cluster_name = get_cluster_name(cluster_config)
     redis_config = _get_config(runtime_config)
     service_discovery_config = get_service_discovery_config(redis_config)
     service_name = get_canonical_service_name(

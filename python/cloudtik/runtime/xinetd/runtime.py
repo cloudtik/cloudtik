@@ -33,8 +33,8 @@ class XinetdRuntime(RuntimeBase):
         return _with_runtime_environment_variables(
             self.runtime_config, config=config)
 
-    def get_runtime_services(self, cluster_name: str):
-        return _get_runtime_services(self.runtime_config, cluster_name)
+    def get_runtime_services(self, cluster_config: Dict[str, Any]):
+        return _get_runtime_services(self.runtime_config, cluster_config)
 
     @staticmethod
     def get_logs() -> Dict[str, str]:

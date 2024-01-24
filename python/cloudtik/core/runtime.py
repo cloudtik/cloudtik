@@ -159,7 +159,8 @@ class Runtime:
         """
         return None
 
-    def get_runtime_services(self, cluster_name: str):
+    def get_runtime_services(
+            self, cluster_config: Dict[str, Any]):
         """Return the runtime service information published by any service discovery mechanism
         It's a map of dictionary of service with standard properties:
         protocol: The protocol of the service. TCP

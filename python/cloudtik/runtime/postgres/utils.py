@@ -11,7 +11,7 @@ from cloudtik.core._private.service_discovery.utils import \
 from cloudtik.core._private.util.database_utils import DATABASE_PORT_POSTGRES_DEFAULT, \
     DATABASE_USERNAME_POSTGRES_DEFAULT, DATABASE_PASSWORD_POSTGRES_DEFAULT
 from cloudtik.core._private.utils import is_node_seq_id_enabled, enable_node_seq_id, \
-    _sum_min_workers, get_runtime_config_for_update, get_runtime_config
+    _sum_min_workers, get_runtime_config_for_update, get_runtime_config, get_cluster_name
 from cloudtik.runtime.common.health_check import HEALTH_CHECK_PORT, HEALTH_CHECK_SCRIPT, HEALTH_CHECK_NODE_KIND, \
     HEALTH_CHECK_NODE_KIND_HEAD, HEALTH_CHECK_NODE_KIND_NODE
 from cloudtik.runtime.common.service_discovery.cluster import has_runtime_in_cluster
@@ -330,7 +330,9 @@ def _get_head_service_ports(runtime_config: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def _get_runtime_services(
-        runtime_config: Dict[str, Any], cluster_name: str) -> Dict[str, Any]:
+        runtime_config: Dict[str, Any],
+        cluster_config: Dict[str, Any]) -> Dict[str, Any]:
+    cluster_name = get_cluster_name(cluster_config)
     postgres_config = _get_config(runtime_config)
     service_discovery_config = get_service_discovery_config(postgres_config)
     service_name = get_canonical_service_name(
