@@ -120,7 +120,7 @@ def _generate_service_def(runtime_type, health_check_config):
     service_str.write('        wait            = no\n')
     service_str.write(f'        user            = {user}\n')
     service_str.write(f'        server          = {full_script_path}\n')
-    service_str.write('        log_on_failure  += USERID')
+    service_str.write('        log_on_failure  += USERID\n')
     service_str.write('        only_from       = 0.0.0.0/0\n')
     service_str.write('        per_source      = UNLIMITED\n')
     service_str.write('}\n')
