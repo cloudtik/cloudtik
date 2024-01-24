@@ -5,7 +5,7 @@ from cloudtik.core.node_provider import NodeProvider
 from cloudtik.runtime.common.runtime_base import RuntimeBase
 from cloudtik.runtime.xinetd.utils import _get_runtime_processes, \
     _get_runtime_services, _with_runtime_environment_variables, \
-    _get_runtime_logs
+    _get_runtime_logs, _bootstrap_runtime_health_checks
 
 logger = logging.getLogger(__name__)
 
@@ -17,6 +17,12 @@ class XinetdRuntime(RuntimeBase):
 
     def __init__(self, runtime_config: Dict[str, Any]) -> None:
         super().__init__(runtime_config)
+
+    def bootstrap_config(
+            self, cluster_config: Dict[str, Any]) -> Dict[str, Any]:
+        # collect the runtime health check information
+        cluster_config = _bootstrap_runtime_health_checks(cluster_config)
+        return cluster_config
 
     def with_environment_variables(
             self, config: Dict[str, Any], provider: NodeProvider,

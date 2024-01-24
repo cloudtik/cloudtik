@@ -4,9 +4,9 @@ from cloudtik.core._private.constants import CLOUDTIK_DEFAULT_PORT, CLOUDTIK_MET
 from cloudtik.core._private.runtime_factory import _get_runtime, BUILT_IN_RUNTIME_CONSUL
 from cloudtik.core._private.service_discovery.utils import match_service_node, get_canonical_service_name, \
     define_runtime_service_on_head, get_service_discovery_config, SERVICE_DISCOVERY_FEATURE_METRICS
-from cloudtik.core._private.utils import _get_node_type_specific_runtime_config, RUNTIME_TYPES_CONFIG_KEY, \
+from cloudtik.core._private.utils import _get_node_type_specific_runtime_config, \
     is_runtime_enabled, get_cluster_name, get_available_node_types, get_head_node_type, \
-    get_runtime_config
+    get_runtime_config, get_runtime_types
 
 CLOUDTIK_REDIS_SERVICE_TYPE = "cloudtik-redis"
 CLOUDTIK_CLUSTER_CONTROLLER_METRICS_SERVICE_TYPE = "cloudtik-controller-metrics"
@@ -40,7 +40,7 @@ def get_runtime_services_by_node_type(config: Dict[str, Any]):
         runtime_config = _get_node_type_specific_runtime_config(config, node_type)
         if runtime_config:
             # services runtimes
-            runtime_types = runtime_config.get(RUNTIME_TYPES_CONFIG_KEY, [])
+            runtime_types = get_runtime_types(runtime_config)
             for runtime_type in runtime_types:
                 if runtime_type == BUILT_IN_RUNTIME_CONSUL:
                     continue

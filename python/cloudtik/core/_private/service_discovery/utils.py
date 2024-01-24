@@ -217,6 +217,10 @@ def define_runtime_service_on_head_or_all(
 
 def match_service_node(runtime_service, head):
     node_kind = runtime_service.get(SERVICE_DISCOVERY_NODE_KIND)
+    return match_node_kind(node_kind, head)
+
+
+def match_node_kind(node_kind, head):
     if not node_kind or node_kind == SERVICE_DISCOVERY_NODE_KIND_NODE:
         return True
     if head:
@@ -225,7 +229,6 @@ def match_service_node(runtime_service, head):
     else:
         if node_kind == SERVICE_DISCOVERY_NODE_KIND_WORKER:
             return True
-
     return False
 
 

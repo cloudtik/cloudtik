@@ -65,7 +65,7 @@ from cloudtik.core._private.util.core_utils import stop_process_tree, double_quo
     memory_to_gb, memory_to_gb_string, address_to_ip, split_list
 from cloudtik.core._private.util.redis_utils import validate_redis_address, get_address_to_use_or_die
 from cloudtik.core._private.utils import format_info_string, get_node_provider_of, get_provider_config, \
-    get_cluster_name, get_available_node_types
+    get_cluster_name, get_available_node_types, get_runtime_types
 from cloudtik.core._private.utils import hash_runtime_conf, \
     hash_launch_conf, get_proxy_process_file, get_safe_proxy_process, \
     get_head_working_ip, get_node_cluster_ip, is_use_internal_ip, \
@@ -79,7 +79,7 @@ from cloudtik.core._private.utils import hash_runtime_conf, \
     RUNTIME_CONFIG_KEY, DOCKER_CONFIG_KEY, get_running_head_node, \
     with_script_args, encrypt_config, convert_nodes_to_resource, \
     HeadNotRunningError, get_cluster_head_ip, get_command_session_name, ParallelTaskSkipped, \
-    CLOUDTIK_CLUSTER_SCALING_STATUS, decode_cluster_scaling_time, RUNTIME_TYPES_CONFIG_KEY, get_node_info, \
+    CLOUDTIK_CLUSTER_SCALING_STATUS, decode_cluster_scaling_time, get_node_info, \
     NODE_INFO_NODE_IP, get_cpus_of_node_info, _sum_min_workers, get_memory_of_node_info, sum_worker_gpus, \
     sum_nodes_resource, get_gpus_of_node_info, get_resource_of_node_info, get_resource_info_of_node_type, \
     get_worker_node_type, save_server_process, get_resource_requests_for, _get_head_resource_requests, \
@@ -2695,7 +2695,7 @@ def _get_combined_runtimes(
     for node in nodes:
         runtime_config = _get_node_specific_runtime_config(
             config, provider, node)
-        runtime_types = runtime_config.get(RUNTIME_TYPES_CONFIG_KEY, [])
+        runtime_types = get_runtime_types(runtime_config)
         for runtime_type in runtime_types:
             valid_runtime_set.add(runtime_type)
 
@@ -4609,7 +4609,7 @@ def check_node_processes(
     runtime_config = _get_node_specific_runtime_config(
         config, provider, node_info["node"])
 
-    runtime_types = runtime_config.get(RUNTIME_TYPES_CONFIG_KEY, [])
+    runtime_types = get_runtime_types(runtime_config)
     for runtime_type in runtime_types:
         runtime_cls = _get_runtime_cls(runtime_type)
         runtime_processes = runtime_cls.get_processes()

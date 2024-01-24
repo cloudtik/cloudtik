@@ -15,9 +15,9 @@ from cloudtik.core._private.service_discovery.utils import SERVICE_DISCOVERY_TAG
     get_runtime_service_features, SERVICE_DISCOVERY_TAG_FEATURE_PREFIX, SERVICE_DISCOVERY_SERVICE_TYPE, \
     SERVICE_DISCOVERY_LABEL_SERVICE
 from cloudtik.core._private.utils import \
-    RUNTIME_TYPES_CONFIG_KEY, _get_node_type_specific_runtime_config, \
+    _get_node_type_specific_runtime_config, \
     RUNTIME_CONFIG_KEY, is_node_seq_id_enabled, enable_node_seq_id, get_cluster_name, get_available_node_types, \
-    get_head_node_type
+    get_head_node_type, get_runtime_types
 from cloudtik.runtime.common.service_discovery.cluster import register_service_to_cluster
 from cloudtik.runtime.common.service_discovery.discovery import DiscoveryType
 from cloudtik.runtime.common.service_discovery.runtime_discovery import discover_consul
@@ -280,7 +280,7 @@ def _get_consul_minimal_workers(config: Dict[str, Any]):
             config, node_type)
         if not runtime_config:
             continue
-        runtime_types = runtime_config.get(RUNTIME_TYPES_CONFIG_KEY, [])
+        runtime_types = get_runtime_types(runtime_config)
         if BUILT_IN_RUNTIME_CONSUL not in runtime_types:
             continue
         node_type_config = available_node_types[node_type]
