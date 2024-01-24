@@ -235,10 +235,12 @@ def create_or_update_cluster(
     _cli_logger = call_context.cli_logger
 
     def handle_yaml_error(e):
-        _cli_logger.error("Cluster config invalid")
+        _cli_logger.error(
+            "Cluster config invalid")
         _cli_logger.newline()
-        _cli_logger.error("Failed to load YAML file " + cf.bold("{}"),
-                          config_file)
+        _cli_logger.error(
+            "Failed to load YAML file " + cf.bold("{}"),
+            config_file)
         _cli_logger.newline()
         with _cli_logger.verbatim_error_ctx("PyYAML error:"):
             _cli_logger.error(e)
@@ -525,8 +527,8 @@ def cleanup_cluster(
     call_context.cli_logger.print(
         "Cleaning up cluster resources...")
     provider.cleanup_cluster(config, deep=deep)
-    call_context.cli_logger.print(
-        cf.bold("Successfully cleaned up other cluster resources."))
+    call_context.cli_logger.print(cf.bold(
+        "Successfully cleaned up other cluster resources."))
 
 
 def teardown_cluster_nodes(
@@ -676,7 +678,8 @@ def _run_termination_on_nodes(
             call_context=call_context,
             nodes=running_nodes,
             max_workers=MAX_PARALLEL_SHUTDOWN_WORKERS)
-        _cli_logger.print(cf.bold("Done running termination."))
+        _cli_logger.print(cf.bold(
+            "Done running termination."))
 
 
 def kill_node_from_head(
@@ -795,7 +798,8 @@ def _kill_node(
             all_nodes=False)
 
     # terminate the node
-    _cli_logger.print("Shutdown " + cf.bold("{}:{}"), node, node_ip)
+    _cli_logger.print(
+        "Shutdown " + cf.bold("{}:{}"), node, node_ip)
     provider.terminate_node(node)
     time.sleep(POLL_INTERVAL)
 
@@ -2146,7 +2150,6 @@ def _show_cluster_info(
         config_file: str,
         override_cluster_name: Optional[str] = None):
     provider = get_node_provider_of(config)
-
     cluster_info = _get_cluster_info(config, provider)
 
     coloring = cf.bold
@@ -2155,48 +2158,53 @@ def _show_cluster_info(
     elif cluster_info["status"] == CLOUDTIK_CLUSTER_STATUS_RUNNING:
         coloring = cf.limeGreen
 
-    cli_logger.print(
-        coloring("Cluster {} is: {}"), config["cluster_name"], cluster_info["status"])
+    cli_logger.print(coloring(
+        "Cluster {} is: {}"), config["cluster_name"], cluster_info["status"])
     if cluster_info["status"] == CLOUDTIK_CLUSTER_STATUS_STOPPED:
         return
 
     # Check the running worker nodes
     worker_count = cluster_info["total-workers"]
-    cli_logger.print(cf.bold("{} worker(s) are running"), worker_count)
-    cli_logger.print(
-        cf.bold("{} worker(s) are ready"), cluster_info["total-workers-ready"])
+    cli_logger.print(cf.bold(
+        "{} worker(s) are running"), worker_count)
+    cli_logger.print(cf.bold(
+        "{} worker(s) are ready"), cluster_info["total-workers-ready"])
 
     cli_logger.newline()
-    cli_logger.print(
-        cf.bold("The total worker CPUs: {}."), cluster_info["total-worker-cpus"])
-    cli_logger.print(
-        cf.bold("The total worker memory: {}."),
+    cli_logger.print(cf.bold(
+        "The total worker CPUs: {}."), cluster_info["total-worker-cpus"])
+    cli_logger.print(cf.bold(
+        "The total worker memory: {}."),
         memory_to_gb_string(cluster_info["total-worker-memory"]))
 
     # There may be cluster with workers but head node is dead
     head_node = cluster_info["head-id"]
     if head_node:
         cli_logger.newline()
-        cli_logger.print(cf.bold("Head IP: {}"), cluster_info["head-ip"])
+        cli_logger.print(
+            cf.bold("Head IP: {}"), cluster_info["head-ip"])
         head_hostname = cluster_info.get("head-hostname")
         if head_hostname:
-            cli_logger.print(cf.bold("Head Hostname: {}"), head_hostname)
+            cli_logger.print(cf.bold(
+                "Head Hostname: {}"), head_hostname)
     else:
         cli_logger.print(
             cf.red("Head is not running."))
 
     cli_logger.newline()
-    cli_logger.print(
-        cf.bold("Runtimes: {}"), ", ".join(cluster_info["runtimes"]))
+    cli_logger.print(cf.bold(
+        "Runtimes: {}"), ", ".join(cluster_info["runtimes"]))
 
     if is_use_managed_cloud_storage(config):
         # show default managed cloud storage information
         cli_logger.newline()
         default_cloud_storage = cluster_info.get("default-cloud-storage")
         if not default_cloud_storage:
-            cli_logger.print(cf.bold("No cluster default cloud storage configured."))
+            cli_logger.print(cf.bold(
+                "No cluster default cloud storage configured."))
         else:
-            with cli_logger.group("Cluster default cloud storage:"):
+            with cli_logger.group(
+                    "Cluster default cloud storage:"):
                 print_dict_info(default_cloud_storage)
 
     if is_use_managed_cloud_database(config):
@@ -2204,9 +2212,11 @@ def _show_cluster_info(
         cli_logger.newline()
         default_cloud_database = cluster_info.get("default-cloud-database")
         if not default_cloud_database:
-            cli_logger.print(cf.bold("No cluster default cloud database configured."))
+            cli_logger.print(cf.bold(
+                "No cluster default cloud database configured."))
         else:
-            with cli_logger.group("Cluster default cloud database:"):
+            with cli_logger.group(
+                    "Cluster default cloud database:"):
                 print_dict_info(default_cloud_database)
 
     if head_node:
@@ -2239,65 +2249,78 @@ def show_useful_commands(
     private_key_file = config["auth"].get("ssh_private_key")
     public_key_file = config["auth"].get("ssh_public_key")
     if private_key_file is not None or public_key_file is not None:
-        with _cli_logger.group("Key information:"):
+        with _cli_logger.group(
+                "Key information:"):
             if private_key_file is not None:
-                _cli_logger.labeled_value("Cluster private key file", private_key_file)
-                _cli_logger.print("Please keep the cluster private key file safe.")
+                _cli_logger.labeled_value(
+                    "Cluster private key file", private_key_file)
+                _cli_logger.print(
+                    "Please keep the cluster private key file safe.")
 
             if public_key_file is not None:
-                _cli_logger.print("Cluster public key file: {}", public_key_file)
+                _cli_logger.print(
+                    "Cluster public key file: {}", public_key_file)
 
     _cli_logger.newline()
-    with _cli_logger.group("Useful commands:"):
+    with _cli_logger.group(
+            "Useful commands:"):
         config_file = os.path.abspath(config_file)
 
-        with _cli_logger.group("Check cluster status with:"):
-            _cli_logger.print(
-                cf.bold("cloudtik status {}{}"), config_file, modifiers)
+        with _cli_logger.group(
+                "Check cluster status with:"):
+            _cli_logger.print(cf.bold(
+                "cloudtik status {}{}"), config_file, modifiers)
 
-        with _cli_logger.group("Execute command on cluster with:"):
-            _cli_logger.print(
-                cf.bold("cloudtik exec {}{} [command]"), config_file, modifiers)
+        with _cli_logger.group(
+                "Execute command on cluster with:"):
+            _cli_logger.print(cf.bold(
+                "cloudtik exec {}{} [command]"), config_file, modifiers)
 
-        with _cli_logger.group("Connect to a terminal on the cluster head:"):
-            _cli_logger.print(
-                cf.bold("cloudtik attach {}{}"), config_file, modifiers)
+        with _cli_logger.group(
+                "Connect to a terminal on the cluster head:"):
+            _cli_logger.print(cf.bold(
+                "cloudtik attach {}{}"), config_file, modifiers)
 
-        with _cli_logger.group("Upload files or folders to cluster:"):
-            _cli_logger.print(
-                cf.bold("cloudtik upload {}{} [source] [target]"), config_file, modifiers)
+        with _cli_logger.group(
+                "Upload files or folders to cluster:"):
+            _cli_logger.print(cf.bold(
+                "cloudtik upload {}{} [source] [target]"), config_file, modifiers)
 
-        with _cli_logger.group("Download files or folders from cluster:"):
-            _cli_logger.print(
-                cf.bold("cloudtik download {}{} [source] [target]"), config_file, modifiers)
+        with _cli_logger.group(
+                "Download files or folders from cluster:"):
+            _cli_logger.print(cf.bold(
+                "cloudtik download {}{} [source] [target]"), config_file, modifiers)
 
-        with _cli_logger.group("Submit job to cluster to run with:"):
-            _cli_logger.print(
-                cf.bold("cloudtik submit {}{} [job-file.(py|sh|scala)] "), config_file, modifiers)
+        with _cli_logger.group(
+                "Submit job to cluster to run with:"):
+            _cli_logger.print(cf.bold(
+                "cloudtik submit {}{} [job-file.(py|sh|scala)] "), config_file, modifiers)
 
-        with _cli_logger.group("Monitor cluster with:"):
-            _cli_logger.print(
-                cf.bold("cloudtik monitor {}{}"), config_file, modifiers)
+        with _cli_logger.group(
+                "Monitor cluster with:"):
+            _cli_logger.print(cf.bold(
+                "cloudtik monitor {}{}"), config_file, modifiers)
 
     _cli_logger.newline()
-    with _cli_logger.group("Useful endpoints:"):
+    with _cli_logger.group(
+            "Useful endpoints:"):
         proxy_process_file = get_proxy_process_file(cluster_name)
         pid, address, port = get_safe_proxy_process(proxy_process_file)
         if pid is not None:
             bind_address_show = get_proxy_bind_address_to_show(address)
-            with _cli_logger.group("The SOCKS5 proxy to access the cluster Web UI from local browsers:"):
-                _cli_logger.print(
-                    cf.bold("{}:{}"),
+            with _cli_logger.group(
+                    "The SOCKS5 proxy to access the cluster Web UI from local browsers:"):
+                _cli_logger.print(cf.bold(
+                    "{}:{}"),
                     bind_address_show, port)
 
         head_cluster_ip = get_node_cluster_ip(provider, head_node)
-
         runtime_endpoints = get_runtime_endpoints(config, head_cluster_ip)
-        sorted_runtime_endpoints = sorted(runtime_endpoints.items(), key=lambda kv: kv[1]["name"])
-        for endpoint_id, runtime_endpoint in sorted_runtime_endpoints:
+        for endpoint_id, runtime_endpoint in runtime_endpoints.items():
             with _cli_logger.group(runtime_endpoint["name"] + ":"):
                 if "info" in runtime_endpoint:
-                    endpoint_desc = "{}, {}".format(runtime_endpoint["url"], runtime_endpoint["info"])
+                    endpoint_desc = "{}, {}".format(
+                        runtime_endpoint["url"], runtime_endpoint["info"])
                 else:
                     endpoint_desc = runtime_endpoint["url"]
                 _cli_logger.print(cf.bold(endpoint_desc))
@@ -2324,7 +2347,8 @@ def _show_cluster_status(config: Dict[str, Any]) -> None:
                     ])
 
     nodes_ready = _get_number_of_node_in_status(nodes_info, STATUS_UP_TO_DATE)
-    cli_logger.print(cf.bold("Total {} nodes. {} nodes are ready"), len(nodes_info), nodes_ready)
+    cli_logger.print(cf.bold(
+        "Total {} nodes. {} nodes are ready"), len(nodes_info), nodes_ready)
     cli_logger.print(tb)
 
 
@@ -2473,8 +2497,9 @@ def start_ssh_proxy(
 
     # Warning about bind_address
     if bind_address is None or bind_address == "":
-        cli_logger.warning("The SOCKS5 proxy will be bound on localhost of this node. "
-                           "Use --bind-address to specify to bind on a specific address if you want.")
+        cli_logger.warning(
+            "The SOCKS5 proxy will be bound on localhost of this node. "
+            "Use --bind-address to specify to bind on a specific address if you want.")
 
     _start_proxy(config, restart=True, bind_address=bind_address)
 
@@ -2586,14 +2611,14 @@ def _stop_proxy(config: Dict[str, Any]):
     proxy_process_file = get_proxy_process_file(cluster_name)
     pid, address, port = get_safe_proxy_process(proxy_process_file)
     if pid is None:
-        cli_logger.print(
-            cf.bold("The SOCKS5 proxy of cluster {} was not started."), cluster_name)
+        cli_logger.print(cf.bold(
+            "The SOCKS5 proxy of cluster {} was not started."), cluster_name)
         return
 
     stop_process_tree(pid)
     save_server_process(proxy_process_file, {})
-    cli_logger.print(
-        cf.bold("Successfully stopped the SOCKS5 proxy of cluster {}."), cluster_name)
+    cli_logger.print(cf.bold(
+        "Successfully stopped the SOCKS5 proxy of cluster {}."), cluster_name)
 
 
 def exec_cmd_on_cluster(
@@ -2765,7 +2790,8 @@ def cluster_process_status_on_head(
             continue
 
         cli_logger.newline()
-        cli_logger.print(cf.bold("Processes status for: {}."), runtime)
+        cli_logger.print(cf.bold(
+            "Processes status for: {}."), runtime)
 
         tb = pt.PrettyTable()
         field_names = ["node-ip", "node-type"]
@@ -3219,7 +3245,8 @@ def _exec_node_on_head(
             node_id=nodes[0], call_context=call_context)
 
     if parallel and total_nodes > 1:
-        cli_logger.print("Executing on {} nodes in parallel...", total_nodes)
+        cli_logger.print(
+            "Executing on {} nodes in parallel...", total_nodes)
         run_in_parallel_on_nodes(
             run_exec_cmd_on_head,
             call_context=call_context,
@@ -3349,7 +3376,8 @@ def _do_start_node_on_head(
 
     total_workers = len(node_workers)
     if parallel and total_workers > 1:
-        _cli_logger.print("Starting on {} workers in parallel...", total_workers)
+        _cli_logger.print(
+            "Starting on {} workers in parallel...", total_workers)
         run_in_parallel_on_nodes(
             start_single_node_on_head,
             call_context=call_context,
@@ -3557,7 +3585,8 @@ def get_nodes_of(
     else:
         node_id = provider.get_node_id(node_ip, use_internal_ip=True)
         if not node_id:
-            cli_logger.error("No node with the specified node ip - {} found.", node_ip)
+            cli_logger.error(
+                "No node with the specified node ip - {} found.", node_ip)
             return
         if head_node == node_id:
             node_head = node_id
@@ -3765,10 +3794,12 @@ def scale_cluster(
         resources=resources, bundles=bundles,
     )
     if not resource_desc:
-        cli_logger.abort("No resource parameters specified for scaling.")
+        cli_logger.abort(
+            "No resource parameters specified for scaling.")
 
-    cli_logger.confirm(yes, "Are you sure that you want to scale cluster {} to {}?",
-                       config["cluster_name"], resource_desc, _abort=True)
+    cli_logger.confirm(
+        yes, "Are you sure that you want to scale cluster {} to {}?",
+        config["cluster_name"], resource_desc, _abort=True)
     cli_logger.newline()
 
     _scale_cluster(
@@ -3787,7 +3818,8 @@ def _check_scale_parameters(
     bundles: Optional[List[dict]] = None,
 ):
     if not (cpus or gpus or workers or resources or bundles):
-        raise ValueError("Need specify either 'cpus', `gpus`, `workers`, `resources` or `bundles`.")
+        raise ValueError(
+            "Need specify either 'cpus', `gpus`, `workers`, `resources` or `bundles`.")
 
 
 def _scale_cluster(
@@ -3876,7 +3908,8 @@ def scale_cluster_on_head(
             resources=resources, bundles=bundles,
         )
         if not resource_desc:
-            cli_logger.abort("No resource parameters specified for scaling.")
+            cli_logger.abort(
+                "No resource parameters specified for scaling.")
 
         cli_logger.confirm(
             yes, "Are you sure that you want to scale cluster {} to {}?",
@@ -3923,7 +3956,8 @@ def _scale_cluster_on_head(
         resource_amount = convert_nodes_to_resource(
             config, workers, worker_type, worker_type)
         if not resource_amount:
-            raise RuntimeError("Not be able to convert number of workers to worker node resources.")
+            raise RuntimeError(
+                "Not be able to convert number of workers to worker node resources.")
         all_resources[worker_type] = resource_amount
     if resources:
         all_resources.update(resources)
@@ -3949,7 +3983,8 @@ def _scale_cluster_on_head(
         bundles=bundles,
         config=config)
 
-    cli_logger.print("Scale request submitted successfully.")
+    cli_logger.print(
+        "Scale request submitted successfully.")
 
 
 def _get_resource_requests():
@@ -4153,7 +4188,8 @@ def submit_and_exec(
             runtime_commands = get_runnable_command(
                 config.get(RUNTIME_CONFIG_KEY), target, runtime, runtime_options)
             if runtime_commands is None:
-                cli_logger.abort("Runtime {} doesn't how to execute your file: {}", runtime, script)
+                cli_logger.abort(
+                    "Runtime {} doesn't how to execute your file: {}", runtime, script)
             cmds += runtime_commands
         elif target_name.endswith(".py"):
             cmds += ["python", double_quote(target)]
@@ -4162,7 +4198,8 @@ def submit_and_exec(
         else:
             runtime_commands = get_runnable_command(config.get(RUNTIME_CONFIG_KEY), target)
             if runtime_commands is None:
-                cli_logger.abort("We don't how to execute your file: {}", script)
+                cli_logger.abort(
+                    "We don't how to execute your file: {}", script)
             cmds += runtime_commands
 
         with_script_args(cmds, script_args)
@@ -4410,18 +4447,21 @@ def do_component_health_check(
         component, namespace=CLOUDTIK_KV_NAMESPACE_HEALTHCHECK)
     if not report_str:
         # Status was never updated
-        cli_logger.print("{} is not healthy! No status reported.", component)
+        cli_logger.print(
+            "{} is not healthy! No status reported.", component)
         sys.exit(1)
 
     report = json.loads(report_str)
     report_time = float(report["time"])
     time_ok = is_alive_time(report_time)
     if not time_ok:
-        cli_logger.print("{} is not healthy! Last status time {}",
-                         component, report_time)
+        cli_logger.print(
+            "{} is not healthy! Last status time {}",
+            component, report_time)
         sys.exit(1)
 
-    cli_logger.print("{} is healthy.", component)
+    cli_logger.print(
+        "{} is healthy.", component)
     sys.exit(0)
 
 
@@ -4440,31 +4480,37 @@ def do_core_health_check(
         # check cluster controller live status through scaling status time
         status = kv_store.kv_get(CLOUDTIK_CLUSTER_SCALING_STATUS)
         if not status:
-            cli_logger.warning("No scaling status reported from the Cluster Controller.")
+            cli_logger.warning(
+                "No scaling status reported from the Cluster Controller.")
             check_ok = False
         else:
             report_time = decode_cluster_scaling_time(status)
             time_ok = is_alive_time(report_time)
             if not time_ok:
-                cli_logger.warning("Last scaling status is too old. Status time: {}", report_time)
+                cli_logger.warning(
+                    "Last scaling status is too old. Status time: {}", report_time)
                 check_ok = False
 
         # check the process status
         failed_nodes = do_nodes_health_check(
             redis_address, redis_password, with_details)
         if failed_nodes:
-            cli_logger.warning("{} nodes are not healthy.", len(failed_nodes))
+            cli_logger.warning(
+                "{} nodes are not healthy.", len(failed_nodes))
             check_ok = False
     except Exception as e:
-        cli_logger.error("Health check failed." + str(e))
+        cli_logger.error(
+            "Health check failed." + str(e))
         check_ok = False
         pass
 
     if check_ok:
-        cli_logger.success("Cluster is healthy.")
+        cli_logger.success(
+            "Cluster is healthy.")
         sys.exit(0)
     else:
-        cli_logger.error("Cluster is not healthy. Please check the details above.")
+        cli_logger.error(
+            "Cluster is not healthy. Please check the details above.")
         sys.exit(1)
 
 
@@ -4516,11 +4562,13 @@ def do_nodes_health_check(
 
     if head_state == 0:
         failed_nodes[head_node] = head_node
-        cli_logger.warning("Head node is not running.")
+        cli_logger.warning(
+            "Head node is not running.")
         return failed_nodes
     elif head_state == -1:
         failed_nodes[head_node] = head_node
-        cli_logger.warning("Head node setting up failed.")
+        cli_logger.warning(
+            "Head node setting up failed.")
 
     control_state = ControlState()
     _, redis_ip, redis_port = validate_redis_address(redis_address)
@@ -4536,7 +4584,8 @@ def do_nodes_health_check(
         config, provider, head_node_info,
         node_processes_by_node_ip, with_details)
     if not node_process_ok:
-        cli_logger.warning("Head node is not healthy. One or more process are not running.")
+        cli_logger.warning(
+            "Head node is not healthy. One or more process are not running.")
         failed_nodes[head_node] = head_node
 
     # checking worker node process
@@ -4580,8 +4629,9 @@ def check_node_processes(
         node_kind_name = "Head"
     node_processes = node_processes_by_node_ip.get(node_ip)
     if not node_processes:
-        cli_logger.warning("No node processes reported for {} node: {}.",
-                           node_kind, node_ip)
+        cli_logger.warning(
+            "No node processes reported for {} node: {}.",
+            node_kind, node_ip)
         return False
 
     process_info = node_processes["process"]
@@ -4640,7 +4690,8 @@ def check_node_processes(
             node_kind_name, node_ip)
 
     if with_details:
-        cli_logger.print("Process details:", node_kind_name, node_ip)
+        cli_logger.print(
+            "Process details:", node_kind_name, node_ip)
         cli_logger.print(tb)
         cli_logger.newline()
 
@@ -4688,18 +4739,28 @@ def show_cluster_metrics(
     _cli_logger = call_context.cli_logger
 
     # print the metrics
-    cli_logger.print(cf.bold("Cluster resource metrics (workers):"))
-    cli_logger.labeled_value("Total Cores", resource_metrics["total_cpus"])
-    cli_logger.labeled_value("Used Cores", resource_metrics["used_cpus"])
-    cli_logger.labeled_value("Free Cores", resource_metrics["available_cpus"])
-    cli_logger.labeled_value("CPU Load", resource_metrics["cpu_load"])
-    cli_logger.labeled_value("Total Memory", memory_to_gb_string(resource_metrics["total_memory"]))
-    cli_logger.labeled_value("Used Memory", memory_to_gb_string(resource_metrics["used_memory"]))
-    cli_logger.labeled_value("Free Memory", memory_to_gb_string(resource_metrics["available_memory"]))
-    cli_logger.labeled_value("Memory Load", resource_metrics["memory_load"])
+    cli_logger.print(cf.bold(
+        "Cluster resource metrics (workers):"))
+    cli_logger.labeled_value(
+        "Total Cores", resource_metrics["total_cpus"])
+    cli_logger.labeled_value(
+        "Used Cores", resource_metrics["used_cpus"])
+    cli_logger.labeled_value(
+        "Free Cores", resource_metrics["available_cpus"])
+    cli_logger.labeled_value(
+        "CPU Load", resource_metrics["cpu_load"])
+    cli_logger.labeled_value(
+        "Total Memory", memory_to_gb_string(resource_metrics["total_memory"]))
+    cli_logger.labeled_value(
+        "Used Memory", memory_to_gb_string(resource_metrics["used_memory"]))
+    cli_logger.labeled_value(
+        "Free Memory", memory_to_gb_string(resource_metrics["available_memory"]))
+    cli_logger.labeled_value(
+        "Memory Load", resource_metrics["memory_load"])
 
     cli_logger.newline()
-    cli_logger.print(cf.bold("Node resource metrics:"))
+    cli_logger.print(cf.bold(
+        "Node resource metrics:"))
 
     tb = pt.PrettyTable()
     tb.field_names = ["node-ip", "node-type",
