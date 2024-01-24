@@ -25,7 +25,7 @@
 BIN_DIR="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 ROOT_DIR="$(dirname "$(dirname "$BIN_DIR")")"
 RUNTIME_PATH=/home/$(whoami)/runtime
-POSTGRES_HOME=$USER_HOME/runtime/postgres
+POSTGRES_HOME=$RUNTIME_PATH/postgres
 
 # health check common functions
 . "$ROOT_DIR"/common/scripts/util-health-check.sh
@@ -63,26 +63,26 @@ _main() {
 
     local server_role
     if ! server_role=$(_get_server_role); then
-        response 503 "Failed to get server role."
+        response 503 "FAIL: Failed to get server role."
     fi
     if [[ -z "${HTTP_REQ_URI_PATH}" ]] \
         || [[ "${HTTP_REQ_URI_PATH}" == "/" ]] \
         || [[ "${HTTP_REQ_URI_PATH}" == "/primary" ]]; then
         if [[ "${server_role}" == "primary" ]]; then
-            response 200 "${server_role}"
+            response 200 "OK: ${server_role}"
         fi
     elif [[ "${HTTP_REQ_URI_PATH}" == "/standby" ]]; then
         if [[ "${server_role}" == "standby" ]]; then
-            response 200 "${server_role}"
+            response 200 "OK: ${server_role}"
         fi
     else
         if [[ "${server_role}" == "primary" ]] \
             || [[ "${server_role}" == "standby" ]]; then
-            response 200 "${server_role}"
+            response 200 "OK: ${server_role}"
         fi
     fi
 
-    response 503 "${server_role}"
+    response 503 "FAIL: ${server_role}"
 }
 
 _main "$@"
