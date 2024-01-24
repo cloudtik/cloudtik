@@ -99,7 +99,7 @@ def _generate_service_def(runtime_type, health_check_config):
     port = health_check_config.get(HEALTH_CHECK_PORT)
     script = health_check_config.get(HEALTH_CHECK_SCRIPT)
     if not script:
-        script = os.path.join("scripts", f"{runtime_type}-health-check.sh")
+        script = os.path.join("scripts", f"{service_name}.sh")
     if os.path.isabs(script):
         full_script_path = script
     else:
