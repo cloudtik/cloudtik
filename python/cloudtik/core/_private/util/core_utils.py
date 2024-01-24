@@ -1119,3 +1119,17 @@ def http_address_string(
     if path:
         s += path
     return s
+
+
+try:
+    import pwd
+except ImportError:
+    import getpass
+    pwd = None
+
+
+def get_current_user():
+    if pwd:
+        return pwd.getpwuid(os.getuid()).pw_name
+    else:
+        return getpass.getuser()

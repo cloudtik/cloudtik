@@ -12,6 +12,8 @@ from cloudtik.core._private.util.database_utils import DATABASE_PORT_POSTGRES_DE
     DATABASE_USERNAME_POSTGRES_DEFAULT, DATABASE_PASSWORD_POSTGRES_DEFAULT
 from cloudtik.core._private.utils import is_node_seq_id_enabled, enable_node_seq_id, \
     _sum_min_workers, get_runtime_config_for_update, get_runtime_config
+from cloudtik.runtime.common.health_check import HEALTH_CHECK_PORT, HEALTH_CHECK_SCRIPT, HEALTH_CHECK_NODE_KIND, \
+    HEALTH_CHECK_NODE_KIND_HEAD, HEALTH_CHECK_NODE_KIND_NODE
 from cloudtik.runtime.common.service_discovery.cluster import has_runtime_in_cluster
 
 RUNTIME_PROCESSES = [
@@ -375,9 +377,16 @@ def _get_health_check(
         runtime_config: Dict[str, Any],
         cluster_config: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     postgres_config = _get_config(runtime_config)
+    cluster_mode = _get_cluster_mode(postgres_config)
     health_check_port = _get_health_check_port(postgres_config)
+
+    node_kind = HEALTH_CHECK_NODE_KIND_HEAD
+    if cluster_mode == POSTGRES_CLUSTER_MODE_REPLICATION:
+        node_kind = HEALTH_CHECK_NODE_KIND_NODE
+
     health_check = {
-        "port": health_check_port,
-        "script": "scripts/postgres-health-check.sh"
+        HEALTH_CHECK_PORT: health_check_port,
+        HEALTH_CHECK_SCRIPT: "scripts/postgres-health-check.sh",
+        HEALTH_CHECK_NODE_KIND: node_kind,
     }
     return health_check

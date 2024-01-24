@@ -697,7 +697,7 @@ def merge_runtime_commands(config, commands_root, system=False):
     if runtime_config is None:
         return
 
-    runtime_types = runtime_config.get(RUNTIME_TYPES_CONFIG_KEY, [])
+    runtime_types = get_runtime_types(runtime_config)
     for runtime_type in runtime_types:
         runtime = _get_runtime(runtime_type, runtime_config)
         system_runtime = _is_system_runtime(runtime)
@@ -848,7 +848,7 @@ def _reorder_runtimes_for_dependency(config):
     if runtime_config is None:
         return
 
-    runtime_types = runtime_config.get(RUNTIME_TYPES_CONFIG_KEY, [])
+    runtime_types = get_runtime_types(runtime_config)
     if len(runtime_types) == 0:
         return
 
@@ -905,7 +905,7 @@ def merge_runtime_config(config):
 
 def merge_global_runtime_config(config):
     runtime_config = config[RUNTIME_CONFIG_KEY]
-    runtime_types = runtime_config.get(RUNTIME_TYPES_CONFIG_KEY, [])
+    runtime_types = get_runtime_types(runtime_config)
     for runtime_type in runtime_types:
         runtime = _get_runtime(runtime_type, runtime_config)
         defaults_config = runtime.get_defaults_config(config)
@@ -2604,7 +2604,7 @@ def with_runtime_environment_variables(
     if provider_envs:
         all_runtime_envs.update(provider_envs)
 
-    runtime_types = runtime_config.get(RUNTIME_TYPES_CONFIG_KEY, [])
+    runtime_types = get_runtime_types(runtime_config)
 
     if len(runtime_types) > 0:
         all_runtime_envs[constants.CLOUDTIK_RUNTIME_ENV_RUNTIMES] = ",".join(
@@ -2624,7 +2624,7 @@ def get_runtime_shared_memory_ratio(runtime_config, config, node_type: str):
     total_shared_memory_ratio = 0.0
 
     # Iterate through all the runtimes
-    runtime_types = runtime_config.get(RUNTIME_TYPES_CONFIG_KEY, [])
+    runtime_types = get_runtime_types(runtime_config)
     for runtime_type in runtime_types:
         runtime = _get_runtime(runtime_type, runtime_config)
         runtime_shared_memory_ratio = runtime.get_runtime_shared_memory_ratio(
@@ -2643,7 +2643,7 @@ def is_gpu_runtime(config):
 
 
 def _is_gpu_runtime(runtime_config):
-    runtime_types = runtime_config.get(RUNTIME_TYPES_CONFIG_KEY, [])
+    runtime_types = get_runtime_types(runtime_config)
     if "ai" not in runtime_types:
         return False
     return runtime_config.get("ai", {}).get("with_gpu", False)
@@ -2654,7 +2654,7 @@ def runtime_validate_config(runtime_config, config):
         return
 
     # Iterate through all the runtimes
-    runtime_types = runtime_config.get(RUNTIME_TYPES_CONFIG_KEY, [])
+    runtime_types = get_runtime_types(runtime_config)
     for runtime_type in runtime_types:
         runtime = _get_runtime(runtime_type, runtime_config)
         runtime.validate_config(config)
@@ -2667,7 +2667,7 @@ def runtime_prepare_config(
         return config
 
     # Iterate through all the runtimes
-    runtime_types = runtime_config.get(RUNTIME_TYPES_CONFIG_KEY, [])
+    runtime_types = get_runtime_types(runtime_config)
     for runtime_type in runtime_types:
         runtime = _get_runtime(runtime_type, runtime_config)
         config = runtime.prepare_config(config)
@@ -2682,7 +2682,7 @@ def runtime_bootstrap_config(
         return config
 
     # Iterate through all the runtimes
-    runtime_types = runtime_config.get(RUNTIME_TYPES_CONFIG_KEY, [])
+    runtime_types = get_runtime_types(runtime_config)
     for runtime_type in runtime_types:
         runtime = _get_runtime(runtime_type, runtime_config)
         config = runtime.bootstrap_config(config)
@@ -2695,7 +2695,7 @@ def runtime_verify_config(runtime_config, config):
         return
 
     # Iterate through all the runtimes
-    runtime_types = runtime_config.get(RUNTIME_TYPES_CONFIG_KEY, [])
+    runtime_types = get_runtime_types(runtime_config)
     for runtime_type in runtime_types:
         runtime = _get_runtime(runtime_type, runtime_config)
         runtime.verify_config(config)
@@ -2714,7 +2714,7 @@ def get_runnable_command(
             return commands
     else:
         # Iterate through all the runtimes
-        runtime_types = runtime_config.get(RUNTIME_TYPES_CONFIG_KEY, [])
+        runtime_types = get_runtime_types(runtime_config)
         for runtime_type in runtime_types:
             runtime = _get_runtime(runtime_type, runtime_config)
             commands = runtime.get_runnable_command(target, runtime_options)
@@ -2728,7 +2728,7 @@ def cluster_booting_completed(config, head_node_id):
     runtime_config = config.get(RUNTIME_CONFIG_KEY)
     if runtime_config is not None:
         # Iterate through all the runtimes
-        runtime_types = runtime_config.get(RUNTIME_TYPES_CONFIG_KEY, [])
+        runtime_types = get_runtime_types(runtime_config)
         for runtime_type in runtime_types:
             runtime = _get_runtime(runtime_type, runtime_config)
             runtime.cluster_booting_completed(config, head_node_id)
@@ -2760,7 +2760,7 @@ def get_runtime_endpoints(config, head_cluster_ip):
         return runtime_endpoints
 
     # Iterate through all the runtimes
-    runtime_types = runtime_config.get(RUNTIME_TYPES_CONFIG_KEY, [])
+    runtime_types = get_runtime_types(runtime_config)
     for runtime_type in runtime_types:
         runtime = _get_runtime(runtime_type, runtime_config)
         endpoints = runtime.get_runtime_endpoints(
@@ -2780,11 +2780,15 @@ def is_runtime_enabled(runtime_config, runtime_type: str):
     if runtime_config is None:
         return False
 
-    runtime_types = runtime_config.get(RUNTIME_TYPES_CONFIG_KEY, [])
+    runtime_types = get_runtime_types(runtime_config)
     if runtime_type in runtime_types:
         return True
 
     return False
+
+
+def get_runtime_types(runtime_config):
+    return runtime_config.get(RUNTIME_TYPES_CONFIG_KEY, [])
 
 
 def get_runtime_logs(runtimes: List[str]):
@@ -2840,7 +2844,7 @@ def _parse_runtime_list(runtimes: str):
 
 def verify_runtime_list(config: Dict[str, Any], runtimes: List[str]):
     runtime_config = get_runtime_config(config)
-    runtime_types = runtime_config.get(RUNTIME_TYPES_CONFIG_KEY, [])
+    runtime_types = get_runtime_types(runtime_config)
     for runtime in runtimes:
         if runtime in runtime_types or runtime == CLOUDTIK_RUNTIME_NAME:
             continue
@@ -3089,7 +3093,7 @@ def _get_node_constraints_for_node_type(config: Dict[str, Any], node_type: str):
 
     # For each
     runtimes_with_node_constraints = []
-    runtime_types = runtime_config.get(RUNTIME_TYPES_CONFIG_KEY, [])
+    runtime_types = get_runtime_types(runtime_config)
     quorum = False
     scalable = False
     for runtime_type in runtime_types:
@@ -3369,7 +3373,7 @@ def get_head_service_ports(runtime_config):
         return {}
 
     # Iterate through all the runtimes
-    runtime_types = runtime_config.get(RUNTIME_TYPES_CONFIG_KEY, [])
+    runtime_types = get_runtime_types(runtime_config)
     return _get_head_service_ports(runtime_types, runtime_config)
 
 
@@ -3495,7 +3499,7 @@ def _get_runtime_scaling_policy(config, head_host):
     if runtime_config is None:
         return None
 
-    runtime_types = runtime_config.get(RUNTIME_TYPES_CONFIG_KEY, [])
+    runtime_types = get_runtime_types(runtime_config)
     if len(runtime_types) > 0:
         for runtime_type in runtime_types:
             runtime = _get_runtime(runtime_type, runtime_config)
@@ -3827,7 +3831,7 @@ def prepare_runtime_config_on_head(config):
     old_config_digest = get_json_object_md5(config)
 
     # Iterate through all the runtimes
-    runtime_types = runtime_config.get(RUNTIME_TYPES_CONFIG_KEY, [])
+    runtime_types = get_runtime_types(runtime_config)
     for runtime_type in runtime_types:
         runtime = _get_runtime(runtime_type, runtime_config)
         config = runtime.prepare_config_on_head(
