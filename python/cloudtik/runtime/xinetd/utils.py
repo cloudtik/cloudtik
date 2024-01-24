@@ -99,7 +99,7 @@ def _with_runtime_environment_variables(
 
 
 def _get_runtime_services(
-        runtime_config: Dict[str, Any], cluster_name: str) -> Dict[str, Any]:
+        runtime_config: Dict[str, Any], cluster_config: Dict[str, Any]) -> Dict[str, Any]:
     xinetd_config = _get_config(runtime_config)
     service_discovery_config = get_service_discovery_config(xinetd_config)
     services = {}

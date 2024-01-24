@@ -7,7 +7,7 @@ from cloudtik.core._private.service_discovery.runtime_services import get_servic
 from cloudtik.core._private.service_discovery.utils import get_canonical_service_name, \
     get_service_discovery_config, define_runtime_service_on_head_or_all, \
     SERVICE_DISCOVERY_FEATURE_LOAD_BALANCER
-from cloudtik.core._private.utils import get_runtime_config
+from cloudtik.core._private.utils import get_runtime_config, get_cluster_name
 from cloudtik.runtime.common.service_discovery.consul import get_rfc2782_service_dns_name
 from cloudtik.runtime.haproxy.admin_api import get_backend_server_name
 
@@ -332,7 +332,9 @@ def _get_head_service_ports(runtime_config: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def _get_runtime_services(
-        runtime_config: Dict[str, Any], cluster_name: str) -> Dict[str, Any]:
+        runtime_config: Dict[str, Any],
+        cluster_config: Dict[str, Any]) -> Dict[str, Any]:
+    cluster_name = get_cluster_name(cluster_config)
     haproxy_config = _get_config(runtime_config)
     service_discovery_config = get_service_discovery_config(haproxy_config)
     service_name = get_canonical_service_name(

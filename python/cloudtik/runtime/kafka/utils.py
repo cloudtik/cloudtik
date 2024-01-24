@@ -7,7 +7,7 @@ from cloudtik.core._private.service_discovery.utils import \
     get_canonical_service_name, define_runtime_service_on_worker, \
     get_service_discovery_config, SERVICE_DISCOVERY_FEATURE_MESSAGING
 from cloudtik.core._private.utils import \
-    get_runtime_config, is_node_seq_id_enabled, enable_node_seq_id
+    get_runtime_config, is_node_seq_id_enabled, enable_node_seq_id, get_cluster_name
 from cloudtik.runtime.common.service_discovery.cluster import \
     query_service_from_cluster, get_service_addresses_string, \
     has_runtime_in_cluster
@@ -114,7 +114,9 @@ def _get_server_config(runtime_config: Dict[str, Any]):
 
 
 def _get_runtime_services(
-        runtime_config: Dict[str, Any], cluster_name: str) -> Dict[str, Any]:
+        runtime_config: Dict[str, Any],
+        cluster_config: Dict[str, Any]) -> Dict[str, Any]:
+    cluster_name = get_cluster_name(cluster_config)
     kafka_config = _get_config(runtime_config)
     service_discovery_config = get_service_discovery_config(kafka_config)
     service_name = get_canonical_service_name(

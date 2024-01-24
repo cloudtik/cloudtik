@@ -10,7 +10,7 @@ from cloudtik.core._private.service_discovery.utils import get_canonical_service
     get_service_discovery_config, SERVICE_DISCOVERY_PROTOCOL_HTTP
 from cloudtik.core._private.utils import \
     round_memory_size_to_gb, RUNTIME_CONFIG_KEY, get_config_for_update, get_runtime_config, \
-    get_node_type_resources
+    get_node_type_resources, get_cluster_name
 from cloudtik.runtime.common.service_discovery.runtime_discovery import \
     discover_metastore_on_head, discover_metastore_from_workspace, METASTORE_URI_KEY
 from cloudtik.runtime.common.utils import get_runtime_endpoints_of, get_runtime_default_storage_of
@@ -246,7 +246,9 @@ def _get_head_service_ports(
 
 
 def _get_runtime_services(
-        runtime_config: Dict[str, Any], cluster_name: str) -> Dict[str, Any]:
+        runtime_config: Dict[str, Any],
+        cluster_config: Dict[str, Any]) -> Dict[str, Any]:
+    cluster_name = get_cluster_name(cluster_config)
     spark_config = _get_config(runtime_config)
     service_discovery_config = get_service_discovery_config(spark_config)
     spark_history_service_name = get_canonical_service_name(

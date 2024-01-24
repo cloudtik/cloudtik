@@ -47,8 +47,8 @@ class ZooKeeperRuntime(RuntimeBase):
             self, cluster_config: Dict[str, Any], cluster_head_ip: str):
         return _get_runtime_endpoints(cluster_config, cluster_head_ip)
 
-    def get_runtime_services(self, cluster_name: str):
-        return _get_runtime_services(self.runtime_config, cluster_name)
+    def get_runtime_services(self, cluster_config: Dict[str, Any]):
+        return _get_runtime_services(self.runtime_config, cluster_config)
 
     def get_node_constraints(
             self, cluster_config: Dict[str, Any],

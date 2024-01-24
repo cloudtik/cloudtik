@@ -8,7 +8,7 @@ from cloudtik.core._private.service_discovery.runtime_services import get_servic
 from cloudtik.core._private.service_discovery.utils import \
     get_canonical_service_name, define_runtime_service_on_head_or_all, \
     get_service_discovery_config, SERVICE_DISCOVERY_FEATURE_API_GATEWAY, SERVICE_DISCOVERY_PROTOCOL_HTTP
-from cloudtik.core._private.utils import get_runtime_config
+from cloudtik.core._private.utils import get_runtime_config, get_cluster_name
 from cloudtik.runtime.common.service_discovery.runtime_discovery import discover_etcd_from_workspace, \
     discover_etcd_on_head, ETCD_URI_KEY, is_etcd_service_discovery
 
@@ -192,7 +192,9 @@ def _get_head_service_ports(
 
 
 def _get_runtime_services(
-        runtime_config: Dict[str, Any], cluster_name: str) -> Dict[str, Any]:
+        runtime_config: Dict[str, Any],
+        cluster_config: Dict[str, Any]) -> Dict[str, Any]:
+    cluster_name = get_cluster_name(cluster_config)
     apisix_config = _get_config(runtime_config)
     service_discovery_config = get_service_discovery_config(apisix_config)
     service_name = get_canonical_service_name(

@@ -13,7 +13,7 @@ from cloudtik.core._private.service_discovery.utils import \
 from cloudtik.core._private.util.database_utils import is_database_configured, export_database_environment_variables, \
     DATABASE_ENGINE_POSTGRES, get_database_engine, DATABASE_ENV_ENABLED, DATABASE_ENV_ENGINE
 from cloudtik.core._private.utils import get_runtime_config, is_use_managed_cloud_database, \
-    PROVIDER_DATABASE_CONFIG_KEY, get_provider_config
+    PROVIDER_DATABASE_CONFIG_KEY, get_provider_config, get_cluster_name
 from cloudtik.runtime.common.service_discovery.runtime_discovery import \
     DATABASE_CONNECT_KEY, is_database_service_discovery, discover_database_on_head, \
     discover_database_from_workspace, get_database_runtime_in_cluster, export_database_runtime_environment_variables
@@ -87,6 +87,10 @@ def _get_config_mode(backend_config: Dict[str, Any]):
 def _get_home_dir():
     return os.path.join(
         os.getenv("HOME"), "runtime", BUILT_IN_RUNTIME_KONG)
+
+
+def _get_runtime_processes():
+    return RUNTIME_PROCESSES
 
 
 def _get_logs_dir():
@@ -264,7 +268,9 @@ def _get_head_service_ports(
 
 
 def _get_runtime_services(
-        runtime_config: Dict[str, Any], cluster_name: str) -> Dict[str, Any]:
+        runtime_config: Dict[str, Any],
+        cluster_config: Dict[str, Any]) -> Dict[str, Any]:
+    cluster_name = get_cluster_name(cluster_config)
     kong_config = _get_config(runtime_config)
     service_discovery_config = get_service_discovery_config(kong_config)
     service_name = get_canonical_service_name(

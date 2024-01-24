@@ -5,6 +5,7 @@ from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_NODEX
 from cloudtik.core._private.service_discovery.utils import \
     get_canonical_service_name, define_runtime_service, \
     get_service_discovery_config, SERVICE_DISCOVERY_PROTOCOL_HTTP, SERVICE_DISCOVERY_FEATURE_METRICS
+from cloudtik.core._private.utils import get_cluster_name
 
 RUNTIME_PROCESSES = [
         # The first element is the substring to filter.
@@ -57,7 +58,9 @@ def _with_runtime_environment_variables(
 
 
 def _get_runtime_services(
-        runtime_config: Dict[str, Any], cluster_name: str) -> Dict[str, Any]:
+        runtime_config: Dict[str, Any],
+        cluster_config: Dict[str, Any]) -> Dict[str, Any]:
+    cluster_name = get_cluster_name(cluster_config)
     nodex_config = _get_config(runtime_config)
     service_discovery_config = get_service_discovery_config(nodex_config)
     service_name = get_canonical_service_name(

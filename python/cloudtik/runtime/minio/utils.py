@@ -15,7 +15,7 @@ from cloudtik.core._private.service_discovery.utils import \
 from cloudtik.core._private.service_discovery.naming import get_cluster_node_name, get_cluster_node_fqdn, \
     is_discoverable_cluster_node_name, get_cluster_head_host
 from cloudtik.core._private.utils import get_runtime_config, get_runtime_config_for_update, _sum_min_workers, \
-    enable_node_seq_id, is_node_seq_id_enabled, get_node_cluster_ip_of
+    enable_node_seq_id, is_node_seq_id_enabled, get_node_cluster_ip_of, get_cluster_name
 from cloudtik.runtime.common.service_discovery.workspace import register_service_to_workspace
 
 RUNTIME_PROCESSES = [
@@ -199,7 +199,9 @@ def _get_head_service_ports(
 
 
 def _get_runtime_services(
-        runtime_config: Dict[str, Any], cluster_name: str) -> Dict[str, Any]:
+        runtime_config: Dict[str, Any],
+        cluster_config: Dict[str, Any]) -> Dict[str, Any]:
+    cluster_name = get_cluster_name(cluster_config)
     minio_config = _get_config(runtime_config)
     service_discovery_config = get_service_discovery_config(minio_config)
     service_name = get_canonical_service_name(

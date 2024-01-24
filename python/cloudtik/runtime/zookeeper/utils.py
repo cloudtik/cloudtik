@@ -9,7 +9,7 @@ from cloudtik.core._private.service_discovery.utils import \
     get_canonical_service_name, define_runtime_service_on_worker, \
     get_service_discovery_config, ServiceRegisterException, SERVICE_DISCOVERY_FEATURE_KEY_VALUE
 from cloudtik.core._private.utils import \
-    is_node_seq_id_enabled, enable_node_seq_id
+    is_node_seq_id_enabled, enable_node_seq_id, get_cluster_name
 from cloudtik.runtime.common.service_discovery.cluster import register_service_to_cluster
 from cloudtik.runtime.common.service_discovery.workspace import register_service_to_workspace
 
@@ -96,7 +96,9 @@ def _get_server_config(runtime_config: Dict[str, Any]):
 
 
 def _get_runtime_services(
-        runtime_config: Dict[str, Any], cluster_name: str) -> Dict[str, Any]:
+        runtime_config: Dict[str, Any],
+        cluster_config: Dict[str, Any]) -> Dict[str, Any]:
+    cluster_name = get_cluster_name(cluster_config)
     zookeeper_config = _get_config(runtime_config)
     service_discovery_config = get_service_discovery_config(zookeeper_config)
     service_name = get_canonical_service_name(

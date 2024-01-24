@@ -9,7 +9,7 @@ from cloudtik.core._private.service_discovery.utils import get_canonical_service
 from cloudtik.core._private.util.database_utils import is_database_configured, \
     export_database_environment_variables
 from cloudtik.core._private.utils import export_runtime_flags, get_node_cluster_ip_of, get_runtime_config, \
-    PROVIDER_DATABASE_CONFIG_KEY, is_use_managed_cloud_database, get_provider_config
+    PROVIDER_DATABASE_CONFIG_KEY, is_use_managed_cloud_database, get_provider_config, get_cluster_name
 from cloudtik.runtime.common.service_discovery.runtime_discovery import \
     discover_database_from_workspace, discover_database_on_head, DATABASE_CONNECT_KEY, \
     get_database_runtime_in_cluster, export_database_runtime_environment_variables, \
@@ -177,7 +177,9 @@ def _get_head_service_ports(runtime_config: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def _get_runtime_services(
-        runtime_config: Dict[str, Any], cluster_name: str) -> Dict[str, Any]:
+        runtime_config: Dict[str, Any],
+        cluster_config: Dict[str, Any]) -> Dict[str, Any]:
+    cluster_name = get_cluster_name(cluster_config)
     metastore_config = _get_config(runtime_config)
     service_discovery_config = get_service_discovery_config(metastore_config)
     service_name = get_canonical_service_name(

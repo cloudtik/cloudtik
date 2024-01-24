@@ -6,7 +6,7 @@ from cloudtik.core._private.service_discovery.naming import DNS_DEFAULT_RESOLVER
 from cloudtik.core._private.service_discovery.utils import \
     get_canonical_service_name, define_runtime_service, \
     get_service_discovery_config, SERVICE_DISCOVERY_FEATURE_DNS, SERVICE_DISCOVERY_FEATURE_METRICS
-from cloudtik.core._private.utils import get_runtime_config
+from cloudtik.core._private.utils import get_runtime_config, get_cluster_name
 from cloudtik.runtime.common.service_discovery.cluster import has_runtime_in_cluster
 
 RUNTIME_PROCESSES = [
@@ -66,7 +66,9 @@ def _with_runtime_environment_variables(
 
 
 def _get_runtime_services(
-        runtime_config: Dict[str, Any], cluster_name: str) -> Dict[str, Any]:
+        runtime_config: Dict[str, Any],
+        cluster_config: Dict[str, Any]) -> Dict[str, Any]:
+    cluster_name = get_cluster_name(cluster_config)
     coredns_config = _get_config(runtime_config)
     service_discovery_config = get_service_discovery_config(coredns_config)
     service_name = get_canonical_service_name(
