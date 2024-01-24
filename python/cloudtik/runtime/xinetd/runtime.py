@@ -5,7 +5,7 @@ from cloudtik.core.node_provider import NodeProvider
 from cloudtik.runtime.common.runtime_base import RuntimeBase
 from cloudtik.runtime.xinetd.utils import _get_runtime_processes, \
     _get_runtime_services, _with_runtime_environment_variables, \
-    _get_runtime_logs, _bootstrap_runtime_health_checks
+    _get_runtime_logs, _bootstrap_runtime_health_checks, _get_runtime_endpoints
 
 logger = logging.getLogger(__name__)
 
@@ -32,6 +32,10 @@ class XinetdRuntime(RuntimeBase):
         """
         return _with_runtime_environment_variables(
             self.runtime_config, config=config)
+
+    def get_runtime_endpoints(
+            self, cluster_config: Dict[str, Any], cluster_head_ip: str):
+        return _get_runtime_endpoints(cluster_config, cluster_head_ip)
 
     def get_runtime_services(self, cluster_config: Dict[str, Any]):
         return _get_runtime_services(self.runtime_config, cluster_config)
