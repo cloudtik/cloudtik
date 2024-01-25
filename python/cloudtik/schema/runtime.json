@@ -730,6 +730,15 @@
                             "type": "string",
                             "default": "/",
                             "description": "The path to make the http health check."
+                        },
+                        "http_check_discovery": {
+                            "type": "boolean",
+                            "default": true,
+                            "description": "Whether to do http check discovery. If there is health check service discovered, use it."
+                        },
+                        "http_check_selector": {
+                            "$ref": "#/definitions/service_selector",
+                            "description": "The selector for health check service discovery."
                         }
                     }
                 }

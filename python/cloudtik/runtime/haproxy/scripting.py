@@ -7,11 +7,11 @@ from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_HAPROXY
 from cloudtik.core._private.util.runtime_utils import \
     get_runtime_config_from_node, get_runtime_value, get_runtime_node_ip, \
     get_runtime_cluster_name
-from cloudtik.core._private.service_discovery.utils import serialize_service_selector, exclude_runtime_of_cluster
+from cloudtik.core._private.service_discovery.utils import serialize_service_selector
 from cloudtik.runtime.haproxy.utils import _get_config, HAPROXY_APP_MODE_LOAD_BALANCER, HAPROXY_CONFIG_MODE_STATIC, \
     HAPROXY_BACKEND_SERVERS_CONFIG_KEY, _get_home_dir, _get_backend_config, get_default_server_name, \
-    HAPROXY_BACKEND_SELECTOR_CONFIG_KEY, HAPROXY_SERVICE_PORT_DEFAULT, HAPROXY_SERVICE_PROTOCOL_HTTP, \
-    HAPROXY_BACKEND_NAME_DEFAULT, HAPROXY_BACKEND_DYNAMIC_FREE_SLOTS, _get_logs_dir
+    HAPROXY_SERVICE_PORT_DEFAULT, HAPROXY_SERVICE_PROTOCOL_HTTP, \
+    HAPROXY_BACKEND_NAME_DEFAULT, HAPROXY_BACKEND_DYNAMIC_FREE_SLOTS, _get_logs_dir, _get_backend_service_selector
 
 HAPROXY_DISCOVER_BACKEND_SERVERS_INTERVAL = 15
 
@@ -62,12 +62,9 @@ def start_pull_server(head):
         discovery_class = "DiscoverAPIGatewayBackendServers"
 
     backend_config = _get_backend_config(haproxy_config)
-    service_selector = backend_config.get(
-            HAPROXY_BACKEND_SELECTOR_CONFIG_KEY, {})
     cluster_name = get_runtime_cluster_name()
-    exclude_runtime_of_cluster(
-        service_selector, BUILT_IN_RUNTIME_HAPROXY, cluster_name)
-
+    service_selector = _get_backend_service_selector(
+        backend_config, cluster_name)
     service_selector_str = serialize_service_selector(service_selector)
 
     pull_identifier = _get_pull_identifier()

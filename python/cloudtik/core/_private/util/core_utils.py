@@ -1,6 +1,7 @@
 import base64
 import binascii
 import collections
+import copy
 import errno
 import hashlib
 import importlib
@@ -17,7 +18,7 @@ import tempfile
 import threading
 import time
 from contextlib import closing
-from typing import Optional, List
+from typing import Optional, List, Dict
 
 import ipaddr
 # Import psutil after others so the packaged version is used.
@@ -932,6 +933,13 @@ def get_config_for_update(config, config_key):
     return config[config_key]
 
 
+def get_config_copy_for_update(config, config_key):
+    if config_key not in config:
+        return {}
+    config_for_key = config[config_key]
+    return copy.deepcopy(config_for_key)
+
+
 def get_list_for_update(config, config_key):
     if config_key not in config:
         config[config_key] = []
@@ -1133,3 +1141,34 @@ def get_current_user():
         return pwd.getpwuid(os.getuid()).pw_name
     else:
         return getpass.getuser()
+
+
+def _strip_last_quote(value):
+    # strip has problem because it will remove all front and tailing quotes
+    if not value:
+        return value
+    if value.startswith('"') or value.startswith("'"):
+        value = value[1:]
+    if value.endswith('"') or value.endswith("'"):
+        value = value[:-1]
+    return value
+
+
+def export_environment_variables(
+        environment_variables: Dict[str, object]):
+    """Set environment variables to os.environ.
+
+    Args:
+        environment_variables (Dict[str, object]): The set of environment
+            variables. If an environment variable value is a dict, it will
+            automatically be converted to a one line yaml string.
+    """
+    for key, val in environment_variables.items():
+        # json.dumps will add an extra quote to string value
+        # since we use quote to make sure value is safe for shell
+        # we don't need the quote for string
+        if isinstance(val, str):
+            str_value = val
+        else:
+            str_value = json.dumps(val, separators=(",", ":"))
+        os.environ[key] = str_value
