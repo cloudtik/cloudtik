@@ -112,7 +112,8 @@ def start_pull_server(head):
         else:
             discovery_class = "DiscoverAPIGatewayBackendServers"
 
-    service_selector = nginx_config.get(
+    backend_config = _get_backend_config(nginx_config)
+    service_selector = backend_config.get(
             NGINX_BACKEND_SELECTOR_CONFIG_KEY, {})
     cluster_name = get_runtime_cluster_name()
     exclude_runtime_of_cluster(

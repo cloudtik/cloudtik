@@ -716,6 +716,20 @@
                             "type": "string",
                             "default": "none",
                             "description": "The session persistence method: none, cookie or ip"
+                        },
+                        "http_check_enabled": {
+                            "type": "boolean",
+                            "default": false,
+                            "description": "Whether to enable http check. If not configured, the runtime will try to figure out whether there are http health check available."
+                        },
+                        "http_check_port": {
+                            "type": "integer",
+                            "description": "The port for http check. If not specified and http check enabled, same port as the service port. If http check is set by runtime discovery, will set to the discovered health check port."
+                        },
+                        "http_check_path": {
+                            "type": "string",
+                            "default": "/",
+                            "description": "The path to make the http health check."
                         }
                     }
                 }

@@ -89,25 +89,15 @@ append_file_after_last_match() {
 #   $1 - filename
 #   $2 - match regex
 #   $3 - substitute regex
-#   $4 - use POSIX regex. Default: false
 # Returns:
 #   None
 #########################
 update_in_file() {
     local filename="${1:?filename is required}"
     local match_regex="${2:?match regex is required}"
-    local substitute_regex="${3:?substitute regex is required}"
-    local posix_regex=${4:-false}
-
-    # We should avoid using 'sed in-place' substitutions
-    # 1) They are not compatible with files mounted from ConfigMap(s)
-    # 2) We found incompatibility issues with Debian10 and "in-place" substitutions
+    local substitute_regex="${3:-}"
     local -r del=$'\001' # Use a non-printable character as a 'sed' delimiter to avoid issues
-    if [[ $posix_regex = true ]]; then
-        sed -i -E "s${del}${match_regex}${del}${substitute_regex}${del}g" "$filename"
-    else
-        sed -i "s${del}${match_regex}${del}${substitute_regex}${del}g" "$filename"
-    fi
+    sed -i "s${del}${match_regex}${del}${substitute_regex}${del}g" "$filename"
 }
 
 ########################

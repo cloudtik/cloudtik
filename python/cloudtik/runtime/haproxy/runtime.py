@@ -11,7 +11,15 @@ logger = logging.getLogger(__name__)
 
 
 class HAProxyRuntime(RuntimeBase):
-    """Implementation for HAProxy Runtime for Load Balancer"""
+    """Implementation for HAProxy Runtime for Load Balancer
+
+    Hints:
+    1. Check HAProxy status with runtime API:
+    Install socat: sudo apt-get update -y && sudo apt-get install socat -y
+    Show help: echo "help" | socat stdio tcp4-connect:127.0.0.1:19999
+    Show states of backend servers: echo "show stat" | socat stdio tcp4-connect:127.0.0.1:19999
+
+    """
 
     def __init__(self, runtime_config: Dict[str, Any]) -> None:
         super().__init__(runtime_config)

@@ -32,6 +32,7 @@ def _parse_servers_of_backend(backend_name, stat_string):
                 # for the script to just skip it)
                 inactive_servers.append(server_name)
             else:
+                # Either UP or DOWN.
                 active_servers[server_addr] = server_name
     return active_servers, inactive_servers
 
@@ -71,7 +72,8 @@ def send_haproxy_command(haproxy_server, command):
 def list_backend_servers(haproxy_server, backend_name):
     stat_string = send_haproxy_command(haproxy_server, "show stat\n")
     if not stat_string:
-        raise RuntimeError("Failed to get current backend servers from HAProxy socket.")
+        raise RuntimeError(
+            "Failed to get current backend servers from HAProxy socket.")
 
     return _parse_servers_of_backend(
         backend_name, stat_string)
@@ -80,7 +82,8 @@ def list_backend_servers(haproxy_server, backend_name):
 def list_backends(haproxy_server):
     stat_string = send_haproxy_command(haproxy_server, "show stat\n")
     if not stat_string:
-        raise RuntimeError("Failed to get backends from HAProxy socket.")
+        raise RuntimeError(
+            "Failed to get backends from HAProxy socket.")
 
     return _parse_backends(stat_string)
 

@@ -30,13 +30,39 @@ check_haproxy_installed() {
     fi
 }
 
+configure_http_check() {
+    local config_file="${1:?config file is required}"
+    local http_check_option=""
+    local http_check_send=""
+    local http_check_port=""
+    if [ "${HAPROXY_HTTP_CHECK}" == "true" ]; then
+        local check_uri="/"
+        if [ ! -z "${HAPROXY_HTTP_CHECK_PATH}" ]; then
+            check_uri="${HAPROXY_HTTP_CHECK_PATH}"
+        fi
+        http_check_option="option httpchk"
+        http_check_send="http-check send meth GET uri ${check_uri}"
+        if [ ! -z "${HAPROXY_HTTP_CHECK_PORT}" ]; then
+            http_check_port="port ${HAPROXY_HTTP_CHECK_PORT}"
+        fi
+    fi
+    update_in_file "${config_file}" \
+      "{%http.check.option%}" "${http_check_option}"
+    update_in_file "${config_file}" \
+      "{%http.check.send%}" "${http_check_send}"
+    update_in_file "${config_file}" \
+      "{%http.check.port%}" "${http_check_port}"
+}
+
 configure_dns_backend() {
     # configure a load balancer based on Consul DNS interface
     local config_template_file=${output_dir}/haproxy-dns-consul.cfg
 
     # Consul DNS interface based service discovery
-    sed -i "s#{%backend.max.servers%}#${HAPROXY_BACKEND_MAX_SERVERS}#g" ${config_template_file}
-    sed -i "s#{%backend.service.dns.name%}#${HAPROXY_BACKEND_SERVICE_DNS_NAME}#g" ${config_template_file}
+    update_in_file "${config_template_file}" \
+      "{%backend.max.servers%}" "${HAPROXY_BACKEND_MAX_SERVERS}"
+    update_in_file "${config_template_file}" \
+      "{%backend.service.dns.name%}" "${HAPROXY_BACKEND_SERVICE_DNS_NAME}"
 
     cat ${config_template_file} >> ${haproxy_config_file}
 }
@@ -44,6 +70,8 @@ configure_dns_backend() {
 configure_static_backend() {
     # configure a load balancer with static address
     local config_template_file=${output_dir}/haproxy-static.cfg
+    configure_http_check "${config_template_file}"
+
     # python configure script will write the list of static servers
     cat ${config_template_file} >> ${haproxy_config_file}
 }
@@ -55,7 +83,9 @@ configure_dynamic_backend() {
     # configure a load balancer with static address
     local config_template_file=${output_dir}/haproxy-dynamic.cfg
 
-    sed -i "s#{%backend.max.servers%}#${HAPROXY_BACKEND_MAX_SERVERS}#g" ${config_template_file}
+    update_in_file "${config_template_file}" \
+      "{%backend.max.servers%}" "${HAPROXY_BACKEND_MAX_SERVERS}"
+    configure_http_check "${config_template_file}"
 
     cat ${config_template_file} >> ${haproxy_config_file}
     # This is used as the template to generate the configuration file
@@ -89,7 +119,8 @@ configure_haproxy() {
     ETC_DEFAULT=/etc/default
     sudo mkdir -p ${ETC_DEFAULT}
 
-    sed -i "s#{%haproxy.home%}#${HAPROXY_HOME}#g" ${output_dir}/haproxy
+    update_in_file "${output_dir}/haproxy" \
+      "{%haproxy.home%}" "${HAPROXY_HOME}"
     sudo cp ${output_dir}/haproxy ${ETC_DEFAULT}/haproxy
 
     HAPROXY_CONFIG_DIR=${HAPROXY_HOME}/conf
