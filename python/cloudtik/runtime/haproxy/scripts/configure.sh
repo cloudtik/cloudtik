@@ -63,6 +63,7 @@ configure_dns_backend() {
       "{%backend.max.servers%}" "${HAPROXY_BACKEND_MAX_SERVERS}"
     update_in_file "${config_template_file}" \
       "{%backend.service.dns.name%}" "${HAPROXY_BACKEND_SERVICE_DNS_NAME}"
+    configure_http_check "${config_template_file}"
 
     cat ${config_template_file} >> ${haproxy_config_file}
 }
@@ -82,15 +83,17 @@ configure_dynamic_backend() {
 
     # configure a load balancer with static address
     local config_template_file=${output_dir}/haproxy-dynamic.cfg
+    local static_config_file="${output_dir}/haproxy-static.cfg"
 
     update_in_file "${config_template_file}" \
       "{%backend.max.servers%}" "${HAPROXY_BACKEND_MAX_SERVERS}"
     configure_http_check "${config_template_file}"
+    configure_http_check "${static_config_file}"
 
     cat ${config_template_file} >> ${haproxy_config_file}
     # This is used as the template to generate the configuration file
     # with dynamic list of servers
-    cat ${output_dir}/haproxy-static.cfg >> ${haproxy_template_file}
+    cat "${static_config_file}" >> ${haproxy_template_file}
     cp ${haproxy_template_file} ${HAPROXY_CONFIG_DIR}/haproxy-template.cfg
 }
 

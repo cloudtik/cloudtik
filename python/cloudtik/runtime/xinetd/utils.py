@@ -10,7 +10,8 @@ from cloudtik.core._private.util.core_utils import get_config_for_update, http_a
 from cloudtik.core._private.utils import get_runtime_config_for_update, get_available_node_types, \
     get_head_node_type, _get_node_type_specific_runtime_config, get_runtime_types, \
     get_runtime_config, get_cluster_name
-from cloudtik.runtime.common.health_check import HEALTH_CHECK_PORT, match_health_check_node, HEALTH_CHECK_NODE_KIND
+from cloudtik.runtime.common.health_check import HEALTH_CHECK_PORT, match_health_check_node, HEALTH_CHECK_NODE_KIND, \
+    HEALTH_CHECK_SERVICE_TYPE_TEMPLATE
 
 RUNTIME_PROCESSES = [
         # The first element is the substring to filter.
@@ -20,12 +21,9 @@ RUNTIME_PROCESSES = [
         ["xinetd", True, "xinetd", "node"],
     ]
 
-
-XINETD_SERVICE_TYPE = BUILT_IN_RUNTIME_XINETD
-
 CONFIG_KEY_HEALTH_CHECKS = "health_checks"
 
-SERVICE_TYPE_TEMPLATE = XINETD_SERVICE_TYPE + "-{}"
+SERVICE_TYPE_TEMPLATE = HEALTH_CHECK_SERVICE_TYPE_TEMPLATE
 
 
 def _get_config(runtime_config: Dict[str, Any]):

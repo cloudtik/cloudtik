@@ -5,6 +5,7 @@ from typing import Dict
 
 from cloudtik.core._private.constants import \
     PRIVACY_REPLACEMENT, PRIVACY_REPLACEMENT_TEMPLATE
+from cloudtik.core._private.util.core_utils import strip_last_quote
 
 logger = logging.getLogger(__name__)
 
@@ -16,17 +17,6 @@ def is_key_with_privacy(key: str):
         if keyword in key:
             return True
     return False
-
-
-def _strip_quote(value):
-    # strip has problem because it will remove all front and tailing quotes
-    if not value:
-        return value
-    if value.startswith('"') or value.startswith("'"):
-        value = value[1:]
-    if value.endswith('"') or value.endswith("'"):
-        value = value[:-1]
-    return value
 
 
 def _with_environment_variables(
@@ -51,8 +41,8 @@ def _with_environment_variables(
         # since we use quote to make sure value is safe for shell, we don't need the quote for string
         escaped_val = json.dumps(val, separators=(",", ":"))
         if isinstance(val, str):
-            # remove quote (single or double).
-            escaped_val = _strip_quote(escaped_val)
+            # remove last quote (single or double).
+            escaped_val = strip_last_quote(escaped_val)
 
         s = "export {}={};".format(key, quote(escaped_val))
         as_strings.append(s)
