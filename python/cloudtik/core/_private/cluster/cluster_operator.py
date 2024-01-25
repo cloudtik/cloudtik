@@ -1826,11 +1826,11 @@ def _get_running_head_node_ex(
         if _backup_head_node:
             raise HeadNotHealthyError(
                 _backup_head_node,
-                "Head node of cluster {} not healthy!".format(
+                "Head node of cluster {} not healthy.".format(
                     config["cluster_name"]))
         else:
             raise HeadNotRunningError(
-                "Head node of cluster {} not found!".format(
+                "Head node of cluster {} not found.".format(
                     config["cluster_name"]))
 
 

@@ -62,8 +62,6 @@ CLOUDTIK_CLUSTER_RUNTIME_CONFIG_NODE_TYPE = "__cluster_runtime_config_{}"
 CLOUDTIK_CLUSTER_NODES_INFO_NODE_TYPE = "__cluster_nodes_info_{}"
 CLOUDTIK_CLUSTER_VARIABLE = "__cluster_variable_{}"
 
-# The default cluster config file path on head
-
 PLACEMENT_GROUP_RESOURCE_BUNDLED_PATTERN = re.compile(
     r"(.+)_group_(\d+)_([0-9a-zA-Z]+)")
 PLACEMENT_GROUP_RESOURCE_PATTERN = re.compile(r"(.+)_group_([0-9a-zA-Z]+)")
