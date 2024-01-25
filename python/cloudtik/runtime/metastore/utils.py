@@ -6,13 +6,14 @@ from cloudtik.core._private.service_discovery.naming import get_cluster_head_hos
 from cloudtik.core._private.service_discovery.runtime_services import get_service_discovery_runtime
 from cloudtik.core._private.service_discovery.utils import get_canonical_service_name, \
     get_service_discovery_config, define_runtime_service_on_head_or_all
+from cloudtik.core._private.util.core_utils import export_environment_variables
 from cloudtik.core._private.util.database_utils import is_database_configured, \
-    export_database_environment_variables
+    with_database_environment_variables
 from cloudtik.core._private.utils import export_runtime_flags, get_node_cluster_ip_of, get_runtime_config, \
     PROVIDER_DATABASE_CONFIG_KEY, is_use_managed_cloud_database, get_provider_config, get_cluster_name
 from cloudtik.runtime.common.service_discovery.runtime_discovery import \
     discover_database_from_workspace, discover_database_on_head, DATABASE_CONNECT_KEY, \
-    get_database_runtime_in_cluster, export_database_runtime_environment_variables, \
+    get_database_runtime_in_cluster, with_database_runtime_environment_variables, \
     is_database_service_discovery
 from cloudtik.runtime.common.service_discovery.workspace import register_service_to_workspace
 
@@ -109,7 +110,7 @@ def _with_runtime_environment_variables(
     return runtime_envs
 
 
-def _export_database_configurations(runtime_config):
+def _with_database_configurations(runtime_config, envs=None):
     metastore_config = _get_config(runtime_config)
 
     # first the user configured or discovered
@@ -117,28 +118,31 @@ def _export_database_configurations(runtime_config):
     if is_database_configured(database_config):
         # set the database environments from database config
         # This may override the environments from provider
-        export_database_environment_variables(database_config)
-        return
+        envs = with_database_environment_variables(database_config, envs)
+        return envs
 
     # next the in cluster database
     database_runtime = get_database_runtime_in_cluster(
         runtime_config)
     if database_runtime:
-        export_database_runtime_environment_variables(
-            runtime_config, database_runtime)
-        return
+        envs = with_database_runtime_environment_variables(
+            runtime_config, database_runtime, envs)
+        return envs
 
     # finally cloud database is configured
     # database environment variables already exported
+    return envs
 
 
-def _configure(runtime_config, head: bool):
-    _export_database_configurations(runtime_config)
+def _node_configure(runtime_config, head: bool):
+    envs = _with_database_configurations(runtime_config)
+    export_environment_variables(envs)
 
 
-def _services(runtime_config, head: bool):
+def _node_services(runtime_config, head: bool):
     # We put the database schema init right before the start of metastore service
-    _export_database_configurations(runtime_config)
+    envs = _with_database_configurations(runtime_config)
+    export_environment_variables(envs)
 
 
 def register_service(cluster_config: Dict[str, Any], head_node_id: str) -> None:

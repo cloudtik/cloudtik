@@ -460,9 +460,9 @@ def _node_configure(runtime_config, head: bool):
 
     # because http check may be configured in prepare_on_head
     # we need to export in node_configure instead of with_environment_variables
-    runtime_envs = {}
-    _with_runtime_envs_for_http_check(backend_config, runtime_envs)
-    export_environment_variables(runtime_envs)
+    envs = {}
+    _with_runtime_envs_for_http_check(backend_config, envs)
+    export_environment_variables(envs)
 
 
 def _get_default_api_gateway_config_mode(config, backend_config):

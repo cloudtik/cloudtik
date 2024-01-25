@@ -2,7 +2,7 @@ import os
 from typing import Any, Dict
 
 from cloudtik.core._private.cluster.cluster_tunnel_request import _request_rest_to_head
-from cloudtik.core._private.util.core_utils import double_quote, http_address_string
+from cloudtik.core._private.util.core_utils import double_quote, http_address_string, export_environment_variables
 from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_SPARK, BUILT_IN_RUNTIME_YARN, \
     BUILT_IN_RUNTIME_HADOOP
 from cloudtik.core._private.service_discovery.naming import get_cluster_head_host
@@ -193,11 +193,13 @@ def _with_runtime_environment_variables(
     return runtime_envs
 
 
-def _configure(runtime_config, head: bool):
+def _node_configure(runtime_config, head: bool):
     spark_config = _get_config(runtime_config)
     metastore_uri = spark_config.get(METASTORE_URI_KEY)
+    envs = {}
     if metastore_uri:
-        os.environ["HIVE_METASTORE_URI"] = metastore_uri
+        envs["HIVE_METASTORE_URI"] = metastore_uri
+    export_environment_variables(envs)
 
 
 def get_runtime_logs():

@@ -1,13 +1,12 @@
-import os
 from typing import Any, Dict
 
-from cloudtik.core._private.util.core_utils import get_env_string_value
+from cloudtik.core._private.util.core_utils import export_environment_variables
 from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_HADOOP, BUILT_IN_RUNTIME_HDFS
 from cloudtik.core._private.service_discovery.runtime_services import get_service_discovery_runtime
 from cloudtik.core._private.utils import \
     is_use_managed_cloud_storage, \
     get_runtime_config, PROVIDER_STORAGE_CONFIG_KEY, get_provider_config
-from cloudtik.runtime.common.hadoop import configure_remote_storage, configure_storage_properties
+from cloudtik.runtime.common.hadoop import with_remote_storage, with_storage_properties
 from cloudtik.runtime.common.service_discovery.cluster import has_runtime_in_cluster
 from cloudtik.runtime.common.service_discovery.runtime_discovery import \
     discover_hdfs_on_head, discover_hdfs_from_workspace, \
@@ -78,19 +77,18 @@ def _with_runtime_environment_variables(
     return runtime_envs
 
 
-def _configure(runtime_config, head: bool):
+def _node_configure(runtime_config, head: bool):
     hadoop_config = _get_config(runtime_config)
-
+    envs = {}
     hadoop_default_cluster = hadoop_config.get(
         "hadoop_default_cluster", False)
     if hadoop_default_cluster:
-        os.environ["HADOOP_DEFAULT_CLUSTER"] = get_env_string_value(
-            hadoop_default_cluster)
+        envs["HADOOP_DEFAULT_CLUSTER"] = hadoop_default_cluster
 
-    configure_remote_storage(hadoop_config)
-
+    envs = with_remote_storage(hadoop_config, envs)
     # export storage properties if needed
-    configure_storage_properties(runtime_config)
+    envs = with_storage_properties(runtime_config, envs)
+    export_environment_variables(envs)
 
 
 def _is_valid_storage_config(config: Dict[str, Any], final=False):

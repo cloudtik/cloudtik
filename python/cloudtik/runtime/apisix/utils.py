@@ -1,7 +1,7 @@
 import os
 from typing import Any, Dict
 
-from cloudtik.core._private.util.core_utils import http_address_string
+from cloudtik.core._private.util.core_utils import http_address_string, export_environment_variables
 from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_APISIX
 from cloudtik.core._private.service_discovery.naming import get_cluster_head_host
 from cloudtik.core._private.service_discovery.runtime_services import get_service_discovery_runtime
@@ -160,10 +160,11 @@ def _with_runtime_environment_variables(
     return runtime_envs
 
 
-def _configure(runtime_config, head: bool):
+def _node_configure(runtime_config, head: bool):
     apisix_config = _get_config(runtime_config)
     admin_key = _get_admin_key(apisix_config)
-    os.environ["APISIX_ADMIN_KEY"] = admin_key
+    envs = {"APISIX_ADMIN_KEY": admin_key}
+    export_environment_variables(envs)
 
 
 def _get_runtime_endpoints(

@@ -5,7 +5,7 @@ from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_HDFS
 from cloudtik.core.node_provider import NodeProvider
 from cloudtik.runtime.common.runtime_base import RuntimeBase
 from cloudtik.runtime.hadoop.utils import _with_runtime_environment_variables, \
-    _validate_config, _prepare_config, _prepare_config_on_head, _configure
+    _validate_config, _prepare_config, _prepare_config_on_head, _node_configure
 
 logger = logging.getLogger(__name__)
 
@@ -48,7 +48,7 @@ class HadoopRuntime(RuntimeBase):
         """ This method is called on every node as the first step of executing runtime
         configure command.
         """
-        _configure(self.runtime_config, head)
+        _node_configure(self.runtime_config, head)
 
     @staticmethod
     def get_dependencies():

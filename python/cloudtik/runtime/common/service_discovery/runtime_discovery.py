@@ -1,4 +1,3 @@
-import os
 from typing import Dict, Any, Union, List, Optional
 
 from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_HDFS, BUILT_IN_RUNTIME_METASTORE, \
@@ -8,7 +7,7 @@ from cloudtik.core._private.service_discovery.naming import get_cluster_node_add
 from cloudtik.core._private.service_discovery.utils import get_service_selector_for_update, \
     include_feature_for_selector, ServiceAddressType, \
     include_runtime_service_for_selector
-from cloudtik.core._private.util.core_utils import get_config_for_update, get_env_string_value, http_address_string
+from cloudtik.core._private.util.core_utils import get_config_for_update, http_address_string
 from cloudtik.core._private.util.database_utils import is_database_configured, set_database_config, \
     DATABASE_ENV_ENABLED, DATABASE_ENV_ENGINE, DATABASE_ENV_HOST, DATABASE_ENV_PORT, DATABASE_ENV_USERNAME, \
     DATABASE_ENV_PASSWORD, get_database_default_port, get_database_default_username, get_database_default_password, \
@@ -663,12 +662,13 @@ def discover_etcd_on_head(
     return cluster_config
 
 
-def export_database_runtime_environment_variables(
-        runtime_config, runtime_type):
+def with_database_runtime_environment_variables(
+        runtime_config, runtime_type, envs=None):
     # WARNING: This is helper function to get database parameters from a runtime configuration
     # if there are changes in the runtime configuration side, this needs to be changed too.
     # if it is called at the node configure context, the head host will be set as host
-
+    if envs is None:
+        envs = {}
     runtime_type_config = runtime_config.get(runtime_type, {})
     engine = get_database_engine_for_runtime(
         runtime_type)
@@ -691,11 +691,13 @@ def export_database_runtime_environment_variables(
     if not password:
         password = get_database_default_password(engine)
 
-    os.environ[DATABASE_ENV_ENABLED] = get_env_string_value(True)
-    os.environ[DATABASE_ENV_ENGINE] = engine
-    os.environ[DATABASE_ENV_HOST] = head_host
-    os.environ[DATABASE_ENV_PORT] = str(port)
+    envs[DATABASE_ENV_ENABLED] = True
+    envs[DATABASE_ENV_ENGINE] = engine
+    envs[DATABASE_ENV_HOST] = head_host
+    envs[DATABASE_ENV_PORT] = port
 
     # The defaults apply to built-in Database runtime.
-    os.environ[DATABASE_ENV_USERNAME] = username
-    os.environ[DATABASE_ENV_PASSWORD] = password
+    envs[DATABASE_ENV_USERNAME] = username
+    envs[DATABASE_ENV_PASSWORD] = password
+
+    return envs

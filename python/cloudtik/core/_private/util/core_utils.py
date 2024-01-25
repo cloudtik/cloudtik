@@ -1143,7 +1143,7 @@ def get_current_user():
         return getpass.getuser()
 
 
-def _strip_last_quote(value):
+def strip_last_quote(value):
     # strip has problem because it will remove all front and tailing quotes
     if not value:
         return value
@@ -1163,12 +1163,8 @@ def export_environment_variables(
             variables. If an environment variable value is a dict, it will
             automatically be converted to a one line yaml string.
     """
+    if not environment_variables:
+        return
     for key, val in environment_variables.items():
-        # json.dumps will add an extra quote to string value
-        # since we use quote to make sure value is safe for shell
-        # we don't need the quote for string
-        if isinstance(val, str):
-            str_value = val
-        else:
-            str_value = json.dumps(val, separators=(",", ":"))
+        str_value = get_env_string_value(val)
         os.environ[key] = str_value

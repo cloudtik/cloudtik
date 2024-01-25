@@ -1,16 +1,17 @@
 import os
 from typing import Any, Dict
 
-from cloudtik.core._private.util.core_utils import get_env_string_value, http_address_string
+from cloudtik.core._private.util.core_utils import http_address_string, \
+    export_environment_variables
 from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_AI
 from cloudtik.core._private.service_discovery.naming import get_cluster_head_host
 from cloudtik.core._private.service_discovery.utils import get_canonical_service_name, \
     get_service_discovery_config, SERVICE_DISCOVERY_PROTOCOL_HTTP, define_runtime_service_on_head_or_all
-from cloudtik.core._private.util.database_utils import is_database_configured, export_database_environment_variables
+from cloudtik.core._private.util.database_utils import is_database_configured, with_database_environment_variables
 from cloudtik.core._private.utils import export_runtime_flags, get_node_cluster_ip_of, get_cluster_name
 from cloudtik.runtime.common.service_discovery.runtime_discovery import discover_hdfs_on_head, \
     discover_hdfs_from_workspace, HDFS_URI_KEY, discover_database_from_workspace, discover_database_on_head, \
-    DATABASE_CONNECT_KEY, get_database_runtime_in_cluster, export_database_runtime_environment_variables
+    DATABASE_CONNECT_KEY, get_database_runtime_in_cluster, with_database_runtime_environment_variables
 from cloudtik.runtime.common.service_discovery.workspace import register_service_to_workspace
 from cloudtik.runtime.common.utils import get_runtime_endpoints_of
 
@@ -77,7 +78,7 @@ def _with_runtime_environment_variables(
     return runtime_envs
 
 
-def _export_database_configurations(runtime_config):
+def _with_database_configurations(runtime_config, envs=None):
     ai_config = _get_config(runtime_config)
 
     # first the user configured or discovered
@@ -85,40 +86,43 @@ def _export_database_configurations(runtime_config):
     if is_database_configured(database_config):
         # set the database environments from database config
         # This may override the environments from provider
-        export_database_environment_variables(database_config)
-        return
+        envs = with_database_environment_variables(database_config, envs)
+        return envs
 
     # next the in cluster database
     database_runtime = get_database_runtime_in_cluster(
         runtime_config)
     if database_runtime:
-        export_database_runtime_environment_variables(
-            runtime_config, database_runtime)
-        return
+        envs = with_database_runtime_environment_variables(
+            runtime_config, database_runtime, envs)
+        return envs
 
     # final the cloud database configured
     # database environment variables already exported
+    return envs
 
 
-def _configure(runtime_config, head: bool):
+def _node_configure(runtime_config, head: bool):
     ai_config = _get_config(runtime_config)
+    envs = {}
 
     hadoop_default_cluster = ai_config.get(
         "hadoop_default_cluster", False)
     if hadoop_default_cluster:
-        os.environ["HADOOP_DEFAULT_CLUSTER"] = get_env_string_value(
-            hadoop_default_cluster)
+        envs["HADOOP_DEFAULT_CLUSTER"] = hadoop_default_cluster
 
     hdfs_uri = ai_config.get(HDFS_URI_KEY)
     if hdfs_uri:
-        os.environ["HDFS_NAMENODE_URI"] = hdfs_uri
+        envs["HDFS_NAMENODE_URI"] = hdfs_uri
 
-    _export_database_configurations(runtime_config)
+    envs = _with_database_configurations(runtime_config, envs)
+    export_environment_variables(envs)
 
 
-def _services(runtime_config, head: bool):
+def _node_services(runtime_config, head: bool):
     # We put the database schema init right before the start of metastore service
-    _export_database_configurations(runtime_config)
+    envs = _with_database_configurations(runtime_config)
+    export_environment_variables(envs)
 
 
 def register_service(cluster_config: Dict[str, Any], head_node_id: str) -> None:

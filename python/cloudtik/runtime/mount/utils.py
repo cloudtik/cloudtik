@@ -1,7 +1,8 @@
 from typing import Any, Dict
 
 from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_MOUNT, BUILT_IN_RUNTIME_HADOOP
-from cloudtik.runtime.common.hadoop import configure_remote_storage, configure_storage_properties
+from cloudtik.core._private.util.core_utils import export_environment_variables
+from cloudtik.runtime.common.hadoop import with_remote_storage, with_storage_properties
 from cloudtik.runtime.common.service_discovery.cluster import has_runtime_in_cluster
 
 RUNTIME_PROCESSES = [
@@ -39,9 +40,12 @@ def _with_runtime_environment_variables(runtime_config, config):
     return runtime_envs
 
 
-def _configure(runtime_config, head: bool):
+def _node_configure(runtime_config, head: bool):
     # if Hadoop runtime (client) is installed, we export corresponding environment
     if has_runtime_in_cluster(runtime_config, BUILT_IN_RUNTIME_HADOOP):
         hadoop_config = runtime_config.get(BUILT_IN_RUNTIME_HADOOP, {})
-        configure_remote_storage(hadoop_config)
-        configure_storage_properties(runtime_config)
+
+        envs = {}
+        envs = with_remote_storage(hadoop_config, envs)
+        envs = with_storage_properties(runtime_config, envs)
+        export_environment_variables(envs)

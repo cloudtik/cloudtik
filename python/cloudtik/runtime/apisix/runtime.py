@@ -6,7 +6,7 @@ from cloudtik.core.node_provider import NodeProvider
 from cloudtik.runtime.common.runtime_base import RuntimeBase
 from cloudtik.runtime.apisix.utils import _get_runtime_processes, \
     _get_runtime_services, _with_runtime_environment_variables, _prepare_config, _prepare_config_on_head, \
-    _validate_config, _get_runtime_endpoints, _get_head_service_ports, _get_runtime_logs, _configure
+    _validate_config, _get_runtime_endpoints, _get_head_service_ports, _get_runtime_logs, _node_configure
 
 logger = logging.getLogger(__name__)
 
@@ -55,7 +55,7 @@ class APISIXRuntime(RuntimeBase):
         """ This method is called on every node as the first step of executing runtime
         configure command.
         """
-        _configure(self.runtime_config, head)
+        _node_configure(self.runtime_config, head)
 
     def get_runtime_endpoints(
             self, cluster_config: Dict[str, Any], cluster_head_ip: str):
