@@ -131,14 +131,18 @@ def _get_app_mode(haproxy_config):
         HAPROXY_APP_MODE_CONFIG_KEY, HAPROXY_APP_MODE_LOAD_BALANCER)
 
 
+def _is_high_availability(haproxy_config: Dict[str, Any]):
+    return haproxy_config.get(
+        HAPROXY_HIGH_AVAILABILITY_CONFIG_KEY, False)
+
+
 def _get_backend_config(haproxy_config: Dict[str, Any]):
     return haproxy_config.get(
         HAPROXY_BACKEND_CONFIG_KEY, {})
 
 
-def _is_high_availability(haproxy_config: Dict[str, Any]):
-    return haproxy_config.get(
-        HAPROXY_HIGH_AVAILABILITY_CONFIG_KEY, False)
+def _get_backend_config_mode(backend_config: Dict[str, Any]):
+    return backend_config.get(HAPROXY_BACKEND_CONFIG_MODE_CONFIG_KEY)
 
 
 def _get_backend_dns_service_name(backend_config: Dict[str, Any]):
@@ -316,7 +320,7 @@ def _validate_config(config: Dict[str, Any]):
                 raise ValueError(
                     "Service name must be configured for config mode: dns.")
     else:
-        config_mode = backend_config.get(HAPROXY_BACKEND_CONFIG_MODE_CONFIG_KEY)
+        config_mode = _get_backend_config_mode(backend_config)
         if config_mode and config_mode != HAPROXY_CONFIG_MODE_DYNAMIC:
             raise ValueError(
                 "API Gateway mode support only dynamic config mode.")
@@ -393,8 +397,7 @@ def _get_default_load_balancer_config_mode(config, backend_config):
 
 
 def _get_checked_config_mode(config, backend_config):
-    config_mode = backend_config.get(
-        HAPROXY_BACKEND_CONFIG_MODE_CONFIG_KEY)
+    config_mode = _get_backend_config_mode(backend_config)
     if not config_mode:
         config_mode = _get_default_load_balancer_config_mode(
             config, backend_config)
@@ -474,7 +477,7 @@ def _get_default_api_gateway_config_mode(config, backend_config):
 
 
 def _with_runtime_envs_for_api_gateway(config, backend_config, runtime_envs):
-    config_mode = backend_config.get(HAPROXY_BACKEND_CONFIG_MODE_CONFIG_KEY)
+    config_mode = _get_backend_config_mode(backend_config)
     if not config_mode:
         config_mode = _get_default_api_gateway_config_mode(
             config, backend_config)
