@@ -50,11 +50,12 @@ class NodeServicesStarter:
             server list, which has multiple.
     """
 
-    def __init__(self,
-                 start_params: StartParams,
-                 head=False,
-                 shutdown_at_exit=True,
-                 spawn_reaper=True):
+    def __init__(
+            self,
+            start_params: StartParams,
+            head=False,
+            shutdown_at_exit=True,
+            spawn_reaper=True):
         """Start a node with all service started
 
         Args:

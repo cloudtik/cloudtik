@@ -10,7 +10,7 @@ from cloudtik.core._private.command_executor.ssh_command_executor import SSHComm
 from cloudtik.core.command_executor import CommandExecutor
 from cloudtik.core._private.constants import \
     CLOUDTIK_DEFAULT_SHARED_MEMORY_MAX_BYTES, \
-    CLOUDTIK_DATA_DISK_MOUNT_POINT
+    CLOUDTIK_DATA_DISK_MOUNT_POINT, CLOUDTIK_BOOTSTRAP_CONFIG_FILE, CLOUDTIK_BOOTSTRAP_KEY_FILE
 from cloudtik.core._private.docker import check_bind_mounts_cmd, \
     check_docker_running_cmd, \
     check_docker_image, \
@@ -326,7 +326,7 @@ class DockerCommandExecutor(CommandExecutor):
     def run_init(self, *, as_head: bool, file_mounts: Dict[str, str],
                  shared_memory_ratio: float, sync_run_yet: bool):
         bootstrap_mounts = [
-            "~/cloudtik_bootstrap_config.yaml", "~/cloudtik_bootstrap_key.pem"
+            CLOUDTIK_BOOTSTRAP_CONFIG_FILE, CLOUDTIK_BOOTSTRAP_KEY_FILE
         ]
 
         specific_image = get_configured_docker_image(self.docker_config, as_head)

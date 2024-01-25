@@ -35,10 +35,11 @@ check_spark_installed() {
 
 set_resources_for_spark() {
     # For Head Node
-    if [ $IS_HEAD_NODE == "true" ];then
-        spark_executor_cores=$(cat ~/cloudtik_bootstrap_config.yaml | jq '."runtime"."spark"."spark_executor_resource"."spark_executor_cores"')
-        spark_executor_memory=$(cat ~/cloudtik_bootstrap_config.yaml | jq '."runtime"."spark"."spark_executor_resource"."spark_executor_memory"')M
-        spark_driver_memory=$(cat ~/cloudtik_bootstrap_config.yaml | jq '."runtime"."spark"."spark_executor_resource"."spark_driver_memory"')M
+    if [ $IS_HEAD_NODE == "true" ]; then
+        local -r bootstrap_config="~/cloudtik_bootstrap_config.yaml"
+        spark_executor_cores=$(cat "$bootstrap_config" | jq '."runtime"."spark"."spark_executor_resource"."spark_executor_cores"')
+        spark_executor_memory=$(cat "$bootstrap_config" | jq '."runtime"."spark"."spark_executor_resource"."spark_executor_memory"')M
+        spark_driver_memory=$(cat "$bootstrap_config" | jq '."runtime"."spark"."spark_executor_resource"."spark_driver_memory"')M
     fi
 }
 

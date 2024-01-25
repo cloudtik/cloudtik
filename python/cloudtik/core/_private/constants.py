@@ -306,3 +306,7 @@ CLOUDTIK_DEFAULT_STORAGE_URI = "default.storage.uri"
 
 CLOUDTIK_NODE_TYPE_HEAD_DEFAULT = "head.default"
 CLOUDTIK_NODE_TYPE_WORKER_DEFAULT = "worker.default"
+
+# The bootstrap file paths
+CLOUDTIK_BOOTSTRAP_CONFIG_FILE = "~/cloudtik_bootstrap_config.yaml"
+CLOUDTIK_BOOTSTRAP_KEY_FILE = "~/cloudtik_bootstrap_key.pem"
