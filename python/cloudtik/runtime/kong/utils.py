@@ -1,7 +1,7 @@
 import os
 from typing import Any, Dict
 
-from cloudtik.core._private.util.core_utils import http_address_string
+from cloudtik.core._private.util.core_utils import http_address_string, export_environment_variables
 from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_KONG, BUILT_IN_RUNTIME_POSTGRES
 from cloudtik.core._private.util.runtime_utils import get_runtime_bool, \
     get_runtime_value
@@ -10,13 +10,13 @@ from cloudtik.core._private.service_discovery.runtime_services import get_servic
 from cloudtik.core._private.service_discovery.utils import \
     get_canonical_service_name, define_runtime_service_on_head_or_all, \
     get_service_discovery_config, SERVICE_DISCOVERY_FEATURE_API_GATEWAY, SERVICE_DISCOVERY_PROTOCOL_HTTP
-from cloudtik.core._private.util.database_utils import is_database_configured, export_database_environment_variables, \
+from cloudtik.core._private.util.database_utils import is_database_configured, with_database_environment_variables, \
     DATABASE_ENGINE_POSTGRES, get_database_engine, DATABASE_ENV_ENABLED, DATABASE_ENV_ENGINE
 from cloudtik.core._private.utils import get_runtime_config, is_use_managed_cloud_database, \
     PROVIDER_DATABASE_CONFIG_KEY, get_provider_config, get_cluster_name
 from cloudtik.runtime.common.service_discovery.runtime_discovery import \
     DATABASE_CONNECT_KEY, is_database_service_discovery, discover_database_on_head, \
-    discover_database_from_workspace, get_database_runtime_in_cluster, export_database_runtime_environment_variables
+    discover_database_from_workspace, get_database_runtime_in_cluster, with_database_runtime_environment_variables
 
 RUNTIME_PROCESSES = [
         # The first element is the substring to filter.
@@ -203,7 +203,7 @@ def _with_runtime_environment_variables(
     return runtime_envs
 
 
-def _export_database_configurations(runtime_config):
+def _with_database_configurations(runtime_config, envs=None):
     kong_config = _get_config(runtime_config)
 
     # first the user configured or discovered
@@ -211,16 +211,16 @@ def _export_database_configurations(runtime_config):
     if is_database_configured(database_config):
         # set the database environments from database config
         # This may override the environments from provider
-        export_database_environment_variables(database_config)
-        return
+        envs = with_database_environment_variables(database_config, envs)
+        return envs
 
     # next the in cluster database
     database_runtime = _get_database_runtime_in_cluster(
         runtime_config)
     if database_runtime:
-        export_database_runtime_environment_variables(
-            runtime_config, database_runtime)
-        return
+        envs = with_database_runtime_environment_variables(
+            runtime_config, database_runtime, envs)
+        return envs
 
     # finally check cloud database is configured (just check here)
     database_enabled = get_runtime_bool(DATABASE_ENV_ENABLED)
@@ -231,15 +231,18 @@ def _export_database_configurations(runtime_config):
     if database_engine != DATABASE_ENGINE_POSTGRES:
         raise RuntimeError(
             "Postgres must be configured for Kong.")
+    return envs
 
 
-def _configure(runtime_config, head: bool):
-    _export_database_configurations(runtime_config)
+def _node_configure(runtime_config, head: bool):
+    envs = _with_database_configurations(runtime_config)
+    export_environment_variables(envs)
 
 
-def _services(runtime_config, head: bool):
+def _node_services(runtime_config, head: bool):
     # We put the database schema init right before the start of metastore service
-    _export_database_configurations(runtime_config)
+    envs = _with_database_configurations(runtime_config)
+    export_environment_variables(envs)
 
 
 def _get_runtime_endpoints(

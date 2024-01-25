@@ -168,10 +168,10 @@ def get_runtime_config_of_node_type(node_type, head=False):
 
 
 def subscribe_nodes_info():
-    if CLOUDTIK_RUNTIME_ENV_NODE_TYPE not in os.environ:
+    node_type = get_runtime_value(CLOUDTIK_RUNTIME_ENV_NODE_TYPE)
+    if not node_type:
         raise RuntimeError(
             "Not able to subscribe nodes info in lack of node type.")
-    node_type = os.environ[CLOUDTIK_RUNTIME_ENV_NODE_TYPE]
     return _retrieve_nodes_info(node_type)
 
 

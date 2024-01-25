@@ -5,7 +5,7 @@ from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_HADOOP
 from cloudtik.core.node_provider import NodeProvider
 from cloudtik.runtime.common.runtime_base import RuntimeBase
 from cloudtik.runtime.mount.utils import _get_runtime_processes, \
-    _with_runtime_environment_variables, _configure
+    _with_runtime_environment_variables, _node_configure
 
 logger = logging.getLogger(__name__)
 
@@ -32,7 +32,7 @@ class MountRuntime(RuntimeBase):
         """ This method is called on every node as the first step of executing runtime
         configure command.
         """
-        _configure(self.runtime_config, head)
+        _node_configure(self.runtime_config, head)
 
     @staticmethod
     def get_processes():

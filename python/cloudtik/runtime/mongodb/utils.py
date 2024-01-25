@@ -2,7 +2,8 @@ import os
 import uuid
 from typing import Any, Dict
 
-from cloudtik.core._private.util.core_utils import base64_encode_string, get_config_for_update
+from cloudtik.core._private.util.core_utils import base64_encode_string, get_config_for_update, \
+    export_environment_variables
 from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_MONGODB
 from cloudtik.core._private.service_discovery.naming import get_cluster_head_host
 from cloudtik.core._private.service_discovery.runtime_services import get_service_discovery_runtime
@@ -353,7 +354,7 @@ def _parse_config_server_uri(config_server_uri):
     return replication_set_name, primary_address[0], primary_address[1]
 
 
-def _configure_node_for_config_server(mongodb_config):
+def _with_config_server(mongodb_config, envs=None):
     # export the config server information
     config_server_uri = mongodb_config.get(MONGODB_CONFIG_SERVER_URI_KEY)
 
@@ -364,17 +365,20 @@ def _configure_node_for_config_server(mongodb_config):
             or not config_server_host):
         raise RuntimeError(
             "No config server cluster configured or found.")
-
-    os.environ["MONGODB_CONFIG_SERVER_REPLICATION_SET_NAME"] = replication_set_name
-    os.environ["MONGODB_CONFIG_SERVER_HOST"] = config_server_host
+    if envs is None:
+        envs = {}
+    envs["MONGODB_CONFIG_SERVER_REPLICATION_SET_NAME"] = replication_set_name
+    envs["MONGODB_CONFIG_SERVER_HOST"] = config_server_host
     if config_server_port:
-        os.environ["MONGODB_CONFIG_SERVER_PORT"] = str(config_server_port)
+        envs["MONGODB_CONFIG_SERVER_PORT"] = config_server_port
+    return envs
 
 
-def _configure(runtime_config, head: bool):
+def _node_configure(runtime_config, head: bool):
     mongodb_config = _get_config(runtime_config)
     if _is_config_server_needed(mongodb_config):
-        _configure_node_for_config_server(mongodb_config)
+        envs = _with_config_server(mongodb_config)
+        export_environment_variables(envs)
 
 
 def register_sharding_service(mongodb_config, cluster_config, head_ip):

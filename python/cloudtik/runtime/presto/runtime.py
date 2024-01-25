@@ -7,7 +7,7 @@ from cloudtik.runtime.common.runtime_base import RuntimeBase
 from cloudtik.runtime.presto.utils import _with_runtime_environment_variables, \
     _is_runtime_scripts, _get_runnable_command, _get_runtime_processes, \
     _get_runtime_logs, _get_runtime_endpoints, _prepare_config, _get_head_service_ports, \
-    _get_runtime_services, _prepare_config_on_head, _configure
+    _get_runtime_services, _prepare_config_on_head, _node_configure
 
 logger = logging.getLogger(__name__)
 
@@ -46,7 +46,7 @@ class PrestoRuntime(RuntimeBase):
         """ This method is called on every node as the first step of executing runtime
         configure command.
         """
-        _configure(self.runtime_config, head)
+        _node_configure(self.runtime_config, head)
 
     def get_runnable_command(
             self, target: str, runtime_options: Optional[List[str]]):

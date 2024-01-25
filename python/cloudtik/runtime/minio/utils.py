@@ -3,7 +3,8 @@ from typing import Any, Dict
 
 from cloudtik.core._private.constants import \
     CLOUDTIK_DATA_DISK_MOUNT_POINT, CLOUDTIK_DATA_DISK_MOUNT_NAME_PREFIX
-from cloudtik.core._private.util.core_utils import get_config_for_update, http_address_string
+from cloudtik.core._private.util.core_utils import get_config_for_update, http_address_string, \
+    export_environment_variables
 from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_MINIO
 from cloudtik.core._private.util.runtime_utils import get_data_disk_dirs, get_runtime_cluster_name, \
     get_runtime_workspace_name
@@ -226,7 +227,7 @@ def _get_runtime_services(
 # Calls from node when running services
 #######################################
 
-def _configure(runtime_config, head: bool):
+def _node_configure(runtime_config, head: bool):
     minio_config = _get_config(runtime_config)
 
     server_pool_size = _get_server_pool_size(minio_config)
@@ -236,9 +237,10 @@ def _configure(runtime_config, head: bool):
         raise RuntimeError(
             "The number of nodes ({}) is less than server pool size: {}".format(
                 server_cluster_size, server_pool_size))
-
-    os.environ["MINIO_VOLUMES"] = _get_minio_volumes(
-        minio_config, server_pools, server_pool_size)
+    envs = {
+        "MINIO_VOLUMES": _get_minio_volumes(
+            minio_config, server_pools, server_pool_size)}
+    export_environment_variables(envs)
 
 
 def _get_minio_volumes(

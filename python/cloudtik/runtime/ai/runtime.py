@@ -6,7 +6,7 @@ from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_MYSQL, BUILT
 from cloudtik.core.node_provider import NodeProvider
 from cloudtik.runtime.ai.utils import _with_runtime_environment_variables, \
     _get_runtime_processes, _get_runtime_logs, _get_runtime_endpoints, register_service, _get_head_service_ports, \
-    _get_runtime_services, _prepare_config_on_head, _prepare_config, _configure, _services
+    _get_runtime_services, _prepare_config_on_head, _prepare_config, _node_configure, _node_services
 from cloudtik.runtime.common.runtime_base import RuntimeBase
 
 logger = logging.getLogger(__name__)
@@ -45,13 +45,13 @@ class AIRuntime(RuntimeBase):
         """ This method is called on every node as the first step of executing runtime
         configure command.
         """
-        _configure(self.runtime_config, head)
+        _node_configure(self.runtime_config, head)
 
     def node_services(self, head: bool):
         """ This method is called on every node as the first step of executing runtime
         services command.
         """
-        _services(self.runtime_config, head)
+        _node_services(self.runtime_config, head)
 
     def cluster_booting_completed(
             self, cluster_config: Dict[str, Any], head_node_id: str) -> None:

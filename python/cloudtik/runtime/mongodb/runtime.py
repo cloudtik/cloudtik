@@ -7,7 +7,7 @@ from cloudtik.runtime.mongodb.utils import _get_runtime_processes, \
     _get_runtime_services, _with_runtime_environment_variables, \
     _get_runtime_logs, _get_runtime_endpoints, _get_head_service_ports, \
     _validate_config, _bootstrap_runtime_config, \
-    _prepare_config_on_head, _configure, _prepare_config, register_service
+    _prepare_config_on_head, _node_configure, _prepare_config, register_service
 
 logger = logging.getLogger(__name__)
 
@@ -67,7 +67,7 @@ class MongoDBRuntime(RuntimeBase):
         """ This method is called on every node as the first step of executing runtime
         configure command.
         """
-        _configure(self.runtime_config, head)
+        _node_configure(self.runtime_config, head)
 
     def cluster_booting_completed(
             self, cluster_config: Dict[str, Any], head_node_id: str) -> None:

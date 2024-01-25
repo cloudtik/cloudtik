@@ -5,7 +5,7 @@ from cloudtik.core.node_provider import NodeProvider
 from cloudtik.runtime.common.runtime_base import RuntimeBase
 from cloudtik.runtime.minio.utils import _get_runtime_processes, \
     _get_runtime_services, _with_runtime_environment_variables, \
-    _get_runtime_logs, _configure, _validate_config, _bootstrap_runtime_config, _get_head_service_ports, \
+    _get_runtime_logs, _node_configure, _validate_config, _bootstrap_runtime_config, _get_head_service_ports, \
     _get_runtime_endpoints, register_service
 
 logger = logging.getLogger(__name__)
@@ -48,7 +48,7 @@ class MinIORuntime(RuntimeBase):
         """ This method is called on every node as the first step of executing runtime
         configure command.
         """
-        _configure(self.runtime_config, head)
+        _node_configure(self.runtime_config, head)
 
     def cluster_booting_completed(
             self, cluster_config: Dict[str, Any], head_node_id: str) -> None:

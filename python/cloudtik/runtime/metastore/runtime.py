@@ -8,7 +8,7 @@ from cloudtik.runtime.common.runtime_base import RuntimeBase
 from cloudtik.runtime.metastore.utils import _with_runtime_environment_variables, \
     _get_runtime_processes, _get_runtime_logs, \
     _get_runtime_endpoints, register_service, _get_head_service_ports, _get_runtime_services, \
-    _prepare_config_on_head, _prepare_config, _configure, _services, _validate_config
+    _prepare_config_on_head, _prepare_config, _node_configure, _node_services, _validate_config
 
 logger = logging.getLogger(__name__)
 
@@ -51,13 +51,13 @@ class MetastoreRuntime(RuntimeBase):
         """ This method is called on every node as the first step of executing runtime
         configure command.
         """
-        _configure(self.runtime_config, head)
+        _node_configure(self.runtime_config, head)
 
     def node_services(self, head: bool):
         """ This method is called on every node as the first step of executing runtime
         services command.
         """
-        _services(self.runtime_config, head)
+        _node_services(self.runtime_config, head)
 
     def cluster_booting_completed(
             self, cluster_config: Dict[str, Any], head_node_id: str) -> None:

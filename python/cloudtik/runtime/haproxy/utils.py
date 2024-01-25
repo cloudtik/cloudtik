@@ -439,19 +439,22 @@ def _with_runtime_envs_for_dynamic(backend_config, runtime_envs):
     pass
 
 
-def _with_runtime_envs_for_http_check(backend_config, runtime_envs):
+def _with_http_check(backend_config, envs=None):
+    if envs is None:
+        envs = {}
     # set HAPROXY_HTTP_CHECK, HAPROXY_HTTP_CHECK_PORT, HAPROXY_HTTP_CHECK_PATH
     http_check_enabled = _is_backend_http_check_enabled(backend_config)
-    runtime_envs["HAPROXY_HTTP_CHECK"] = http_check_enabled
+    envs["HAPROXY_HTTP_CHECK"] = http_check_enabled
     if http_check_enabled:
         http_check_port = _get_backend_http_check_port(backend_config)
         if http_check_port:
-            runtime_envs["HAPROXY_HTTP_CHECK_PORT"] = http_check_port
+            envs["HAPROXY_HTTP_CHECK_PORT"] = http_check_port
         http_check_path = _get_backend_http_check_path(backend_config)
         if http_check_path:
             if not http_check_path.startswith("/"):
                 http_check_path = "/" + http_check_path
-            runtime_envs["HAPROXY_HTTP_CHECK_PATH"] = http_check_path
+            envs["HAPROXY_HTTP_CHECK_PATH"] = http_check_path
+    return envs
 
 
 def _node_configure(runtime_config, head: bool):
@@ -460,9 +463,8 @@ def _node_configure(runtime_config, head: bool):
 
     # because http check may be configured in prepare_on_head
     # we need to export in node_configure instead of with_environment_variables
-    runtime_envs = {}
-    _with_runtime_envs_for_http_check(backend_config, runtime_envs)
-    export_environment_variables(runtime_envs)
+    envs = _with_http_check(backend_config)
+    export_environment_variables(envs)
 
 
 def _get_default_api_gateway_config_mode(config, backend_config):

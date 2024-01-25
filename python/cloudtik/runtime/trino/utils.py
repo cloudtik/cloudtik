@@ -1,7 +1,7 @@
 import os
 from typing import Any, Dict
 
-from cloudtik.core._private.util.core_utils import double_quote, http_address_string
+from cloudtik.core._private.util.core_utils import double_quote, http_address_string, export_environment_variables
 from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_TRINO
 from cloudtik.core._private.service_discovery.naming import get_cluster_head_host
 from cloudtik.core._private.service_discovery.utils import get_canonical_service_name, define_runtime_service_on_head, \
@@ -83,13 +83,15 @@ def _with_runtime_environment_variables(
     return runtime_envs
 
 
-def _configure(runtime_config, head: bool):
+def _node_configure(runtime_config, head: bool):
     # TODO: move more runtime specific environment_variables to here
     # only needed for applying head service discovery settings
     trino_config = _get_config(runtime_config)
     metastore_uri = trino_config.get(METASTORE_URI_KEY)
+    envs = {}
     if metastore_uri:
-        os.environ["HIVE_METASTORE_URI"] = metastore_uri
+        envs["HIVE_METASTORE_URI"] = metastore_uri
+    export_environment_variables(envs)
 
 
 def _get_runtime_logs():

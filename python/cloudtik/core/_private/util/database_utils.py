@@ -1,6 +1,3 @@
-import os
-
-from cloudtik.core._private.util.core_utils import get_env_string_value
 
 DATABASE_CONFIG_ENGINE = "engine"
 DATABASE_CONFIG_ADDRESS = "address"
@@ -101,15 +98,20 @@ def set_database_config(database_config, database_service):
     database_config[DATABASE_CONFIG_PORT] = service_address[1]
 
 
-def export_database_environment_variables(database_config):
+def with_database_environment_variables(database_config, envs=None):
     if not is_database_configured(database_config):
-        return
+        return envs
 
-    os.environ[DATABASE_ENV_ENABLED] = get_env_string_value(True)
-    os.environ[DATABASE_ENV_ENGINE] = get_database_engine(database_config)
-    os.environ[DATABASE_ENV_HOST] = database_config[DATABASE_CONFIG_ADDRESS]
-    os.environ[DATABASE_ENV_PORT] = str(get_database_port(database_config))
+    if envs is None:
+        envs = {}
+
+    envs[DATABASE_ENV_ENABLED] = True
+    envs[DATABASE_ENV_ENGINE] = get_database_engine(database_config)
+    envs[DATABASE_ENV_HOST] = database_config[DATABASE_CONFIG_ADDRESS]
+    envs[DATABASE_ENV_PORT] = get_database_port(database_config)
 
     # The defaults apply to built-in Database runtime.
-    os.environ[DATABASE_ENV_USERNAME] = get_database_username(database_config)
-    os.environ[DATABASE_ENV_PASSWORD] = get_database_password(database_config)
+    envs[DATABASE_ENV_USERNAME] = get_database_username(database_config)
+    envs[DATABASE_ENV_PASSWORD] = get_database_password(database_config)
+
+    return envs
