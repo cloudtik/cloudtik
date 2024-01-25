@@ -12,7 +12,14 @@ logger = logging.getLogger(__name__)
 
 
 class APISIXRuntime(RuntimeBase):
-    """Implementation for APISIX Runtime for API Gateway"""
+    """Implementation for APISIX Runtime for API Gateway
+
+    Hints:
+    1. Check services:
+    curl http://127.0.0.1:9180/apisix/admin/services -H 'X-API-KEY: your-api-key'
+    2. Check routes:
+    curl http://127.0.0.1:9180/apisix/admin/routes -H 'X-API-KEY: your-api-key'
+    """
 
     def __init__(self, runtime_config: Dict[str, Any]) -> None:
         super().__init__(runtime_config)
