@@ -31,7 +31,7 @@ from cloudtik.core._private.constants import CLOUDTIK_WHEELS, \
     CLOUDTIK_DEFAULT_MAX_WORKERS, CLOUDTIK_NODE_SSH_INTERVAL_S, CLOUDTIK_NODE_START_WAIT_S, MAX_PARALLEL_EXEC_NODES, \
     CLOUDTIK_CLUSTER_URI_TEMPLATE, CLOUDTIK_RUNTIME_NAME, CLOUDTIK_RUNTIME_ENV_NODE_IP, CLOUDTIK_RUNTIME_ENV_HEAD_IP, \
     PRIVACY_REPLACEMENT_TEMPLATE, PRIVACY_REPLACEMENT, CLOUDTIK_CONFIG_SECRET, \
-    CLOUDTIK_ENCRYPTION_PREFIX, CLOUDTIK_RUNTIME_ENV_SECRETS
+    CLOUDTIK_ENCRYPTION_PREFIX, CLOUDTIK_RUNTIME_ENV_SECRETS, CLOUDTIK_BOOTSTRAP_CONFIG_FILE
 from cloudtik.core._private.util.core_utils import load_class, double_quote, check_process_exists, \
     get_cloudtik_temp_dir, \
     get_config_for_update, get_json_object_md5, to_hex_string, from_hex_string, get_node_ip_address, split_list
@@ -61,6 +61,8 @@ CLOUDTIK_CLUSTER_RUNTIME_CONFIG = "__cluster_runtime_config"
 CLOUDTIK_CLUSTER_RUNTIME_CONFIG_NODE_TYPE = "__cluster_runtime_config_{}"
 CLOUDTIK_CLUSTER_NODES_INFO_NODE_TYPE = "__cluster_nodes_info_{}"
 CLOUDTIK_CLUSTER_VARIABLE = "__cluster_variable_{}"
+
+# The default cluster config file path on head
 
 PLACEMENT_GROUP_RESOURCE_BUNDLED_PATTERN = re.compile(
     r"(.+)_group_(\d+)_([0-9a-zA-Z]+)")
@@ -1351,7 +1353,6 @@ def get_cloudtik_start_state_command(config) -> str:
 def get_cloudtik_start_controller_command(config) -> str:
     start_command = "ulimit -n 65536; cloudtik node start --head"
     start_command += " --controller"
-    start_command += " --cluster-config=~/cloudtik_bootstrap_config.yaml"
     return start_command
 
 
@@ -2250,7 +2251,7 @@ def is_alive_time_at(report_time, current_time):
 
 def get_head_bootstrap_config():
     bootstrap_config_file = os.path.expanduser(
-        "~/cloudtik_bootstrap_config.yaml")
+        CLOUDTIK_BOOTSTRAP_CONFIG_FILE)
     if os.path.exists(bootstrap_config_file):
         return bootstrap_config_file
     raise RuntimeError(
@@ -3158,7 +3159,7 @@ def get_running_head_node(
         if _allow_uninitialized_state and _backup_head_node is not None:
             cli_logger.warning(
                 f"The head node being returned: {_backup_head_node} is not "
-                "`up-to-date`. If you are not debugging a startup issue "
+                "`up-to-date`.\nIf you are not debugging a startup issue, "
                 "it is recommended to restart this cluster.")
 
             return _backup_head_node

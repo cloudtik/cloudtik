@@ -45,7 +45,8 @@ from cloudtik.core._private.constants import \
     CLOUDTIK_RESOURCE_REQUESTS, \
     MAX_PARALLEL_SHUTDOWN_WORKERS, \
     CLOUDTIK_REDIS_DEFAULT_PASSWORD, CLOUDTIK_CLUSTER_STATUS_STOPPED, CLOUDTIK_CLUSTER_STATUS_RUNNING, \
-    CLOUDTIK_RUNTIME_NAME, CLOUDTIK_KV_NAMESPACE_HEALTHCHECK, SESSION_LATEST, CLOUDTIK_CLUSTER_STATUS_UNHEALTHY
+    CLOUDTIK_RUNTIME_NAME, CLOUDTIK_KV_NAMESPACE_HEALTHCHECK, SESSION_LATEST, CLOUDTIK_CLUSTER_STATUS_UNHEALTHY, \
+    CLOUDTIK_BOOTSTRAP_CONFIG_FILE, CLOUDTIK_BOOTSTRAP_KEY_FILE
 from cloudtik.core._private.event_system import (CreateClusterEvent, global_event_system)
 from cloudtik.core._private.job_waiter.job_waiter_factory import create_job_waiter
 from cloudtik.core._private.log_timer import LogTimer
@@ -293,15 +294,19 @@ def create_or_update_cluster(
     if printed_overrides:
         _cli_logger.newline()
 
-    _cli_logger.labeled_value("Cluster", config["cluster_name"])
+    _cli_logger.labeled_value(
+        "Cluster", config["cluster_name"])
     workspace_name = config.get("workspace_name")
     if workspace_name:
-        _cli_logger.labeled_value("Workspace", workspace_name)
-    _cli_logger.labeled_value("Runtimes", ", ".join(get_enabled_runtimes(config)))
+        _cli_logger.labeled_value(
+            "Workspace", workspace_name)
+    _cli_logger.labeled_value(
+        "Runtimes", ", ".join(get_enabled_runtimes(config)))
 
     _cli_logger.newline()
-    config = _bootstrap_config(config, no_config_cache=no_config_cache,
-                               init_config_cache=True)
+    config = _bootstrap_config(
+        config, no_config_cache=no_config_cache,
+        init_config_cache=True)
     _create_or_update_cluster(
         config,
         call_context=call_context,
@@ -315,7 +320,8 @@ def create_or_update_cluster(
     if is_proxy_needed(config):
         # start proxy and bind to localhost
         _cli_logger.newline()
-        with _cli_logger.group("Starting SOCKS5 proxy..."):
+        with _cli_logger.group(
+                "Starting SOCKS5 proxy..."):
             _start_proxy(config, True, "localhost")
 
     provider = get_node_provider_of(config)
@@ -375,10 +381,12 @@ def teardown_cluster(
         config_file, override_cluster_name,
         skip_runtime_bootstrap=skip_runtime_bootstrap)
 
-    cli_logger.confirm(yes, "Are you sure that you want to shut down cluster {}?",
-                       config["cluster_name"], _abort=True)
+    cli_logger.confirm(
+        yes, "Are you sure that you want to shut down cluster {}?",
+        config["cluster_name"], _abort=True)
     cli_logger.newline()
-    with cli_logger.group("Shutting down cluster: {}", config["cluster_name"]):
+    with cli_logger.group(
+            "Shutting down cluster: {}", config["cluster_name"]):
         _teardown_cluster(
             config,
             call_context=cli_call_context(),
@@ -388,7 +396,8 @@ def teardown_cluster(
             hard=hard,
             deep=deep)
 
-    cli_logger.success("Successfully shut down cluster: {}.", config["cluster_name"])
+    cli_logger.success(
+        "Successfully shut down cluster: {}.", config["cluster_name"])
 
 
 def _teardown_cluster(
@@ -661,15 +670,18 @@ def _run_termination_on_nodes(
                 use_internal_ip=use_internal_ip)
             updater.cmd_executor.run_terminate()
         except Exception:
-            raise RuntimeError(f"Run termination failed on {node_id}") from None
+            raise RuntimeError(
+                f"Run termination failed on {node_id}") from None
 
     _cli_logger = call_context.cli_logger
     if on_head or not workers_only:
         if on_head:
-            _cli_logger.print("Running termination on workers...")
+            _cli_logger.print(
+                "Running termination on workers...")
             running_nodes = nodes
         else:
-            _cli_logger.print("Running termination on head...")
+            _cli_logger.print(
+                "Running termination on head...")
             running_nodes = head
         # This is to ensure that the parallel SSH calls below do not mess with
         # the users terminal.
@@ -692,9 +704,11 @@ def kill_node_from_head(
     config = _load_cluster_config(config_file, override_cluster_name)
     call_context = cli_call_context()
     if node_ip:
-        cli_logger.confirm(yes, "Node {} will be killed.", node_ip, _abort=True)
+        cli_logger.confirm(
+            yes, "Node {} will be killed.", node_ip, _abort=True)
     else:
-        cli_logger.confirm(yes, "A random node will be killed.", _abort=True)
+        cli_logger.confirm(
+            yes, "A random node will be killed.", _abort=True)
 
     killed_node_ip = _kill_node_from_head(
         config,
@@ -702,7 +716,8 @@ def kill_node_from_head(
         node_ip=node_ip,
         hard=hard)
     if killed_node_ip and hard:
-        click.echo("Killed node with IP " + killed_node_ip)
+        click.echo(
+            "Killed node with IP " + killed_node_ip)
 
 
 def _kill_node_from_head(
@@ -716,7 +731,8 @@ def _kill_node_from_head(
             CLOUDTIK_TAG_NODE_KIND: NODE_KIND_WORKER
         })
         if not nodes:
-            cli_logger.print("No worker nodes launched.")
+            cli_logger.print(
+                "No worker nodes launched.")
             return None
         node = random.choice(nodes)
         node_ip = get_node_cluster_ip(provider, node)
@@ -755,9 +771,11 @@ def kill_node_on_head(
     call_context = cli_call_context()
     if not yes:
         if node_ip:
-            cli_logger.confirm(yes, "Node {} will be killed.", node_ip, _abort=True)
+            cli_logger.confirm(
+                yes, "Node {} will be killed.", node_ip, _abort=True)
         else:
-            cli_logger.confirm(yes, "A random node will be killed.", _abort=True)
+            cli_logger.confirm(
+                yes, "A random node will be killed.", _abort=True)
 
     return _kill_node(
         config,
@@ -784,7 +802,8 @@ def _kill_node(
             CLOUDTIK_TAG_NODE_KIND: NODE_KIND_WORKER
         })
         if not nodes:
-            _cli_logger.print("No worker nodes found.")
+            _cli_logger.print(
+                "No worker nodes found.")
             return None
         node = random.choice(nodes)
         node_ip = get_node_cluster_ip(provider, node)
@@ -921,7 +940,8 @@ def get_or_create_head_node(
     creating_new_head = _should_create_new_head(head_node, launch_hash,
                                                 head_node_type, provider)
     if creating_new_head:
-        with _cli_logger.group("Acquiring an up-to-date head node"):
+        with _cli_logger.group(
+                "Acquiring an up-to-date head node"):
             global_event_system.execute_callback(
                 get_cluster_uri(config),
                 CreateClusterEvent.acquiring_new_head_node)
@@ -930,7 +950,8 @@ def get_or_create_head_node(
                     yes, "Relaunching the head node.", _abort=True)
 
                 provider.terminate_node(head_node)
-                _cli_logger.print("Terminated head node {}", head_node)
+                _cli_logger.print(
+                    "Terminated head node {}", head_node)
 
             head_node_tags[CLOUDTIK_TAG_LAUNCH_CONFIG] = launch_hash
             head_node_tags[CLOUDTIK_TAG_NODE_NAME] = "cloudtik-{}-head".format(
@@ -938,15 +959,18 @@ def get_or_create_head_node(
             head_node_tags[CLOUDTIK_TAG_NODE_STATUS] = STATUS_UNINITIALIZED
             head_node_tags[CLOUDTIK_TAG_NODE_SEQ_ID] = str(CLOUDTIK_TAG_HEAD_NODE_SEQ_ID)
             provider.create_node(head_node_config, head_node_tags, 1)
-            _cli_logger.print("Launched a new head node")
+            _cli_logger.print(
+                "Launched a new head node")
 
             start = time.time()
             head_node = None
-            with _cli_logger.group("Fetching the new head node"):
+            with _cli_logger.group(
+                    "Fetching the new head node"):
                 while True:
                     if time.time() - start > 50:
-                        _cli_logger.abort("Head node fetch timed out. "
-                                          "Failed to create head node.")
+                        _cli_logger.abort(
+                            "Head node fetch timed out. "
+                            "Failed to create head node.")
                     nodes = provider.non_terminated_nodes(head_node_tags)
                     if len(nodes) == 1:
                         head_node = nodes[0]
@@ -983,7 +1007,8 @@ def get_or_create_head_node(
         # Return remote_config_file to avoid prematurely closing it.
         config, remote_config_file = _set_up_config_for_head_node(
             config, provider, no_restart)
-        _cli_logger.print("Prepared bootstrap config")
+        _cli_logger.print(
+            "Prepared bootstrap config")
 
         if restart_only:
             # Docker may re-launch nodes, requiring setup
@@ -1002,7 +1027,8 @@ def get_or_create_head_node(
             setup_commands = get_commands_to_run(config, "head_setup_commands")
             start_commands = get_commands_to_run(config, "head_start_commands")
 
-        initialization_commands = get_commands_to_run(config, "head_initialization_commands")
+        initialization_commands = get_commands_to_run(
+            config, "head_initialization_commands")
         updater = NodeUpdaterThread(
             config=config,
             call_context=call_context,
@@ -1142,7 +1168,7 @@ def _set_up_config_for_head_node(
 
     remote_key_path = None
     if "ssh_private_key" in config["auth"]:
-        remote_key_path = "~/cloudtik_bootstrap_key.pem"
+        remote_key_path = CLOUDTIK_BOOTSTRAP_KEY_FILE
         remote_config["auth"]["ssh_private_key"] = remote_key_path
 
     # Adjust for new file locations
@@ -1159,7 +1185,7 @@ def _set_up_config_for_head_node(
         "w", dir=config_temp_dir, prefix="cloudtik-bootstrap-")
 
     config["file_mounts"].update({
-        "~/cloudtik_bootstrap_config.yaml": remote_config_file.name
+        CLOUDTIK_BOOTSTRAP_CONFIG_FILE: remote_config_file.name
     })
 
     if remote_key_path:
@@ -1384,7 +1410,8 @@ def _rsync(
             "Expected either both a source and a target, or neither.")
 
     if node_ip and all_nodes:
-        cli_logger.abort("Cannot provide both node_ip and 'all_nodes'.")
+        cli_logger.abort(
+            "Cannot provide both node_ip and 'all_nodes'.")
 
     assert bool(source) == bool(target), (
         "Must either provide both or neither source and target.")
@@ -1456,7 +1483,8 @@ def _rsync(
         # for the cases that specified sync up or down with specific node
         # both source and target must be specified
         if not source or not target:
-            cli_logger.abort("Need to specify both source and target when rsync with specific node")
+            cli_logger.abort(
+                "Need to specify both source and target when rsync with specific node")
 
         # Use the tmp dir and UUID as a temp target
         target_on_head = os.path.join("/tmp", str(uuid.uuid4()))
@@ -1764,13 +1792,15 @@ def _get_running_head_node_ex(
             head_node = node
         else:
             _backup_head_node = node
-            cli_logger.verbose_warning(f"Head node ({node}) is in state {node_state}.")
+            cli_logger.verbose_warning(
+                f"Head node ({node}) is in state {node_state}.")
 
     if head_node is not None:
         return head_node
     elif create_if_needed:
         if call_context is None:
-            raise RuntimeError("You need to pass a CallContext for creating a cluster.")
+            raise RuntimeError(
+                "You need to pass a CallContext for creating a cluster.")
         get_or_create_head_node(
             config,
             call_context=call_context,
@@ -1788,7 +1818,7 @@ def _get_running_head_node_ex(
         if _allow_uninitialized_state and _backup_head_node is not None:
             cli_logger.warning(
                 f"The head node being returned: {_backup_head_node} is not "
-                "`up-to-date`. If you are not debugging a startup issue "
+                "`up-to-date`.\nIf you are not debugging a startup issue, "
                 "it is recommended to restart this cluster.")
 
             return _backup_head_node
@@ -1796,7 +1826,7 @@ def _get_running_head_node_ex(
         if _backup_head_node:
             raise HeadNotHealthyError(
                 _backup_head_node,
-                "Head node of cluster {} not found!".format(
+                "Head node of cluster {} not healthy!".format(
                     config["cluster_name"]))
         else:
             raise HeadNotRunningError(
@@ -1862,7 +1892,8 @@ def dump_local(
     shutil.move(tmp, target)
 
     if not silent:
-        cli_logger.print(f"Created local data archive at {target}")
+        cli_logger.print(
+            f"Created local data archive at {target}")
 
     return target
 
@@ -1946,7 +1977,8 @@ def dump_cluster_on_head(
     else:
         target = os.path.expanduser(output)
     shutil.move(tmp, target)
-    cli_logger.print(f"Created cluster dump archive: {target}")
+    cli_logger.print(
+        f"Created cluster dump archive: {target}")
     return target
 
 

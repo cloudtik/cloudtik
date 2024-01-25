@@ -18,7 +18,8 @@ from cloudtik.core._private.constants import CLOUDTIK_PROCESSES, \
     CLOUDTIK_REDIS_DEFAULT_PASSWORD, \
     CLOUDTIK_DEFAULT_PORT, CLOUDTIK_RUNTIME_ENV_RUNTIMES, CLOUDTIK_RUNTIME_ENV_NODE_TYPE, \
     CLOUDTIK_RUNTIME_ENV_NODE_SEQ_ID, CLOUDTIK_RUNTIME_ENV_NODE_IP, CLOUDTIK_RUNTIME_ENV_HEAD_HOST, \
-    CLOUDTIK_PROCESS_REDIS, CLOUDTIK_PROCESS_NODE_MONITOR, CLOUDTIK_PROCESS_CONTROLLER, CLOUDTIK_PROCESS_LOG_MONITOR
+    CLOUDTIK_PROCESS_REDIS, CLOUDTIK_PROCESS_NODE_MONITOR, CLOUDTIK_PROCESS_CONTROLLER, CLOUDTIK_PROCESS_LOG_MONITOR, \
+    CLOUDTIK_BOOTSTRAP_CONFIG_FILE
 from cloudtik.core._private.util.core_utils import get_cloudtik_home_dir, wait_for_port as _wait_for_port, \
     get_node_ip_address, address_to_ip, address_string
 from cloudtik.core._private.node.node_services import NodeServicesStarter
@@ -221,6 +222,10 @@ def start(
             # not provided.
             num_redis_shards = len(redis_shard_ports)
 
+        if controller and not cluster_config:
+            # set to the default if not specified explicitly
+            cluster_config = CLOUDTIK_BOOTSTRAP_CONFIG_FILE
+
         # Get the node IP address if one is not provided.
         start_params.update_if_absent(
             node_ip_address=get_node_ip_address())
@@ -265,9 +270,11 @@ def start(
         if not address:
             head_host = get_runtime_value(CLOUDTIK_RUNTIME_ENV_HEAD_HOST)
             if not head_host:
-                cli_logger.abort("`{}` is required for starting worker node",
-                                 cf.bold("--address"))
-                raise Exception("Invalid command. --address must be provided for worker node.")
+                cli_logger.abort(
+                    "`{}` is required for starting worker node",
+                    cf.bold("--address"))
+                raise Exception(
+                    "Invalid command. --address must be provided for worker node.")
             address = address_string(head_host, CLOUDTIK_DEFAULT_PORT)
 
         (redis_address,

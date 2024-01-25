@@ -35,10 +35,11 @@ check_flink_installed() {
 
 set_resources_for_flink() {
     # For Head Node
-    if [ $IS_HEAD_NODE == "true" ];then
-        flink_taskmanager_cores=$(cat ~/cloudtik_bootstrap_config.yaml | jq '."runtime"."flink"."flink_resource"."flink_taskmanager_cores"')
-        flink_taskmanager_memory=$(cat ~/cloudtik_bootstrap_config.yaml | jq '."runtime"."flink"."flink_resource"."flink_taskmanager_memory"')M
-        flink_jobmanager_memory=$(cat ~/cloudtik_bootstrap_config.yaml | jq '."runtime"."flink"."flink_resource"."flink_jobmanager_memory"')M
+    if [ $IS_HEAD_NODE == "true" ]; then
+        local -r bootstrap_config="~/cloudtik_bootstrap_config.yaml"
+        flink_taskmanager_cores=$(cat "$bootstrap_config" | jq '."runtime"."flink"."flink_resource"."flink_taskmanager_cores"')
+        flink_taskmanager_memory=$(cat "$bootstrap_config" | jq '."runtime"."flink"."flink_resource"."flink_taskmanager_memory"')M
+        flink_jobmanager_memory=$(cat "$bootstrap_config" | jq '."runtime"."flink"."flink_resource"."flink_jobmanager_memory"')M
     fi
 }
 

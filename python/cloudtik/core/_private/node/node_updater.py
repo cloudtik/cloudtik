@@ -25,7 +25,7 @@ from cloudtik.core._private.constants import CLOUDTIK_RESOURCES_ENV, CLOUDTIK_RU
     CLOUDTIK_RUNTIME_ENV_NODE_TYPE, CLOUDTIK_RUNTIME_ENV_PROVIDER_TYPE, CLOUDTIK_RUNTIME_ENV_PYTHON_VERSION, \
     CLOUDTIK_NODE_START_WAIT_S, CLOUDTIK_RUNTIME_ENV_QUORUM_JOIN, \
     CLOUDTIK_RUNTIME_ENV_CLUSTER, CLOUDTIK_RUNTIME_ENV_NODE_ID, CLOUDTIK_RUNTIME_ENV_WORKSPACE, \
-    CLOUDTIK_RUNTIME_ENV_NODE_IP
+    CLOUDTIK_RUNTIME_ENV_NODE_IP, CLOUDTIK_BOOTSTRAP_CONFIG_FILE, CLOUDTIK_BOOTSTRAP_KEY_FILE
 from cloudtik.core._private.event_system import (CreateClusterEvent, global_event_system)
 
 logger = logging.getLogger(__name__)
@@ -221,7 +221,7 @@ class NodeUpdater:
         nolog_paths = []
         if self.cli_logger.verbosity == 0:
             nolog_paths = [
-                "~/cloudtik_bootstrap_key.pem", "~/cloudtik_bootstrap_config.yaml"
+                CLOUDTIK_BOOTSTRAP_KEY_FILE, CLOUDTIK_BOOTSTRAP_CONFIG_FILE
             ]
 
         def do_sync(remote_path, local_path, allow_non_existing_paths=False):

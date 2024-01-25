@@ -2,6 +2,7 @@ import os
 import pytest
 import yaml
 
+from cloudtik.core._private.constants import CLOUDTIK_BOOTSTRAP_CONFIG_FILE
 from cloudtik.tests.integration.constants import CLUSTER_TIMEOUT, \
     TPC_DATAGEN_BENCHMARK, SCALE_CPUS_LIST, SCALE_NODES_LIST, TPCDS_BENCHMARK, KAFKA_BENCHMARK, PRESTO_BENCHMARK
 from cloudtik.core.api import Workspace
@@ -25,7 +26,7 @@ class ClusterFunctionTest:
 
     def test_rsync_down(self, basic_cluster_fixture):
         tmp_file = "/tmp/cloudtik_bootstrap_config.yaml"
-        basic_cluster_fixture.rsync(source="~/cloudtik_bootstrap_config.yaml", target=tmp_file, down=True)
+        basic_cluster_fixture.rsync(source=CLOUDTIK_BOOTSTRAP_CONFIG_FILE, target=tmp_file, down=True)
         file_exist = os.path.exists(tmp_file)
         if file_exist:
             os.remove(tmp_file)

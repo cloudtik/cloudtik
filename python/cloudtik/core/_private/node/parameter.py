@@ -51,30 +51,31 @@ class StartParams:
         controller: Start controller serviced on the head.
     """
 
-    def __init__(self,
-                 redis_address=None,
-                 redis_max_memory=None,
-                 redis_port=None,
-                 redis_shard_ports=None,
-                 node_ip_address=None,
-                 num_redis_shards=None,
-                 redis_max_clients=None,
-                 redis_password=constants.CLOUDTIK_REDIS_DEFAULT_PASSWORD,
-                 home_dir=None,
-                 no_log_monitor=None,
-                 cluster_config=None,
-                 env_vars=None,
-                 resources=None,
-                 num_cpus=None,
-                 num_gpus=None,
-                 memory=None,
-                 redirect_output=None,
-                 runtimes=None,
-                 node_type=None,
-                 node_seq_id=None,
-                 state=False,
-                 controller=False,
-                 ):
+    def __init__(
+            self,
+            redis_address=None,
+            redis_max_memory=None,
+            redis_port=None,
+            redis_shard_ports=None,
+            node_ip_address=None,
+            num_redis_shards=None,
+            redis_max_clients=None,
+            redis_password=constants.CLOUDTIK_REDIS_DEFAULT_PASSWORD,
+            home_dir=None,
+            no_log_monitor=None,
+            cluster_config=None,
+            env_vars=None,
+            resources=None,
+            num_cpus=None,
+            num_gpus=None,
+            memory=None,
+            redirect_output=None,
+            runtimes=None,
+            node_type=None,
+            node_seq_id=None,
+            state=False,
+            controller=False,
+    ):
         self.redis_address = redis_address
         self.redis_max_memory = redis_max_memory
         self.redis_port = redis_port
@@ -125,8 +126,9 @@ class StartParams:
                 if getattr(self, arg) is None:
                     setattr(self, arg, kwargs[arg])
             else:
-                raise ValueError("Invalid StartParams parameter in"
-                                 " update_if_absent: %s" % arg)
+                raise ValueError(
+                    "Invalid StartParams parameter in"
+                    " update_if_absent: %s" % arg)
 
         self._check_usage()
 

@@ -40,8 +40,9 @@ set_resources_for_yarn() {
 
     # For Head Node
     if [ $IS_HEAD_NODE == "true" ]; then
-        yarn_container_maximum_vcores=$(cat ~/cloudtik_bootstrap_config.yaml | jq '."runtime"."yarn"."yarn_container_resource"."yarn_container_maximum_vcores"')
-        yarn_container_maximum_memory=$(cat ~/cloudtik_bootstrap_config.yaml | jq '."runtime"."yarn"."yarn_container_resource"."yarn_container_maximum_memory"')
+        local -r bootstrap_config="~/cloudtik_bootstrap_config.yaml"
+        yarn_container_maximum_vcores=$(cat "$bootstrap_config" | jq '."runtime"."yarn"."yarn_container_resource"."yarn_container_maximum_vcores"')
+        yarn_container_maximum_memory=$(cat "$bootstrap_config" | jq '."runtime"."yarn"."yarn_container_resource"."yarn_container_maximum_memory"')
     fi
 }
 
