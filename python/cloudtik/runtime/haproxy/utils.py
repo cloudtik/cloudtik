@@ -35,6 +35,10 @@ HAPROXY_BACKEND_SERVERS_CONFIG_KEY = "servers"
 HAPROXY_BACKEND_SELECTOR_CONFIG_KEY = "selector"
 HAPROXY_BACKEND_SESSION_PERSISTENCE_CONFIG_KEY = "session_persistence"
 
+HAPROXY_HTTP_CHECK_ENABLED_CONFIG_KEY = "http_check_enabled"
+HAPROXY_HTTP_CHECK_PORT_CONFIG_KEY = "http_check_port"
+HAPROXY_HTTP_CHECK_PATH_CONFIG_KEY = "http_check_path"
+
 HAPROXY_SERVICE_TYPE = BUILT_IN_RUNTIME_HAPROXY
 HAPROXY_SERVICE_PORT_DEFAULT = 80
 HAPROXY_SERVICE_PROTOCOL_TCP = "tcp"
@@ -129,6 +133,18 @@ def _is_high_availability(haproxy_config: Dict[str, Any]):
         HAPROXY_HIGH_AVAILABILITY_CONFIG_KEY, False)
 
 
+def _get_backend_http_check_enabled(backend_config: Dict[str, Any]):
+    return backend_config.get(HAPROXY_HTTP_CHECK_ENABLED_CONFIG_KEY, False)
+
+
+def _get_backend_http_check_port(backend_config: Dict[str, Any]):
+    return backend_config.get(HAPROXY_HTTP_CHECK_PORT_CONFIG_KEY)
+
+
+def _get_backend_http_check_path(backend_config: Dict[str, Any]):
+    return backend_config.get(HAPROXY_HTTP_CHECK_PATH_CONFIG_KEY)
+
+
 def _get_home_dir():
     return os.path.join(
         os.getenv("HOME"), "runtime", BUILT_IN_RUNTIME_HAPROXY)
@@ -156,6 +172,9 @@ def _validate_config(config: Dict[str, Any]):
     app_mode = _get_app_mode(haproxy_config)
     config_mode = backend_config.get(HAPROXY_BACKEND_CONFIG_MODE_CONFIG_KEY)
     if app_mode == HAPROXY_APP_MODE_LOAD_BALANCER:
+        if not config_mode:
+            config_mode = _get_default_load_balancer_config_mode(
+                config, backend_config)
         if config_mode == HAPROXY_CONFIG_MODE_STATIC:
             if not backend_config.get(
                     HAPROXY_BACKEND_SERVERS_CONFIG_KEY):
@@ -257,6 +276,24 @@ def _with_runtime_envs_for_load_balancer(config, backend_config, runtime_envs):
     else:
         _with_runtime_envs_for_dynamic(backend_config, runtime_envs)
     runtime_envs["HAPROXY_CONFIG_MODE"] = config_mode
+
+    # http check envs
+    _with_runtime_envs_for_http_check(config, backend_config, runtime_envs)
+
+
+def _with_runtime_envs_for_http_check(config, backend_config, runtime_envs):
+    # set HAPROXY_HTTP_CHECK, HAPROXY_HTTP_CHECK_PORT, HAPROXY_HTTP_CHECK_PATH
+    http_check_enabled = _get_backend_http_check_enabled(backend_config)
+    runtime_envs["HAPROXY_HTTP_CHECK"] = http_check_enabled
+    if http_check_enabled:
+        http_check_port = _get_backend_http_check_port(backend_config)
+        if http_check_port:
+            runtime_envs["HAPROXY_HTTP_CHECK_PORT"] = http_check_port
+        http_check_path = _get_backend_http_check_path(backend_config)
+        if http_check_path:
+            if not http_check_path.startswith("/"):
+                http_check_path = "/" + http_check_path
+            runtime_envs["HAPROXY_HTTP_CHECK_PATH"] = http_check_path
 
 
 def _with_runtime_envs_for_dns(backend_config, runtime_envs):

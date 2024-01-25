@@ -61,7 +61,8 @@ def start_pull_server(head):
     else:
         discovery_class = "DiscoverAPIGatewayBackendServers"
 
-    service_selector = haproxy_config.get(
+    backend_config = _get_backend_config(haproxy_config)
+    service_selector = backend_config.get(
             HAPROXY_BACKEND_SELECTOR_CONFIG_KEY, {})
     cluster_name = get_runtime_cluster_name()
     exclude_runtime_of_cluster(

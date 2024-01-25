@@ -2181,15 +2181,15 @@ def _show_cluster_info(
     head_node = cluster_info["head-id"]
     if head_node:
         cli_logger.newline()
-        cli_logger.print(
-            cf.bold("Head IP: {}"), cluster_info["head-ip"])
+        cli_logger.print(cf.bold(
+            "Head IP: {}"), cluster_info["head-ip"])
         head_hostname = cluster_info.get("head-hostname")
         if head_hostname:
             cli_logger.print(cf.bold(
                 "Head Hostname: {}"), head_hostname)
     else:
-        cli_logger.print(
-            cf.red("Head is not running."))
+        cli_logger.print(cf.red(
+            "Head is not running."))
 
     cli_logger.newline()
     cli_logger.print(cf.bold(

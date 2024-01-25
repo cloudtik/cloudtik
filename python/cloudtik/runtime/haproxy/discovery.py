@@ -104,7 +104,8 @@ class DiscoverBackendServers(PullJob):
                 server_address = get_service_address_of_node(service_node)
                 backend_servers.append(server_address)
         if not backend_servers:
-            logger.warning("No live servers return from the service selector.")
+            logger.warning(
+                "No live servers return from the service selector.")
         else:
             _update_backend(self.backend_name, backend_servers)
 
