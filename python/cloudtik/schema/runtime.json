@@ -831,6 +831,11 @@
                     "default": "cloudtik",
                     "description": "Specify the root user password when initializing the MySQL instance."
                 },
+                "health_check_port": {
+                    "type": "integer",
+                    "default": 13306,
+                    "description": "The MySQL health check port if there is super-server daemon."
+                },
                 "database": {
                     "type": "object",
                     "description": "Database configurations",

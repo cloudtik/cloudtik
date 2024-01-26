@@ -64,12 +64,20 @@ configure_service_init() {
 
     configure_variable MYSQL_CONF_FILE "${MYSQL_CONFIG_FILE}"
     configure_variable MYSQL_MASTER_NODE ${IS_HEAD_NODE}
+    configure_variable MYSQL_CLUSTER_MODE "${MYSQL_CLUSTER_MODE}"
+    configure_variable MYSQL_PORT "${MYSQL_SERVICE_PORT}"
 
     if [ "${MYSQL_CLUSTER_MODE}" == "replication" ]; then
         configure_variable MYSQL_REPLICATION_SOURCE_HOST "${HEAD_HOST_ADDRESS}"
     elif [ "${MYSQL_CLUSTER_MODE}" == "group_replication" ]; then
         configure_variable MYSQL_INIT_DATADIR_CONF "${MYSQL_CONFIG_DIR}/my-init.cnf"
     fi
+
+    # TODO: further improve the security of the password in file
+    configure_variable MYSQL_ROOT_PASSWORD "${MYSQL_ROOT_PASSWORD}"
+
+    # make it owner only read/write for security
+    chmod 0600 "${MYSQL_CONFIG_DIR}/mysql"
 }
 
 configure_mysql() {
