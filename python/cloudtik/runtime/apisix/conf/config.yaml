@@ -10,7 +10,7 @@ deployment:
     config_provider: etcd
   etcd:
     host: []
-    prefix: "apisix"
+    prefix: "/apisix-{%cluster.name%}"
   admin:
     admin_key:
       - name: admin

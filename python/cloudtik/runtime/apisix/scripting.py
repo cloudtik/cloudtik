@@ -2,7 +2,7 @@ import os
 from shlex import quote
 
 from cloudtik.core._private.util.core_utils import get_config_for_update, get_list_for_update, \
-    exec_with_output, string_to_hex_string, http_address_string, address_string
+    exec_with_output, http_address_string, address_string
 from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_APISIX
 from cloudtik.core._private.util.runtime_utils import \
     get_runtime_config_from_node, load_and_save_yaml, get_runtime_value, \
@@ -39,10 +39,6 @@ def update_configurations(head):
             for service_address in service_addresses:
                 hosts.append(
                     http_address_string(service_address[0], service_address[1]))
-            cluster_name = get_runtime_cluster_name()
-            if cluster_name:
-                prefix = "apisix" + string_to_hex_string(cluster_name)
-                etcd["prefix"] = prefix
 
         # service discovery
         backend_config = _get_backend_config(apisix_config)
