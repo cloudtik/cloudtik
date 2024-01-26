@@ -5,7 +5,8 @@ from cloudtik.core.node_provider import NodeProvider
 from cloudtik.runtime.common.runtime_base import RuntimeBase
 from cloudtik.runtime.mysql.utils import _get_runtime_processes, \
     _get_runtime_services, _with_runtime_environment_variables, \
-    _get_runtime_logs, _get_runtime_endpoints, _get_head_service_ports, _validate_config, _bootstrap_runtime_config
+    _get_runtime_logs, _get_runtime_endpoints, _get_head_service_ports, _validate_config, _bootstrap_runtime_config, \
+    _get_health_check
 
 logger = logging.getLogger(__name__)
 
@@ -72,6 +73,11 @@ class MySQLRuntime(RuntimeBase):
 
     def get_runtime_services(self, cluster_config: Dict[str, Any]):
         return _get_runtime_services(self.runtime_config, cluster_config)
+
+    def get_health_check(
+            self,
+            cluster_config: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        return _get_health_check(self.runtime_config, cluster_config)
 
     @staticmethod
     def get_logs() -> Dict[str, str]:

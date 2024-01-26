@@ -1,6 +1,6 @@
 import os
 import uuid
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_MYSQL
 from cloudtik.core._private.service_discovery.naming import get_cluster_head_host
@@ -11,6 +11,8 @@ from cloudtik.core._private.service_discovery.utils import \
 from cloudtik.core._private.util.database_utils import DATABASE_PORT_MYSQL_DEFAULT, DATABASE_PASSWORD_MYSQL_DEFAULT
 from cloudtik.core._private.utils import is_node_seq_id_enabled, enable_node_seq_id, \
     get_workspace_name, get_cluster_name, get_runtime_config
+from cloudtik.runtime.common.health_check import HEALTH_CHECK_PORT, HEALTH_CHECK_NODE_KIND, HEALTH_CHECK_SCRIPT, \
+    HEALTH_CHECK_NODE_KIND_NODE, HEALTH_CHECK_NODE_KIND_HEAD
 
 RUNTIME_PROCESSES = [
         # The first element is the substring to filter.
@@ -40,6 +42,8 @@ MYSQL_DATABASE_CONFIG_KEY = "database"
 MYSQL_DATABASE_NAME_CONFIG_KEY = "name"
 MYSQL_DATABASE_USER_CONFIG_KEY = "user"
 MYSQL_DATABASE_PASSWORD_CONFIG_KEY = "password"
+
+MYSQL_HEALTH_CHECK_PORT_CONFIG_KEY = "health_check_port"
 
 MYSQL_SERVICE_TYPE = BUILT_IN_RUNTIME_MYSQL
 MYSQL_REPLICA_SERVICE_TYPE = MYSQL_SERVICE_TYPE + "-replica"
@@ -89,6 +93,12 @@ def _generate_group_replication_name(config: Dict[str, Any]):
     workspace_name = get_workspace_name(config)
     cluster_name = get_cluster_name(config)
     return str(uuid.uuid3(uuid.NAMESPACE_OID, workspace_name + cluster_name))
+
+
+def _get_health_check_port(mysql_config: Dict[str, Any]):
+    default_port = 10000 + _get_service_port(mysql_config)
+    return mysql_config.get(
+        MYSQL_HEALTH_CHECK_PORT_CONFIG_KEY, default_port)
 
 
 def _get_home_dir():
@@ -247,3 +257,22 @@ def _get_runtime_services(
                 features=[SERVICE_DISCOVERY_FEATURE_DATABASE]),
         }
     return services
+
+
+def _get_health_check(
+        runtime_config: Dict[str, Any],
+        cluster_config: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    mysql_config = _get_config(runtime_config)
+    cluster_mode = _get_cluster_mode(mysql_config)
+    health_check_port = _get_health_check_port(mysql_config)
+
+    node_kind = HEALTH_CHECK_NODE_KIND_HEAD
+    if cluster_mode != MYSQL_CLUSTER_MODE_NONE:
+        node_kind = HEALTH_CHECK_NODE_KIND_NODE
+
+    health_check = {
+        HEALTH_CHECK_PORT: health_check_port,
+        HEALTH_CHECK_SCRIPT: "scripts/mysql-health-check.sh",
+        HEALTH_CHECK_NODE_KIND: node_kind,
+    }
+    return health_check
