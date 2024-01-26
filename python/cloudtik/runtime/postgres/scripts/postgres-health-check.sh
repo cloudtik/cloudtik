@@ -71,7 +71,8 @@ _main() {
         if [[ "${server_role}" == "primary" ]]; then
             response 200 "OK: ${server_role}"
         fi
-    elif [[ "${HTTP_REQ_URI_PATH}" == "/standby" ]]; then
+    elif [[ "${HTTP_REQ_URI_PATH}" == "/standby" ]] \
+        || [[ "${HTTP_REQ_URI_PATH}" == "/secondary" ]]; then
         if [[ "${server_role}" == "standby" ]]; then
             response 200 "OK: ${server_role}"
         fi

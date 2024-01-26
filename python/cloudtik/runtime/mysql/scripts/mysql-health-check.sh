@@ -34,7 +34,6 @@ MYSQL_HOME=$RUNTIME_PATH/mysql
 
 . "$MYSQL_HOME"/conf/mysql
 
-
 mysql_execute_with_output () {
     local -r port="${MYSQL_PORT:-3306}"
     local -r user="root"
