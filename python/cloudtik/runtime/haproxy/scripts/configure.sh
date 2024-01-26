@@ -122,12 +122,19 @@ configure_haproxy() {
     ETC_DEFAULT=/etc/default
     sudo mkdir -p ${ETC_DEFAULT}
 
+    HAPROXY_CONFIG_DIR=${HAPROXY_HOME}/conf
+    mkdir -p ${HAPROXY_CONFIG_DIR}
+
     update_in_file "${output_dir}/haproxy" \
       "{%haproxy.home%}" "${HAPROXY_HOME}"
     sudo cp ${output_dir}/haproxy ${ETC_DEFAULT}/haproxy
 
-    HAPROXY_CONFIG_DIR=${HAPROXY_HOME}/conf
-    mkdir -p ${HAPROXY_CONFIG_DIR}
+    # Fix the issue of haproxy service stop in docker (depending on --cap-add=SYS_PTRACE)
+    # --exec flag of start-stop-daemon will use /proc/$pid/exe which for some unfathomable reason
+    # needs the ptrace cap enabled or it fails under Docker.
+    sudo sed -i \
+      "s#--pidfile \"\$tmppid\" --exec \$HAPROXY#--pidfile \"\$tmppid\" --name \$BASENAME#g" \
+      /etc/init.d/haproxy
 
     # TODO: to support user specified external IP address
     sed -i "s#{%frontend.ip%}#${NODE_IP_ADDRESS}#g" `grep "{%frontend.ip%}" -rl ${output_dir}`

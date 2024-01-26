@@ -7,7 +7,7 @@ ROOT_DIR="$(dirname "$(dirname "$BIN_DIR")")"
 args=$(getopt -a -o h:: -l head:: -- "$@")
 eval set -- "${args}"
 
-APISIX_VERSION=3.5
+APISIX_VERSION=3.8
 
 
 # Util functions

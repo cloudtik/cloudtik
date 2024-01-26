@@ -9,7 +9,7 @@ from cloudtik.core._private.service_discovery.utils import get_canonical_service
     SERVICE_DISCOVERY_FEATURE_LOAD_BALANCER, include_runtime_for_selector, exclude_runtime_of_cluster, \
     include_service_name_for_selector, include_service_type_for_selector
 from cloudtik.core._private.util.core_utils import get_config_copy_for_update, get_config_for_update, \
-    export_environment_variables
+    export_environment_variables, http_address_string, address_string
 from cloudtik.core._private.utils import get_runtime_config, get_cluster_name
 from cloudtik.runtime.common.health_check import HEALTH_CHECK_RUNTIME, get_health_check_port_of_service, \
     get_health_check_service_type_of
@@ -493,11 +493,15 @@ def _get_runtime_endpoints(
     haproxy_config = _get_config(runtime_config)
     service_port = _get_service_port(haproxy_config)
     service_protocol = _get_service_protocol(haproxy_config)
+
+    endpoint_url = http_address_string(
+        head_host, service_port) if (
+            service_protocol == HAPROXY_SERVICE_PROTOCOL_HTTP) else address_string(
+        head_host, service_port)
     endpoints = {
         "haproxy": {
             "name": "HAProxy",
-            "url": "{}://{}:{}".format(
-                service_protocol, head_host, service_port)
+            "url": endpoint_url
         },
     }
     return endpoints
