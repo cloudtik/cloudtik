@@ -33,6 +33,11 @@ REDIS_CLUSTER_MODE_SHARDING = "sharding"
 
 REDIS_PASSWORD_CONFIG_KEY = "password"
 
+REDIS_REPLICATION_CONFIG_KEY = "replication"
+REDIS_SENTINEL_CONFIG_KEY = "sentinel"
+REDIS_SENTINEL_PORT_CONFIG_KEY = "sentinel_port"
+REDIS_SENTINEL_QUORUM_CONFIG_KEY = "sentinel_quorum"
+
 REDIS_SHARDING_CONFIG_KEY = "sharding"
 REDIS_CLUSTER_PORT_CONFIG_KEY = "cluster_port"
 REDIS_MASTER_SIZE_CONFIG_KEY = "master_size"
@@ -60,6 +65,26 @@ def _get_service_port(redis_config: Dict[str, Any]):
 def _get_cluster_mode(redis_config: Dict[str, Any]):
     return redis_config.get(
         REDIS_CLUSTER_MODE_CONFIG_KEY, REDIS_CLUSTER_MODE_REPLICATION)
+
+
+def _get_replication_config(redis_config: Dict[str, Any]):
+    return redis_config.get(
+        REDIS_REPLICATION_CONFIG_KEY, {})
+
+
+def _is_sentinel_enabled(replication_config: Dict[str, Any]):
+    return replication_config.get(
+        REDIS_SENTINEL_CONFIG_KEY, True)
+
+
+def _get_sentinel_port(replication_config: Dict[str, Any], service_port):
+    return replication_config.get(
+        REDIS_SENTINEL_PORT_CONFIG_KEY, service_port + 20000)
+
+
+def _get_sentinel_quorum(replication_config: Dict[str, Any]):
+    return replication_config.get(
+        REDIS_SENTINEL_QUORUM_CONFIG_KEY, 2)
 
 
 def _get_sharding_config(redis_config: Dict[str, Any]):
@@ -204,16 +229,22 @@ def _validate_config(config: Dict[str, Any]):
 def _with_runtime_environment_variables(
         runtime_config, config):
     runtime_envs = {}
-
     redis_config = _get_config(runtime_config)
-
     service_port = _get_service_port(redis_config)
     runtime_envs["REDIS_SERVICE_PORT"] = service_port
-
     cluster_mode = _get_cluster_mode(redis_config)
     runtime_envs["REDIS_CLUSTER_MODE"] = cluster_mode
 
-    if cluster_mode == REDIS_CLUSTER_MODE_SHARDING:
+    if cluster_mode == REDIS_CLUSTER_MODE_REPLICATION:
+        replication_config = _get_replication_config(redis_config)
+        sentinel_enabled = _is_sentinel_enabled(replication_config)
+        runtime_envs["REDIS_SENTINEL_ENABLED"] = sentinel_enabled
+        if sentinel_enabled:
+            sentinel_port = _get_sentinel_port(replication_config, service_port)
+            runtime_envs["REDIS_SENTINEL_PORT"] = sentinel_port
+            sentinel_quorum = _get_sentinel_quorum(replication_config)
+            runtime_envs["REDIS_SENTINEL_QUORUM"] = sentinel_quorum
+    elif cluster_mode == REDIS_CLUSTER_MODE_SHARDING:
         sharding_config = _get_sharding_config(redis_config)
         cluster_port = _get_cluster_port(sharding_config, service_port)
         runtime_envs["REDIS_CLUSTER_PORT"] = cluster_port

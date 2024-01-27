@@ -22,11 +22,22 @@ class RedisRuntime(RuntimeBase):
     Notice of limitations:
     1. For simple cluster, each instance is standalone and user will need to do manual
     sharding by keys if needed.
-    2. For replication cluster, we currently don't allow to run primary on workers. All
+    2. For replication cluster
+    If sentinel is not enabled, we currently don't allow to run primary on workers. All
     the workers are configured to replicate from the head and in read-only mode.
+    If sentinel is enabled, a replica may be promoted to primary and new nodes will replica
+    from the new primary. And the existing replica will follow the new primary.
+    In this mode, we can either use a sentinel aware client or use a load balancer with role
+    based health checker.
+    3. Cluster aware client library:
+    To use a client library with Redis Cluster, the client libraries need to be cluster-aware.
+    Check the following for more information:
+    https://developer.redis.com/operate/redis-at-scale/scalability/redis-cluster-and-client-libraries/
 
     Hints:
-    1. Checking cluster status:
+    1. Checking replication status:
+    redis-cli -p 6379 -a cloudtik role
+    2. Checking cluster status:
     redis-cli -p 6379 -a cloudtik cluster nodes
 
     """

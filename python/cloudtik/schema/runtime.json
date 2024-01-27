@@ -1196,6 +1196,27 @@
                     "default": "cloudtik",
                     "description": "Specify the password for Redis instance."
                 },
+                "replication": {
+                    "type": "object",
+                    "description": "Replication configurations",
+                    "properties": {
+                        "sentinel": {
+                            "type": "boolean",
+                            "default": true,
+                            "description": "Whether to enable sentinel for automatic fail over."
+                        },
+                        "sentinel_port": {
+                            "type": "integer",
+                            "default": 26379,
+                            "description": "Specify the sentinel port to be used."
+                        },
+                        "sentinel_quorum": {
+                            "type": "integer",
+                            "default": 2,
+                            "description": "The number of quorum to reach an agreement."
+                        }
+                    }
+                },
                 "sharding": {
                     "type": "object",
                     "description": "Sharding configurations",
