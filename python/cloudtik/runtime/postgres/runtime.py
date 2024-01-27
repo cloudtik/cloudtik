@@ -22,7 +22,12 @@ class PostgresRuntime(RuntimeBase):
     repmgr.
 
     Notice of limitations:
-    1. For replication cluster, we currently don't allow to run primary on workers.
+    1. For replication cluster
+    If repmgr is not enabled, we currently don't allow to run primary on workers. All
+    the workers are configured to replicate from the head and in read-only mode.
+    If repmgr is enabled, a replica may be promoted to primary and new nodes will replica
+    from the new primary. And the existing replica will follow the new primary.
+    In this mode, we can either use a load balancer with role based health checker.
 
     Hints:
     1. Checking cluster status:

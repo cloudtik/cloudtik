@@ -276,6 +276,7 @@ repmgr_get_primary_node() {
         if [[ -z "$upstream_host" ]]; then
             info "Can not find primary. Starting as standby following the head..."
             # for workers, it there is no primary found, use head
+            # TODO: shall we start as primary since there is no primary
             primary_host="$POSTGRES_HEAD_HOST"
             primary_port="$POSTGRES_PORT"
         elif [[ "${upstream_id}" = "$POSTGRES_REPMGR_NODE_ID" ]]; then

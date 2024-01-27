@@ -167,8 +167,12 @@ redis_configure_replication() {
         redis_conf_set masterauth "$REDIS_PASSWORD"
     fi
     # Configuring replication mode
-    if [ "${REDIS_MASTER_NODE}" != "true" ]; then
-        redis_conf_set "replicaof" "$REDIS_MASTER_HOST $REDIS_SERVICE_PORT"
+    if [ "${REDIS_REPLICATION_ROLE}" == "primary" ]; then
+        # remove replicaof for master
+        redis_conf_unset replicaof
+    else
+        local primary_port=${REDIS_PRIMARY_PORT:-$REDIS_PORT}
+        redis_conf_set "replicaof" "$REDIS_PRIMARY_HOST $primary_port"
     fi
 }
 
@@ -192,4 +196,29 @@ redis_configure_sharding() {
         redis_conf_unset "cluster-announce-hostname"
         redis_conf_set "cluster-preferred-endpoint-type" "ip"
     fi
+}
+
+########################
+# Execute commands through redis-cli
+# Globals:
+#   REDIS_*
+# Arguments:
+#   host, port and password
+#   commands and options
+# Returns:
+#   Command result
+#########################
+redis_execute() {
+    local -r host="${1:?missing host}"
+    local -r port="${2:-$REDIS_PORT}"
+    local -r password="${3:-}"
+    local opts
+    read -r -a opts <<<"${@:4}"
+
+    local args=("-h" "$host" "-p" "$port")
+    [[ -n "$password" ]] && args+=("-a" "$password" "--no-auth-warning")
+    [[ "${#opts[@]}" -gt 0 ]] && args+=("${opts[@]}")
+
+    # Execute cli with arguments
+    redis-cli "${args[@]}" 2>/dev/null
 }

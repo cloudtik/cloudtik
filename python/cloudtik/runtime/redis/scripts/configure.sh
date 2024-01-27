@@ -60,10 +60,61 @@ configure_service_init() {
 
     configure_variable REDIS_CONF_FILE "${REDIS_CONFIG_FILE}"
     configure_variable REDIS_BASE_DIR "${REDIS_HOME}"
-    configure_variable REDIS_MASTER_NODE ${IS_HEAD_NODE}
+    configure_variable REDIS_PORT "${REDIS_SERVICE_PORT}"
+    configure_variable REDIS_HEAD_NODE ${IS_HEAD_NODE}
+    configure_variable REDIS_NODE_IP "${NODE_IP_ADDRESS}"
+    configure_variable REDIS_HEAD_HOST "${HEAD_HOST_ADDRESS}"
 
     if [ "${REDIS_CLUSTER_MODE}" == "replication" ]; then
-        configure_variable REDIS_MASTER_HOST "${HEAD_HOST_ADDRESS}"
+        # The default primary host
+        configure_variable REDIS_PRIMARY_HOST "${HEAD_HOST_ADDRESS}"
+        # The default role assigned if there is not sentinel
+        local role="primary"
+        if [ "${IS_HEAD_NODE}" != "true" ]; then
+            role="standby"
+        fi
+        configure_variable REDIS_REPLICATION_ROLE "$role"
+
+        if [ "${REDIS_SENTINEL_ENABLED}" == "true" ]; then
+            configure_variable REDIS_SENTINEL_MASTER_NAME "${CLOUDTIK_CLUSTER}"
+            configure_variable REDIS_SENTINEL_DATA_DIR "${REDIS_SENTINEL_DATA_DIR}"
+            configure_variable REDIS_SENTINEL_CONF_FILE "${REDIS_SENTINEL_DATA_DIR}/redis-sentinel.conf"
+        fi
+    fi
+}
+
+get_sentinel_data_dir() {
+    local data_disk_dir=$(get_first_data_disk_dir)
+    local sentinel_data_dir
+    if [ -z "$data_disk_dir" ]; then
+        sentinel_data_dir="${REDIS_HOME}/sentinel"
+    else
+        sentinel_data_dir="$data_disk_dir/redis/sentinel"
+    fi
+    echo "${sentinel_data_dir}"
+}
+
+configure_sentinel() {
+    SENTINEL_TEMPLATE_FILE=${output_dir}/redis-sentinel.conf
+
+    local -r sentinel_data_dir=$(get_sentinel_data_dir)
+    REDIS_SENTINEL_DATA_DIR="${sentinel_data_dir}"
+
+    local -r sentinel_init_file=${sentinel_data_dir}/.initialized
+    if [ ! -f "${sentinel_init_file}" ]; then
+        # configure only once because the configure is part of data of sentinel
+        mkdir -p ${sentinel_data_dir}
+        update_in_file "${SENTINEL_TEMPLATE_FILE}" \
+          "{%sentinel.data.dir%}" "${sentinel_data_dir}"
+        update_in_file "${SENTINEL_TEMPLATE_FILE}" \
+          "{%sentinel.port%}" "${REDIS_SENTINEL_PORT}"
+        update_in_file "${SENTINEL_TEMPLATE_FILE}" \
+          "{%sentinel.pidfile%}" "${REDIS_HOME}/redis-sentinel.pid"
+        update_in_file "${SENTINEL_TEMPLATE_FILE}" \
+          "{%sentinel.log.file%}" "${REDIS_HOME}/logs/redis-sentinel.log"
+        update_in_file "${SENTINEL_TEMPLATE_FILE}" \
+          "{%sentinel.master.name%}" "${CLOUDTIK_CLUSTER}"
+        cp ${SENTINEL_TEMPLATE_FILE} "${sentinel_data_dir}/redis-sentinel.conf"
     fi
 }
 
@@ -102,6 +153,11 @@ configure_redis() {
     mkdir -p ${REDIS_CONFIG_DIR}
     REDIS_CONFIG_FILE=${REDIS_CONFIG_DIR}/redis.conf
     cp ${config_template_file} ${REDIS_CONFIG_FILE}
+
+    # sentinel
+    if [ "${REDIS_SENTINEL_ENABLED}" == "true" ]; then
+        configure_sentinel
+    fi
 
     # Set variables for export to redis-init.sh
     configure_service_init
