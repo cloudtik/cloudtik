@@ -62,8 +62,9 @@ configure_service_init() {
     configure_variable REDIS_BASE_DIR "${REDIS_HOME}"
     configure_variable REDIS_PORT "${REDIS_SERVICE_PORT}"
     configure_variable REDIS_HEAD_NODE ${IS_HEAD_NODE}
-    configure_variable REDIS_NODE_IP "${NODE_IP_ADDRESS}"
     configure_variable REDIS_HEAD_HOST "${HEAD_HOST_ADDRESS}"
+    configure_variable REDIS_NODE_IP "${NODE_IP_ADDRESS}"
+    configure_variable REDIS_NODE_HOST "${NODE_HOST_ADDRESS}"
 
     if [ "${REDIS_CLUSTER_MODE}" == "replication" ]; then
         # The default primary host

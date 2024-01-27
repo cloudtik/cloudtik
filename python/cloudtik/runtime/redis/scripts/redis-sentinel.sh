@@ -165,7 +165,7 @@ redis_sentinel_get_primary_node() {
     local primary_host=""
     local primary_port="$REDIS_PORT"
 
-    readarray -t upstream_node < <(redis_sentinel_upstream_node)
+    readarray -t upstream_node < <(redis_sentinel_get_upstream_node)
     upstream_id=${upstream_node[0]}
     upstream_host=${upstream_node[1]}
     upstream_port=${upstream_node[2]:-$REDIS_PORT}
@@ -222,6 +222,8 @@ redis_sentinel_set_role() {
 
     if [[ -z "$primary_host" ]]; then
       info "There are no nodes with primary role. Assuming the primary role..."
+      primary_host="$REDIS_NODE_HOST"
+      primary_port="$REDIS_PORT"
       role="primary"
     else
       info "Node configured as standby"
