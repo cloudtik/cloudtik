@@ -189,8 +189,8 @@ redis_configure_sharding() {
     if [[ -n "$REDIS_PASSWORD" ]]; then
         redis_conf_set masterauth "$REDIS_PASSWORD"
     fi
-    if [[ "$CLUDTIK_NODE_IP" != "$CLUDTIK_NODE_HOST" ]]; then
-        redis_conf_set "cluster-announce-hostname" "$CLUDTIK_NODE_HOST"
+    if [[ "$REDIS_NODE_IP" != "$REDIS_NODE_HOST" ]]; then
+        redis_conf_set "cluster-announce-hostname" "$REDIS_NODE_HOST"
         redis_conf_set "cluster-preferred-endpoint-type" "hostname"
     else
         redis_conf_unset "cluster-announce-hostname"
