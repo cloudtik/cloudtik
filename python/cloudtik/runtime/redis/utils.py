@@ -47,6 +47,8 @@ REDIS_MASTER_NODE_TYPE_CONFIG_KEY = "master_node_type"
 
 REDIS_SERVICE_TYPE = BUILT_IN_RUNTIME_REDIS
 REDIS_REPLICA_SERVICE_TYPE = REDIS_SERVICE_TYPE + "-replica"
+REDIS_NODE_SERVICE_TYPE = REDIS_SERVICE_TYPE + "-node"
+
 REDIS_SERVICE_PORT_DEFAULT = 6379
 
 REDIS_PASSWORD_DEFAULT = "cloudtik"
@@ -311,14 +313,23 @@ def _get_runtime_services(
 
     cluster_mode = _get_cluster_mode(redis_config)
     if cluster_mode == REDIS_CLUSTER_MODE_REPLICATION:
-        # primary service on head and replica service on workers
-        replica_service_name = get_canonical_service_name(
-            service_discovery_config, cluster_name, REDIS_REPLICA_SERVICE_TYPE)
-        services = {
-            service_name: define_redis_service(define_runtime_service_on_head),
-            replica_service_name: define_redis_service(
-                define_runtime_service_on_worker, REDIS_REPLICA_SERVICE_TYPE),
-        }
+        replication_config = _get_replication_config(redis_config)
+        sentinel_enabled = _is_sentinel_enabled(replication_config)
+        if sentinel_enabled:
+            # every node is possible be primary and standby
+            services = {
+                service_name: define_redis_service(
+                    define_runtime_service, REDIS_NODE_SERVICE_TYPE),
+            }
+        else:
+            # primary service on head and replica service on workers
+            replica_service_name = get_canonical_service_name(
+                service_discovery_config, cluster_name, REDIS_REPLICA_SERVICE_TYPE)
+            services = {
+                service_name: define_redis_service(define_runtime_service_on_head),
+                replica_service_name: define_redis_service(
+                    define_runtime_service_on_worker, REDIS_REPLICA_SERVICE_TYPE),
+            }
     elif cluster_mode == REDIS_CLUSTER_MODE_SHARDING:
         # Service register for each node but don't give key-value feature to avoid
         # these service been discovered.
