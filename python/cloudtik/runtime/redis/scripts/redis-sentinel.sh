@@ -15,7 +15,6 @@ ROOT_DIR="$(dirname "$(dirname "$BIN_DIR")")"
 # redis functions
 . "$BIN_DIR"/redis.sh
 
-
 ########################
 # Set a configuration setting value
 # Globals:
