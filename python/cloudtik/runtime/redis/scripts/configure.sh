@@ -65,6 +65,7 @@ configure_service_init() {
     configure_variable REDIS_HEAD_HOST "${HEAD_HOST_ADDRESS}"
     configure_variable REDIS_NODE_IP "${NODE_IP_ADDRESS}"
     configure_variable REDIS_NODE_HOST "${NODE_HOST_ADDRESS}"
+    configure_variable REDIS_CLUSTER_MODE "${REDIS_CLUSTER_MODE}"
 
     if [ "${REDIS_CLUSTER_MODE}" == "replication" ]; then
         # The default primary host
@@ -82,6 +83,12 @@ configure_service_init() {
             configure_variable REDIS_SENTINEL_CONF_FILE "${REDIS_SENTINEL_DATA_DIR}/redis-sentinel.conf"
         fi
     fi
+
+    # TODO: further improve the security of the password in file
+    configure_variable REDIS_PASSWORD "${REDIS_PASSWORD}"
+
+    # make it owner only read/write for security
+    chmod 0600 "${REDIS_CONFIG_DIR}/redis"
 }
 
 get_sentinel_data_dir() {

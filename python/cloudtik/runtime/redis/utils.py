@@ -1,5 +1,5 @@
 import os
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 from cloudtik.core._private.constants import CLOUDTIK_NODE_TYPE_WORKER_DEFAULT
 from cloudtik.core._private.util.core_utils import get_config_for_update
@@ -11,6 +11,8 @@ from cloudtik.core._private.service_discovery.utils import \
     define_runtime_service_on_worker
 from cloudtik.core._private.utils import is_node_seq_id_enabled, enable_node_seq_id, \
     _sum_min_workers, get_runtime_config_for_update, get_cluster_name
+from cloudtik.runtime.common.health_check import HEALTH_CHECK_NODE_KIND_HEAD, HEALTH_CHECK_NODE_KIND_NODE, \
+    HEALTH_CHECK_PORT, HEALTH_CHECK_SCRIPT, HEALTH_CHECK_NODE_KIND
 
 REDIS_SERVICE_PORT_CONFIG_KEY = "port"
 
@@ -36,6 +38,8 @@ REDIS_MASTER_SIZE_CONFIG_KEY = "master_size"
 REDIS_ROLE_BY_NODE_TYPE_CONFIG_KEY = "role_by_node_type"
 REDIS_RESHARD_DELAY_CONFIG_KEY = "reshard_delay"
 REDIS_MASTER_NODE_TYPE_CONFIG_KEY = "master_node_type"
+
+REDIS_HEALTH_CHECK_PORT_CONFIG_KEY = "health_check_port"
 
 REDIS_SERVICE_TYPE = BUILT_IN_RUNTIME_REDIS
 REDIS_REPLICA_SERVICE_TYPE = REDIS_SERVICE_TYPE + "-replica"
@@ -109,6 +113,12 @@ def _get_reshard_delay(sharding_config: Dict[str, Any]):
 
 def _get_master_node_type(sharding_config):
     return sharding_config.get(REDIS_MASTER_NODE_TYPE_CONFIG_KEY)
+
+
+def _get_health_check_port(redis_config: Dict[str, Any]):
+    default_port = 10000 + _get_service_port(redis_config)
+    return redis_config.get(
+        REDIS_HEALTH_CHECK_PORT_CONFIG_KEY, default_port)
 
 
 def _get_home_dir():
@@ -321,11 +331,13 @@ def _get_runtime_services(
             # every node is possible be primary and standby
             sentinel_service_name = get_canonical_service_name(
                 service_discovery_config, cluster_name, REDIS_SENTINEL_SERVICE_TYPE)
+            sentinel_port = _get_sentinel_port(replication_config, service_port)
             services = {
                 service_name: define_redis_service(
                     define_runtime_service, REDIS_NODE_SERVICE_TYPE),
-                sentinel_service_name: define_redis_service(
-                    define_redis_service, REDIS_SENTINEL_SERVICE_TYPE),
+                sentinel_service_name: define_runtime_service(
+                    REDIS_SENTINEL_SERVICE_TYPE, service_discovery_config,
+                    sentinel_port),
             }
         else:
             # primary service on head and replica service on workers
@@ -353,3 +365,22 @@ def _get_runtime_services(
             service_name: define_redis_service(define_runtime_service_on_head),
         }
     return services
+
+
+def _get_health_check(
+        runtime_config: Dict[str, Any],
+        cluster_config: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    mysql_config = _get_config(runtime_config)
+    cluster_mode = _get_cluster_mode(mysql_config)
+    health_check_port = _get_health_check_port(mysql_config)
+
+    node_kind = HEALTH_CHECK_NODE_KIND_HEAD
+    if cluster_mode != REDIS_CLUSTER_MODE_NONE:
+        node_kind = HEALTH_CHECK_NODE_KIND_NODE
+
+    health_check = {
+        HEALTH_CHECK_PORT: health_check_port,
+        HEALTH_CHECK_SCRIPT: "scripts/redis-health-check.sh",
+        HEALTH_CHECK_NODE_KIND: node_kind,
+    }
+    return health_check
