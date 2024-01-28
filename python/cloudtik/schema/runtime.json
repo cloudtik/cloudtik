@@ -1198,7 +1198,7 @@
                 },
                 "health_check_port": {
                     "type": "integer",
-                    "default": 16379,
+                    "default": 36379,
                     "description": "The Redis health check port if there is super-server daemon."
                 },
                 "replication": {
