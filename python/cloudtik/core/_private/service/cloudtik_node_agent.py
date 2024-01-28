@@ -212,9 +212,8 @@ class NodeMonitor:
             if filter_by_cmd is None:
                 # the keyword is the path to PID file
                 proc = get_process_of_pid_file(keyword)
-                if proc is None:
-                    continue
-                found_process[process_name] = proc.status()
+                if proc is not None:
+                    found_process[process_name] = proc.status()
             else:
                 # the keyword is command name or arguments
                 if filter_by_cmd and len(keyword) > 15:
