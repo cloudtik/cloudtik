@@ -18,7 +18,7 @@ from cloudtik.core._private.call_context import CallContext
 from cloudtik.core._private.cli_logger import cli_logger
 from cloudtik.core._private.cluster.cluster_exec import exec_cluster, exec_on_head, rsync_cluster, rsync_on_head
 from cloudtik.core._private.constants import SESSION_LATEST
-from cloudtik.core._private.util.core_utils import get_cloudtik_home_dir, split_list
+from cloudtik.core._private.util.core_utils import get_cloudtik_home_dir, split_list, get_process_of_pid_file
 from cloudtik.core._private.utils import get_head_working_ip, get_node_cluster_ip, get_runtime_logs, \
     get_runtime_processes, _get_node_specific_runtime_types, with_verbose_option, get_node_provider_of
 from cloudtik.core.tags import CLOUDTIK_TAG_NODE_KIND, NODE_KIND_HEAD, \
@@ -40,14 +40,15 @@ class RemoteCommandFailed(CommandFailed):
 
 
 class GetParameters:
-    def __init__(self,
-                 logs: bool = True,
-                 debug_state: bool = True,
-                 pip: bool = True,
-                 processes: bool = True,
-                 processes_verbose: bool = True,
-                 processes_list: Optional[List[Tuple[str, bool, str, str]]] = None,
-                 runtimes: List[str] = None):
+    def __init__(
+            self,
+            logs: bool = True,
+            debug_state: bool = True,
+            pip: bool = True,
+            processes: bool = True,
+            processes_verbose: bool = True,
+            processes_list: Optional[List[Tuple[str, bool, str, str]]] = None,
+            runtimes: List[str] = None):
         self.logs = logs
         self.debug_state = debug_state
         self.pip = pip
@@ -63,10 +64,11 @@ class GetParameters:
 class Node:
     """Node (as in "machine")"""
 
-    def __init__(self,
-                 node_id: str,
-                 host: str,
-                 is_head: bool = False):
+    def __init__(
+            self,
+            node_id: str,
+            host: str,
+            is_head: bool = False):
         self.node_id = node_id
         self.host = host
         self.is_head = is_head
@@ -277,10 +279,23 @@ def get_local_pip_packages(archive: Archive):
     return archive
 
 
-def get_local_processes(archive: Archive,
-                        processes: Optional[List[Tuple[str, bool, str, str]]] = None,
-                        verbose: bool = False,
-                        runtimes: List[str] = None):
+def _get_process_info(process, verbose: bool = False,):
+    with process.oneshot():
+        cmdline = " ".join(process.cmdline())
+        return ({
+                    "executable": cmdline
+                    if verbose else cmdline.split("--", 1)[0][:-1],
+                    "name": process.name(),
+                    "pid": process.pid,
+                    "status": process.status(),
+                }, process.cmdline())
+
+
+def get_local_processes(
+        archive: Archive,
+        processes: Optional[List[Tuple[str, bool, str, str]]] = None,
+        verbose: bool = False,
+        runtimes: List[str] = None):
     """Get the status of all the relevant processes.
     Args:
         archive (Archive): Archive object to add process info files to.
@@ -305,28 +320,34 @@ def get_local_processes(archive: Archive,
     process_infos = []
     for process in psutil.process_iter(["pid", "name", "cmdline", "status"]):
         try:
-            with process.oneshot():
-                cmdline = " ".join(process.cmdline())
-                process_infos.append(({
-                    "executable": cmdline
-                    if verbose else cmdline.split("--", 1)[0][:-1],
-                    "name": process.name(),
-                    "pid": process.pid,
-                    "status": process.status(),
-                }, process.cmdline()))
+            process_info = _get_process_info(process, verbose=verbose)
+            process_infos.append(process_info)
         except Exception as exc:
             raise LocalCommandFailed(exc) from exc
 
+    cached_processes = {}
     relevant_processes = {}
     for process_dict, cmdline in process_infos:
         for keyword, filter_by_cmd, _, _ in processes:
-            if filter_by_cmd:
-                corpus = process_dict["name"]
+            if filter_by_cmd is None:
+                # the keyword is the path to PID file
+                if keyword in cached_processes:
+                    process = cached_processes[keyword]
+                else:
+                    process = get_process_of_pid_file(keyword)
+                    cached_processes[keyword] = process
+                if (process is not None
+                        and process.pid == process_dict["pid"]
+                        and process.pid not in relevant_processes):
+                    relevant_processes[process_dict["pid"]] = process_dict
             else:
-                corpus = subprocess.list2cmdline(cmdline)
-            if keyword in corpus and process_dict["pid"] \
-               not in relevant_processes:
-                relevant_processes[process_dict["pid"]] = process_dict
+                if filter_by_cmd:
+                    corpus = process_dict["name"]
+                else:
+                    corpus = subprocess.list2cmdline(cmdline)
+                if (keyword in corpus
+                        and process_dict["pid"] not in relevant_processes):
+                    relevant_processes[process_dict["pid"]] = process_dict
 
     with tempfile.NamedTemporaryFile("wt") as fp:
         for line in relevant_processes.values():

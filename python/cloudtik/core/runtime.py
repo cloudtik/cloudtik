@@ -252,8 +252,8 @@ class Runtime:
     def get_processes():
         """Return a list of processes for this runtime.
         Format:
-        #1 Keyword to filter,
-        #2 filter by command (True)/filter by args (False)
+        #1 Keyword to filter or path PID file
+        #2 filter by command (True)/filter by args (False)/path to PID file (None)
         #3 The third element is the process name.
         #4 The forth element, if node, the process should on all nodes, if head, the process should on head node.
         if worker, the process runs only on worker nodes

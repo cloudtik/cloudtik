@@ -388,6 +388,51 @@ def stop_process_tree(pid, include_parent=True, force=False):
             pass
 
 
+def read_pid_from_pidfile(pidfile_path):
+    """ Read the PID recorded in the named PID file.
+
+        Read and return the numeric PID recorded as text in the named
+        PID file. If the PID file cannot be read, or if the content is
+        not a valid PID, return ``None``.
+
+        """
+    pid = None
+    try:
+        pidfile = open(pidfile_path, 'r')
+    except IOError:
+        pass
+    else:
+        # According to the FHS 2.3 section on PID files in /var/run:
+        #
+        #   The file must consist of the process identifier in
+        #   ASCII-encoded decimal, followed by a newline character.
+        #
+        #   Programs that read PID files should be somewhat flexible
+        #   in what they accept; i.e., they should ignore extra
+        #   whitespace, leading zeroes, absence of the trailing
+        #   newline, or additional lines in the PID file.
+
+        line = pidfile.readline().strip()
+        try:
+            pid = int(line)
+        except ValueError:
+            pass
+        pidfile.close()
+
+    return pid
+
+
+def get_process_of_pid_file(pid_file: str):
+    pid = read_pid_from_pidfile(pid_file)
+    if pid is None:
+        return None
+    try:
+        proc = psutil.Process(pid)
+        return proc
+    except psutil.NoSuchProcess:
+        return None
+
+
 def get_system_memory(
     # For cgroups v1:
     memory_limit_filename="/sys/fs/cgroup/memory/memory.limit_in_bytes",
