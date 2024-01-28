@@ -116,7 +116,7 @@ def _get_master_node_type(sharding_config):
 
 
 def _get_health_check_port(redis_config: Dict[str, Any]):
-    default_port = 10000 + _get_service_port(redis_config)
+    default_port = _get_service_port(redis_config) + 30000
     return redis_config.get(
         REDIS_HEALTH_CHECK_PORT_CONFIG_KEY, default_port)
 

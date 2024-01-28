@@ -77,7 +77,7 @@ _get_sharding_server_role() {
     if [ -z "$cluster_nodes" ]; then
         return 1
     fi
-    for cluster_node in $(echo "${$cluster_nodes}" | tr ' ' '|'); do
+    for cluster_node in $(echo "${cluster_nodes}" | tr ' ' '|'); do
         IFS="|" read -ra node_fields <<< "$cluster_node"
         local node_flag_str="${node_fields[2]}"
         IFS="," read -ra node_flags <<< "$node_flag_str"
