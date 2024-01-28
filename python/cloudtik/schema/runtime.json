@@ -1196,6 +1196,11 @@
                     "default": "cloudtik",
                     "description": "Specify the password for Redis instance."
                 },
+                "health_check_port": {
+                    "type": "integer",
+                    "default": 16379,
+                    "description": "The Redis health check port if there is super-server daemon."
+                },
                 "replication": {
                     "type": "object",
                     "description": "Replication configurations",

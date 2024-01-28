@@ -167,13 +167,14 @@ redis_sentinel_get_primary_node() {
 
     readarray -t upstream_node < <(redis_sentinel_get_upstream_node)
     upstream_id=${upstream_node[0]}
-    # This is the redis ip
     upstream_host=${upstream_node[1]}
     upstream_port=${upstream_node[2]:-$REDIS_PORT}
     [[ -n "$upstream_host" ]] && info "Auto-detected primary node: '${upstream_host}:${upstream_port}'"
 
     if [[ "$REDIS_HEAD_NODE" = true ]]; then
-        if [[ -z "$upstream_host" ]] || [[ "${upstream_host}" = "$REDIS_NODE_IP" ]]; then
+        if [[ -z "$upstream_host" ]] \
+          || [[ "${upstream_host}" = "$REDIS_NODE_IP" ]] \
+          || [[ "${upstream_host}" = "$REDIS_NODE_HOST" ]]; then
             info "Starting Redis normally for the head..."
         else
             info "Current primary is '${upstream_host}:${upstream_port}'. Starting as replica following it..."
@@ -187,7 +188,8 @@ redis_sentinel_get_primary_node() {
             # TODO: shall we start as primary since there is no primary
             primary_host="$REDIS_HEAD_HOST"
             primary_port="$REDIS_PORT"
-        elif [[ "${upstream_host}" = "$REDIS_NODE_IP" ]]; then
+        elif [[ "${upstream_host}" = "$REDIS_NODE_IP" ]] \
+          || [[ "${upstream_host}" = "$REDIS_NODE_HOST" ]]; then
             # myself marked as primary. It seemed that primary failover is not happening
             info "Failover didn't happen. Starting as primary..."
         else
