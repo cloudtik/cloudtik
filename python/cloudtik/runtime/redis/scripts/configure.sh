@@ -108,6 +108,8 @@ configure_sentinel() {
         update_in_file "${SENTINEL_TEMPLATE_FILE}" \
           "{%sentinel.data.dir%}" "${sentinel_data_dir}"
         update_in_file "${SENTINEL_TEMPLATE_FILE}" \
+          "{%sentinel.bind.ip%}" "${NODE_IP_ADDRESS}"
+        update_in_file "${SENTINEL_TEMPLATE_FILE}" \
           "{%sentinel.port%}" "${REDIS_SENTINEL_PORT}"
         update_in_file "${SENTINEL_TEMPLATE_FILE}" \
           "{%sentinel.pidfile%}" "${REDIS_HOME}/redis-sentinel.pid"

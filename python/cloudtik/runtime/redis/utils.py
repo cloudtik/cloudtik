@@ -12,14 +12,6 @@ from cloudtik.core._private.service_discovery.utils import \
 from cloudtik.core._private.utils import is_node_seq_id_enabled, enable_node_seq_id, \
     _sum_min_workers, get_runtime_config_for_update, get_cluster_name
 
-RUNTIME_PROCESSES = [
-        # The first element is the substring to filter.
-        # The second element, if True, is to filter ps results by command name.
-        # The third element is the process name.
-        # The forth element, if node, the process should on all nodes,if head, the process should on head node.
-        ["redis-server", True, "Redis Server", "node"],
-    ]
-
 REDIS_SERVICE_PORT_CONFIG_KEY = "port"
 
 REDIS_CLUSTER_MODE_CONFIG_KEY = "cluster_mode"
@@ -48,6 +40,7 @@ REDIS_MASTER_NODE_TYPE_CONFIG_KEY = "master_node_type"
 REDIS_SERVICE_TYPE = BUILT_IN_RUNTIME_REDIS
 REDIS_REPLICA_SERVICE_TYPE = REDIS_SERVICE_TYPE + "-replica"
 REDIS_NODE_SERVICE_TYPE = REDIS_SERVICE_TYPE + "-node"
+REDIS_SENTINEL_SERVICE_TYPE = REDIS_SERVICE_TYPE + "-sentinel"
 
 REDIS_SERVICE_PORT_DEFAULT = 6379
 
@@ -124,7 +117,16 @@ def _get_home_dir():
 
 
 def _get_runtime_processes():
-    return RUNTIME_PROCESSES
+    home_dir = _get_home_dir()
+    redis_server_pidfile = os.path.join(
+        home_dir, "redis-server.pid")
+    redis_sentinel_pidfile = os.path.join(
+        home_dir, "redis-sentinel.pid")
+    runtime_processes = [
+        [redis_server_pidfile, None, "Redis Server", "node"],
+        [redis_sentinel_pidfile, None, "Redis Sentinel", "node"],
+    ]
+    return runtime_processes
 
 
 def _get_runtime_logs():
@@ -317,9 +319,13 @@ def _get_runtime_services(
         sentinel_enabled = _is_sentinel_enabled(replication_config)
         if sentinel_enabled:
             # every node is possible be primary and standby
+            sentinel_service_name = get_canonical_service_name(
+                service_discovery_config, cluster_name, REDIS_SENTINEL_SERVICE_TYPE)
             services = {
                 service_name: define_redis_service(
                     define_runtime_service, REDIS_NODE_SERVICE_TYPE),
+                sentinel_service_name: define_redis_service(
+                    define_redis_service, REDIS_SENTINEL_SERVICE_TYPE),
             }
         else:
             # primary service on head and replica service on workers

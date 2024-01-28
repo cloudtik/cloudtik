@@ -15,7 +15,7 @@ import subprocess
 
 import cloudtik
 from cloudtik.core._private import constants
-from cloudtik.core._private.util.core_utils import get_node_ip_address, split_list
+from cloudtik.core._private.util.core_utils import get_node_ip_address, split_list, get_process_of_pid_file
 from cloudtik.core._private.util.logging_utils import setup_component_logger
 from cloudtik.core._private.metrics.metrics_collector import MetricsCollector
 from cloudtik.core._private.state.control_state import ControlState
@@ -209,19 +209,27 @@ class NodeMonitor:
             if (self.node_kind != node_kind) and ("node" != node_kind):
                 continue
 
-            if filter_by_cmd and len(keyword) > 15:
-                # getting here is an internal bug, so we do not use cli_logger
-                msg = ("The filter string should not be more than {} "
-                       "characters. Actual length: {}. Filter: {}").format(
-                    15, len(keyword), keyword)
-                raise ValueError(msg)
-            found_process[process_name] = "-"
-            for candidate in processes_info:
-                proc, proc_cmd, proc_args = candidate
-                corpus = (proc_cmd
-                          if filter_by_cmd else subprocess.list2cmdline(proc_args))
-                if keyword in corpus:
-                    found_process[process_name] = proc.status()
+            if filter_by_cmd is None:
+                # the keyword is the path to PID file
+                proc = get_process_of_pid_file(keyword)
+                if proc is None:
+                    continue
+                found_process[process_name] = proc.status()
+            else:
+                # the keyword is command name or arguments
+                if filter_by_cmd and len(keyword) > 15:
+                    # getting here is an internal bug, so we do not use cli_logger
+                    msg = ("The filter string should not be more than {} "
+                           "characters. Actual length: {}. Filter: {}").format(
+                        15, len(keyword), keyword)
+                    raise ValueError(msg)
+                found_process[process_name] = "-"
+                for candidate in processes_info:
+                    proc, proc_cmd, proc_args = candidate
+                    corpus = (proc_cmd
+                              if filter_by_cmd else subprocess.list2cmdline(proc_args))
+                    if keyword in corpus:
+                        found_process[process_name] = proc.status()
 
         if found_process != self.old_processes:
             logger.info(

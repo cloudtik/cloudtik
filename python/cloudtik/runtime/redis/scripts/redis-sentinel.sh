@@ -167,6 +167,7 @@ redis_sentinel_get_primary_node() {
 
     readarray -t upstream_node < <(redis_sentinel_get_upstream_node)
     upstream_id=${upstream_node[0]}
+    # This is the redis ip
     upstream_host=${upstream_node[1]}
     upstream_port=${upstream_node[2]:-$REDIS_PORT}
     [[ -n "$upstream_host" ]] && info "Auto-detected primary node: '${upstream_host}:${upstream_port}'"
@@ -251,6 +252,13 @@ redis_sentinel_configure_default() {
         redis_sentinel_conf_unset requirepass
         # Allow remote connections without password
         redis_sentinel_conf_set protected-mode no
+    fi
+    if [[ "$REDIS_NODE_IP" != "$REDIS_NODE_HOST" ]]; then
+        redis_sentinel_conf_set "sentinel resolve-hostnames" "yes"
+        redis_sentinel_conf_set "sentinel announce-hostnames" "yes"
+    else
+        redis_sentinel_conf_set "sentinel resolve-hostnames" "no"
+        redis_sentinel_conf_set "sentinel announce-hostnames" "no"
     fi
 }
 
