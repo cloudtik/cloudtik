@@ -8,15 +8,16 @@ from cloudtik.core._private.cluster.resource_scaling_policy import ResourceScali
 from cloudtik.core._private.cluster.scaling_policies import ScalingWithTime
 from cloudtik.core._private.state.state_utils import NODE_STATE_NODE_ID, NODE_STATE_NODE_IP, NODE_STATE_TIME
 from cloudtik.core._private.utils import merge_scaling_state
-from cloudtik.core.scaling_policy import ScalingState, ScalingPolicy
+from cloudtik.core.scaling_policy import ScalingState, ScalingPolicy, SCALING_INSTRUCTIONS_SCALING_TIME, \
+    SCALING_INSTRUCTIONS_RESOURCE_DEMANDS
 
 SCALING_POLICY_TEST_RUNTIME = "prometheus"
 
 test_now = time.time()
 
 autoscaling_instructions = {
-    "scaling_time": test_now,
-    "resource_demands": [
+    SCALING_INSTRUCTIONS_SCALING_TIME: test_now,
+    SCALING_INSTRUCTIONS_RESOURCE_DEMANDS: [
         {"CPU": 4},
         {"CPU": 4}
     ]
@@ -70,9 +71,6 @@ class ScalingPolicyForTest(ScalingPolicy):
     def name(self):
         return "scaling-for-test"
 
-    def reset(self, config):
-        super().reset(config)
-
     def get_scaling_state(self) -> Optional[ScalingState]:
         return ScalingState(autoscaling_instructions, node_resource_states, lost_nodes)
 
@@ -114,15 +112,15 @@ class TestScalingPolicy:
 
         scaling_state = resource_scaling_policy.get_scaling_state()
         assert scaling_state is not None
-        assert scaling_state.autoscaling_instructions["scaling_time"] == test_now
-        assert len(scaling_state.autoscaling_instructions["resource_demands"]) == 2
+        assert scaling_state.autoscaling_instructions[SCALING_INSTRUCTIONS_SCALING_TIME] == test_now
+        assert len(scaling_state.autoscaling_instructions[SCALING_INSTRUCTIONS_RESOURCE_DEMANDS]) == 2
         assert len(scaling_state.node_resource_states) == 1
         assert len(scaling_state.lost_nodes) == 1
 
     def test_scaling_state_merge(self):
         scaling_sate = ScalingState(autoscaling_instructions, node_resource_states, lost_nodes)
         autoscaling_instructions_copy = copy.deepcopy(autoscaling_instructions)
-        autoscaling_instructions_copy["resource_demands"] = [
+        autoscaling_instructions_copy[SCALING_INSTRUCTIONS_RESOURCE_DEMANDS] = [
             {"CPU": 4},
         ]
         node_resource_states_copy = copy.deepcopy(node_resource_states)
@@ -131,8 +129,8 @@ class TestScalingPolicy:
 
         result_scaling_sate = merge_scaling_state(scaling_sate, new_scaling_state)
         assert result_scaling_sate is not None
-        assert result_scaling_sate.autoscaling_instructions["scaling_time"] == test_now
-        assert len(result_scaling_sate.autoscaling_instructions["resource_demands"]) == 1
+        assert result_scaling_sate.autoscaling_instructions[SCALING_INSTRUCTIONS_SCALING_TIME] == test_now
+        assert len(result_scaling_sate.autoscaling_instructions[SCALING_INSTRUCTIONS_RESOURCE_DEMANDS]) == 1
         assert result_scaling_sate.node_resource_states["node-1.1.1.1"]["available_resources"]["CPU"] == 0
 
     def test_scaling_with_time(self):

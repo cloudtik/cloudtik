@@ -8,11 +8,14 @@ from cloudtik.core import tags
 from cloudtik.core._private import constants
 from cloudtik.core._private.state.control_state import ControlState
 from cloudtik.core._private.state.state_utils import NODE_STATE_NODE_ID, NODE_STATE_NODE_IP, NODE_STATE_NODE_KIND, \
-    NODE_STATE_TIME
-from cloudtik.core._private.utils import get_resource_demands_for_cpu, \
-    convert_nodes_to_cpus, get_resource_demands_for_memory, convert_nodes_to_memory, get_resource_requests_for_cpu, \
-    _sum_min_workers, get_runtime_config
-from cloudtik.core.scaling_policy import ScalingPolicy, ScalingState
+    NODE_STATE_TIME, NODE_STATE_NODE_TYPE
+from cloudtik.core._private.util.core_utils import get_list_for_update
+from cloudtik.core._private.utils import \
+    convert_nodes_to_cpus, convert_nodes_to_memory, get_resource_requests_for_cpu, \
+    _sum_min_workers, get_available_node_types, get_head_node_type, _get_scaling_config, _get_min_workers, \
+    get_resource_requests_for, convert_nodes_to_resource, get_resource_demands
+from cloudtik.core.scaling_policy import ScalingPolicy, ScalingState, SCALING_INSTRUCTIONS_SCALING_TIME, \
+    SCALING_INSTRUCTIONS_RESOURCE_DEMANDS, SCALING_INSTRUCTIONS_RESOURCE_REQUESTS
 
 logger = logging.getLogger(__name__)
 
@@ -39,8 +42,12 @@ class ScalingWithResources(ScalingPolicy):
     def __init__(
             self,
             config: Dict[str, Any],
-            head_host: str) -> None:
+            head_host: str,
+            scaling_config: Dict[str, Any] = None) -> None:
         ScalingPolicy.__init__(self, config, head_host)
+        if scaling_config is None:
+            scaling_config = _get_scaling_config(config) or {}
+        self.scaling_config = scaling_config
         self.last_state_time = 0
         self.control_state = ControlState()
         self.control_state.initialize_control_state(
@@ -48,34 +55,29 @@ class ScalingWithResources(ScalingPolicy):
             constants.CLOUDTIK_DEFAULT_PORT,
             constants.CLOUDTIK_REDIS_DEFAULT_PASSWORD)
 
-        self.scaling_config = {}
         self.in_use_cpu_load_threshold = SCALING_WITH_LOAD_IN_USE_CPU_LOAD_THRESHOLD_DEFAULT
         self._reset_resources_config()
 
     def name(self):
         return "scaling-with-resources"
 
-    def reset(self, config):
-        super().reset(config)
-        self._reset_resources_config()
-
     def _reset_resources_config(self):
-        runtime_config = get_runtime_config(self.config)
-        self.scaling_config = runtime_config.get("scaling", {})
         self.in_use_cpu_load_threshold = self.scaling_config.get(
             "in_use_cpu_load_threshold",
             SCALING_WITH_LOAD_IN_USE_CPU_LOAD_THRESHOLD_DEFAULT)
 
     def get_scaling_state(self) -> Optional[ScalingState]:
+        node_metrics_table = self.control_state.get_node_metrics_table()
+        node_metrics_list = self._get_all_node_metrics(node_metrics_table)
+        return self._get_scaling_state(node_metrics_list)
+
+    def _get_scaling_state(self, node_metrics_list) -> Optional[ScalingState]:
         self.last_state_time = time.time()
 
-        node_metrics_table = self.control_state.get_node_metrics_table()
-        all_node_metrics = self._get_all_node_metrics(node_metrics_table)
-
         autoscaling_instructions = self._get_autoscaling_instructions(
-            all_node_metrics)
+            node_metrics_list)
         node_resource_states, lost_nodes = self._get_node_resource_states(
-            all_node_metrics)
+            node_metrics_list)
 
         scaling_state = ScalingState()
         scaling_state.set_autoscaling_instructions(autoscaling_instructions)
@@ -83,14 +85,14 @@ class ScalingWithResources(ScalingPolicy):
         scaling_state.set_lost_nodes(lost_nodes)
         return scaling_state
 
-    def _get_autoscaling_instructions(self, all_node_metrics):
+    def _get_autoscaling_instructions(self, node_metrics_list):
         return None
 
-    def _get_node_resource_states(self, all_node_metrics):
+    def _get_node_resource_states(self, node_metrics_list):
         node_resource_states = {}
         lost_nodes = {}
 
-        for node_metrics in all_node_metrics:
+        for node_metrics in node_metrics_list:
             node_id = node_metrics[NODE_STATE_NODE_ID]
             node_ip = node_metrics[NODE_STATE_NODE_IP]
             if not node_id or not node_ip:
@@ -153,24 +155,26 @@ class ScalingWithResources(ScalingPolicy):
 
     def _get_all_node_metrics(self, node_metrics_table):
         node_metrics_rows = node_metrics_table.get_all().values()
-        all_node_metrics = []
+        node_metrics_list = []
         for node_metrics_as_json in node_metrics_rows:
             node_metrics = json.loads(node_metrics_as_json)
             # filter out the head node
             if node_metrics[NODE_STATE_NODE_KIND] == tags.NODE_KIND_HEAD:
                 continue
 
-            all_node_metrics.append(node_metrics)
-        return all_node_metrics
+            node_metrics_list.append(node_metrics)
+        return node_metrics_list
 
 
 class ScalingWithLoad(ScalingWithResources):
     def __init__(
             self,
             config: Dict[str, Any],
-            head_host: str) -> None:
-        ScalingWithResources.__init__(self, config, head_host)
-
+            head_host: str,
+            scaling_config: Dict[str, Any] = None,
+            node_type=None) -> None:
+        ScalingWithResources.__init__(self, config, head_host, scaling_config)
+        self.node_type = node_type
         self.last_resource_demands_time = 0
         self.last_resource_state_snapshot = None
 
@@ -184,10 +188,6 @@ class ScalingWithLoad(ScalingWithResources):
     def name(self):
         return "scaling-with-load"
 
-    def reset(self, config):
-        super().reset(config)
-        self._reset_load_config()
-
     def _reset_load_config(self):
         self.scaling_step = self.scaling_config.get(
             "scaling_step", SCALING_WITH_LOAD_STEP_DEFAULT)
@@ -198,101 +198,113 @@ class ScalingWithLoad(ScalingWithResources):
         self.memory_load_threshold = self.scaling_config.get(
             "memory_load_threshold", SCALING_WITH_LOAD_MEMORY_LOAD_THRESHOLD_DEFAULT)
 
-    def _need_more_cores(self, cluster_metrics):
-        num_cores = 0
+    def _need_more_nodes_for_cores(self, cluster_metrics):
+        num_nodes = 0
         # check whether we need more cores based on the current CPU load
         cpu_load = cluster_metrics["cpu_load"]
         if cpu_load > self.cpu_load_threshold:
-            num_cores = self.get_number_of_cores_to_scale(self.scaling_step)
-        return num_cores
+            num_nodes = self.scaling_step
+        return num_nodes
 
-    def _need_more_memory(self, cluster_metrics):
-        memory_to_scale = 0
+    def _need_more_cores(self, cluster_metrics):
+        num_nodes = self._need_more_nodes_for_cores(cluster_metrics)
+        return self.get_number_of_cores_to_scale(num_nodes)
+
+    def _need_more_nodes_for_memory(self, cluster_metrics):
+        num_nodes = 0
         # check whether we need more cores based on the current memory load
         memory_load = cluster_metrics["memory_load"]
         if memory_load > self.memory_load_threshold:
-            memory_to_scale = self.get_memory_to_scale(self.scaling_step)
-        return memory_to_scale
+            num_nodes = self.scaling_step
+        return num_nodes
+
+    def _need_more_memory(self, cluster_metrics):
+        num_nodes = self._need_more_nodes_for_memory(cluster_metrics)
+        return self.get_memory_to_scale(num_nodes)
 
     def _need_more_resources(self, cluster_metrics):
         requesting_resources = {}
-        if self.scaling_resource == SCALING_WITH_LOAD_RESOURCE_CPU:
-            requesting_cores = self._need_more_cores(cluster_metrics)
-            requesting_resources[constants.CLOUDTIK_RESOURCE_CPU] = requesting_cores
+        if not self.node_type:
+            if self.scaling_resource == SCALING_WITH_LOAD_RESOURCE_CPU:
+                resource_id = constants.CLOUDTIK_RESOURCE_CPU
+                resource_amount = self._need_more_cores(cluster_metrics)
+            else:
+                resource_id = constants.CLOUDTIK_RESOURCE_MEMORY
+                resource_amount = self._need_more_memory(cluster_metrics)
         else:
-            requesting_memory = self._need_more_memory(cluster_metrics)
-            requesting_resources[constants.CLOUDTIK_RESOURCE_MEMORY] = requesting_memory
-
+            resource_id = self.node_type
+            if self.scaling_resource == SCALING_WITH_LOAD_RESOURCE_CPU:
+                resource_amount = self._need_more_nodes_for_cores(cluster_metrics)
+            else:
+                resource_amount = self._need_more_nodes_for_memory(cluster_metrics)
+        if resource_amount > 0:
+            requesting_resources[resource_id] = resource_amount
         return requesting_resources
 
-    def get_number_of_cores_to_scale(self, scaling_step):
-        return convert_nodes_to_cpus(self.config, scaling_step)
+    def get_number_of_cores_to_scale(self, nodes):
+        if not nodes:
+            return 0
+        return convert_nodes_to_cpus(self.config, nodes)
 
-    def get_memory_to_scale(self, scaling_step):
-        return convert_nodes_to_memory(self.config, scaling_step)
+    def get_memory_to_scale(self, nodes):
+        if not nodes:
+            return 0
+        return convert_nodes_to_memory(self.config, nodes)
 
-    def _get_autoscaling_instructions(self, all_node_metrics):
+    def _get_autoscaling_instructions(self, node_metrics_list):
         autoscaling_instructions = {}
         resource_demands = []
 
         # Use the following information to make the decisions
-        cluster_metrics = self._get_cluster_metrics(all_node_metrics)
+        cluster_metrics = self._get_cluster_metrics(node_metrics_list)
         if cluster_metrics is not None:
             if logger.isEnabledFor(logging.DEBUG):
                 logger.debug("Cluster metrics: {}".format(cluster_metrics))
 
             resource_requesting = self._need_more_resources(cluster_metrics)
-            if resource_requesting is not None:
-                # We request more resources with a configured step of up scaling speed
-                requesting_cores = resource_requesting.get(constants.CLOUDTIK_RESOURCE_CPU, 0)
-                requesting_memory = resource_requesting.get(constants.CLOUDTIK_RESOURCE_MEMORY, 0)
-                if requesting_cores > 0 or requesting_memory > 0:
-                    if requesting_cores > 0:
-                        resource_demands_for_cpu = get_resource_demands_for_cpu(
-                            requesting_cores, self.config)
-                        resource_demands += resource_demands_for_cpu
+            for resource_id, resource_amount in resource_requesting.items():
+                resource_demands_for_resource = get_resource_demands(
+                    resource_amount, resource_id, self.config, 1)
+                resource_demands += resource_demands_for_resource
+                self._log_scaling(resource_id, resource_amount, cluster_metrics)
 
-                        logger.info(
-                            "Scaling event: utilization reaches to {} on total {} cores. "
-                            "Requesting {} more cpus...".format(
-                                cluster_metrics["cpu_load"],
-                                cluster_metrics["total_cpus"],
-                                requesting_cores))
-                    elif requesting_memory > 0:
-                        resource_demands_for_memory = get_resource_demands_for_memory(
-                            requesting_memory, self.config)
-                        resource_demands += resource_demands_for_memory
+                self.last_resource_demands_time = self.last_state_time
+                self.last_resource_state_snapshot = {
+                    "total_cpus": cluster_metrics["total_cpus"],
+                    "cpu_load": cluster_metrics["cpu_load"],
+                    "total_memory": cluster_metrics["total_memory"],
+                    "memory_load": cluster_metrics["memory_load"],
+                    "resource_requesting": resource_requesting,
+                }
 
-                        logger.info(
-                            "Scaling event: utilization reaches to {} on total {} memory. "
-                            "Requesting {} more memory...".format(
-                                cluster_metrics["memory_load"],
-                                cluster_metrics["total_memory"],
-                                requesting_memory))
-
-                    self.last_resource_demands_time = self.last_state_time
-                    self.last_resource_state_snapshot = {
-                        "total_cpus": cluster_metrics["total_cpus"],
-                        "cpu_load": cluster_metrics["cpu_load"],
-                        "total_memory": cluster_metrics["total_memory"],
-                        "memory_load": cluster_metrics["memory_load"],
-                        "resource_requesting": resource_requesting,
-                    }
-
-        autoscaling_instructions["scaling_time"] = self.last_state_time
-        autoscaling_instructions["resource_demands"] = resource_demands
+        autoscaling_instructions[SCALING_INSTRUCTIONS_SCALING_TIME] = self.last_state_time
+        autoscaling_instructions[SCALING_INSTRUCTIONS_RESOURCE_DEMANDS] = resource_demands
         if len(resource_demands) > 0 and logger.isEnabledFor(logging.DEBUG):
             logger.debug("Resource demands: {}".format(resource_demands))
 
         return autoscaling_instructions
 
-    def _get_cluster_metrics(self, all_node_metrics):
+    def _log_scaling(
+            self, resource_id, resource_amount, cluster_metrics):
+        if self.scaling_resource == SCALING_WITH_LOAD_RESOURCE_CPU:
+            utilization_msg = "utilization reaches to {} on total {} cores.".format(
+                cluster_metrics["cpu_load"],
+                cluster_metrics["total_cpus"])
+        else:
+            utilization_msg = "utilization reaches to {} on total {} memory.".format(
+                cluster_metrics["memory_load"],
+                cluster_metrics["total_memory"])
+        logger.info(
+            "Scaling event: {} Requesting {} more {}...".format(
+                utilization_msg, resource_amount, resource_id))
+
+    def _get_cluster_metrics(self, node_metrics_list):
         cluster_total_cpus = 0
         cluster_used_cpus = 0
         cluster_total_memory = 0
         cluster_used_memory = 0
         cluster_load_avg_all_1 = 0.0
-        for node_metrics in all_node_metrics:
+        for node_metrics in node_metrics_list:
             # Filter out the stale record in the node table
             last_metrics_time = node_metrics.get(NODE_STATE_TIME, 0)
             delta = time.time() - last_metrics_time
@@ -342,8 +354,11 @@ class ScalingWithTime(ScalingWithResources):
     def __init__(
             self,
             config: Dict[str, Any],
-            head_host: str) -> None:
-        ScalingWithResources.__init__(self, config, head_host)
+            head_host: str,
+            scaling_config: Dict[str, Any] = None,
+            node_type: str = None) -> None:
+        ScalingWithResources.__init__(self, config, head_host, scaling_config)
+        self.node_type = node_type
 
         # scaling parameters
         self.min_workers = 0
@@ -355,10 +370,6 @@ class ScalingWithTime(ScalingWithResources):
     def name(self):
         return "scaling-with-time"
 
-    def reset(self, config):
-        super().reset(config)
-        self._reset_time_config()
-
     def _reset_time_config(self):
         self.min_workers = self._get_min_workers()
         self.scaling_periodic = self.scaling_config.get(
@@ -369,27 +380,48 @@ class ScalingWithTime(ScalingWithResources):
             self.scaling_config.get("scaling_time_table", {}))
 
     def _get_resource_requests_for(self, number_of_nodes):
-        requested_cores = self.get_number_of_cores_to_scale(number_of_nodes)
-        return get_resource_requests_for_cpu(requested_cores, self.config)
+        if not self.node_type:
+            requested_cores = self.get_number_of_cores_to_scale(number_of_nodes)
+            return get_resource_requests_for_cpu(requested_cores, self.config)
+        else:
+            # request the number of nodes of this node type
+            # note this is different from resource demands which is incremental
+            requested_nodes = self.get_number_of_nodes_to_scale(
+                number_of_nodes, self.node_type)
+            # It will include the resource requests for this node type
+            # But the final resource requests should include all node types
+            # including other worker node types. Otherwise, the resource request
+            # for other worker node types will be overriden.
+            return get_resource_requests_for(
+                requested_nodes, self.config, self.node_type, requested_nodes)
 
     def get_number_of_cores_to_scale(self, nodes):
+        if not nodes:
+            return 0
         return convert_nodes_to_cpus(self.config, nodes)
 
-    def get_memory_to_scale(self, nodes):
-        return convert_nodes_to_memory(self.config, nodes)
+    def get_number_of_nodes_to_scale(self, nodes, node_type):
+        if not nodes:
+            return 0
+        # node type based resource
+        return convert_nodes_to_resource(
+            self.config, nodes, node_type, node_type)
 
     def _get_min_workers(self):
-        return _sum_min_workers(self.config)
+        if not self.node_type:
+            return _sum_min_workers(self.config)
+        else:
+            return _get_min_workers(self.config, self.node_type)
 
-    def _get_autoscaling_instructions(self, all_node_metrics):
+    def _get_autoscaling_instructions(self, node_metrics_list):
         # Use the time table to make the decisions
         resource_requests = self._get_resource_requests_with_time()
         if resource_requests is None:
             return None
 
         autoscaling_instructions = {
-            "scaling_time": self.last_state_time,
-            "resource_requests": resource_requests}
+            SCALING_INSTRUCTIONS_SCALING_TIME: self.last_state_time,
+            SCALING_INSTRUCTIONS_RESOURCE_REQUESTS: resource_requests}
         if resource_requests is not None and logger.isEnabledFor(logging.DEBUG):
             logger.debug("Scaling time table: {}".format(self.scaling_time_table))
             logger.debug("Resource requests: {}".format(resource_requests))
@@ -555,10 +587,133 @@ class ScalingWithTime(ScalingWithResources):
         return self._get_resource_requests_for(number_of_nodes)
 
 
-def _create_scaling_policy(scaling_policy_name: str, config, head_host):
-    if SCALING_WITH_LOAD == scaling_policy_name:
-        return ScalingWithLoad(config, head_host)
-    elif SCALING_WITH_TIME == scaling_policy_name:
-        return ScalingWithTime(config, head_host)
+class ScalingByNodeType(ScalingWithResources):
+    def __init__(
+            self,
+            config: Dict[str, Any],
+            head_host: str,
+            scaling_config: Dict[str, Any],
+            scaling_policy_map: Dict[str, ScalingWithResources]) -> None:
+        ScalingWithResources.__init__(self, config, head_host, scaling_config)
+        self.scaling_policy_map = scaling_policy_map
 
+    def name(self):
+        return "scaling-by-node-type"
+
+    def _get_scaling_state(self, node_metrics_list) -> Optional[ScalingState]:
+        self.last_state_time = time.time()
+
+        # create node metrics by node type
+        (node_metrics_by_node_type,
+         node_metrics_list_no_type) = self._get_node_metrics_by_node_type(
+            node_metrics_list)
+
+        autoscaling_instructions = {
+            SCALING_INSTRUCTIONS_SCALING_TIME: self.last_state_time
+        }
+        node_resource_states = {}
+        lost_nodes = {}
+        for node_type, scaling_policy in self.scaling_policy_map.items():
+            node_metrics_list_of_node_type = node_metrics_by_node_type.get(node_type, [])
+            scaling_state_of_node_type = scaling_policy._get_scaling_state(
+                node_metrics_list_of_node_type)
+            autoscaling_instructions_of_node_type = scaling_state_of_node_type.autoscaling_instructions
+            # TODO: for resource requests: considering the remaining resource requests
+            self._update_autoscaling_instructions(
+                autoscaling_instructions, autoscaling_instructions_of_node_type)
+            node_resource_states.update(scaling_state_of_node_type.node_resource_states)
+            lost_nodes.update(scaling_state_of_node_type.lost_nodes)
+
+        # The nodes not in the scaling
+        node_resource_states_no_type, lost_nodes_no_type = self._get_node_resource_states(
+            node_metrics_list_no_type)
+        node_resource_states.update(node_resource_states_no_type)
+        lost_nodes.update(lost_nodes_no_type)
+
+        scaling_state = ScalingState()
+        scaling_state.set_autoscaling_instructions(autoscaling_instructions)
+        scaling_state.set_node_resource_states(node_resource_states)
+        scaling_state.set_lost_nodes(lost_nodes)
+        return scaling_state
+
+    def _get_node_metrics_by_node_type(self, node_metrics_list):
+        node_metrics_by_node_type = {}
+        node_metrics_list_no_type = []
+        for node_metrics in node_metrics_list:
+            node_type = node_metrics.get(NODE_STATE_NODE_TYPE)
+            if not node_type or node_type not in self.scaling_policy_map:
+                node_metrics_list_no_type.append(node_metrics)
+            else:
+                node_metrics_list_of_type = node_metrics_by_node_type.get(node_type)
+                if node_metrics_list_of_type is not None:
+                    node_metrics_list_of_type.append(node_metrics)
+                else:
+                    node_metrics_by_node_type[node_type] = [node_metrics]
+        return node_metrics_by_node_type, node_metrics_list_no_type
+
+    def _update_autoscaling_instructions(
+            self, autoscaling_instructions, autoscaling_instructions_of_node_type):
+        if not autoscaling_instructions_of_node_type:
+            return
+        resource_demands_to_add = autoscaling_instructions_of_node_type.get(
+            SCALING_INSTRUCTIONS_RESOURCE_DEMANDS)
+        if resource_demands_to_add:
+            resource_demands = get_list_for_update(
+                autoscaling_instructions, SCALING_INSTRUCTIONS_RESOURCE_DEMANDS)
+            resource_demands += resource_demands_to_add
+        resource_requests_to_add = autoscaling_instructions_of_node_type.get(
+            SCALING_INSTRUCTIONS_RESOURCE_REQUESTS)
+        if resource_requests_to_add:
+            resource_requests = get_list_for_update(
+                autoscaling_instructions, SCALING_INSTRUCTIONS_RESOURCE_REQUESTS)
+            resource_requests += resource_requests_to_add
+
+
+def _create_built_in_scaling_policy(config, head_host, scaling_config):
+    # specify either global scaling policy or by node type scaling policy
+    scaling_policy_by_node_type = scaling_config.get("scaling_policy_by_node_type")
+    if scaling_policy_by_node_type:
+        return _create_scaling_policy_by_node_type(
+            config, head_host, scaling_config, scaling_policy_by_node_type)
+    else:
+        return _create_scaling_policy(
+            config, head_host, scaling_config)
+
+
+def _create_scaling_policy(
+        config, head_host, scaling_config, node_type=None):
+    scaling_policy_name = scaling_config.get("scaling_policy")
+    if not scaling_policy_name:
+        return None
+    if SCALING_WITH_LOAD == scaling_policy_name:
+        return ScalingWithLoad(
+            config, head_host, scaling_config, node_type=node_type)
+    elif SCALING_WITH_TIME == scaling_policy_name:
+        return ScalingWithTime(
+            config, head_host, scaling_config, node_type=node_type)
     return None
+
+
+def _create_scaling_resources(config, head_host):
+    scaling_config = _get_scaling_config(config)
+    return ScalingWithResources(config, head_host, scaling_config)
+
+
+def _create_scaling_policy_by_node_type(
+        config, head_host, scaling_config, scaling_policy_by_node_type):
+    scaling_policy_map = {}
+    available_node_types = get_available_node_types(config)
+    head_node_type = get_head_node_type(config)
+    for node_type, node_type_scaling_config in scaling_policy_by_node_type.items():
+        if (node_type == head_node_type
+                or node_type not in available_node_types):
+            continue
+        scaling_policy = _create_scaling_policy(
+            config, head_host, node_type_scaling_config,
+            node_type=node_type)
+        if scaling_policy is not None:
+            scaling_policy_map[node_type] = scaling_policy
+
+    if not scaling_policy_map:
+        return None
+    return ScalingByNodeType(config, head_host, scaling_config, scaling_policy_map)
