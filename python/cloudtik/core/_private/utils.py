@@ -3022,6 +3022,17 @@ def get_resource_demands_for_memory(memory_in_bytes, config):
         memory_in_bytes, constants.CLOUDTIK_RESOURCE_MEMORY, config, pow(1024, 3))
 
 
+def get_resource_demands_for(amount, resource_id, config):
+    if resource_id == constants.CLOUDTIK_RESOURCE_CPU:
+        return get_resource_demands_for_cpu(amount, config)
+    elif resource_id == constants.CLOUDTIK_RESOURCE_GPU:
+        return get_resource_demands_for_gpu(amount, config)
+    elif resource_id == constants.CLOUDTIK_RESOURCE_MEMORY:
+        return get_resource_demands_for_memory(amount, config)
+    else:
+        return get_resource_demands(amount, resource_id, config, 1)
+
+
 def get_resource_demands(amount, resource_id, config, default_bundle_size):
     if amount is None:
         return None

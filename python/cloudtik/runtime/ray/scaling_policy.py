@@ -196,9 +196,11 @@ class RayScalingPolicy(ScalingPolicy):
                 resources_batch_data: gcs_pb2.ResourceUsageBatchData,
         ) -> None:
             if os.getenv("RAY_LOG_RESOURCE_BATCH_DATA") == "1":
-                logger.info("Logging raw resource message pulled from GCS.")
+                logger.info(
+                    "Logging raw resource message pulled from GCS.")
                 logger.info(resources_batch_data)
-                logger.info("Done logging raw resource message.")
+                logger.info(
+                    "Done logging raw resource message.")
 
         request = gcs_service_pb2.GetAllResourceUsageRequest()
         response = self.gcs_node_resources_stub.GetAllResourceUsage(request, timeout=60)
