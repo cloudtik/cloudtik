@@ -10,6 +10,7 @@ from cloudtik.core._private.constants import CLOUDTIK_RESOURCE_REQUESTS, CLOUDTI
 from cloudtik.core._private.state.kv_store import kv_initialized, kv_get, kv_put, kv_save
 from cloudtik.core._private.state.scaling_state import ScalingStateClient
 from cloudtik.core._private.state.state_utils import NODE_STATE_NODE_IP, NODE_STATE_TIME
+from cloudtik.core._private.util.core_utils import get_json_object_hash
 from cloudtik.core.scaling_policy import SCALING_NODE_STATE_RESOURCE_LOAD, SCALING_NODE_STATE_TOTAL_RESOURCES, \
     SCALING_NODE_STATE_AVAILABLE_RESOURCES
 
@@ -29,6 +30,7 @@ class ClusterMetricsUpdater:
         self.scaling_state_client = scaling_state_client
         self.last_avail_resources = None
         self.cluster_metrics_failures = 0
+        self.last_cluster_requests_hash = None
 
     def initialize(self):
         # initialize the metrics update for existing resource requests
@@ -153,6 +155,13 @@ class ClusterMetricsUpdater:
             "last_requesting_time": last_requesting_time,
             "requests": resource_requests
         }
+        cluster_requests_hash = get_json_object_hash(cluster_requests)
+        if cluster_requests_hash != self.last_cluster_requests_hash:
+            # save to state only when data changed
+            self._do_save_cluster_requests(cluster_requests)
+            self.last_cluster_requests_hash = cluster_requests_hash
+
+    def _do_save_cluster_requests(self, cluster_requests):
         try:
             kv_put(
                 CLOUDTIK_CLUSTER_REQUESTS,
@@ -179,6 +188,8 @@ class ClusterMetricsUpdater:
                 "Error loading cluster resource requests")
             return
 
+        self.last_cluster_requests_hash = get_json_object_hash(
+            cluster_requests)
         last_requesting_time = cluster_requests.get("last_requesting_time", 0)
         resource_requests = cluster_requests.get("requests")
         # TODO: check for resource requests for node types no longer exists
