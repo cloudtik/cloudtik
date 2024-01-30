@@ -1,10 +1,11 @@
 import logging
 from typing import Optional
 
-from cloudtik.core._private.cluster.scaling_policies import _create_scaling_policy, ScalingWithResources
+from cloudtik.core._private.cluster.scaling_policies import \
+    _create_built_in_scaling_policy, _create_scaling_resources
 from cloudtik.core._private.state.scaling_state import ScalingStateClient, ScalingState
-from cloudtik.core._private.utils import RUNTIME_CONFIG_KEY, \
-    _get_runtime_scaling_policy
+from cloudtik.core._private.utils import \
+    _get_runtime_scaling_policy, _get_scaling_policy_cls, _get_scaling_config
 
 logger = logging.getLogger(__name__)
 
@@ -38,6 +39,11 @@ class ResourceScalingPolicy:
         if scaling_policy is not None:
             return scaling_policy
 
+        # Check whether there are any user scaling policies configured
+        user_scaling_policy = self._get_user_scaling_policy(config, self.head_host)
+        if user_scaling_policy is not None:
+            return user_scaling_policy
+
         # Check whether there are any built-in scaling policies configured
         system_scaling_policy = self._get_system_scaling_policy(config, self.head_host)
         if system_scaling_policy is not None:
@@ -55,23 +61,23 @@ class ResourceScalingPolicy:
     def get_scaling_state(self) -> Optional[ScalingState]:
         if self.scaling_policy is None:
             return None
-
         return self.scaling_policy.get_scaling_state()
 
+    def _get_user_scaling_policy(self, config, head_host):
+        scaling_config = _get_scaling_config(config)
+        if not scaling_config:
+            return None
+        if "scaling_policy_class" not in scaling_config:
+            return None
+        scaling_policy_cls = _get_scaling_policy_cls(
+            scaling_config["scaling_policy_class"])
+        return scaling_policy_cls(config, head_host)
+
     def _get_system_scaling_policy(self, config, head_host):
-        runtime_config = config.get(RUNTIME_CONFIG_KEY)
-        if runtime_config is None:
+        scaling_config = _get_scaling_config(config)
+        if not scaling_config:
             return None
-
-        if "scaling" not in runtime_config:
-            return None
-
-        scaling_config = runtime_config["scaling"]
-        scaling_policy_name = scaling_config.get("scaling_policy")
-        if not scaling_policy_name:
-            return None
-
-        return _create_scaling_policy(scaling_policy_name, config, head_host)
+        return _create_built_in_scaling_policy(config, head_host, scaling_config)
 
     def _get_default_scaling_policy(self, config, head_host):
-        return ScalingWithResources(config, head_host)
+        return _create_scaling_resources(config, head_host)

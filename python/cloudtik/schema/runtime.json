@@ -126,9 +126,24 @@
             "description": "User scaling configurations",
             "additionalProperties": true,
             "properties": {
+                "scaling_policy_class": {
+                    "type": "string",
+                    "description": "The module and class path of the scaling policy class"
+                },
                 "scaling_policy": {
                     "type": "string",
                     "description": "The built-in scaling policy name to use. Values: scaling-with-load, scaling-with-time"
+                },
+                "scaling_policy_by_node_type": {
+                    "type": "object",
+                    "description": "Scaling by specific node type and scaling configurations.",
+                    "additionalProperties": false,
+                    "patternProperties": {
+                        ".*": {
+                            "type": "object",
+                            "description": "The scaling policy and configurations for the node type of the key."
+                        }
+                    }
                 },
                 "scaling_step": {
                     "type": "integer",
@@ -165,9 +180,14 @@
                     "default": "on-min-workers",
                     "description": "The base number to use for arithmetic such as *2. Values: on-min-workers, on-previous-time"
                 },
-                "scaling_policy_class": {
-                    "type": "string",
-                    "description": "The module and class path of the scaling policy class"
+                "scaling_time_table": {
+                    "type": "object",
+                    "description": "Time table maps time slot to nodes scaling.",
+                    "patternProperties": {
+                        ".*":{
+                            "type": "string"
+                        }
+                    }
                 }
             }
         },

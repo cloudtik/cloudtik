@@ -6,9 +6,10 @@ from cloudtik.core._private.constants import CLOUDTIK_HEARTBEAT_TIMEOUT_S, CLOUD
     CLOUDTIK_NODE_RESOURCE_STATE_TIMEOUT_S
 from cloudtik.core._private.state.control_state import ControlState
 from cloudtik.core._private.state.kv_store import kv_put, kv_get
-from cloudtik.core._private.state.state_utils import NODE_STATE_NODE_ID, NODE_STATE_NODE_IP, NODE_STATE_HEARTBEAT_TIME, \
+from cloudtik.core._private.state.state_utils import \
+    NODE_STATE_NODE_ID, NODE_STATE_NODE_IP, NODE_STATE_HEARTBEAT_TIME, \
     NODE_STATE_TIME
-from cloudtik.core.scaling_policy import ScalingState
+from cloudtik.core.scaling_policy import ScalingState, SCALING_INSTRUCTIONS_SCALING_TIME
 
 CLOUDTIK_AUTOSCALING_INSTRUCTIONS = "autoscaling_instructions"
 STATE_FETCH_TIMEOUT = 60
@@ -66,7 +67,8 @@ class ScalingStateClient:
         as_json = kv_get(CLOUDTIK_AUTOSCALING_INSTRUCTIONS)
         if as_json is not None:
             autoscaling_instructions = json.loads(as_json)
-            scaling_time = autoscaling_instructions.get("scaling_time", 0)
+            scaling_time = autoscaling_instructions.get(
+                SCALING_INSTRUCTIONS_SCALING_TIME, 0)
             delta = now - scaling_time
             if delta < CLOUDTIK_SCALING_STATE_TIMEOUT_S:
                 scaling_state.set_autoscaling_instructions(

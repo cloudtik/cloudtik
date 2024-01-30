@@ -5,6 +5,14 @@ from cloudtik.core._private.annotations import DeveloperAPI
 
 logger = logging.getLogger(__name__)
 
+SCALING_INSTRUCTIONS_SCALING_TIME = "scaling_time"
+SCALING_INSTRUCTIONS_RESOURCE_DEMANDS = "resource_demands"
+SCALING_INSTRUCTIONS_RESOURCE_REQUESTS = "resource_requests"
+
+SCALING_NODE_STATE_TOTAL_RESOURCES = "total_resources"
+SCALING_NODE_STATE_AVAILABLE_RESOURCES = "available_resources"
+SCALING_NODE_STATE_RESOURCE_LOAD = "resource_load"
+
 
 @DeveloperAPI
 class ScalingState:
@@ -58,9 +66,6 @@ class ScalingPolicy:
     def name(self):
         """Return the name of the scaling policy"""
         raise NotImplementedError
-
-    def reset(self, config):
-        self.config = config
 
     def get_scaling_state(self) -> Optional[ScalingState]:
         """Return the scaling state including scaling instructions and resource states"""

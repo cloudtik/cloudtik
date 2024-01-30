@@ -10,6 +10,8 @@ from cloudtik.core._private.constants import CLOUDTIK_MEMORY_RESOURCE_UNIT_BYTES
     CLOUDTIK_MAX_RESOURCE_DEMAND_VECTOR_SIZE
 from cloudtik.core._private.cluster.resource_demand_scheduler import \
     NodeIP, ResourceDict
+from cloudtik.core.scaling_policy import SCALING_INSTRUCTIONS_RESOURCE_DEMANDS, SCALING_INSTRUCTIONS_SCALING_TIME, \
+    SCALING_INSTRUCTIONS_RESOURCE_REQUESTS
 
 logger = logging.getLogger(__name__)
 
@@ -30,8 +32,9 @@ class ClusterMetricsSummary:
     node_types: List[DictCount]
 
 
-def add_resources(dict1: Dict[str, float],
-                  dict2: Dict[str, float]) -> Dict[str, float]:
+def add_resources(
+        dict1: Dict[str, float],
+        dict2: Dict[str, float]) -> Dict[str, float]:
     """Add the values in two dictionaries.
 
     Returns:
@@ -43,9 +46,10 @@ def add_resources(dict1: Dict[str, float],
     return new_dict
 
 
-def freq_of_dicts(dicts: List[Dict],
-                  serializer=lambda d: frozenset(d.items()),
-                  deserializer=dict) -> List[DictCount]:
+def freq_of_dicts(
+        dicts: List[Dict],
+        serializer=lambda d: frozenset(d.items()),
+        deserializer=dict) -> List[DictCount]:
     """Count a list of dictionaries (or unhashable types).
 
     This is somewhat annoying because mutable data structures aren't hashable,
@@ -103,27 +107,42 @@ class ClusterMetrics:
         self.last_requesting_time = 0
         self.resource_requests = []
 
-    def update_heartbeat(self,
-                         ip: str,
-                         node_id: str,
-                         last_heartbeat_time):
+    def initialize(self, resource_requests, last_requesting_time):
+        self.resource_requests = resource_requests or []
+        self.last_requesting_time = last_requesting_time
+
+    def update_heartbeat(
+            self,
+            ip: str,
+            node_id: str,
+            last_heartbeat_time):
         self.node_id_by_ip[ip] = node_id
         self.last_heartbeat_time_by_ip[ip] = last_heartbeat_time
 
-    def update_autoscaling_instructions(self,
-                                        autoscaling_instructions: Dict[str, Any]):
+    def update_autoscaling_instructions(
+            self,
+            autoscaling_instructions: Dict[str, Any]) -> bool:
+        # return True if resource requests updated.
+        # there is a need to persistent resource requests for head restart
+        # while there is no need to persistent resource demands because it
+        # is incremental.
         self.autoscaling_instructions = autoscaling_instructions
+        self._update_resource_demands(
+            autoscaling_instructions)
+        resource_requests_updated = self._update_resource_requests(
+            autoscaling_instructions)
+        return resource_requests_updated
 
-        self._update_resource_demands(autoscaling_instructions)
-        self._update_resource_requests(autoscaling_instructions)
-
-    def _update_resource_demands(self,
-                                 autoscaling_instructions: Dict[str, Any]):
+    def _update_resource_demands(
+            self,
+            autoscaling_instructions: Dict[str, Any]):
         # resource_demands is a List[Dict[str, float]]
         resource_demands = []
         if autoscaling_instructions is not None:
-            scaling_time = autoscaling_instructions.get("scaling_time")
-            _resource_demands = autoscaling_instructions.get("resource_demands")
+            scaling_time = autoscaling_instructions.get(
+                SCALING_INSTRUCTIONS_SCALING_TIME)
+            _resource_demands = autoscaling_instructions.get(
+                SCALING_INSTRUCTIONS_RESOURCE_DEMANDS)
 
             # Only the new demanding will be updated
             if scaling_time > self.last_demanding_time and _resource_demands:
@@ -132,22 +151,28 @@ class ClusterMetrics:
 
         self.resource_demands = resource_demands
 
-    def _update_resource_requests(self, autoscaling_instructions: Dict[str, Any]):
-        if autoscaling_instructions is not None:
-            resource_requests = autoscaling_instructions.get("resource_requests")
-            if resource_requests is not None:
-                # Only update the resource request when there is one
-                # This is different with resource demands
-                scaling_time = autoscaling_instructions.get("scaling_time")
-                self.set_resource_requests(scaling_time, resource_requests)
+    def _update_resource_requests(
+            self, autoscaling_instructions: Dict[str, Any]) -> bool:
+        if not autoscaling_instructions:
+            return False
+        resource_requests = autoscaling_instructions.get(
+            SCALING_INSTRUCTIONS_RESOURCE_REQUESTS)
+        if not resource_requests:
+            return False
+        # Only update the resource request when there is one
+        # This is different with resource demands
+        scaling_time = autoscaling_instructions.get(
+            SCALING_INSTRUCTIONS_SCALING_TIME)
+        return self.set_resource_requests(scaling_time, resource_requests)
 
-    def update_node_resources(self,
-                              ip: str,
-                              node_id: str,
-                              last_resource_time,
-                              static_resources: Dict[str, Any],
-                              dynamic_resources: Dict[str, Any],
-                              resource_load: Dict[str, Any]):
+    def update_node_resources(
+            self,
+            ip: str,
+            node_id: str,
+            last_resource_time,
+            static_resources: Dict[str, Any],
+            dynamic_resources: Dict[str, Any],
+            resource_load: Dict[str, Any]):
         self.node_id_by_ip[ip] = node_id
         self.static_resources_by_ip[ip] = static_resources
         self.resource_load_by_ip[ip] = resource_load
@@ -182,7 +207,8 @@ class ClusterMetrics:
 
     def mark_active(self, ip, last_heartbeat_time=None):
         assert ip is not None, "IP should be known at this time"
-        logger.debug("Node {} is newly setup, treating as active".format(ip))
+        logger.debug(
+            "Node {} is newly setup, treating as active".format(ip))
         if not last_heartbeat_time:
             last_heartbeat_time = time.time()
         self.last_heartbeat_time_by_ip[ip] = last_heartbeat_time
@@ -208,7 +234,8 @@ class ClusterMetrics:
             unwanted_ips = set(mapping) - active_ips
             for unwanted_ip in unwanted_ips:
                 if should_log:
-                    logger.info("Cluster Metrics: " f"Removed ip: {unwanted_ip}.")
+                    logger.info(
+                        "Cluster Metrics: " f"Removed ip: {unwanted_ip}.")
                 del mapping[unwanted_ip]
             if unwanted_ips and should_log:
                 logger.info(
@@ -299,21 +326,24 @@ class ClusterMetrics:
 
         For example, "3 CPUs, 4 GPUs".
         """
-        total_resources = reduce(add_resources,
-                                 self.static_resources_by_ip.values()
-                                 ) if self.static_resources_by_ip else {}
+        total_resources = reduce(
+            add_resources,
+            self.static_resources_by_ip.values()
+        ) if self.static_resources_by_ip else {}
         out = "{} CPUs".format(int(total_resources.get("CPU", 0)))
         if "GPU" in total_resources:
             out += ", {} GPUs".format(int(total_resources["GPU"]))
         return out
 
     def summary(self):
-        available_resources = reduce(add_resources,
-                                     self.dynamic_resources_by_ip.values()
-                                     ) if self.dynamic_resources_by_ip else {}
-        total_resources = reduce(add_resources,
-                                 self.static_resources_by_ip.values()
-                                 ) if self.static_resources_by_ip else {}
+        available_resources = reduce(
+            add_resources,
+            self.dynamic_resources_by_ip.values()
+        ) if self.dynamic_resources_by_ip else {}
+        total_resources = reduce(
+            add_resources,
+            self.static_resources_by_ip.values()
+        ) if self.static_resources_by_ip else {}
         usage_dict = {}
         for key in total_resources:
             if key in ["memory"]:
@@ -339,16 +369,55 @@ class ClusterMetrics:
             request_demand=summarized_resource_requests,
             node_types=nodes_summary)
 
-    def set_resource_requests(self, requesting_time, requested_resources):
-        if requested_resources is not None:
-            assert isinstance(requested_resources, list), requested_resources
+    def set_resource_requests(
+            self, requesting_time, requested_resources,
+            override: bool = False) -> bool:
+        # This is the central point to update the system resource requests
+        # resource_requests is a list of ResourceDict, it defines the unit
+        # to pack the cluster resources
+        if requested_resources is None:
+            return False
 
-            # Check for valid requesting time
-            if requesting_time > self.last_requesting_time:
-                self.resource_requests = [
-                    request for request in requested_resources if len(request) > 0
-                ]
-                self.last_requesting_time = requesting_time
+        assert isinstance(requested_resources, list), requested_resources
+
+        # Check for valid requesting time
+        if requesting_time <= self.last_requesting_time:
+            return False
+
+        self.last_requesting_time = requesting_time
+        resource_requests = [
+            request for request in requested_resources if len(request) > 0
+        ]
+
+        # The existing resources will be kept if override = False
+        if not override:
+            # update new request to the existing one
+            relevant_resource_ids = self._get_resource_ids_from_request(
+                requested_resources)
+            existing_resource_requests = self.resource_requests
+            for request in existing_resource_requests:
+                if self._is_resource_request_relevant(
+                        request, relevant_resource_ids):
+                    continue
+                resource_requests.append(request)
+
+        self.resource_requests = resource_requests
+        return True
+
+    def _get_resource_ids_from_request(self, resource_requests):
+        relevant_resource_ids = set()
+        if not resource_requests:
+            return relevant_resource_ids
+        for request in resource_requests:
+            relevant_resource_ids.update(request.keys())
+        return relevant_resource_ids
+
+    def _is_resource_request_relevant(
+            self, resource_request, relevant_resource_ids):
+        for resource_id in resource_request:
+            if resource_id in relevant_resource_ids:
+                return True
+        return False
 
     def info_string(self):
         return " - " + "\n - ".join(

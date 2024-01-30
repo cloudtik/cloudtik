@@ -124,6 +124,7 @@ class ClusterController:
         return session_name
 
     def _initialize_cluster_scaler(self):
+        self.cluster_metrics_updater.initialize()
         self.cluster_scaler = ClusterScaler(
             self.cluster_config,
             self.cluster_metrics,

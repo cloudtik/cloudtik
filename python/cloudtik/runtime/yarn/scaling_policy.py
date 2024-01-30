@@ -11,7 +11,9 @@ from cloudtik.core._private.util.core_utils import address_to_ip
 from cloudtik.core._private.state.state_utils import NODE_STATE_NODE_ID, NODE_STATE_NODE_IP, NODE_STATE_TIME
 from cloudtik.core._private.utils import make_node_id, get_resource_demands_for_cpu, \
     convert_nodes_to_cpus, get_resource_demands_for_memory, convert_nodes_to_memory, get_runtime_config
-from cloudtik.core.scaling_policy import ScalingPolicy, ScalingState
+from cloudtik.core.scaling_policy import ScalingPolicy, ScalingState, SCALING_INSTRUCTIONS_SCALING_TIME, \
+    SCALING_INSTRUCTIONS_RESOURCE_DEMANDS, SCALING_NODE_STATE_TOTAL_RESOURCES, \
+    SCALING_NODE_STATE_AVAILABLE_RESOURCES, SCALING_NODE_STATE_RESOURCE_LOAD
 
 YARN_REST_ENDPOINT_CLUSTER_NODES = "http://{}:{}/ws/v1/cluster/nodes"
 YARN_REST_ENDPOINT_CLUSTER_METRICS = "http://{}:{}/ws/v1/cluster/metrics"
@@ -44,10 +46,11 @@ def _address_to_ip(address):
 
 
 class YARNScalingPolicy(ScalingPolicy):
-    def __init__(self,
-                 config: Dict[str, Any],
-                 head_host: str,
-                 rest_port) -> None:
+    def __init__(
+            self,
+            config: Dict[str, Any],
+            head_host: str,
+            rest_port) -> None:
         ScalingPolicy.__init__(self, config, head_host)
 
         # scaling parameters
@@ -69,10 +72,6 @@ class YARNScalingPolicy(ScalingPolicy):
 
     def name(self):
         return "scaling-with-yarn"
-
-    def reset(self, config):
-        super().reset(config)
-        self._reset_yarn_config()
 
     def _reset_yarn_config(self):
         runtime_config = get_runtime_config(self.config)
@@ -190,7 +189,8 @@ class YARNScalingPolicy(ScalingPolicy):
             response = urllib.request.urlopen(cluster_metrics_url, timeout=10)
             content = response.read()
         except urllib.error.URLError as e:
-            logger.error("Failed to retrieve the cluster metrics: {}".format(str(e)))
+            logger.error(
+                "Failed to retrieve the cluster metrics: {}".format(str(e)))
             return None
 
         cluster_metrics_response = json.loads(content)
@@ -230,19 +230,21 @@ class YARNScalingPolicy(ScalingPolicy):
                             requesting_cores, self.config)
                         resource_demands += resource_demands_for_cpu
 
-                        logger.info("Scaling event: {}/{} cpus are free. Requesting {} more cpus...".format(
-                            cluster_metrics["availableVirtualCores"],
-                            cluster_metrics["totalVirtualCores"],
-                            requesting_cores))
+                        logger.info(
+                            "Scaling event: {}/{} cpus are free. Requesting {} more cpus...".format(
+                                cluster_metrics["availableVirtualCores"],
+                                cluster_metrics["totalVirtualCores"],
+                                requesting_cores))
                     elif requesting_memory > 0:
                         resource_demands_for_memory = get_resource_demands_for_memory(
                             requesting_memory, self.config)
                         resource_demands += resource_demands_for_memory
 
-                        logger.info("Scaling event: {}/{} memory are free. Requesting {} more memory...".format(
-                            cluster_metrics["availableMB"],
-                            cluster_metrics["totalMB"],
-                            requesting_memory))
+                        logger.info(
+                            "Scaling event: {}/{} memory are free. Requesting {} more memory...".format(
+                                cluster_metrics["availableMB"],
+                                cluster_metrics["totalMB"],
+                                requesting_memory))
 
                     self.last_resource_demands_time = self.last_state_time
                     self.last_resource_state_snapshot = {
@@ -255,10 +257,11 @@ class YARNScalingPolicy(ScalingPolicy):
                         "resource_requesting": resource_requesting,
                     }
 
-        autoscaling_instructions["scaling_time"] = self.last_state_time
-        autoscaling_instructions["resource_demands"] = resource_demands
+        autoscaling_instructions[SCALING_INSTRUCTIONS_SCALING_TIME] = self.last_state_time
+        autoscaling_instructions[SCALING_INSTRUCTIONS_RESOURCE_DEMANDS] = resource_demands
         if len(resource_demands) > 0:
-            logger.debug("Resource demands: {}".format(resource_demands))
+            logger.debug(
+                "Resource demands: {}".format(resource_demands))
 
         return autoscaling_instructions
 
@@ -333,12 +336,13 @@ class YARNScalingPolicy(ScalingPolicy):
                     NODE_STATE_NODE_ID: node_id,
                     NODE_STATE_NODE_IP: node_ip,
                     NODE_STATE_TIME: self.last_state_time,
-                    "total_resources": total_resources,
-                    "available_resources": free_resources,
-                    "resource_load": resource_load
+                    SCALING_NODE_STATE_TOTAL_RESOURCES: total_resources,
+                    SCALING_NODE_STATE_AVAILABLE_RESOURCES: free_resources,
+                    SCALING_NODE_STATE_RESOURCE_LOAD: resource_load
                 }
                 if logger.isEnabledFor(logging.DEBUG):
-                    logger.debug("Node resources: {}".format(node_resource_state))
+                    logger.debug(
+                        "Node resources: {}".format(node_resource_state))
                 node_resource_states[node_id] = node_resource_state
 
         # if the lost nodes appears in RUNNING, exclude it

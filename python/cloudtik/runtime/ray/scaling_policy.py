@@ -6,7 +6,9 @@ from typing import Any, Dict, Optional
 from cloudtik.core._private.util.core_utils import get_address_string, address_to_ip
 from cloudtik.core._private.state.state_utils import NODE_STATE_NODE_ID, NODE_STATE_NODE_IP, NODE_STATE_TIME
 from cloudtik.core._private.utils import make_node_id, get_runtime_config
-from cloudtik.core.scaling_policy import ScalingPolicy, ScalingState
+from cloudtik.core.scaling_policy import ScalingPolicy, ScalingState, SCALING_INSTRUCTIONS_RESOURCE_DEMANDS, \
+    SCALING_INSTRUCTIONS_SCALING_TIME, SCALING_NODE_STATE_TOTAL_RESOURCES, \
+    SCALING_NODE_STATE_AVAILABLE_RESOURCES, SCALING_NODE_STATE_RESOURCE_LOAD
 
 logger = logging.getLogger(__name__)
 
@@ -61,7 +63,8 @@ def parse_resource_demands(resource_load_by_shape):
             ):
                 break
     except Exception:
-        logger.exception("Failed to parse resource demands.")
+        logger.exception(
+            "Failed to parse resource demands.")
 
     return waiting_bundles, infeasible_bundles
 
@@ -81,10 +84,11 @@ def get_resource_demands(waiting_bundles, infeasible_bundles, clip=True):
 
 
 class RayScalingPolicy(ScalingPolicy):
-    def __init__(self,
-                 config: Dict[str, Any],
-                 head_host: str,
-                 ray_port) -> None:
+    def __init__(
+            self,
+            config: Dict[str, Any],
+            head_host: str,
+            ray_port) -> None:
         ScalingPolicy.__init__(self, config, head_host)
 
         # scaling parameters
@@ -99,10 +103,6 @@ class RayScalingPolicy(ScalingPolicy):
 
     def name(self):
         return "scaling-with-ray"
-
-    def reset(self, config):
-        super().reset(config)
-        self._reset_ray_config()
 
     def _reset_ray_config(self):
         runtime_config = get_runtime_config(self.config)
@@ -136,11 +136,12 @@ class RayScalingPolicy(ScalingPolicy):
             waiting_bundles, infeasible_bundles)
 
         autoscaling_instructions = {
-            "scaling_time": self.last_state_time,
-            "resource_demands": resource_demands
+            SCALING_INSTRUCTIONS_SCALING_TIME: self.last_state_time,
+            SCALING_INSTRUCTIONS_RESOURCE_DEMANDS: resource_demands
         }
         if len(resource_demands) > 0:
-            logger.debug("Resource demands: {}".format(resource_demands))
+            logger.debug(
+                "Resource demands: {}".format(resource_demands))
         return autoscaling_instructions
 
     def _get_node_resource_states(self, all_resource_usage):
@@ -160,12 +161,13 @@ class RayScalingPolicy(ScalingPolicy):
                 NODE_STATE_NODE_ID: node_id,
                 NODE_STATE_NODE_IP: node_ip,
                 NODE_STATE_TIME: self.last_state_time,
-                "total_resources": total_resources,
-                "available_resources": available_resources,
-                "resource_load": resource_load
+                SCALING_NODE_STATE_TOTAL_RESOURCES: total_resources,
+                SCALING_NODE_STATE_AVAILABLE_RESOURCES: available_resources,
+                SCALING_NODE_STATE_RESOURCE_LOAD: resource_load
             }
             if logger.isEnabledFor(logging.DEBUG):
-                logger.debug("Node resources: {}".format(node_resource_state))
+                logger.debug(
+                    "Node resources: {}".format(node_resource_state))
             node_resource_states[node_id] = node_resource_state
 
         # if the lost nodes appears in RUNNING, exclude it

@@ -58,7 +58,7 @@ from cloudtik.core._private.service_discovery.naming import get_cluster_head_hos
 from cloudtik.core._private.service_discovery.utils import ServiceRegisterException
 from cloudtik.core._private.state import kv_store
 from cloudtik.core._private.state.control_state import ControlState
-from cloudtik.core._private.state.kv_store import kv_put, kv_initialize_with_address, kv_get, kv_save
+from cloudtik.core._private.state.kv_store import kv_put, kv_initialize_with_address, kv_get
 from cloudtik.core._private.state.state_utils import NODE_STATE_NODE_IP, NODE_STATE_NODE_ID, NODE_STATE_NODE_KIND, \
     NODE_STATE_HEARTBEAT_TIME, NODE_STATE_TIME
 from cloudtik.core._private.util.core_utils import stop_process_tree, double_quote, get_cloudtik_temp_dir, \
@@ -175,12 +175,13 @@ def request_resources(
     if num_gpus:
         to_request += get_resource_requests_for(
             config, constants.CLOUDTIK_RESOURCE_GPU, num_gpus)
-    elif resources:
-        if resources:
-            for resource_name, resource_amount in resources.items():
-                to_request += get_resource_requests_for(
-                    config, resource_name, resource_amount)
+    if resources:
+        for resource_name, resource_amount in resources.items():
+            to_request += get_resource_requests_for(
+                config, resource_name, resource_amount)
 
+    # Including of the existing resource requests of the resource type which
+    # is not included in this request is handled by cluster scaler.
     _request_resources(resources=to_request, bundles=bundles)
 
 
@@ -214,9 +215,6 @@ def _request_resources(
         CLOUDTIK_RESOURCE_REQUESTS,
         json.dumps(resource_requests),
         overwrite=True)
-    # We need the resource requests being able to persist for restarting
-    # Do a Save
-    kv_save()
 
 
 def create_or_update_cluster(
@@ -3994,7 +3992,7 @@ def _scale_cluster_on_head(
     if resources:
         all_resources.update(resources)
 
-    address = get_address_to_use_or_die()
+    address = get_address_to_use_or_die(head=True)
     kv_initialize_with_address(address, CLOUDTIK_REDIS_DEFAULT_PASSWORD)
 
     if up_only:
