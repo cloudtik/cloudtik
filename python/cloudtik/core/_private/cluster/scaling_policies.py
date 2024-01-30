@@ -13,7 +13,7 @@ from cloudtik.core._private.util.core_utils import get_list_for_update
 from cloudtik.core._private.utils import \
     convert_nodes_to_cpus, convert_nodes_to_memory, get_resource_requests_for_cpu, \
     _sum_min_workers, get_available_node_types, get_head_node_type, _get_scaling_config, _get_min_workers, \
-    get_resource_requests_for, convert_nodes_to_resource, get_resource_demands
+    get_resource_requests_for, convert_nodes_to_resource, get_resource_demands_for
 from cloudtik.core.scaling_policy import ScalingPolicy, ScalingState, SCALING_INSTRUCTIONS_SCALING_TIME, \
     SCALING_INSTRUCTIONS_RESOURCE_DEMANDS, SCALING_INSTRUCTIONS_RESOURCE_REQUESTS, \
     SCALING_NODE_STATE_TOTAL_RESOURCES, SCALING_NODE_STATE_AVAILABLE_RESOURCES, \
@@ -261,14 +261,16 @@ class ScalingWithLoad(ScalingWithResources):
         cluster_metrics = self._get_cluster_metrics(node_metrics_list)
         if cluster_metrics is not None:
             if logger.isEnabledFor(logging.DEBUG):
-                logger.debug("Cluster metrics: {}".format(cluster_metrics))
+                logger.debug(
+                    "Cluster metrics: {}".format(cluster_metrics))
 
             resource_requesting = self._need_more_resources(cluster_metrics)
-            for resource_id, resource_amount in resource_requesting.items():
-                resource_demands_for_resource = get_resource_demands(
-                    resource_amount, resource_id, self.config, 1)
-                resource_demands += resource_demands_for_resource
-                self._log_scaling(resource_id, resource_amount, cluster_metrics)
+            if resource_requesting:
+                for resource_id, resource_amount in resource_requesting.items():
+                    resource_demands_for_resource = get_resource_demands_for(
+                        resource_amount, resource_id, self.config)
+                    resource_demands += resource_demands_for_resource
+                    self._log_scaling(resource_id, resource_amount, cluster_metrics)
 
                 self.last_resource_demands_time = self.last_state_time
                 self.last_resource_state_snapshot = {
@@ -282,22 +284,23 @@ class ScalingWithLoad(ScalingWithResources):
         autoscaling_instructions[SCALING_INSTRUCTIONS_SCALING_TIME] = self.last_state_time
         autoscaling_instructions[SCALING_INSTRUCTIONS_RESOURCE_DEMANDS] = resource_demands
         if len(resource_demands) > 0 and logger.isEnabledFor(logging.DEBUG):
-            logger.debug("Resource demands: {}".format(resource_demands))
+            logger.debug(
+                "Resource demands: {}".format(resource_demands))
 
         return autoscaling_instructions
 
     def _log_scaling(
             self, resource_id, resource_amount, cluster_metrics):
         if self.scaling_resource == SCALING_WITH_LOAD_RESOURCE_CPU:
-            utilization_msg = "utilization reaches to {} on total {} cores.".format(
+            utilization_msg = "utilization reaches to {} on total {} cores".format(
                 cluster_metrics["cpu_load"],
                 cluster_metrics["total_cpus"])
         else:
-            utilization_msg = "utilization reaches to {} on total {} memory.".format(
+            utilization_msg = "utilization reaches to {} on total {} memory".format(
                 cluster_metrics["memory_load"],
                 cluster_metrics["total_memory"])
         logger.info(
-            "Scaling event: {} Requesting {} more {}...".format(
+            "Scaling event: {}. Requesting {} more {}...".format(
                 utilization_msg, resource_amount, resource_id))
 
     def _get_cluster_metrics(self, node_metrics_list):

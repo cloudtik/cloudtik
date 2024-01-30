@@ -9,8 +9,9 @@ from cloudtik.core._private import constants
 from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_YARN
 from cloudtik.core._private.util.core_utils import address_to_ip
 from cloudtik.core._private.state.state_utils import NODE_STATE_NODE_ID, NODE_STATE_NODE_IP, NODE_STATE_TIME
-from cloudtik.core._private.utils import make_node_id, get_resource_demands_for_cpu, \
-    convert_nodes_to_cpus, get_resource_demands_for_memory, convert_nodes_to_memory, get_runtime_config
+from cloudtik.core._private.utils import make_node_id, \
+    convert_nodes_to_cpus, convert_nodes_to_memory, get_runtime_config, \
+    get_resource_demands_for
 from cloudtik.core.scaling_policy import ScalingPolicy, ScalingState, SCALING_INSTRUCTIONS_SCALING_TIME, \
     SCALING_INSTRUCTIONS_RESOURCE_DEMANDS, SCALING_NODE_STATE_TOTAL_RESOURCES, \
     SCALING_NODE_STATE_AVAILABLE_RESOURCES, SCALING_NODE_STATE_RESOURCE_LOAD
@@ -102,9 +103,9 @@ class YARNScalingPolicy(ScalingPolicy):
         scaling_state.set_lost_nodes(lost_nodes)
         return scaling_state
 
-    def _need_more_cores(self, cluster_metrics):
+    def _need_more_nodes_for_cores(self, cluster_metrics):
         # TODO: Refine the algorithm here for better scaling decisions
-        num_cores = 0
+        num_nodes = 0
 
         if self.scaling_mode == YARN_SCALING_MODE_AGGRESSIVE:
             # aggressive mode
@@ -114,18 +115,22 @@ class YARNScalingPolicy(ScalingPolicy):
             total = float(cluster_metrics["totalVirtualCores"])
             free_ratio = available/total
             if free_ratio < self.aggressive_free_ratio_threshold:
-                num_cores = self.get_number_of_cores_to_scale(self.scaling_step)
+                num_nodes = self.scaling_step
         else:
             # apps-pending mode
             if (cluster_metrics["appsPending"] >= self.apps_pending_threshold
                     and cluster_metrics["availableVirtualCores"] < self.apps_pending_free_cores_threshold):
-                num_cores = self.get_number_of_cores_to_scale(self.scaling_step)
+                num_nodes = self.scaling_step
 
-        return num_cores
+        return num_nodes
 
-    def _need_more_memory(self, cluster_metrics):
+    def _need_more_cores(self, cluster_metrics):
+        num_nodes = self._need_more_nodes_for_cores(cluster_metrics)
+        return self.get_number_of_cores_to_scale(num_nodes)
+
+    def _need_more_nodes_for_memory(self, cluster_metrics):
         # TODO: Refine the algorithm here for better scaling decisions
-        memory_to_scale = 0
+        num_nodes = 0
 
         if self.scaling_mode == YARN_SCALING_MODE_AGGRESSIVE:
             # aggressive mode
@@ -135,31 +140,40 @@ class YARNScalingPolicy(ScalingPolicy):
             total = float(cluster_metrics["totalMB"])
             free_ratio = available/total
             if free_ratio < self.aggressive_free_ratio_threshold:
-                memory_to_scale = self.get_memory_to_scale(self.scaling_step)
+                num_nodes = self.scaling_step
         else:
             # apps-pending mode
             if (cluster_metrics["appsPending"] >= self.apps_pending_threshold
                     and cluster_metrics["availableMB"] < self.apps_pending_free_memory_threshold):
-                memory_to_scale = self.get_memory_to_scale(self.scaling_step)
+                num_nodes = self.scaling_step
 
-        return memory_to_scale
+        return num_nodes
+
+    def _need_more_memory(self, cluster_metrics):
+        num_nodes = self._need_more_nodes_for_memory(cluster_metrics)
+        return self.get_memory_to_scale(num_nodes)
 
     def _need_more_resources(self, cluster_metrics):
         requesting_resources = {}
-        if self.scaling_resource == YARN_SCALING_RESOURCE_MEMORY:
-            requesting_memory = self._need_more_memory(cluster_metrics)
-            requesting_resources[constants.CLOUDTIK_RESOURCE_MEMORY] = requesting_memory
+        if self.scaling_resource == YARN_SCALING_RESOURCE_CPU:
+            resource_id = constants.CLOUDTIK_RESOURCE_CPU
+            resource_amount = self._need_more_cores(cluster_metrics)
         else:
-            requesting_cores = self._need_more_cores(cluster_metrics)
-            requesting_resources[constants.CLOUDTIK_RESOURCE_CPU] = requesting_cores
-
+            resource_id = constants.CLOUDTIK_RESOURCE_MEMORY
+            resource_amount = self._need_more_memory(cluster_metrics)
+        if resource_amount > 0:
+            requesting_resources[resource_id] = resource_amount
         return requesting_resources
 
-    def get_number_of_cores_to_scale(self, scaling_step):
-        return convert_nodes_to_cpus(self.config, scaling_step)
+    def get_number_of_cores_to_scale(self, nodes):
+        if not nodes:
+            return 0
+        return convert_nodes_to_cpus(self.config, nodes)
 
-    def get_memory_to_scale(self, scaling_step):
-        return convert_nodes_to_memory(self.config, scaling_step)
+    def get_memory_to_scale(self, nodes):
+        if not nodes:
+            return 0
+        return convert_nodes_to_memory(self.config, nodes)
 
     def _get_autoscaling_instructions(self):
         # Use the following information to make the decisions
@@ -216,46 +230,27 @@ class YARNScalingPolicy(ScalingPolicy):
                     "activeNodes": cluster_metrics["activeNodes"],
                     "unhealthyNodes": cluster_metrics["unhealthyNodes"],
                 }
-                logger.debug("Cluster metrics: {}".format(cluster_info))
+                logger.debug(
+                    "Cluster metrics: {}".format(cluster_info))
 
             resource_requesting = self._need_more_resources(cluster_metrics)
-            if resource_requesting is not None:
-                # There are applications cannot have the resource to run
-                # We request more resources with a configured step of up scaling speed
-                requesting_cores = resource_requesting.get(constants.CLOUDTIK_RESOURCE_CPU, 0)
-                requesting_memory = resource_requesting.get(constants.CLOUDTIK_RESOURCE_MEMORY, 0)
-                if requesting_cores > 0 or requesting_memory > 0:
-                    if requesting_cores > 0:
-                        resource_demands_for_cpu = get_resource_demands_for_cpu(
-                            requesting_cores, self.config)
-                        resource_demands += resource_demands_for_cpu
+            if resource_requesting:
+                for resource_id, resource_amount in resource_requesting.items():
+                    resource_demands_for_resource = get_resource_demands_for(
+                        resource_amount, resource_id, self.config)
+                    resource_demands += resource_demands_for_resource
+                    self._log_scaling(resource_id, resource_amount, cluster_metrics)
 
-                        logger.info(
-                            "Scaling event: {}/{} cpus are free. Requesting {} more cpus...".format(
-                                cluster_metrics["availableVirtualCores"],
-                                cluster_metrics["totalVirtualCores"],
-                                requesting_cores))
-                    elif requesting_memory > 0:
-                        resource_demands_for_memory = get_resource_demands_for_memory(
-                            requesting_memory, self.config)
-                        resource_demands += resource_demands_for_memory
-
-                        logger.info(
-                            "Scaling event: {}/{} memory are free. Requesting {} more memory...".format(
-                                cluster_metrics["availableMB"],
-                                cluster_metrics["totalMB"],
-                                requesting_memory))
-
-                    self.last_resource_demands_time = self.last_state_time
-                    self.last_resource_state_snapshot = {
-                        "totalVirtualCores": cluster_metrics["totalVirtualCores"],
-                        "allocatedVirtualCores": cluster_metrics["allocatedVirtualCores"],
-                        "availableVirtualCores": cluster_metrics["availableVirtualCores"],
-                        "totalMemoryMB": cluster_metrics["totalMB"],
-                        "allocatedMemoryMB": cluster_metrics["allocatedMB"],
-                        "availableMemoryMB": cluster_metrics["availableMB"],
-                        "resource_requesting": resource_requesting,
-                    }
+                self.last_resource_demands_time = self.last_state_time
+                self.last_resource_state_snapshot = {
+                    "totalVirtualCores": cluster_metrics["totalVirtualCores"],
+                    "allocatedVirtualCores": cluster_metrics["allocatedVirtualCores"],
+                    "availableVirtualCores": cluster_metrics["availableVirtualCores"],
+                    "totalMemoryMB": cluster_metrics["totalMB"],
+                    "allocatedMemoryMB": cluster_metrics["allocatedMB"],
+                    "availableMemoryMB": cluster_metrics["availableMB"],
+                    "resource_requesting": resource_requesting,
+                }
 
         autoscaling_instructions[SCALING_INSTRUCTIONS_SCALING_TIME] = self.last_state_time
         autoscaling_instructions[SCALING_INSTRUCTIONS_RESOURCE_DEMANDS] = resource_demands
@@ -264,6 +259,20 @@ class YARNScalingPolicy(ScalingPolicy):
                 "Resource demands: {}".format(resource_demands))
 
         return autoscaling_instructions
+
+    def _log_scaling(
+            self, resource_id, resource_amount, cluster_metrics):
+        if self.scaling_resource == YARN_SCALING_RESOURCE_CPU:
+            utilization_msg = "{}/{} cpus are free".format(
+                cluster_metrics["availableVirtualCores"],
+                cluster_metrics["totalVirtualCores"],)
+        else:
+            utilization_msg = "{}/{} memory are free".format(
+                cluster_metrics["availableMB"],
+                cluster_metrics["totalMB"])
+        logger.info(
+            "Scaling event: {}. Requesting {} more {}...".format(
+                utilization_msg, resource_amount, resource_id))
 
     def _get_node_resource_states(self):
         # Use the following information to make the decisions
