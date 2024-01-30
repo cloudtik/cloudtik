@@ -7,7 +7,8 @@ from cloudtik.core._private.util.core_utils import get_address_string, address_t
 from cloudtik.core._private.state.state_utils import NODE_STATE_NODE_ID, NODE_STATE_NODE_IP, NODE_STATE_TIME
 from cloudtik.core._private.utils import make_node_id, get_runtime_config
 from cloudtik.core.scaling_policy import ScalingPolicy, ScalingState, SCALING_INSTRUCTIONS_RESOURCE_DEMANDS, \
-    SCALING_INSTRUCTIONS_SCALING_TIME
+    SCALING_INSTRUCTIONS_SCALING_TIME, SCALING_NODE_STATE_TOTAL_RESOURCES, \
+    SCALING_NODE_STATE_AVAILABLE_RESOURCES, SCALING_NODE_STATE_RESOURCE_LOAD
 
 logger = logging.getLogger(__name__)
 
@@ -160,9 +161,9 @@ class RayScalingPolicy(ScalingPolicy):
                 NODE_STATE_NODE_ID: node_id,
                 NODE_STATE_NODE_IP: node_ip,
                 NODE_STATE_TIME: self.last_state_time,
-                "total_resources": total_resources,
-                "available_resources": available_resources,
-                "resource_load": resource_load
+                SCALING_NODE_STATE_TOTAL_RESOURCES: total_resources,
+                SCALING_NODE_STATE_AVAILABLE_RESOURCES: available_resources,
+                SCALING_NODE_STATE_RESOURCE_LOAD: resource_load
             }
             if logger.isEnabledFor(logging.DEBUG):
                 logger.debug(

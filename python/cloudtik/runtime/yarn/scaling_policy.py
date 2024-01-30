@@ -12,7 +12,8 @@ from cloudtik.core._private.state.state_utils import NODE_STATE_NODE_ID, NODE_ST
 from cloudtik.core._private.utils import make_node_id, get_resource_demands_for_cpu, \
     convert_nodes_to_cpus, get_resource_demands_for_memory, convert_nodes_to_memory, get_runtime_config
 from cloudtik.core.scaling_policy import ScalingPolicy, ScalingState, SCALING_INSTRUCTIONS_SCALING_TIME, \
-    SCALING_INSTRUCTIONS_RESOURCE_DEMANDS
+    SCALING_INSTRUCTIONS_RESOURCE_DEMANDS, SCALING_NODE_STATE_TOTAL_RESOURCES, \
+    SCALING_NODE_STATE_AVAILABLE_RESOURCES, SCALING_NODE_STATE_RESOURCE_LOAD
 
 YARN_REST_ENDPOINT_CLUSTER_NODES = "http://{}:{}/ws/v1/cluster/nodes"
 YARN_REST_ENDPOINT_CLUSTER_METRICS = "http://{}:{}/ws/v1/cluster/metrics"
@@ -335,9 +336,9 @@ class YARNScalingPolicy(ScalingPolicy):
                     NODE_STATE_NODE_ID: node_id,
                     NODE_STATE_NODE_IP: node_ip,
                     NODE_STATE_TIME: self.last_state_time,
-                    "total_resources": total_resources,
-                    "available_resources": free_resources,
-                    "resource_load": resource_load
+                    SCALING_NODE_STATE_TOTAL_RESOURCES: total_resources,
+                    SCALING_NODE_STATE_AVAILABLE_RESOURCES: free_resources,
+                    SCALING_NODE_STATE_RESOURCE_LOAD: resource_load
                 }
                 if logger.isEnabledFor(logging.DEBUG):
                     logger.debug(

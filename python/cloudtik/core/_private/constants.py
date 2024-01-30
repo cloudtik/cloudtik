@@ -160,7 +160,10 @@ CLOUDTIK_MAX_RESOURCE_DEMAND_VECTOR_SIZE = 1000
 CLOUDTIK_METRIC_PORT = env_integer("CLOUDTIK_METRIC_PORT", 44217)
 CLOUDTIK_METRIC_ADDRESS_KEY = "ControllerMetricsAddress"
 
+# The request for a specific list of resource bundles
 CLOUDTIK_RESOURCE_REQUESTS = b"cloudtik_resource_requests"
+# The accumulated view of the resource requests
+CLOUDTIK_CLUSTER_REQUESTS = b"cloudtik_cluster_requests"
 
 # Number of attempts to ping the Redis server. See
 # `services.py:wait_for_redis_to_start`.

@@ -2973,7 +2973,6 @@ def get_resource_requests_for(
     # For resource requests, it is the statically total resources of the cluster
     # While amount here is the number of worker amount resource, we need to accounted into
     # the head node as the first resource request if the head has such resource
-    # TODO: dealing with the node type based resource request
     resource_requests = _get_head_resource_requests(
         config, resource_id)
     resource_demands_for_workers = get_resource_demands(
