@@ -15,11 +15,11 @@ MYSQL_HOME=$RUNTIME_PATH/mysql
 . "$ROOT_DIR"/common/scripts/util-functions.sh
 
 prepare_base_conf() {
+    OUTPUT_DIR=/tmp/mysql/conf
     local source_dir=$(dirname "${BIN_DIR}")/conf
-    output_dir=/tmp/mysql/conf
-    rm -rf  $output_dir
-    mkdir -p $output_dir
-    cp -r $source_dir/* $output_dir
+    rm -rf  ${OUTPUT_DIR}
+    mkdir -p ${OUTPUT_DIR}
+    cp -r $source_dir/* ${OUTPUT_DIR}
 }
 
 check_mysql_installed() {
@@ -39,10 +39,10 @@ update_data_dir() {
     fi
 
     mkdir -p ${data_dir}
-    update_in_file "${config_template_file}" "{%data.dir%}" "${data_dir}"
+    update_in_file "${CONFIG_TEMPLATE_FILE}" "{%data.dir%}" "${data_dir}"
 
     if [ "${MYSQL_CLUSTER_MODE}" == "group_replication" ]; then
-        update_in_file "${output_dir}/my-init.cnf" "{%data.dir%}" "${data_dir}"
+        update_in_file "${OUTPUT_DIR}/my-init.cnf" "{%data.dir%}" "${data_dir}"
     fi
 }
 
@@ -52,7 +52,7 @@ update_server_id() {
         exit 1
     fi
 
-    update_in_file "${config_template_file}" "{%server.id%}" "${CLOUDTIK_NODE_SEQ_ID}"
+    update_in_file "${CONFIG_TEMPLATE_FILE}" "{%server.id%}" "${CLOUDTIK_NODE_SEQ_ID}"
 }
 
 configure_variable() {
@@ -89,11 +89,11 @@ configure_mysql() {
     prepare_base_conf
 
     if [ "${MYSQL_CLUSTER_MODE}" == "replication" ]; then
-        config_template_file=${output_dir}/my-replication.cnf
+        CONFIG_TEMPLATE_FILE=${OUTPUT_DIR}/my-replication.cnf
     elif [ "${MYSQL_CLUSTER_MODE}" == "group_replication" ]; then
-        config_template_file=${output_dir}/my-group-replication.cnf
+        CONFIG_TEMPLATE_FILE=${OUTPUT_DIR}/my-group-replication.cnf
     else
-        config_template_file=${output_dir}/my.cnf
+        CONFIG_TEMPLATE_FILE=${OUTPUT_DIR}/my.cnf
     fi
 
     mkdir -p ${MYSQL_HOME}/logs
@@ -104,49 +104,49 @@ configure_mysql() {
     && sudo chown -R $(whoami):$(id -gn) /var/run/mysqld \
     && sudo chmod 1777 /var/run/mysqld
 
-    update_in_file "${config_template_file}" "{%bind.address%}" "${NODE_IP_ADDRESS}"
-    update_in_file "${config_template_file}" "{%bind.port%}" "${MYSQL_SERVICE_PORT}"
+    update_in_file "${CONFIG_TEMPLATE_FILE}" "{%bind.address%}" "${NODE_IP_ADDRESS}"
+    update_in_file "${CONFIG_TEMPLATE_FILE}" "{%bind.port%}" "${MYSQL_SERVICE_PORT}"
     update_data_dir
 
     if [ "${MYSQL_CLUSTER_MODE}" == "replication" ]; then
         update_server_id
     elif [ "${MYSQL_CLUSTER_MODE}" == "group_replication" ]; then
         update_server_id
-        update_in_file "${config_template_file}" \
+        update_in_file "${CONFIG_TEMPLATE_FILE}" \
           "{%group.replication.group.name%}" "${MYSQL_GROUP_REPLICATION_NAME}"
-        update_in_file "${config_template_file}" \
+        update_in_file "${CONFIG_TEMPLATE_FILE}" \
           "{%group.replication.local.host%}" "${NODE_HOST_ADDRESS}"
-        update_in_file "${config_template_file}" \
+        update_in_file "${CONFIG_TEMPLATE_FILE}" \
           "{%group.replication.port%}" "${MYSQL_GROUP_REPLICATION_PORT}"
 
         # set head address as seed address is good for first start
         # But if head is dead while other workers are running, we need head start using workers as seeds
         # This is done at service start for head.
         # While for workers, we can always trust there is a healthy head to contact with.
-        update_in_file "${config_template_file}" \
+        update_in_file "${CONFIG_TEMPLATE_FILE}" \
           "{%group.replication.group.seeds%}" "${HEAD_HOST_ADDRESS}:${MYSQL_GROUP_REPLICATION_PORT}"
 
         if [ "${MYSQL_GROUP_REPLICATION_MULTI_PRIMARY}" == "true" ]; then
             # turn on a few flags for multi-primary mode
             local config_name="group_replication_single_primary_mode"
-            update_in_file "${config_template_file}" "^${config_name}=ON" "${config_name}=OFF"
+            update_in_file "${CONFIG_TEMPLATE_FILE}" "^${config_name}=ON" "${config_name}=OFF"
 
             config_name="group_replication_enforce_update_everywhere_checks"
-            update_in_file "${config_template_file}" "^${config_name}=OFF" "${config_name}=ON"
+            update_in_file "${CONFIG_TEMPLATE_FILE}" "^${config_name}=OFF" "${config_name}=ON"
         fi
     fi
 
     MYSQL_CONFIG_DIR=${MYSQL_HOME}/conf
     mkdir -p ${MYSQL_CONFIG_DIR}
     MYSQL_CONFIG_FILE=${MYSQL_CONFIG_DIR}/my.cnf
-    cp -r ${config_template_file} ${MYSQL_CONFIG_FILE}
+    cp -r ${CONFIG_TEMPLATE_FILE} ${MYSQL_CONFIG_FILE}
 
     if [ "${MYSQL_CLUSTER_MODE}" == "group_replication" ]; then
         # This is needed because mysqld --initialize(-insecure) cannot recognize
         # many group replications options in the conf file (plugin is not loaded
         # for initialize process) and also we need to skip all bin log during this
         # process.
-        cp ${output_dir}/my-init.cnf ${MYSQL_CONFIG_DIR}/my-init.cnf
+        cp ${OUTPUT_DIR}/my-init.cnf ${MYSQL_CONFIG_DIR}/my-init.cnf
     fi
 
     # Set variables for export to mysql-init.sh

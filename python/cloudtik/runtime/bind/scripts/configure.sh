@@ -15,11 +15,11 @@ BIND_HOME=$RUNTIME_PATH/bind
 . "$ROOT_DIR"/common/scripts/util-functions.sh
 
 prepare_base_conf() {
+    OUTPUT_DIR=/tmp/bind/conf
     local source_dir=$(dirname "${BIN_DIR}")/conf
-    output_dir=/tmp/bind/conf
-    rm -rf  $output_dir
-    mkdir -p $output_dir
-    cp -r $source_dir/* $output_dir
+    rm -rf  ${OUTPUT_DIR}
+    mkdir -p ${OUTPUT_DIR}
+    cp -r $source_dir/* ${OUTPUT_DIR}
 }
 
 check_bind_installed() {
@@ -41,32 +41,32 @@ configure_bind() {
     ETC_DEFAULT=/etc/default
     sudo mkdir -p ${ETC_DEFAULT}
 
-    sed -i "s#{%bind.home%}#${BIND_HOME}#g" ${output_dir}/named
-    sudo cp ${output_dir}/named ${ETC_DEFAULT}/named
+    sed -i "s#{%bind.home%}#${BIND_HOME}#g" ${OUTPUT_DIR}/named
+    sudo cp ${OUTPUT_DIR}/named ${ETC_DEFAULT}/named
 
     BIND_CONF_DIR=${BIND_HOME}/conf
     mkdir -p ${BIND_CONF_DIR}
 
-    config_template_file=${output_dir}/named.conf
+    CONFIG_TEMPLATE_FILE=${OUTPUT_DIR}/named.conf
 
     sed -i "s#{%bind.home%}#${BIND_HOME}#g" \
-      ${config_template_file} ${output_dir}/named.conf.logging
+      ${CONFIG_TEMPLATE_FILE} ${OUTPUT_DIR}/named.conf.logging
 
-    sed -i "s#{%listen.address%}#${NODE_IP_ADDRESS}#g" ${output_dir}/named.conf.options
-    sed -i "s#{%listen.port%}#${BIND_SERVICE_PORT}#g" ${output_dir}/named.conf.options
+    sed -i "s#{%listen.address%}#${NODE_IP_ADDRESS}#g" ${OUTPUT_DIR}/named.conf.options
+    sed -i "s#{%listen.port%}#${BIND_SERVICE_PORT}#g" ${OUTPUT_DIR}/named.conf.options
 
     if [ -z "${BIND_DNSSEC_VALIDATION}" ]; then
         DNSSEC_VALIDATION="yes"
     else
         DNSSEC_VALIDATION="${BIND_DNSSEC_VALIDATION}"
     fi
-    sed -i "s#{%dnssec.validation%}#${DNSSEC_VALIDATION}#g" ${output_dir}/named.conf.options
+    sed -i "s#{%dnssec.validation%}#${DNSSEC_VALIDATION}#g" ${OUTPUT_DIR}/named.conf.options
 
     # generate additional name server records for specific (service discovery) domain
     if [ "${BIND_CONSUL_RESOLVE}" == "true" ]; then
         # TODO: handle consul port other than default
-        cp ${output_dir}/named.conf.consul ${BIND_CONF_DIR}/named.conf.consul
-        echo "include \"${BIND_HOME}/conf/named.conf.consul\";" >> ${config_template_file}
+        cp ${OUTPUT_DIR}/named.conf.consul ${BIND_CONF_DIR}/named.conf.consul
+        echo "include \"${BIND_HOME}/conf/named.conf.consul\";" >> ${CONFIG_TEMPLATE_FILE}
     fi
 
     SYSTEM_RESOLV_CONF="/etc/resolv.conf"
@@ -78,11 +78,11 @@ configure_bind() {
     fi
 
     # python configure script will write named.conf.upstream
-    echo "include \"${BIND_HOME}/conf/named.conf.upstream\";" >> ${config_template_file}
+    echo "include \"${BIND_HOME}/conf/named.conf.upstream\";" >> ${CONFIG_TEMPLATE_FILE}
 
-    cp ${output_dir}/named.conf.options ${BIND_CONF_DIR}/named.conf.options
-    cp ${output_dir}/named.conf.logging ${BIND_CONF_DIR}/named.conf.logging
-    cp ${config_template_file} ${BIND_CONF_DIR}/named.conf
+    cp ${OUTPUT_DIR}/named.conf.options ${BIND_CONF_DIR}/named.conf.options
+    cp ${OUTPUT_DIR}/named.conf.logging ${BIND_CONF_DIR}/named.conf.logging
+    cp ${CONFIG_TEMPLATE_FILE} ${BIND_CONF_DIR}/named.conf
 }
 
 set_head_option "$@"

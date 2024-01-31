@@ -14,11 +14,11 @@ RUNTIME_PATH=$USER_HOME/runtime
 . "$ROOT_DIR"/common/scripts/util-functions.sh
 
 prepare_base_conf() {
-    source_dir=$(dirname "${BIN_DIR}")/conf
-    output_dir=/tmp/yarn/conf
-    rm -rf  $output_dir
-    mkdir -p $output_dir
-    cp -r $source_dir/* $output_dir
+    OUTPUT_DIR=/tmp/yarn/conf
+    local source_dir=$(dirname "${BIN_DIR}")/conf
+    rm -rf  ${OUTPUT_DIR}
+    mkdir -p ${OUTPUT_DIR}
+    cp -r $source_dir/* ${OUTPUT_DIR}
 }
 
 check_hadoop_installed() {
@@ -77,7 +77,7 @@ update_data_disks_config() {
 configure_yarn() {
     prepare_base_conf
     mkdir -p ${HADOOP_HOME}/logs
-    yarn_config_file=${output_dir}/hadoop/yarn-site.xml
+    yarn_config_file=${OUTPUT_DIR}/hadoop/yarn-site.xml
 
     sed -i "s/{%resourcemanager.host%}/${HEAD_HOST_ADDRESS}/g" $yarn_config_file
 

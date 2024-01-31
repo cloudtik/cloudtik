@@ -14,11 +14,11 @@ RUNTIME_PATH=$USER_HOME/runtime
 . "$ROOT_DIR"/common/scripts/util-functions.sh
 
 prepare_base_conf() {
-    source_dir=$(dirname "${BIN_DIR}")/conf
-    output_dir=/tmp/ray/conf
-    rm -rf  $output_dir
-    mkdir -p $output_dir
-    cp -r $source_dir/* $output_dir
+    OUTPUT_DIR=/tmp/ray/conf
+    local source_dir=$(dirname "${BIN_DIR}")/conf
+    rm -rf  ${OUTPUT_DIR}
+    mkdir -p ${OUTPUT_DIR}
+    cp -r $source_dir/* ${OUTPUT_DIR}
 }
 
 check_ray_installed() {

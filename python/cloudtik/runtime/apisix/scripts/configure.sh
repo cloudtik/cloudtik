@@ -15,11 +15,11 @@ APISIX_HOME=$RUNTIME_PATH/apisix
 . "$ROOT_DIR"/common/scripts/util-functions.sh
 
 prepare_base_conf() {
+    OUTPUT_DIR=/tmp/apisix/conf
     local source_dir=$(dirname "${BIN_DIR}")/conf
-    output_dir=/tmp/apisix/conf
-    rm -rf  $output_dir
-    mkdir -p $output_dir
-    cp -r $source_dir/* $output_dir
+    rm -rf  ${OUTPUT_DIR}
+    mkdir -p ${OUTPUT_DIR}
+    cp -r $source_dir/* ${OUTPUT_DIR}
 }
 
 check_apisix_installed() {
@@ -37,15 +37,15 @@ configure_apisix() {
     APISIX_CONF_DIR=${APISIX_HOME}/conf
     mkdir -p ${APISIX_CONF_DIR}
 
-    config_template_file=${output_dir}/config.yaml
+    CONFIG_TEMPLATE_FILE=${OUTPUT_DIR}/config.yaml
 
-    update_in_file "${config_template_file}" "{%listen.ip%}" "${NODE_IP_ADDRESS}"
-    update_in_file "${config_template_file}" "{%listen.port%}" "${APISIX_SERVICE_PORT}"
-    update_in_file "${config_template_file}" "{%admin.key%}" "${APISIX_ADMIN_KEY}"
-    update_in_file "${config_template_file}" "{%admin.port%}" "${APISIX_ADMIN_PORT}"
-    update_in_file "${config_template_file}" "{%cluster.name%}" "${CLOUDTIK_CLUSTER}"
+    update_in_file "${CONFIG_TEMPLATE_FILE}" "{%listen.ip%}" "${NODE_IP_ADDRESS}"
+    update_in_file "${CONFIG_TEMPLATE_FILE}" "{%listen.port%}" "${APISIX_SERVICE_PORT}"
+    update_in_file "${CONFIG_TEMPLATE_FILE}" "{%admin.key%}" "${APISIX_ADMIN_KEY}"
+    update_in_file "${CONFIG_TEMPLATE_FILE}" "{%admin.port%}" "${APISIX_ADMIN_PORT}"
+    update_in_file "${CONFIG_TEMPLATE_FILE}" "{%cluster.name%}" "${CLOUDTIK_CLUSTER}"
 
-    cp ${config_template_file} ${APISIX_CONF_DIR}/config.yaml
+    cp ${CONFIG_TEMPLATE_FILE} ${APISIX_CONF_DIR}/config.yaml
 }
 
 set_head_option "$@"

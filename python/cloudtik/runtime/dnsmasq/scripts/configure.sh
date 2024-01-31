@@ -15,11 +15,11 @@ DNSMASQ_HOME=$RUNTIME_PATH/dnsmasq
 . "$ROOT_DIR"/common/scripts/util-functions.sh
 
 prepare_base_conf() {
+    OUTPUT_DIR=/tmp/dnsmasq/conf
     local source_dir=$(dirname "${BIN_DIR}")/conf
-    output_dir=/tmp/dnsmasq/conf
-    rm -rf  $output_dir
-    mkdir -p $output_dir
-    cp -r $source_dir/* $output_dir
+    rm -rf  ${OUTPUT_DIR}
+    mkdir -p ${OUTPUT_DIR}
+    cp -r $source_dir/* ${OUTPUT_DIR}
 }
 
 check_dnsmasq_installed() {
@@ -36,16 +36,16 @@ configure_dnsmasq() {
     ETC_DEFAULT=/etc/default
     sudo mkdir -p ${ETC_DEFAULT}
 
-    sed -i "s#{%dnsmasq.home%}#${DNSMASQ_HOME}#g" ${output_dir}/dnsmasq
-    sudo cp ${output_dir}/dnsmasq ${ETC_DEFAULT}/dnsmasq
+    sed -i "s#{%dnsmasq.home%}#${DNSMASQ_HOME}#g" ${OUTPUT_DIR}/dnsmasq
+    sudo cp ${OUTPUT_DIR}/dnsmasq ${ETC_DEFAULT}/dnsmasq
 
     DNSMASQ_CONF_DIR=${DNSMASQ_HOME}/conf
     DNSMASQ_CONF_INCLUDE_DIR=${DNSMASQ_CONF_DIR}/conf.d
     mkdir -p ${DNSMASQ_CONF_INCLUDE_DIR}
 
-    config_template_file=${output_dir}/dnsmasq.conf
-    sed -i "s#{%listen.address%}#${NODE_IP_ADDRESS}#g" ${config_template_file}
-    sed -i "s#{%listen.port%}#${DNSMASQ_SERVICE_PORT}#g" ${config_template_file}
+    CONFIG_TEMPLATE_FILE=${OUTPUT_DIR}/dnsmasq.conf
+    sed -i "s#{%listen.address%}#${NODE_IP_ADDRESS}#g" ${CONFIG_TEMPLATE_FILE}
+    sed -i "s#{%listen.port%}#${DNSMASQ_SERVICE_PORT}#g" ${CONFIG_TEMPLATE_FILE}
 
     # dnsmasq will use /etc/resolv.conf for upstream.
     # TODO: if we want to use this DNS server as the system default, we need:
@@ -68,14 +68,14 @@ configure_dnsmasq() {
     fi
 
     sed -i "s#{%upstream.resolv.conf%}#${UPSTREAM_RESOLV_CONF}#g" \
-      ${config_template_file}
+      ${CONFIG_TEMPLATE_FILE}
 
-    cp ${config_template_file} ${DNSMASQ_CONF_INCLUDE_DIR}/dnsmasq.conf
+    cp ${CONFIG_TEMPLATE_FILE} ${DNSMASQ_CONF_INCLUDE_DIR}/dnsmasq.conf
 
     # generate additional name server records for specific (service discovery) domain
     if [ "${DNSMASQ_CONSUL_RESOLVE}" == "true" ]; then
         # TODO: handle consul port other than default
-        cp ${output_dir}/consul ${DNSMASQ_CONF_INCLUDE_DIR}/consul
+        cp ${OUTPUT_DIR}/consul ${DNSMASQ_CONF_INCLUDE_DIR}/consul
     fi
 }
 

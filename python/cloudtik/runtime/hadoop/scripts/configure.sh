@@ -16,19 +16,19 @@ USER_HOME=/home/$(whoami)
 . "$BIN_DIR"/hadoop-cloud-credential.sh
 
 prepare_base_conf() {
-    source_dir=$(dirname "${BIN_DIR}")/conf
-    output_dir=/tmp/hadoop/conf
-    rm -rf  $output_dir
-    mkdir -p $output_dir
-    cp -r $source_dir/* $output_dir
+    OUTPUT_DIR=/tmp/hadoop/conf
+    local source_dir=$(dirname "${BIN_DIR}")/conf
+    rm -rf  ${OUTPUT_DIR}
+    mkdir -p ${OUTPUT_DIR}
+    cp -r $source_dir/* ${OUTPUT_DIR}
 
     # Make copy for local and remote HDFS
-    cp $output_dir/hadoop/core-site.xml $output_dir/hadoop/core-site-local.xml
-    cp $output_dir/hadoop/core-site.xml $output_dir/hadoop/core-site-remote.xml
+    cp ${OUTPUT_DIR}/hadoop/core-site.xml ${OUTPUT_DIR}/hadoop/core-site-local.xml
+    cp ${OUTPUT_DIR}/hadoop/core-site.xml ${OUTPUT_DIR}/hadoop/core-site-remote.xml
 
     # Make copy for local and remote MinIO
-    cp $output_dir/hadoop/core-site-minio.xml $output_dir/hadoop/core-site-minio-local.xml
-    cp $output_dir/hadoop/core-site-minio.xml $output_dir/hadoop/core-site-minio-remote.xml
+    cp ${OUTPUT_DIR}/hadoop/core-site-minio.xml ${OUTPUT_DIR}/hadoop/core-site-minio-local.xml
+    cp ${OUTPUT_DIR}/hadoop/core-site-minio.xml ${OUTPUT_DIR}/hadoop/core-site-minio-remote.xml
 }
 
 check_hadoop_installed() {
@@ -70,9 +70,9 @@ set_cluster_storage() {
 
 update_config_for_local_hdfs() {
     if [ "${cloud_storage_provider}" != "none" ];then
-        HADOOP_CORE_SITE=$output_dir/hadoop/${cloud_storage_provider}/core-site.xml
+        HADOOP_CORE_SITE=${OUTPUT_DIR}/hadoop/${cloud_storage_provider}/core-site.xml
     else
-        HADOOP_CORE_SITE=$output_dir/hadoop/core-site.xml
+        HADOOP_CORE_SITE=${OUTPUT_DIR}/hadoop/core-site.xml
     fi
     HADOOP_FS_DEFAULT="hdfs://${HEAD_HOST_ADDRESS}:${HDFS_SERVICE_PORT}"
     sed -i "s!{%fs.default.name%}!${HADOOP_FS_DEFAULT}!g" $HADOOP_CORE_SITE
@@ -85,9 +85,9 @@ update_config_for_local_hdfs() {
 
 update_config_for_hdfs() {
     if [ "${cloud_storage_provider}" != "none" ]; then
-        HADOOP_CORE_SITE=$output_dir/hadoop/${cloud_storage_provider}/core-site.xml
+        HADOOP_CORE_SITE=${OUTPUT_DIR}/hadoop/${cloud_storage_provider}/core-site.xml
     else
-        HADOOP_CORE_SITE=$output_dir/hadoop/core-site.xml
+        HADOOP_CORE_SITE=${OUTPUT_DIR}/hadoop/core-site.xml
     fi
     # configure namenode uri for core-site.xml
     HADOOP_FS_DEFAULT="${HDFS_NAMENODE_URI}"
@@ -100,7 +100,7 @@ update_config_for_hdfs() {
 }
 
 update_config_for_minio() {
-    HADOOP_CORE_SITE=$output_dir/hadoop/core-site-minio.xml
+    HADOOP_CORE_SITE=${OUTPUT_DIR}/hadoop/core-site-minio.xml
     HADOOP_FS_DEFAULT="s3a://${MINIO_BUCKET}"
     sed -i "s!{%fs.default.name%}!${HADOOP_FS_DEFAULT}!g" $HADOOP_CORE_SITE
 
@@ -111,7 +111,7 @@ update_config_for_minio() {
 }
 
 update_config_for_aws() {
-    HADOOP_CORE_SITE=$output_dir/hadoop/${cloud_storage_provider}/core-site.xml
+    HADOOP_CORE_SITE=${OUTPUT_DIR}/hadoop/${cloud_storage_provider}/core-site.xml
     HADOOP_FS_DEFAULT="s3a://${AWS_S3_BUCKET}"
     sed -i "s!{%fs.default.name%}!${HADOOP_FS_DEFAULT}!g" $HADOOP_CORE_SITE
 
@@ -119,7 +119,7 @@ update_config_for_aws() {
 }
 
 update_config_for_gcp() {
-    HADOOP_CORE_SITE=$output_dir/hadoop/${cloud_storage_provider}/core-site.xml
+    HADOOP_CORE_SITE=${OUTPUT_DIR}/hadoop/${cloud_storage_provider}/core-site.xml
     HADOOP_FS_DEFAULT="gs://${GCP_GCS_BUCKET}"
     sed -i "s!{%fs.default.name%}!${HADOOP_FS_DEFAULT}!g" $HADOOP_CORE_SITE
 
@@ -127,7 +127,7 @@ update_config_for_gcp() {
 }
 
 update_config_for_azure() {
-    HADOOP_CORE_SITE=$output_dir/hadoop/${cloud_storage_provider}/core-site.xml
+    HADOOP_CORE_SITE=${OUTPUT_DIR}/hadoop/${cloud_storage_provider}/core-site.xml
     if [ "$AZURE_STORAGE_TYPE" == "blob" ];then
         AZURE_SCHEMA="wasbs"
         AZURE_ENDPOINT="blob"
@@ -145,7 +145,7 @@ update_config_for_azure() {
 }
 
 update_config_for_aliyun() {
-    HADOOP_CORE_SITE=$output_dir/hadoop/${cloud_storage_provider}/core-site.xml
+    HADOOP_CORE_SITE=${OUTPUT_DIR}/hadoop/${cloud_storage_provider}/core-site.xml
     HADOOP_FS_DEFAULT="oss://${ALIYUN_OSS_BUCKET}"
     sed -i "s!{%fs.default.name%}!${HADOOP_FS_DEFAULT}!g" $HADOOP_CORE_SITE
     sed -i "s!{%fs.oss.endpoint%}!${ALIYUN_OSS_INTERNAL_ENDPOINT}!g" $HADOOP_CORE_SITE
@@ -154,7 +154,7 @@ update_config_for_aliyun() {
 }
 
 update_config_for_huaweicloud() {
-    HADOOP_CORE_SITE=$output_dir/hadoop/${cloud_storage_provider}/core-site.xml
+    HADOOP_CORE_SITE=${OUTPUT_DIR}/hadoop/${cloud_storage_provider}/core-site.xml
     HADOOP_FS_DEFAULT="obs://${HUAWEICLOUD_OBS_BUCKET}"
     sed -i "s!{%fs.default.name%}!${HADOOP_FS_DEFAULT}!g" $HADOOP_CORE_SITE
     sed -i "s!{%fs.obs.endpoint.property%}!${HUAWEICLOUD_OBS_ENDPOINT}!g" $HADOOP_CORE_SITE
@@ -203,7 +203,7 @@ update_nfs_dump_dir() {
     else
         nfs_dump_dir="$data_disk_dir/tmp/.hdfs-nfs"
     fi
-    sed -i "s!{%dfs.nfs3.dump.dir%}!${nfs_dump_dir}!g" ${output_dir}/hadoop/hdfs-site.xml
+    sed -i "s!{%dfs.nfs3.dump.dir%}!${nfs_dump_dir}!g" ${OUTPUT_DIR}/hadoop/hdfs-site.xml
 }
 
 update_local_storage_config_remote_hdfs() {
@@ -212,13 +212,13 @@ update_local_storage_config_remote_hdfs() {
     mkdir -p ${REMOTE_HDFS_CONF_DIR}
     cp -r ${HADOOP_HOME}/etc/hadoop/* ${REMOTE_HDFS_CONF_DIR}/
 
-    HADOOP_CORE_SITE=${output_dir}/hadoop/core-site-remote.xml
+    HADOOP_CORE_SITE=${OUTPUT_DIR}/hadoop/core-site-remote.xml
     fs_default_dir="${HDFS_NAMENODE_URI}"
     sed -i "s!{%fs.default.name%}!${fs_default_dir}!g" $HADOOP_CORE_SITE
 
     # override with remote hdfs conf
     cp $HADOOP_CORE_SITE ${REMOTE_HDFS_CONF_DIR}/core-site.xml
-    cp -r ${output_dir}/hadoop/hdfs-site.xml ${REMOTE_HDFS_CONF_DIR}/
+    cp -r ${OUTPUT_DIR}/hadoop/hdfs-site.xml ${REMOTE_HDFS_CONF_DIR}/
 }
 
 update_local_storage_config_local_hdfs() {
@@ -227,13 +227,13 @@ update_local_storage_config_local_hdfs() {
     mkdir -p ${LOCAL_HDFS_CONF_DIR}
     cp -r ${HADOOP_HOME}/etc/hadoop/* ${LOCAL_HDFS_CONF_DIR}/
 
-    HADOOP_CORE_SITE=${output_dir}/hadoop/core-site-local.xml
+    HADOOP_CORE_SITE=${OUTPUT_DIR}/hadoop/core-site-local.xml
     fs_default_dir="hdfs://${HEAD_HOST_ADDRESS}:${HDFS_SERVICE_PORT}"
     sed -i "s!{%fs.default.name%}!${fs_default_dir}!g" $HADOOP_CORE_SITE
 
     # override with local hdfs conf
     cp $HADOOP_CORE_SITE ${LOCAL_HDFS_CONF_DIR}/core-site.xml
-    cp -r ${output_dir}/hadoop/hdfs-site.xml ${LOCAL_HDFS_CONF_DIR}/
+    cp -r ${OUTPUT_DIR}/hadoop/hdfs-site.xml ${LOCAL_HDFS_CONF_DIR}/
 }
 
 update_local_storage_config_remote_minio() {
@@ -242,7 +242,7 @@ update_local_storage_config_remote_minio() {
     mkdir -p ${REMOTE_MINIO_CONF_DIR}
     cp -r ${HADOOP_HOME}/etc/hadoop/* ${REMOTE_MINIO_CONF_DIR}/
 
-    HADOOP_CORE_SITE=${output_dir}/hadoop/core-site-minio-remote.xml
+    HADOOP_CORE_SITE=${OUTPUT_DIR}/hadoop/core-site-minio-remote.xml
     HADOOP_CREDENTIAL_HOME=${REMOTE_MINIO_CONF_DIR}
     HADOOP_CREDENTIAL_NAME=credential-remote.jceks
 
@@ -278,8 +278,8 @@ update_config_for_hadoop() {
     set_cloud_storage_provider
     update_config_for_hadoop_default
 
-    sed -i "s!{%hadoop.fs.default%}!${HADOOP_FS_DEFAULT}!g" ${output_dir}/hadoop-fs-default
-    cp ${output_dir}/hadoop-fs-default ${HADOOP_HOME}/etc/hadoop/hadoop-fs-default
+    sed -i "s!{%hadoop.fs.default%}!${HADOOP_FS_DEFAULT}!g" ${OUTPUT_DIR}/hadoop-fs-default
+    cp ${OUTPUT_DIR}/hadoop-fs-default ${HADOOP_HOME}/etc/hadoop/hadoop-fs-default
     cp $HADOOP_CORE_SITE ${HADOOP_HOME}/etc/hadoop/core-site.xml
 
     update_local_storage_config

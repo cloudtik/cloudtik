@@ -16,11 +16,11 @@ POSTGRES_HOME=$RUNTIME_PATH/postgres
 . "$BIN_DIR"/repmgr.sh
 
 prepare_base_conf() {
+    OUTPUT_DIR=/tmp/postgres/conf
     local source_dir=$(dirname "${BIN_DIR}")/conf
-    output_dir=/tmp/postgres/conf
-    rm -rf  $output_dir
-    mkdir -p $output_dir
-    cp -r $source_dir/* $output_dir
+    rm -rf  ${OUTPUT_DIR}
+    mkdir -p ${OUTPUT_DIR}
+    cp -r $source_dir/* ${OUTPUT_DIR}
 }
 
 check_postgres_installed() {
@@ -40,7 +40,7 @@ update_data_dir() {
     fi
 
     mkdir -p ${data_dir}
-    update_in_file "${config_template_file}" "{%data.dir%}" "${data_dir}"
+    update_in_file "${CONFIG_TEMPLATE_FILE}" "{%data.dir%}" "${data_dir}"
 
     POSTGRES_DATA_DIR=${data_dir}
 }
@@ -52,22 +52,22 @@ update_server_id() {
     fi
 
     POSTGRES_SERVER_NAME="postgres_${CLOUDTIK_NODE_SEQ_ID}"
-    update_in_file "${config_template_file}" "{%server.id%}" "${POSTGRES_SERVER_NAME}"
+    update_in_file "${CONFIG_TEMPLATE_FILE}" "{%server.id%}" "${POSTGRES_SERVER_NAME}"
 }
 
 configure_archive() {
     # turn on archive mode
-    update_in_file "${config_template_file}" "archive_mode = off" "archive_mode = on"
+    update_in_file "${CONFIG_TEMPLATE_FILE}" "archive_mode = off" "archive_mode = on"
 
     # update the archive_command (need escape && for sed)
     local archive_command="test ! -f ${ARCHIVE_DIR}/%f \&\& cp %p ${ARCHIVE_DIR}/%f"
-    update_in_file "${config_template_file}" "archive_command = ''" "archive_command = '${archive_command}'"
+    update_in_file "${CONFIG_TEMPLATE_FILE}" "archive_command = ''" "archive_command = '${archive_command}'"
 }
 
 configure_restore_command() {
     # update the restore_command
     local restore_command="cp ${ARCHIVE_DIR}/%f %p"
-    update_in_file "${config_template_file}" "restore_command = ''" "restore_command = '${restore_command}'"
+    update_in_file "${CONFIG_TEMPLATE_FILE}" "restore_command = ''" "restore_command = '${restore_command}'"
 }
 
 configure_variable() {
@@ -148,7 +148,7 @@ get_repmgr_data_dir() {
 }
 
 configure_repmgr() {
-    repmgr_template_file=${output_dir}/repmgr.conf
+    repmgr_template_file=${OUTPUT_DIR}/repmgr.conf
     POSTGRES_REPMGR_CONFIG_FILE=${POSTGRES_CONFIG_DIR}/repmgr.conf
 
     update_repmgr_node_id
@@ -210,9 +210,9 @@ configure_postgres() {
     prepare_base_conf
 
     if [ "${POSTGRES_CLUSTER_MODE}" == "replication" ]; then
-        config_template_file=${output_dir}/postgresql-replication.conf
+        CONFIG_TEMPLATE_FILE=${OUTPUT_DIR}/postgresql-replication.conf
     else
-        config_template_file=${output_dir}/postgresql.conf
+        CONFIG_TEMPLATE_FILE=${OUTPUT_DIR}/postgresql.conf
     fi
 
     mkdir -p ${POSTGRES_HOME}/logs
@@ -221,9 +221,9 @@ configure_postgres() {
     && sudo chown -R $(whoami):$(id -gn) /var/run/postgresql \
     && sudo chmod 2777 /var/run/postgresql
 
-    update_in_file "${config_template_file}" "{%listen.address%}" "${NODE_IP_ADDRESS}"
-    update_in_file "${config_template_file}" "{%listen.port%}" "${POSTGRES_SERVICE_PORT}"
-    update_in_file "${config_template_file}" "{%postgres.home%}" "${POSTGRES_HOME}"
+    update_in_file "${CONFIG_TEMPLATE_FILE}" "{%listen.address%}" "${NODE_IP_ADDRESS}"
+    update_in_file "${CONFIG_TEMPLATE_FILE}" "{%listen.port%}" "${POSTGRES_SERVICE_PORT}"
+    update_in_file "${CONFIG_TEMPLATE_FILE}" "{%postgres.home%}" "${POSTGRES_HOME}"
 
     update_data_dir
 
@@ -243,7 +243,7 @@ configure_postgres() {
     POSTGRES_CONFIG_DIR=${POSTGRES_HOME}/conf
     mkdir -p ${POSTGRES_CONFIG_DIR}
     POSTGRES_CONFIG_FILE=${POSTGRES_CONFIG_DIR}/postgresql.conf
-    cp -r ${config_template_file} ${POSTGRES_CONFIG_FILE}
+    cp -r ${CONFIG_TEMPLATE_FILE} ${POSTGRES_CONFIG_FILE}
 
     # repmgr
     if [ "${POSTGRES_REPMGR_ENABLED}" == "true" ]; then

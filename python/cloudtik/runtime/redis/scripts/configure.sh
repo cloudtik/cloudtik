@@ -15,11 +15,11 @@ REDIS_HOME=$RUNTIME_PATH/redis
 . "$ROOT_DIR"/common/scripts/util-functions.sh
 
 prepare_base_conf() {
+    OUTPUT_DIR=/tmp/redis/conf
     local source_dir=$(dirname "${BIN_DIR}")/conf
-    output_dir=/tmp/redis/conf
-    rm -rf  $output_dir
-    mkdir -p $output_dir
-    cp -r $source_dir/* $output_dir
+    rm -rf  ${OUTPUT_DIR}
+    mkdir -p ${OUTPUT_DIR}
+    cp -r $source_dir/* ${OUTPUT_DIR}
 }
 
 check_redis_installed() {
@@ -39,7 +39,7 @@ update_data_dir() {
     fi
 
     mkdir -p ${data_dir}
-    update_in_file "${config_template_file}" "{%data.dir%}" "${data_dir}"
+    update_in_file "${CONFIG_TEMPLATE_FILE}" "{%data.dir%}" "${data_dir}"
 }
 
 update_node_name() {
@@ -48,7 +48,7 @@ update_node_name() {
         exit 1
     fi
     local -r node_name="${CLOUDTIK_CLUSTER}-${CLOUDTIK_NODE_SEQ_ID}"
-    update_in_file "${config_template_file}" "{%cluster.nodename%}" "${node_name}"
+    update_in_file "${CONFIG_TEMPLATE_FILE}" "{%cluster.nodename%}" "${node_name}"
 }
 
 configure_variable() {
@@ -103,7 +103,7 @@ get_sentinel_data_dir() {
 }
 
 configure_sentinel() {
-    SENTINEL_TEMPLATE_FILE=${output_dir}/redis-sentinel.conf
+    SENTINEL_TEMPLATE_FILE=${OUTPUT_DIR}/redis-sentinel.conf
 
     local -r sentinel_data_dir=$(get_sentinel_data_dir)
     REDIS_SENTINEL_DATA_DIR="${sentinel_data_dir}"
@@ -137,32 +137,32 @@ configure_redis() {
     prepare_base_conf
 
     if [ "${REDIS_CLUSTER_MODE}" == "replication" ]; then
-        config_template_file=${output_dir}/redis-replication.conf
+        CONFIG_TEMPLATE_FILE=${OUTPUT_DIR}/redis-replication.conf
     elif [ "${REDIS_CLUSTER_MODE}" == "sharding" ]; then
-        config_template_file=${output_dir}/redis-sharding.conf
+        CONFIG_TEMPLATE_FILE=${OUTPUT_DIR}/redis-sharding.conf
     else
-        config_template_file=${output_dir}/redis.conf
+        CONFIG_TEMPLATE_FILE=${OUTPUT_DIR}/redis.conf
     fi
 
     mkdir -p ${REDIS_HOME}/logs
 
-    update_in_file "${config_template_file}" "{%bind.ip%}" "${NODE_IP_ADDRESS}"
-    update_in_file "${config_template_file}" "{%bind.port%}" "${REDIS_SERVICE_PORT}"
+    update_in_file "${CONFIG_TEMPLATE_FILE}" "{%bind.ip%}" "${NODE_IP_ADDRESS}"
+    update_in_file "${CONFIG_TEMPLATE_FILE}" "{%bind.port%}" "${REDIS_SERVICE_PORT}"
     update_data_dir
 
     # TODO: WARNING: will the log file get increasingly large
     REDIS_LOG_FILE=${REDIS_HOME}/logs/redis-server.log
-    update_in_file "${config_template_file}" "{%log.file%}" "${REDIS_LOG_FILE}"
+    update_in_file "${CONFIG_TEMPLATE_FILE}" "{%log.file%}" "${REDIS_LOG_FILE}"
 
     if [ "${REDIS_CLUSTER_MODE}" == "sharding" ]; then
-        update_in_file "${config_template_file}" "{%cluster.port%}" "${REDIS_CLUSTER_PORT}"
+        update_in_file "${CONFIG_TEMPLATE_FILE}" "{%cluster.port%}" "${REDIS_CLUSTER_PORT}"
         update_node_name
     fi
 
     REDIS_CONFIG_DIR=${REDIS_HOME}/etc
     mkdir -p ${REDIS_CONFIG_DIR}
     REDIS_CONFIG_FILE=${REDIS_CONFIG_DIR}/redis.conf
-    cp ${config_template_file} ${REDIS_CONFIG_FILE}
+    cp ${CONFIG_TEMPLATE_FILE} ${REDIS_CONFIG_FILE}
 
     # sentinel
     if [ "${REDIS_SENTINEL_ENABLED}" == "true" ]; then

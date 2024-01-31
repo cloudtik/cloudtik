@@ -14,11 +14,11 @@ RUNTIME_PATH=$USER_HOME/runtime
 . "$ROOT_DIR"/common/scripts/util-functions.sh
 
 prepare_base_conf() {
-    source_dir=$(dirname "${BIN_DIR}")/conf
-    output_dir=/tmp/presto/conf
-    rm -rf  $output_dir
-    mkdir -p $output_dir
-    cp -r $source_dir/* $output_dir
+    OUTPUT_DIR=/tmp/presto/conf
+    local source_dir=$(dirname "${BIN_DIR}")/conf
+    rm -rf  ${OUTPUT_DIR}
+    mkdir -p ${OUTPUT_DIR}
+    cp -r $source_dir/* ${OUTPUT_DIR}
 }
 
 check_presto_installed() {
@@ -48,7 +48,7 @@ update_presto_data_disks_config() {
     fi
 
     mkdir -p $presto_data_dir
-    sed -i "s!{%node.data-dir%}!${presto_data_dir}!g" $output_dir/presto/node.properties
+    sed -i "s!{%node.data-dir%}!${presto_data_dir}!g" ${OUTPUT_DIR}/presto/node.properties
 }
 
 update_storage_config_for_aws() {
@@ -130,7 +130,7 @@ update_storage_config() {
 
 update_hive_metastore_config() {
     # To be improved for external metastore cluster
-    catalog_dir=$output_dir/presto/catalog
+    catalog_dir=${OUTPUT_DIR}/presto/catalog
     hive_properties=${catalog_dir}/hive.properties
     if [ ! -z "$HIVE_METASTORE_URI" ] || [ "$METASTORE_ENABLED" == "true" ]; then
         if [ ! -z "$HIVE_METASTORE_URI" ]; then
@@ -171,12 +171,12 @@ update_presto_memory_config() {
         query_max_memory=$PRESTO_QUERY_MAX_MEMORY
     fi
 
-    sed -i "s/{%jvm.max-memory%}/${jvm_max_memory}m/g" `grep "{%jvm.max-memory%}" -rl ${output_dir}`
-    sed -i "s/{%query.max-memory-per-node%}/${query_max_memory_per_node}MB/g" `grep "{%query.max-memory-per-node%}" -rl ${output_dir}`
-    sed -i "s/{%query.max-total-memory-per-node%}/${query_max_total_memory_per_node}MB/g" `grep "{%query.max-total-memory-per-node%}" -rl ${output_dir}`
-    sed -i "s/{%memory.heap-headroom-per-node%}/${memory_heap_headroom_per_node}MB/g" `grep "{%memory.heap-headroom-per-node%}" -rl ${output_dir}`
+    sed -i "s/{%jvm.max-memory%}/${jvm_max_memory}m/g" `grep "{%jvm.max-memory%}" -rl ${OUTPUT_DIR}`
+    sed -i "s/{%query.max-memory-per-node%}/${query_max_memory_per_node}MB/g" `grep "{%query.max-memory-per-node%}" -rl ${OUTPUT_DIR}`
+    sed -i "s/{%query.max-total-memory-per-node%}/${query_max_total_memory_per_node}MB/g" `grep "{%query.max-total-memory-per-node%}" -rl ${OUTPUT_DIR}`
+    sed -i "s/{%memory.heap-headroom-per-node%}/${memory_heap_headroom_per_node}MB/g" `grep "{%memory.heap-headroom-per-node%}" -rl ${OUTPUT_DIR}`
 
-    sed -i "s/{%query.max-memory%}/${query_max_memory}/g" `grep "{%query.max-memory%}" -rl ${output_dir}`
+    sed -i "s/{%query.max-memory%}/${query_max_memory}/g" `grep "{%query.max-memory%}" -rl ${OUTPUT_DIR}`
 }
 
 configure_presto() {
@@ -185,22 +185,22 @@ configure_presto() {
 
     node_id=$(uuid)
 
-    sed -i "s/{%coordinator.host%}/${HEAD_HOST_ADDRESS}/g" `grep "{%coordinator.host%}" -rl ${output_dir}`
-    sed -i "s/{%node.environment%}/presto/g" $output_dir/presto/node.properties
-    sed -i "s/{%node.id%}/${node_id}/g" $output_dir/presto/node.properties
+    sed -i "s/{%coordinator.host%}/${HEAD_HOST_ADDRESS}/g" `grep "{%coordinator.host%}" -rl ${OUTPUT_DIR}`
+    sed -i "s/{%node.environment%}/presto/g" ${OUTPUT_DIR}/presto/node.properties
+    sed -i "s/{%node.id%}/${node_id}/g" ${OUTPUT_DIR}/presto/node.properties
 
     update_presto_memory_config
     update_presto_data_disks_config
 
     mkdir -p ${PRESTO_HOME}/etc
     if [ $IS_HEAD_NODE == "true" ]; then
-        cp ${output_dir}/presto/config.properties  ${PRESTO_HOME}/etc/config.properties
+        cp ${OUTPUT_DIR}/presto/config.properties  ${PRESTO_HOME}/etc/config.properties
     else
-        cp ${output_dir}/presto/config.worker.properties  ${PRESTO_HOME}/etc/config.properties
+        cp ${OUTPUT_DIR}/presto/config.worker.properties  ${PRESTO_HOME}/etc/config.properties
     fi
 
-    cp ${output_dir}/presto/jvm.config  ${PRESTO_HOME}/etc/jvm.config
-    cp ${output_dir}/presto/node.properties  ${PRESTO_HOME}/etc/node.properties
+    cp ${OUTPUT_DIR}/presto/jvm.config  ${PRESTO_HOME}/etc/jvm.config
+    cp ${OUTPUT_DIR}/presto/node.properties  ${PRESTO_HOME}/etc/node.properties
 }
 
 set_head_option "$@"

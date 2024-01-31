@@ -18,11 +18,11 @@ ELASTICSEARCH_HOME=$RUNTIME_PATH/elasticsearch
 . "$BIN_DIR"/elasticsearch.sh
 
 prepare_base_conf() {
+    OUTPUT_DIR=/tmp/elasticsearch/conf
     local source_dir=$(dirname "${BIN_DIR}")/conf
-    output_dir=/tmp/elasticsearch/conf
-    rm -rf  $output_dir
-    mkdir -p $output_dir
-    cp -r $source_dir/* $output_dir
+    rm -rf  ${OUTPUT_DIR}
+    mkdir -p ${OUTPUT_DIR}
+    cp -r $source_dir/* ${OUTPUT_DIR}
 }
 
 check_elasticsearch_installed() {
@@ -40,7 +40,7 @@ update_data_dir() {
         mkdir -p $data_dir
     fi
 
-    update_in_file "${config_template_file}" \
+    update_in_file "${CONFIG_TEMPLATE_FILE}" \
       "{%path.data%}" "${data_dir}"
 }
 
@@ -50,7 +50,7 @@ update_node_name() {
         exit 1
     fi
     local -r node_name="node-${CLOUDTIK_NODE_SEQ_ID}"
-    update_in_file "${config_template_file}" \
+    update_in_file "${CONFIG_TEMPLATE_FILE}" \
       "{%node.name%}" "${node_name}"
 }
 
@@ -71,32 +71,32 @@ configure_elasticsearch() {
     prepare_base_conf
 
     if [ "${ELASTICSEARCH_CLUSTER_MODE}" == "cluster" ]; then
-        config_template_file=${output_dir}/elasticsearch-cluster.yml
+        CONFIG_TEMPLATE_FILE=${OUTPUT_DIR}/elasticsearch-cluster.yml
     else
-        config_template_file=${output_dir}/elasticsearch.yml
+        CONFIG_TEMPLATE_FILE=${OUTPUT_DIR}/elasticsearch.yml
     fi
 
     ELASTICSEARCH_LOG_DIR="${ELASTICSEARCH_HOME}/logs"
     mkdir -p ${ELASTICSEARCH_LOG_DIR}
 
-    update_in_file "${config_template_file}" \
+    update_in_file "${CONFIG_TEMPLATE_FILE}" \
       "{%cluster.name%}" "${CLOUDTIK_CLUSTER}"
     update_node_name
 
-    update_in_file "${config_template_file}" \
+    update_in_file "${CONFIG_TEMPLATE_FILE}" \
       "{%bind.ip%}" "${NODE_IP_ADDRESS}"
-    update_in_file "${config_template_file}" \
+    update_in_file "${CONFIG_TEMPLATE_FILE}" \
       "{%node.host%}" "${NODE_HOST_ADDRESS}"
-    update_in_file "${config_template_file}" \
+    update_in_file "${CONFIG_TEMPLATE_FILE}" \
       "{%bind.port%}" "${ELASTICSEARCH_SERVICE_PORT}"
-    update_in_file "${config_template_file}" \
+    update_in_file "${CONFIG_TEMPLATE_FILE}" \
       "{%transport.port%}" "${ELASTICSEARCH_TRANSPORT_PORT}"
 
     update_data_dir
-    update_in_file "${config_template_file}" \
+    update_in_file "${CONFIG_TEMPLATE_FILE}" \
       "{%path.logs%}" "${ELASTICSEARCH_LOG_DIR}"
 
-    update_in_file "${config_template_file}" \
+    update_in_file "${CONFIG_TEMPLATE_FILE}" \
       "{%security.enabled%}" "${ELASTICSEARCH_SECURITY}"
 
     if [ ! -z "$ELASTICSEARCH_PASSWORD" ]; then
@@ -106,7 +106,7 @@ configure_elasticsearch() {
     ELASTICSEARCH_CONFIG_DIR=${ELASTICSEARCH_HOME}/config
     mkdir -p ${ELASTICSEARCH_CONFIG_DIR}
     ELASTICSEARCH_CONFIG_FILE=${ELASTICSEARCH_CONFIG_DIR}/elasticsearch.yml
-    cp ${config_template_file} ${ELASTICSEARCH_CONFIG_FILE}
+    cp ${CONFIG_TEMPLATE_FILE} ${ELASTICSEARCH_CONFIG_FILE}
 
     # Set variables for export to elasticsearch-init.sh
     configure_service_init

@@ -17,11 +17,11 @@ HADOOP_CREDENTIAL_PROPERTY="<property>\n      <name>hadoop.security.credential.p
 . "$ROOT_DIR"/common/scripts/util-functions.sh
 
 prepare_base_conf() {
-    source_dir=$(dirname "${BIN_DIR}")/conf
-    output_dir=/tmp/trino/conf
-    rm -rf  $output_dir
-    mkdir -p $output_dir
-    cp -r $source_dir/* $output_dir
+    OUTPUT_DIR=/tmp/trino/conf
+    local source_dir=$(dirname "${BIN_DIR}")/conf
+    rm -rf  ${OUTPUT_DIR}
+    mkdir -p ${OUTPUT_DIR}
+    cp -r $source_dir/* ${OUTPUT_DIR}
 }
 
 check_trino_installed() {
@@ -54,7 +54,7 @@ update_trino_data_disks_config() {
     fi
 
     mkdir -p $trino_data_dir
-    sed -i "s!{%node.data-dir%}!${trino_data_dir}!g" $output_dir/trino/node.properties
+    sed -i "s!{%node.data-dir%}!${trino_data_dir}!g" ${OUTPUT_DIR}/trino/node.properties
 }
 
 update_storage_config_for_aws() {
@@ -90,7 +90,7 @@ update_credential_config_for_azure() {
 
     # Use hadoop credential files so that the client id is properly set to worker client id
     HAS_HADOOP_CREDENTIAL=false
-    HADOOP_CREDENTIAL_TMP_FILE="${output_dir}/credential.jceks"
+    HADOOP_CREDENTIAL_TMP_FILE="${OUTPUT_DIR}/credential.jceks"
     HADOOP_CREDENTIAL_TMP_PROVIDER_PATH="jceks://file@${HADOOP_CREDENTIAL_TMP_FILE}"
     if [ ! -z "${AZURE_ACCOUNT_KEY}" ]; then
         FS_KEY_NAME_ACCOUNT_KEY="fs.azure.account.key.${AZURE_STORAGE_ACCOUNT}.${AZURE_ENDPOINT}.core.windows.net"
@@ -176,7 +176,7 @@ update_storage_config() {
 
 update_hive_metastore_config() {
     # To be improved for external metastore cluster
-    catalog_dir=$output_dir/trino/catalog
+    catalog_dir=${OUTPUT_DIR}/trino/catalog
     hive_properties=${catalog_dir}/hive.properties
     if [ ! -z "$HIVE_METASTORE_URI" ] || [ "$METASTORE_ENABLED" == "true" ]; then
         if [ ! -z "$HIVE_METASTORE_URI" ]; then
@@ -214,11 +214,11 @@ update_trino_memory_config() {
         query_max_memory=$TRINO_QUERY_MAX_MEMORY
     fi
 
-    sed -i "s/{%jvm.max-memory%}/${jvm_max_memory}m/g" `grep "{%jvm.max-memory%}" -rl ${output_dir}`
-    sed -i "s/{%query.max-memory-per-node%}/${query_max_memory_per_node}MB/g" `grep "{%query.max-memory-per-node%}" -rl ${output_dir}`
-    sed -i "s/{%memory.heap-headroom-per-node%}/${memory_heap_headroom_per_node}MB/g" `grep "{%memory.heap-headroom-per-node%}" -rl ${output_dir}`
+    sed -i "s/{%jvm.max-memory%}/${jvm_max_memory}m/g" `grep "{%jvm.max-memory%}" -rl ${OUTPUT_DIR}`
+    sed -i "s/{%query.max-memory-per-node%}/${query_max_memory_per_node}MB/g" `grep "{%query.max-memory-per-node%}" -rl ${OUTPUT_DIR}`
+    sed -i "s/{%memory.heap-headroom-per-node%}/${memory_heap_headroom_per_node}MB/g" `grep "{%memory.heap-headroom-per-node%}" -rl ${OUTPUT_DIR}`
 
-    sed -i "s/{%query.max-memory%}/${query_max_memory}/g" `grep "{%query.max-memory%}" -rl ${output_dir}`
+    sed -i "s/{%query.max-memory%}/${query_max_memory}/g" `grep "{%query.max-memory%}" -rl ${OUTPUT_DIR}`
 }
 
 configure_trino() {
@@ -227,22 +227,22 @@ configure_trino() {
 
     node_id=$(uuid)
 
-    sed -i "s/{%coordinator.host%}/${HEAD_HOST_ADDRESS}/g" `grep "{%coordinator.host%}" -rl ${output_dir}`
-    sed -i "s/{%node.environment%}/trino/g" $output_dir/trino/node.properties
-    sed -i "s/{%node.id%}/${node_id}/g" $output_dir/trino/node.properties
+    sed -i "s/{%coordinator.host%}/${HEAD_HOST_ADDRESS}/g" `grep "{%coordinator.host%}" -rl ${OUTPUT_DIR}`
+    sed -i "s/{%node.environment%}/trino/g" ${OUTPUT_DIR}/trino/node.properties
+    sed -i "s/{%node.id%}/${node_id}/g" ${OUTPUT_DIR}/trino/node.properties
 
     update_trino_memory_config
     update_trino_data_disks_config
 
     mkdir -p ${TRINO_HOME}/etc
     if [ $IS_HEAD_NODE == "true" ]; then
-        cp ${output_dir}/trino/config.properties  ${TRINO_HOME}/etc/config.properties
+        cp ${OUTPUT_DIR}/trino/config.properties  ${TRINO_HOME}/etc/config.properties
     else
-        cp ${output_dir}/trino/config.worker.properties  ${TRINO_HOME}/etc/config.properties
+        cp ${OUTPUT_DIR}/trino/config.worker.properties  ${TRINO_HOME}/etc/config.properties
     fi
 
-    cp ${output_dir}/trino/jvm.config  ${TRINO_HOME}/etc/jvm.config
-    cp ${output_dir}/trino/node.properties  ${TRINO_HOME}/etc/node.properties
+    cp ${OUTPUT_DIR}/trino/jvm.config  ${TRINO_HOME}/etc/jvm.config
+    cp ${OUTPUT_DIR}/trino/node.properties  ${TRINO_HOME}/etc/node.properties
 }
 
 set_head_option "$@"
