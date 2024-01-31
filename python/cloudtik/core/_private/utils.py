@@ -2963,22 +2963,31 @@ def get_preferred_bundle_size(
         return _gcd_of_numbers(resource_sizes)
 
 
-def get_resource_requests_for_cpu(num_cpus, config):
+def get_resource_requests_for_cpu(config, num_cpus):
     return get_resource_requests_for(
         config, constants.CLOUDTIK_RESOURCE_CPU, num_cpus)
 
 
 def get_resource_requests_for(
         config, resource_id, amount, default_bundle_size=1):
+    resource_requests = []
+    if amount is None:
+        return resource_requests
     # For resource requests, it is the statically total resources of the cluster
     # While amount here is the number of worker amount resource, we need to accounted into
     # the head node as the first resource request if the head has such resource
-    resource_requests = _get_head_resource_requests(
+    head_resource_requests = _get_head_resource_requests(
         config, resource_id)
-    resource_demands_for_workers = get_resource_demands(
-        amount, resource_id, config, default_bundle_size)
-    if resource_demands_for_workers is not None:
-        resource_requests += resource_demands_for_workers
+    if head_resource_requests:
+        resource_requests += head_resource_requests
+
+    if not resource_requests and amount == 0:
+        resource_requests = [{resource_id: 0}]
+    else:
+        resource_demands_for_workers = get_resource_demands(
+            amount, resource_id, config, default_bundle_size)
+        if resource_demands_for_workers:
+            resource_requests += resource_demands_for_workers
     return resource_requests
 
 

@@ -386,7 +386,8 @@ class ClusterMetrics:
 
         self.last_requesting_time = requesting_time
         resource_requests = [
-            request for request in requested_resources if len(request) > 0
+            request for request in requested_resources if self._is_resource_request_kept(
+                request)
         ]
 
         # The existing resources will be kept if override = False
@@ -404,7 +405,8 @@ class ClusterMetrics:
         self.resource_requests = resource_requests
         return True
 
-    def _get_resource_ids_from_request(self, resource_requests):
+    @staticmethod
+    def _get_resource_ids_from_request(resource_requests):
         relevant_resource_ids = set()
         if not resource_requests:
             return relevant_resource_ids
@@ -412,12 +414,25 @@ class ClusterMetrics:
             relevant_resource_ids.update(request.keys())
         return relevant_resource_ids
 
+    @staticmethod
     def _is_resource_request_relevant(
-            self, resource_request, relevant_resource_ids):
+            resource_request, relevant_resource_ids):
         for resource_id in resource_request:
             if resource_id in relevant_resource_ids:
                 return True
         return False
+
+    @staticmethod
+    def _is_resource_request_kept(
+            resource_request):
+        if not resource_request:
+            return False
+        if len(resource_request) == 1 and next(iter(
+                resource_request.values())) == 0:
+            # don't keep the resource request with amount 0
+            # but this is useful to clean up the existing requests of the resource
+            return False
+        return True
 
     def info_string(self):
         return " - " + "\n - ".join(

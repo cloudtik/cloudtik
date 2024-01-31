@@ -12,7 +12,8 @@ from cloudtik.core._private.state.scaling_state import ScalingStateClient
 from cloudtik.core._private.state.state_utils import NODE_STATE_NODE_IP, NODE_STATE_TIME
 from cloudtik.core._private.util.core_utils import get_json_object_hash
 from cloudtik.core.scaling_policy import SCALING_NODE_STATE_RESOURCE_LOAD, SCALING_NODE_STATE_TOTAL_RESOURCES, \
-    SCALING_NODE_STATE_AVAILABLE_RESOURCES
+    SCALING_NODE_STATE_AVAILABLE_RESOURCES, SCALING_RESOURCE_REQUEST_REQUESTS, SCALING_RESOURCE_REQUEST_TIME, \
+    SCALING_RESOURCE_REQUEST_OVERRIDE
 
 logger = logging.getLogger(__name__)
 
@@ -136,10 +137,10 @@ class ClusterMetricsUpdater:
                 "Error loading resource requests")
             return
 
-        request_resources = resource_requests.get("requests")
-        request_override = resource_requests.get("override", False)
+        request_resources = resource_requests.get(SCALING_RESOURCE_REQUEST_REQUESTS)
+        request_override = resource_requests.get(SCALING_RESOURCE_REQUEST_OVERRIDE, False)
         updated = self.cluster_metrics.set_resource_requests(
-            resource_requests["request_time"],
+            resource_requests[SCALING_RESOURCE_REQUEST_TIME],
             request_resources,
             override=request_override)
         if updated:
@@ -153,7 +154,7 @@ class ClusterMetricsUpdater:
         cluster_requests = {
             "save_time": save_time,
             "last_requesting_time": last_requesting_time,
-            "requests": resource_requests
+            SCALING_RESOURCE_REQUEST_REQUESTS: resource_requests
         }
         cluster_requests_hash = get_json_object_hash(cluster_requests)
         if cluster_requests_hash != self.last_cluster_requests_hash:
@@ -191,7 +192,7 @@ class ClusterMetricsUpdater:
         self.last_cluster_requests_hash = get_json_object_hash(
             cluster_requests)
         last_requesting_time = cluster_requests.get("last_requesting_time", 0)
-        resource_requests = cluster_requests.get("requests")
+        resource_requests = cluster_requests.get(SCALING_RESOURCE_REQUEST_REQUESTS)
         # TODO: check for resource requests for node types no longer exists
         self.cluster_metrics.initialize(
             resource_requests, last_requesting_time)

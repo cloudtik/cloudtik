@@ -764,11 +764,16 @@ def run(
     is_flag=True,
     default=False,
     help="Scale up if resources is not enough. No scale down.")
+@click.option(
+    "--override",
+    is_flag=True,
+    default=False,
+    help="Override all the existing resource requests.")
 @add_click_logging_options
 def scale(
         cluster_config_file, yes, cluster_name,
         cpus, gpus, workers, worker_type,
-        resources, bundles, up_only):
+        resources, bundles, up_only, override):
     """Scale the cluster with a specific number cpus or nodes."""
     if bundles:
         bundles = parse_bundles_json(bundles)
@@ -779,7 +784,7 @@ def scale(
         cpus=cpus, gpus=gpus,
         workers=workers, worker_type=worker_type,
         resources=resources, bundles=bundles,
-        up_only=up_only)
+        up_only=up_only, override=override)
 
 
 @cli.command()
