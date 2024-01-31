@@ -13,13 +13,16 @@ def update_configurations():
     if not server_config:
         return
 
-    server_properties_file = os.path.join(os.getenv("KAFKA_HOME"), "config/server.properties")
+    server_properties_file = os.path.join(
+        os.getenv("KAFKA_HOME"), "config/server.properties")
 
     # Read in the existing configurations
-    server_properties, comments = load_properties_file(server_properties_file)
+    server_properties, comments = load_properties_file(
+        server_properties_file)
 
     # Merge with the user configurations
     server_properties.update(server_config)
 
     # Write back the configuration file
-    save_properties_file(server_properties_file, server_properties, comments=comments)
+    save_properties_file(
+        server_properties_file, server_properties, comments=comments)

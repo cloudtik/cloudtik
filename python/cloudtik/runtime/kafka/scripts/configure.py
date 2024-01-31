@@ -11,8 +11,9 @@ from cloudtik.runtime.kafka.utils import _get_zookeeper_connect
 def main():
     parser = argparse.ArgumentParser(
         description="Configuring runtime.")
-    parser.add_argument('--head', action='store_true', default=False,
-                        help='Configuring for head node.')
+    parser.add_argument(
+        '--head', action='store_true', default=False,
+        help='Configuring for head node.')
     args = parser.parse_args()
 
     this_dir = os.path.dirname(__file__)
@@ -31,8 +32,8 @@ def main():
         runtime_config = subscribe_runtime_config()
         zookeeper_connect = _get_zookeeper_connect(runtime_config)
         if zookeeper_connect is None:
-            raise RuntimeError("Not able to get zookeeper connect.")
-
+            raise RuntimeError(
+                "Not able to get zookeeper connect.")
         cmds += ["--zookeeper_connect={}".format(quote(zookeeper_connect))]
 
     final_cmd = " ".join(cmds)

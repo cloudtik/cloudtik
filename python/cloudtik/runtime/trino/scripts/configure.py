@@ -7,8 +7,9 @@ from cloudtik.runtime.trino.scripting import configure_connectors
 def main():
     parser = argparse.ArgumentParser(
         description="Configuring runtime.")
-    parser.add_argument('--head', action='store_true', default=False,
-                        help='Configuring for head node.')
+    parser.add_argument(
+        '--head', action='store_true', default=False,
+        help='Configuring for head node.')
     args = parser.parse_args()
 
     # Configure other connectors
