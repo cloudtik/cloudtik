@@ -85,14 +85,13 @@ update_listeners() {
 configure_kafka() {
     prepare_base_conf
     mkdir -p ${KAFKA_HOME}/logs
-    cd ${OUTPUT_DIR}
 
     update_broker_id
     update_listeners
     update_zookeeper_connect
     update_kafka_data_disks_config
 
-    cp -r ${OUTPUT_DIR}/kafka/server.properties  ${KAFKA_HOME}/config/server.properties
+    cp -r ${OUTPUT_DIR}/kafka/server.properties ${KAFKA_HOME}/config/server.properties
 }
 
 set_head_option "$@"

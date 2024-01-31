@@ -124,96 +124,96 @@ update_mlflow_server_config() {
 
 patch_libraries() {
     HOROVOD_PYTHON_HOME="${ROOT_DIR}/../../horovod"
-    local PATCHES_DIR=${OUTPUT_DIR}/patches
+    local patches_dir=${OUTPUT_DIR}/patches
 
     # Fix the Horovod on Spark bug for handling network interfaces of loopback
     HOROVOD_SPARK_GLOO_RUN_FILE="${HOROVOD_PYTHON_HOME}/spark/gloo_run.py"
     if [ -f "${HOROVOD_SPARK_GLOO_RUN_FILE}" ]; then
-       cp ${PATCHES_DIR}/horovod_spark_gloo_run.py.patch ${HOROVOD_SPARK_GLOO_RUN_FILE}
+       cp ${patches_dir}/horovod_spark_gloo_run.py.patch ${HOROVOD_SPARK_GLOO_RUN_FILE}
     fi
 
     # Improve Horovod on Spark for support MPICH and IMPI
     HOROVOD_SPARK_MPI_RUN_FILE="${HOROVOD_PYTHON_HOME}/spark/mpi_run.py"
     if [ -f "${HOROVOD_SPARK_MPI_RUN_FILE}" ]; then
-       cp ${PATCHES_DIR}/horovod_spark_mpi_run.py.patch ${HOROVOD_SPARK_MPI_RUN_FILE}
+       cp ${patches_dir}/horovod_spark_mpi_run.py.patch ${HOROVOD_SPARK_MPI_RUN_FILE}
     fi
 
     # Fix the Horovod driver NIC issue
     HOROVOD_SPARK_RUNNER_FILE="${HOROVOD_PYTHON_HOME}/spark/runner.py"
     if [ -f "${HOROVOD_SPARK_RUNNER_FILE}" ]; then
-       cp ${PATCHES_DIR}/horovod_spark_runner.py.patch ${HOROVOD_SPARK_RUNNER_FILE}
+       cp ${patches_dir}/horovod_spark_runner.py.patch ${HOROVOD_SPARK_RUNNER_FILE}
     fi
 
     HOROVOD_SPARK_DRIVER_DRIVER_SERVICE_FILE="${HOROVOD_PYTHON_HOME}/spark/driver/driver_service.py"
     if [ -f "${HOROVOD_SPARK_DRIVER_DRIVER_SERVICE_FILE}" ]; then
-       cp ${PATCHES_DIR}/horovod_spark_driver_driver_service.py.patch ${HOROVOD_SPARK_DRIVER_DRIVER_SERVICE_FILE}
+       cp ${patches_dir}/horovod_spark_driver_driver_service.py.patch ${HOROVOD_SPARK_DRIVER_DRIVER_SERVICE_FILE}
     fi
 
     # CloudTik remote command execution for Gloo
     HOROVOD_RUNNER_UTIL_REMOTE_FILE="${HOROVOD_PYTHON_HOME}/runner/util/remote.py"
     if [ -f "$HOROVOD_RUNNER_UTIL_REMOTE_FILE" ]; then
-       cp ${PATCHES_DIR}/horovod_runner_util_remote.py.patch ${HOROVOD_RUNNER_UTIL_REMOTE_FILE}
+       cp ${patches_dir}/horovod_runner_util_remote.py.patch ${HOROVOD_RUNNER_UTIL_REMOTE_FILE}
     fi
 
     # Fix the remote command quote handling
     HOROVOD_RUNNER_GLOO_RUN_FILE="${HOROVOD_PYTHON_HOME}/runner/gloo_run.py"
     if [ -f "$HOROVOD_RUNNER_GLOO_RUN_FILE" ]; then
-       cp ${PATCHES_DIR}/horovod_runner_gloo_run.py.patch ${HOROVOD_RUNNER_GLOO_RUN_FILE}
+       cp ${patches_dir}/horovod_runner_gloo_run.py.patch ${HOROVOD_RUNNER_GLOO_RUN_FILE}
     fi
 
     # CloudTik remote command execution for MPI
     HOROVOD_RUNNER_MPI_RUN_FILE="${HOROVOD_PYTHON_HOME}/runner/mpi_run.py"
     if [ -f "$HOROVOD_RUNNER_MPI_RUN_FILE" ]; then
-       cp ${PATCHES_DIR}/horovod_runner_mpi_run.py.patch ${HOROVOD_RUNNER_MPI_RUN_FILE}
+       cp ${patches_dir}/horovod_runner_mpi_run.py.patch ${HOROVOD_RUNNER_MPI_RUN_FILE}
     fi
 
     # Fix the Horovod driver NIC issue
     HOROVOD_RUNNER_LAUNCH_FILE="${HOROVOD_PYTHON_HOME}/runner/launch.py"
     if [ -f "${HOROVOD_RUNNER_LAUNCH_FILE}" ]; then
-       cp ${PATCHES_DIR}/horovod_runner_launch.py.patch ${HOROVOD_RUNNER_LAUNCH_FILE}
+       cp ${patches_dir}/horovod_runner_launch.py.patch ${HOROVOD_RUNNER_LAUNCH_FILE}
     fi
 
     HOROVOD_RUNNER_COMMON_SERVICE_DRIVER_SERVICE_FILE="${HOROVOD_PYTHON_HOME}/runner/common/service/driver_service.py"
     if [ -f "${HOROVOD_RUNNER_COMMON_SERVICE_DRIVER_SERVICE_FILE}" ]; then
-       cp ${PATCHES_DIR}/horovod_runner_common_service_driver_service.py.patch ${HOROVOD_RUNNER_COMMON_SERVICE_DRIVER_SERVICE_FILE}
+       cp ${patches_dir}/horovod_runner_common_service_driver_service.py.patch ${HOROVOD_RUNNER_COMMON_SERVICE_DRIVER_SERVICE_FILE}
     fi
 
     # Fix the Horovod bug for handling network interfaces of loopback
     HOROVOD_RUNNER_DRIVER_SERVICE_FILE="${HOROVOD_PYTHON_HOME}/runner/driver/driver_service.py"
     if [ -f "$HOROVOD_RUNNER_DRIVER_SERVICE_FILE" ]; then
-       cp ${PATCHES_DIR}/horovod_runner_driver_driver_service.py.patch ${HOROVOD_RUNNER_DRIVER_SERVICE_FILE}
+       cp ${patches_dir}/horovod_runner_driver_driver_service.py.patch ${HOROVOD_RUNNER_DRIVER_SERVICE_FILE}
     fi
 
     # Improve Horovod on Spark for support MPICH and IMPI
     HOROVOD_SPARK_MPIRUN_EXEC_FN_FILE="${HOROVOD_PYTHON_HOME}/spark/task/mpirun_exec_fn.py"
     if [ -f "${HOROVOD_SPARK_MPIRUN_EXEC_FN_FILE}" ]; then
-       cp ${PATCHES_DIR}/horovod_spark_task_mpirun_exec_fn.py.patch ${HOROVOD_SPARK_MPIRUN_EXEC_FN_FILE}
+       cp ${patches_dir}/horovod_spark_task_mpirun_exec_fn.py.patch ${HOROVOD_SPARK_MPIRUN_EXEC_FN_FILE}
     fi
 
     HOROVOD_RAY_UTILS_FILE="${HOROVOD_PYTHON_HOME}/ray/utils.py"
     if [ -f "${HOROVOD_RAY_UTILS_FILE}" ]; then
-       cp ${PATCHES_DIR}/horovod_ray_utils.py.patch ${HOROVOD_RAY_UTILS_FILE}
+       cp ${patches_dir}/horovod_ray_utils.py.patch ${HOROVOD_RAY_UTILS_FILE}
     fi
 
     # Fix the Azure managed identity from adlfs
     ADLFS_PYTHON_HOME="${ROOT_DIR}/../../adlfs"
     ADLFS_SPEC_FILE="${ADLFS_PYTHON_HOME}/spec.py"
     if [ -f "$ADLFS_SPEC_FILE" ]; then
-        cp ${PATCHES_DIR}/adlfs_spec.py.patch ${ADLFS_SPEC_FILE}
+        cp ${patches_dir}/adlfs_spec.py.patch ${ADLFS_SPEC_FILE}
     fi
 
     # Fix the empty key for path from gcsfs
     GCSFS_PYTHON_HOME="${ROOT_DIR}/../../gcsfs"
     GCSFS_CORE_FILE="${GCSFS_PYTHON_HOME}/core.py"
     if [ -f "$GCSFS_CORE_FILE" ]; then
-        cp ${PATCHES_DIR}/gcsfs_core.py.patch ${GCSFS_CORE_FILE}
+        cp ${patches_dir}/gcsfs_core.py.patch ${GCSFS_CORE_FILE}
     fi
 
     # Fix the ECS RAM role authentication for path from ossfs
     OSSFS_PYTHON_HOME="${ROOT_DIR}/../../ossfs"
     OSSFS_CORE_FILE="${OSSFS_PYTHON_HOME}/core.py"
     if [ -f "${OSSFS_CORE_FILE}" ]; then
-        cp ${PATCHES_DIR}/ossfs_core.py.patch ${OSSFS_CORE_FILE}
+        cp ${patches_dir}/ossfs_core.py.patch ${OSSFS_CORE_FILE}
     fi
 
     # MLflow patches for Azure Data Lake Gen2
@@ -221,24 +221,23 @@ patch_libraries() {
 
     MLFLOW_ARTIFACT_REPOSITORY_REGISTRY_FILE="${MLFLOW_PYTHON_HOME}/store/artifact/artifact_repository_registry.py"
     if [ -f "${MLFLOW_ARTIFACT_REPOSITORY_REGISTRY_FILE}" ]; then
-        cp ${PATCHES_DIR}/mlflow_store_artifact_artifact_repository_registry.py.patch ${MLFLOW_ARTIFACT_REPOSITORY_REGISTRY_FILE}
+        cp ${patches_dir}/mlflow_store_artifact_artifact_repository_registry.py.patch ${MLFLOW_ARTIFACT_REPOSITORY_REGISTRY_FILE}
     fi
 
     MLFLOW_AZURE_BLOB_ARTIFACT_REPO_FILE="${MLFLOW_PYTHON_HOME}/store/artifact/azure_blob_artifact_repo.py"
     if [ -f "${MLFLOW_AZURE_BLOB_ARTIFACT_REPO_FILE}" ]; then
-        cp ${PATCHES_DIR}/mlflow_store_artifact_azure_blob_artifact_repo.py.patch ${MLFLOW_AZURE_BLOB_ARTIFACT_REPO_FILE}
+        cp ${patches_dir}/mlflow_store_artifact_azure_blob_artifact_repo.py.patch ${MLFLOW_AZURE_BLOB_ARTIFACT_REPO_FILE}
     fi
 
     MLFLOW_AZURE_DATA_LAKE_ARTIFACT_REPO_FILE="${MLFLOW_PYTHON_HOME}/store/artifact/azure_data_lake_artifact_repo.py"
     if [ -f "${MLFLOW_AZURE_DATA_LAKE_ARTIFACT_REPO_FILE}" ]; then
-        cp ${PATCHES_DIR}/mlflow_store_artifact_azure_data_lake_artifact_repo.py.patch ${MLFLOW_AZURE_DATA_LAKE_ARTIFACT_REPO_FILE}
+        cp ${patches_dir}/mlflow_store_artifact_azure_data_lake_artifact_repo.py.patch ${MLFLOW_AZURE_DATA_LAKE_ARTIFACT_REPO_FILE}
     fi
 }
 
 configure_ai() {
     # Do necessary configurations for AI runtime
     prepare_base_conf
-    cd ${OUTPUT_DIR}
 
     MLFLOW_CONF_DIR=${MLFLOW_HOME}/conf
     mkdir -p ${MLFLOW_CONF_DIR}
