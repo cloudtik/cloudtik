@@ -7,8 +7,9 @@ from cloudtik.runtime.zookeeper.scripting import update_configurations, configur
 def main():
     parser = argparse.ArgumentParser(
         description="Configuring runtime.")
-    parser.add_argument('--head', action='store_true', default=False,
-                        help='Configuring for head node.')
+    parser.add_argument(
+        '--head', action='store_true', default=False,
+        help='Configuring for head node.')
     args = parser.parse_args()
 
     # Configure the server ensemble

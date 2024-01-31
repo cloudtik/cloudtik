@@ -46,13 +46,15 @@ def update_configurations():
     # Read in the existing configurations
     home_dir = _get_home_dir()
     server_properties_file = os.path.join(home_dir, "conf", "zoo.cfg")
-    server_properties, comments = load_properties_file(server_properties_file)
+    server_properties, comments = load_properties_file(
+        server_properties_file)
 
     # Merge with the user configurations
     server_properties.update(server_config)
 
     # Write back the configuration file
-    save_properties_file(server_properties_file, server_properties, comments=comments)
+    save_properties_file(
+        server_properties_file, server_properties, comments=comments)
 
 
 def configure_server_ensemble(nodes_info: Dict[str, Any]):
@@ -161,7 +163,8 @@ def _try_member_add(endpoint, zk_cli, server_to_add):
                 if "No quorum of new config is connected" in output_str:
                     # only retry for waiting for quorum
                     if retries == 0:
-                        raise NoQuorumError("No quorum of new config is connected")
+                        raise NoQuorumError(
+                            "No quorum of new config is connected")
                     print(
                         "No quorum of new config is connected. "
                         "Waiting {} seconds and retrying...".format(

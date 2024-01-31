@@ -6,8 +6,9 @@ from cloudtik.runtime.flink.scripting import update_flink_configurations
 def main():
     parser = argparse.ArgumentParser(
         description="Configuring runtime.")
-    parser.add_argument('--head', action='store_true', default=False,
-                        help='Configuring for head node.')
+    parser.add_argument(
+        '--head', action='store_true', default=False,
+        help='Configuring for head node.')
     args = parser.parse_args()
     if args.head:
         # Update flink configuration from cluster config file
