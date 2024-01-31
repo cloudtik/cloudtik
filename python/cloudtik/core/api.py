@@ -387,7 +387,8 @@ class Cluster:
             worker_type: Optional[str] = None,
             resources: Optional[Dict[str, int]] = None,
             up_only: bool = False,
-            bundles: Optional[List[dict]] = None) -> None:
+            bundles: Optional[List[dict]] = None,
+            override: bool = False) -> None:
         """Reqeust to scale to accommodate the specified requests.
 
         The cluster will immediately attempt to scale to accommodate the requested
@@ -418,6 +419,7 @@ class Cluster:
                 call to request_resources() is made to override. For example:
                 bundles=[{"GPU": 1, "CPU": 4}, {"GPU": 1, "CPU": 4}]
             up_only (bool): Whether scale up only, no scale down.
+            override (bool): Whether this requests override all the existing resource requests.
         """
         return cluster_operator._scale_cluster(
             config=self.config,
@@ -428,7 +430,8 @@ class Cluster:
             worker_type=worker_type,
             resources=resources,
             bundles=bundles,
-            up_only=up_only)
+            up_only=up_only,
+            override=override)
 
     def start_node(
             self,
@@ -760,7 +763,8 @@ class ThisCluster:
             worker_type: Optional[str] = None,
             resources: Optional[Dict[str, int]] = None,
             up_only: bool = False,
-            bundles: Optional[List[dict]] = None) -> None:
+            bundles: Optional[List[dict]] = None,
+            override: bool = False,) -> None:
         """Reqeust to scale to accommodate the specified requests.
 
         The cluster will immediately attempt to scale to accommodate the requested
@@ -792,6 +796,7 @@ class ThisCluster:
                 call to request_resources() is made to override. For example:
                 bundles=[{"GPU": 1, "CPU": 4}, {"GPU": 1, "CPU": 4}]
             up_only (bool): Whether scale up only, no scale down.
+            override (bool): Whether this requests override all the existing resource requests.
         """
         return cluster_operator._scale_cluster_on_head(
             config=self.config,
@@ -802,7 +807,8 @@ class ThisCluster:
             worker_type=worker_type,
             resources=resources,
             bundles=bundles,
-            up_only=up_only)
+            up_only=up_only,
+            override=override)
 
     def start_node(
             self,

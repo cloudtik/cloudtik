@@ -387,7 +387,7 @@ class ScalingWithTime(ScalingWithResources):
     def _get_resource_requests_for(self, number_of_nodes):
         if not self.node_type:
             requested_cores = self.get_number_of_cores_to_scale(number_of_nodes)
-            return get_resource_requests_for_cpu(requested_cores, self.config)
+            return get_resource_requests_for_cpu(self.config, requested_cores)
         else:
             # request the number of nodes of this node type
             # note this is different from resource demands which is incremental
@@ -398,7 +398,7 @@ class ScalingWithTime(ScalingWithResources):
             # including other worker node types. Otherwise, the resource request
             # for other worker node types will be overriden.
             return get_resource_requests_for(
-                requested_nodes, self.config, self.node_type, requested_nodes)
+                self.config, self.node_type, requested_nodes)
 
     def get_number_of_cores_to_scale(self, nodes):
         if not nodes:

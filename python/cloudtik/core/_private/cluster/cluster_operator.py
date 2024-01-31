@@ -91,6 +91,8 @@ from cloudtik.core._private.utils import hash_runtime_conf, \
     _get_workers_ready, HeadNotHealthyError
 from cloudtik.core.job_waiter import JobWaiter
 from cloudtik.core.node_provider import NodeProvider
+from cloudtik.core.scaling_policy import SCALING_RESOURCE_REQUEST_REQUESTS, SCALING_RESOURCE_REQUEST_TIME, \
+    SCALING_RESOURCE_REQUEST_OVERRIDE
 from cloudtik.core.tags import (
     CLOUDTIK_TAG_NODE_KIND, CLOUDTIK_TAG_LAUNCH_CONFIG, CLOUDTIK_TAG_NODE_NAME,
     NODE_KIND_WORKER, NODE_KIND_HEAD, CLOUDTIK_TAG_USER_NODE_TYPE,
@@ -167,12 +169,13 @@ def request_resources(
         num_gpus: Optional[int] = None,
         resources: Optional[Dict[str, int]] = None,
         bundles: Optional[List[dict]] = None,
+        override: bool = False,
         config: Dict[str, Any] = None) -> None:
     to_request = []
-    if num_cpus:
+    if num_cpus is not None:
         to_request += get_resource_requests_for(
             config, constants.CLOUDTIK_RESOURCE_CPU, num_cpus)
-    if num_gpus:
+    if num_gpus is not None:
         to_request += get_resource_requests_for(
             config, constants.CLOUDTIK_RESOURCE_GPU, num_gpus)
     if resources:
@@ -182,12 +185,14 @@ def request_resources(
 
     # Including of the existing resource requests of the resource type which
     # is not included in this request is handled by cluster scaler.
-    _request_resources(resources=to_request, bundles=bundles)
+    _request_resources(
+        resources=to_request, bundles=bundles, override=override)
 
 
 def _request_resources(
         resources: Optional[List[dict]] = None,
-        bundles: Optional[List[dict]] = None) -> None:
+        bundles: Optional[List[dict]] = None,
+        override: bool = False) -> None:
     """Remotely request some CPU or GPU resources from the cluster scaler.
 
     This function is to be called e.g. on a node before submitting a bunch of
@@ -200,6 +205,7 @@ def _request_resources(
         bundles (List[ResourceDict]): Scale the cluster to ensure this set of
             resource shapes can fit. This request is persistent until another
             call to request_resources() is made.
+        override (bool): Whether this requests override all the existing resource requests.
     """
     to_request = []
     if resources:
@@ -208,9 +214,11 @@ def _request_resources(
         to_request += bundles
     request_time = time.time()
     resource_requests = {
-        "request_time": request_time,
-        "requests": to_request
+        SCALING_RESOURCE_REQUEST_TIME: request_time,
+        SCALING_RESOURCE_REQUEST_REQUESTS: to_request
     }
+    if override:
+        resource_requests[SCALING_RESOURCE_REQUEST_OVERRIDE] = override
     kv_put(
         CLOUDTIK_RESOURCE_REQUESTS,
         json.dumps(resource_requests),
@@ -3789,13 +3797,14 @@ def _get_scale_resource_desc(
         return resource_string
 
     resource_desc = ""
-    if cpus:
+    # The resource amount allows to be 0
+    if cpus is not None:
         resource_desc = append_resource_item(
             resource_desc, f"{cpus} worker CPUs")
-    if gpus:
+    if gpus is not None:
         resource_desc = append_resource_item(
             resource_desc, f"{gpus} worker GPUs")
-    if workers:
+    if workers is not None:
         resource_desc = append_resource_item(
             resource_desc,
             f"{workers} {worker_type} workers" if worker_type else f"{workers} workers")
@@ -3815,7 +3824,8 @@ def scale_cluster(
         workers: int, worker_type: Optional[str] = None,
         resources: Optional[Dict[str, int]] = None,
         bundles: Optional[List[dict]] = None,
-        up_only: bool = False):
+        up_only: bool = False,
+        override: bool = False):
     config = _load_cluster_config(config_file, override_cluster_name)
     call_context = cli_call_context()
     resource_desc = _get_scale_resource_desc(
@@ -3839,7 +3849,8 @@ def scale_cluster(
         workers=workers, worker_type=worker_type,
         resources=resources,
         bundles=bundles,
-        up_only=up_only)
+        up_only=up_only,
+        override=override)
 
 
 def _check_scale_parameters(
@@ -3847,7 +3858,11 @@ def _check_scale_parameters(
     resources: Optional[Dict[str, int]] = None,
     bundles: Optional[List[dict]] = None,
 ):
-    if not (cpus or gpus or workers or resources or bundles):
+    if not (cpus is not None
+            or gpus is not None
+            or workers is not None
+            or resources
+            or bundles):
         raise ValueError(
             "Need specify either 'cpus', `gpus`, `workers`, `resources` or `bundles`.")
 
@@ -3859,7 +3874,8 @@ def _scale_cluster(
         worker_type: Optional[str] = None,
         resources: Optional[Dict[str, int]] = None,
         bundles: Optional[List[dict]] = None,
-        up_only: bool = False):
+        up_only: bool = False,
+        override: bool = False):
     _check_scale_parameters(
         cpus=cpus, gpus=gpus,
         workers=workers,
@@ -3875,7 +3891,8 @@ def _scale_cluster(
         workers=workers, worker_type=worker_type,
         resources=resources,
         bundles=bundles,
-        up_only=up_only)
+        up_only=up_only,
+        override=override)
 
 
 def scale_cluster_from_head(
@@ -3885,7 +3902,8 @@ def scale_cluster_from_head(
         workers: int = None, worker_type: Optional[str] = None,
         resources: Optional[Dict[str, int]] = None,
         bundles: Optional[List[dict]] = None,
-        up_only: bool = False):
+        up_only: bool = False,
+        override: bool = False):
     # Make a request to head to scale the cluster
     cmds = [
         "cloudtik",
@@ -3893,11 +3911,11 @@ def scale_cluster_from_head(
         "scale",
         "--yes",
     ]
-    if cpus:
+    if cpus is not None:
         cmds += ["--cpus={}".format(cpus)]
-    if gpus:
+    if gpus is not None:
         cmds += ["--gpus={}".format(gpus)]
-    if workers:
+    if workers is not None:
         cmds += ["--workers={}".format(workers)]
     if worker_type:
         cmds += ["--worker-type={}".format(worker_type)]
@@ -3912,6 +3930,8 @@ def scale_cluster_from_head(
             quote(bundles_json))]
     if up_only:
         cmds += ["--up-only"]
+    if override:
+        cmds += ["--override"]
 
     with_verbose_option(cmds, call_context)
     final_cmd = " ".join(cmds)
@@ -3928,7 +3948,8 @@ def scale_cluster_on_head(
         workers: int, worker_type: Optional[str] = None,
         resources: Optional[Dict[str, int]] = None,
         bundles: Optional[List[dict]] = None,
-        up_only: bool = False):
+        up_only: bool = False,
+        override: bool = False):
     config = load_head_cluster_config()
     call_context = cli_call_context()
     if not yes:
@@ -3955,7 +3976,8 @@ def scale_cluster_on_head(
         worker_type=worker_type,
         resources=resources,
         bundles=bundles,
-        up_only=up_only
+        up_only=up_only,
+        override=override,
     )
 
 
@@ -3968,7 +3990,8 @@ def _scale_cluster_on_head(
         worker_type: Optional[str] = None,
         resources: Optional[Dict[str, int]] = None,
         bundles: Optional[List[dict]] = None,
-        up_only: bool = False):
+        up_only: bool = False,
+        override: bool = False):
     _check_scale_parameters(
         cpus=cpus, gpus=gpus,
         workers=workers,
@@ -3978,16 +4001,13 @@ def _scale_cluster_on_head(
 
     all_resources = {}
     # Calculate nodes request to the number of cpus
-    if workers:
+    if workers is not None:
         # if nodes specified, we need to check there is only one worker type defined
         if not worker_type:
             worker_type = check_for_single_worker_type(config)
 
         resource_amount = convert_nodes_to_resource(
             config, workers, worker_type, worker_type)
-        if not resource_amount:
-            raise RuntimeError(
-                "Not be able to convert number of workers to worker node resources.")
         all_resources[worker_type] = resource_amount
     if resources:
         all_resources.update(resources)
@@ -4011,6 +4031,7 @@ def _scale_cluster_on_head(
         num_cpus=cpus, num_gpus=gpus,
         resources=all_resources,
         bundles=bundles,
+        override=override,
         config=config)
 
     cli_logger.print(
@@ -4022,7 +4043,7 @@ def _get_resource_requests():
     if data:
         try:
             resource_requests = json.loads(data)
-            requests = resource_requests.get("requests")
+            requests = resource_requests.get(SCALING_RESOURCE_REQUEST_REQUESTS)
             return requests
         except Exception:
             # improve to handle error
