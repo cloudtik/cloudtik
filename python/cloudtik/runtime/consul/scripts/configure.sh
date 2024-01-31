@@ -15,11 +15,11 @@ CONSUL_HOME=$RUNTIME_PATH/consul
 . "$ROOT_DIR"/common/scripts/util-functions.sh
 
 prepare_base_conf() {
-    source_dir=$(dirname "${BIN_DIR}")/conf
-    output_dir=/tmp/consul/conf
-    rm -rf  $output_dir
-    mkdir -p $output_dir
-    cp -r $source_dir/* $output_dir
+    OUTPUT_DIR=/tmp/consul/conf
+    local source_dir=$(dirname "${BIN_DIR}")/conf
+    rm -rf  ${OUTPUT_DIR}
+    mkdir -p ${OUTPUT_DIR}
+    cp -r $source_dir/* ${OUTPUT_DIR}
 }
 
 check_consul_installed() {
@@ -39,7 +39,7 @@ update_consul_data_dir() {
     fi
 
     mkdir -p ${consul_data_dir}
-    sed -i "s!{%data.dir%}!${consul_data_dir}!g" ${consul_output_dir}/consul.json
+    sed -i "s!{%data.dir%}!${consul_data_dir}!g" ${CONSUL_OUTPUT_DIR}/consul.json
 }
 
 update_ui_config() {
@@ -48,12 +48,12 @@ update_ui_config() {
     else
         UI_ENABLED=false
     fi
-    sed -i "s!{%ui.enabled%}!${UI_ENABLED}!g" ${consul_output_dir}/server.json
+    sed -i "s!{%ui.enabled%}!${UI_ENABLED}!g" ${CONSUL_OUTPUT_DIR}/server.json
 }
 
 configure_consul() {
     prepare_base_conf
-    consul_output_dir=$output_dir/consul
+    CONSUL_OUTPUT_DIR=${OUTPUT_DIR}/consul
 
     mkdir -p ${CONSUL_HOME}/logs
 
@@ -62,8 +62,8 @@ configure_consul() {
     if [ ! -z "${CONSUL_DATA_CENTER}" ]; then
         DATA_CENTER=${CONSUL_DATA_CENTER}
     fi
-    sed -i "s!{%data.center%}!${DATA_CENTER}!g" ${consul_output_dir}/consul.json
-    sed -i "s!{%bind.address%}!${NODE_IP_ADDRESS}!g" ${consul_output_dir}/consul.json
+    sed -i "s!{%data.center%}!${DATA_CENTER}!g" ${CONSUL_OUTPUT_DIR}/consul.json
+    sed -i "s!{%bind.address%}!${NODE_IP_ADDRESS}!g" ${CONSUL_OUTPUT_DIR}/consul.json
 
     if [ "${CONSUL_SERVER}" == "true" ]; then
         # client address bind to both node ip and local host
@@ -72,23 +72,23 @@ configure_consul() {
         # bind to local host for client
         CLIENT_ADDRESS="127.0.0.1"
     fi
-    sed -i "s!{%client.address%}!${CLIENT_ADDRESS}!g" ${consul_output_dir}/consul.json
+    sed -i "s!{%client.address%}!${CLIENT_ADDRESS}!g" ${CONSUL_OUTPUT_DIR}/consul.json
 
     update_consul_data_dir
 
     if [ "${CONSUL_SERVER}" == "true" ]; then
         # Server agent configuration
-        sed -i "s!{%number.servers%}!${CONSUL_NUM_SERVERS}!g" ${consul_output_dir}/server.json
+        sed -i "s!{%number.servers%}!${CONSUL_NUM_SERVERS}!g" ${CONSUL_OUTPUT_DIR}/server.json
         update_ui_config
     fi
 
     CONSUL_CONFIG_DIR=${CONSUL_HOME}/consul.d
     mkdir -p ${CONSUL_CONFIG_DIR}
-    cp -r ${consul_output_dir}/consul.json ${CONSUL_CONFIG_DIR}/consul.json
+    cp -r ${CONSUL_OUTPUT_DIR}/consul.json ${CONSUL_CONFIG_DIR}/consul.json
     chmod 640 ${CONSUL_CONFIG_DIR}/consul.json
 
     if [ "${CONSUL_SERVER}" == "true" ]; then
-        cp -r ${consul_output_dir}/server.json ${CONSUL_CONFIG_DIR}/server.json
+        cp -r ${CONSUL_OUTPUT_DIR}/server.json ${CONSUL_CONFIG_DIR}/server.json
         chmod 640 ${CONSUL_CONFIG_DIR}/server.json
     fi
 }

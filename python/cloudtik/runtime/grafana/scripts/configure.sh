@@ -15,11 +15,11 @@ GRAFANA_HOME=$RUNTIME_PATH/grafana
 . "$ROOT_DIR"/common/scripts/util-functions.sh
 
 prepare_base_conf() {
-    source_dir=$(dirname "${BIN_DIR}")/conf
-    output_dir=/tmp/grafana/conf
-    rm -rf  $output_dir
-    mkdir -p $output_dir
-    cp -r $source_dir/* $output_dir
+    OUTPUT_DIR=/tmp/grafana/conf
+    local source_dir=$(dirname "${BIN_DIR}")/conf
+    rm -rf  ${OUTPUT_DIR}
+    mkdir -p ${OUTPUT_DIR}
+    cp -r $source_dir/* ${OUTPUT_DIR}
 }
 
 check_grafana_installed() {
@@ -50,8 +50,7 @@ get_data_dir() {
 
 configure_grafana() {
     prepare_base_conf
-    grafana_output_dir=$output_dir
-    config_template_file=${output_dir}/grafana.ini
+    CONFIG_TEMPLATE_FILE=${OUTPUT_DIR}/grafana.ini
 
     mkdir -p ${GRAFANA_HOME}/logs
     mkdir -p ${GRAFANA_HOME}/plugins
@@ -59,24 +58,24 @@ configure_grafana() {
     GRAFANA_CONFIG_DIR=${GRAFANA_HOME}/conf
     mkdir -p ${GRAFANA_CONFIG_DIR}
 
-    sed -i "s#{%server.address%}#${NODE_IP_ADDRESS}#g" ${config_template_file}
+    sed -i "s#{%server.address%}#${NODE_IP_ADDRESS}#g" ${CONFIG_TEMPLATE_FILE}
 
     local SERVER_PORT=$(get_service_port)
-    sed -i "s#{%server.port%}#${SERVER_PORT}#g" ${config_template_file}
+    sed -i "s#{%server.port%}#${SERVER_PORT}#g" ${CONFIG_TEMPLATE_FILE}
 
     local DATA_DIR=$(get_data_dir)
-    sed -i "s#{%data.dir%}#${DATA_DIR}#g" ${config_template_file}
+    sed -i "s#{%data.dir%}#${DATA_DIR}#g" ${CONFIG_TEMPLATE_FILE}
 
     local LOG_DIR=${GRAFANA_HOME}/logs
-    sed -i "s#{%logs.dir%}#${LOG_DIR}#g" ${config_template_file}
+    sed -i "s#{%logs.dir%}#${LOG_DIR}#g" ${CONFIG_TEMPLATE_FILE}
 
     local PLUGINS_DIR=${GRAFANA_HOME}/plugins
-    sed -i "s#{%plugins.dir%}#${PLUGINS_DIR}#g" ${config_template_file}
+    sed -i "s#{%plugins.dir%}#${PLUGINS_DIR}#g" ${CONFIG_TEMPLATE_FILE}
 
     local PROVISIONING_DIR=${GRAFANA_HOME}/conf/provisioning
-    sed -i "s#{%provisioning.dir%}#${PROVISIONING_DIR}#g" ${config_template_file}
+    sed -i "s#{%provisioning.dir%}#${PROVISIONING_DIR}#g" ${CONFIG_TEMPLATE_FILE}
 
-    cp -r ${config_template_file} ${GRAFANA_CONFIG_DIR}/grafana.ini
+    cp -r ${CONFIG_TEMPLATE_FILE} ${GRAFANA_CONFIG_DIR}/grafana.ini
 }
 
 set_head_option "$@"

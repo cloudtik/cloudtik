@@ -20,11 +20,11 @@ MLFLOW_ARTIFACT_PATH=shared/mlflow
 . "$ROOT_DIR"/common/scripts/util-functions.sh
 
 prepare_base_conf() {
-    source_dir=$(dirname "${BIN_DIR}")/conf
-    output_dir=/tmp/ai/conf
-    rm -rf  $output_dir
-    mkdir -p $output_dir
-    cp -r $source_dir/* $output_dir
+    OUTPUT_DIR=/tmp/ai/conf
+    local source_dir=$(dirname "${BIN_DIR}")/conf
+    rm -rf  ${OUTPUT_DIR}
+    mkdir -p ${OUTPUT_DIR}
+    cp -r $source_dir/* ${OUTPUT_DIR}
 }
 
 configure_system_folders() {
@@ -118,13 +118,13 @@ update_mlflow_server_config() {
     set_backend_store_uri
     set_default_artifact_root
 
-    sed -i "s#{%backend.store.uri%}#${BACKEND_STORE_URI}#g" ${output_dir}/mlflow
-    sed -i "s#{%default.artifact.root%}#${DEFAULT_ARTIFACT_ROOT}#g" ${output_dir}/mlflow
+    sed -i "s#{%backend.store.uri%}#${BACKEND_STORE_URI}#g" ${OUTPUT_DIR}/mlflow
+    sed -i "s#{%default.artifact.root%}#${DEFAULT_ARTIFACT_ROOT}#g" ${OUTPUT_DIR}/mlflow
 }
 
 patch_libraries() {
     HOROVOD_PYTHON_HOME="${ROOT_DIR}/../../horovod"
-    local PATCHES_DIR=$output_dir/patches
+    local PATCHES_DIR=${OUTPUT_DIR}/patches
 
     # Fix the Horovod on Spark bug for handling network interfaces of loopback
     HOROVOD_SPARK_GLOO_RUN_FILE="${HOROVOD_PYTHON_HOME}/spark/gloo_run.py"
@@ -238,7 +238,7 @@ patch_libraries() {
 configure_ai() {
     # Do necessary configurations for AI runtime
     prepare_base_conf
-    cd $output_dir
+    cd ${OUTPUT_DIR}
 
     MLFLOW_CONF_DIR=${MLFLOW_HOME}/conf
     mkdir -p ${MLFLOW_CONF_DIR}
@@ -246,7 +246,7 @@ configure_ai() {
     update_mlflow_server_config
     update_api_credential_for_provider
 
-    cp $output_dir/mlflow ${MLFLOW_CONF_DIR}/mlflow
+    cp ${OUTPUT_DIR}/mlflow ${MLFLOW_CONF_DIR}/mlflow
 
     patch_libraries
 }

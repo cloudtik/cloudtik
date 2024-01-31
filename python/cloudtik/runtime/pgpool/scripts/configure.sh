@@ -18,11 +18,11 @@ PGPOOL_HOME=$RUNTIME_PATH/pgpool
 . "$BIN_DIR"/pgpool.sh
 
 prepare_base_conf() {
-    source_dir=$(dirname "${BIN_DIR}")/conf
-    output_dir=/tmp/pgpool/conf
-    rm -rf  $output_dir
-    mkdir -p $output_dir
-    cp -r $source_dir/* $output_dir
+    OUTPUT_DIR=/tmp/pgpool/conf
+    local source_dir=$(dirname "${BIN_DIR}")/conf
+    rm -rf  ${OUTPUT_DIR}
+    mkdir -p ${OUTPUT_DIR}
+    cp -r $source_dir/* ${OUTPUT_DIR}
 }
 
 check_pgpool_installed() {
@@ -36,7 +36,7 @@ check_pgpool_installed() {
 update_place_holder() {
     local -r text_place_holder="${1:?text place holder is required}"
     local -r text_value="${2:-}"
-    update_in_file "${config_template_file}" "{%${text_place_holder}%}" "${text_value}"
+    update_in_file "${CONFIG_TEMPLATE_FILE}" "{%${text_place_holder}%}" "${text_value}"
 }
 
 configure_variable() {
@@ -67,8 +67,7 @@ configure_service_init() {
 
 configure_pgpool() {
     prepare_base_conf
-    pgpool_output_dir=$output_dir
-    config_template_file=${output_dir}/pgpool.conf
+    CONFIG_TEMPLATE_FILE=${OUTPUT_DIR}/pgpool.conf
 
     mkdir -p ${PGPOOL_HOME}/logs
     mkdir -p ${PGPOOL_HOME}/run
@@ -91,12 +90,12 @@ configure_pgpool() {
     update_place_holder "health.check.user" "${PGPOOL_REPLICATION_USER}"
     update_place_holder "health.check.password" "${PGPOOL_REPLICATION_PASSWORD}"
 
-    cp $config_template_file ${PGPOOL_CONFIG_DIR}/pgpool.conf
+    cp $CONFIG_TEMPLATE_FILE ${PGPOOL_CONFIG_DIR}/pgpool.conf
     # make it owner only read/write for security
     chmod 0600 "${PGPOOL_CONFIG_DIR}/pgpool.conf"
 
-    cp $output_dir/pcp.conf ${PGPOOL_CONFIG_DIR}/pcp.conf
-    cp $output_dir/pool_hba.conf ${PGPOOL_CONFIG_DIR}/pool_hba.conf
+    cp ${OUTPUT_DIR}/pcp.conf ${PGPOOL_CONFIG_DIR}/pcp.conf
+    cp ${OUTPUT_DIR}/pool_hba.conf ${PGPOOL_CONFIG_DIR}/pool_hba.conf
 
     # Set variables for export to postgres-init.sh
     configure_service_init

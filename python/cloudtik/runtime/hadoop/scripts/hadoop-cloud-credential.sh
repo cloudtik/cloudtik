@@ -237,7 +237,7 @@ update_cloud_storage_credential_config() {
         HADOOP_CREDENTIAL_NAME=credential.jceks
     fi
     HADOOP_CREDENTIAL_FILE="${HADOOP_CREDENTIAL_HOME}/${HADOOP_CREDENTIAL_NAME}"
-    HADOOP_CREDENTIAL_TMP_FILE="${output_dir}/${HADOOP_CREDENTIAL_NAME}"
+    HADOOP_CREDENTIAL_TMP_FILE="${OUTPUT_DIR}/${HADOOP_CREDENTIAL_NAME}"
     HADOOP_CREDENTIAL_TMP_PROVIDER_PATH="jceks://file@${HADOOP_CREDENTIAL_TMP_FILE}"
 
     # update hadoop credential config
@@ -256,7 +256,7 @@ update_minio_storage_credential_config() {
         HADOOP_CREDENTIAL_NAME=credential.jceks
     fi
     HADOOP_CREDENTIAL_FILE="${HADOOP_CREDENTIAL_HOME}/${HADOOP_CREDENTIAL_NAME}"
-    HADOOP_CREDENTIAL_TMP_FILE="${output_dir}/${HADOOP_CREDENTIAL_NAME}"
+    HADOOP_CREDENTIAL_TMP_FILE="${OUTPUT_DIR}/${HADOOP_CREDENTIAL_NAME}"
     HADOOP_CREDENTIAL_TMP_PROVIDER_PATH="jceks://file@${HADOOP_CREDENTIAL_TMP_FILE}"
 
     # update hadoop credential config

@@ -13,11 +13,11 @@ USER_HOME=/home/$(whoami)
 . "$ROOT_DIR"/common/scripts/util-functions.sh
 
 prepare_base_conf() {
-    source_dir=$(dirname "${BIN_DIR}")/conf
-    output_dir=/tmp/hdfs/conf
-    rm -rf  $output_dir
-    mkdir -p $output_dir
-    cp -r $source_dir/* $output_dir
+    OUTPUT_DIR=/tmp/hdfs/conf
+    local source_dir=$(dirname "${BIN_DIR}")/conf
+    rm -rf  ${OUTPUT_DIR}
+    mkdir -p ${OUTPUT_DIR}
+    cp -r $source_dir/* ${OUTPUT_DIR}
 }
 
 check_hadoop_installed() {
@@ -106,8 +106,8 @@ configure_hdfs() {
     prepare_base_conf
     mkdir -p ${HADOOP_HOME}/logs
 
-    CORE_SITE_CONFIG=${output_dir}/hadoop/core-site.xml
-    HDFS_SITE_CONFIG=${output_dir}/hadoop/hdfs-site.xml
+    CORE_SITE_CONFIG=${OUTPUT_DIR}/hadoop/core-site.xml
+    HDFS_SITE_CONFIG=${OUTPUT_DIR}/hadoop/hdfs-site.xml
 
     fs_default_dir="hdfs://${HEAD_HOST_ADDRESS}:${HDFS_SERVICE_PORT}"
     sed -i "s!{%fs.default.name%}!${fs_default_dir}!g" ${CORE_SITE_CONFIG}

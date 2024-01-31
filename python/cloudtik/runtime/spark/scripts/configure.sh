@@ -14,11 +14,11 @@ RUNTIME_PATH=$USER_HOME/runtime
 . "$ROOT_DIR"/common/scripts/util-functions.sh
 
 prepare_base_conf() {
-    source_dir=$(dirname "${BIN_DIR}")/conf
-    output_dir=/tmp/spark/conf
-    rm -rf  $output_dir
-    mkdir -p $output_dir
-    cp -r $source_dir/* $output_dir
+    OUTPUT_DIR=/tmp/spark/conf
+    local source_dir=$(dirname "${BIN_DIR}")/conf
+    rm -rf  ${OUTPUT_DIR}
+    mkdir -p ${OUTPUT_DIR}
+    cp -r $source_dir/* ${OUTPUT_DIR}
 }
 
 check_spark_installed() {
@@ -134,7 +134,7 @@ configure_spark_shuffle() {
 
 configure_spark() {
     prepare_base_conf
-    SPARK_DEFAULTS=${output_dir}/spark/spark-defaults.conf
+    SPARK_DEFAULTS=${OUTPUT_DIR}/spark/spark-defaults.conf
 
     configure_spark_shuffle
     update_spark_runtime_config
@@ -144,7 +144,7 @@ configure_spark() {
 
     if [ $IS_HEAD_NODE == "true" ];then
         update_metastore_config
-        cp -r ${output_dir}/spark/* ${SPARK_HOME}/conf
+        cp -r ${OUTPUT_DIR}/spark/* ${SPARK_HOME}/conf
     fi
 }
 

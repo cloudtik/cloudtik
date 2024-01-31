@@ -14,11 +14,11 @@ RUNTIME_PATH=$USER_HOME/runtime
 . "$ROOT_DIR"/common/scripts/util-functions.sh
 
 prepare_base_conf() {
-    source_dir=$(dirname "${BIN_DIR}")/conf
-    output_dir=/tmp/flink/conf
-    rm -rf  $output_dir
-    mkdir -p $output_dir
-    cp -r $source_dir/* $output_dir
+    OUTPUT_DIR=/tmp/flink/conf
+    local source_dir=$(dirname "${BIN_DIR}")/conf
+    rm -rf  ${OUTPUT_DIR}
+    mkdir -p ${OUTPUT_DIR}
+    cp -r $source_dir/* ${OUTPUT_DIR}
 }
 
 check_flink_installed() {
@@ -117,7 +117,7 @@ update_metastore_config() {
 
 configure_flink() {
     prepare_base_conf
-    FLINK_CONFIG_FILE=${output_dir}/flink/flink-conf.yaml
+    FLINK_CONFIG_FILE=${OUTPUT_DIR}/flink/flink-conf.yaml
 
     update_flink_runtime_config
     update_flink_local_dir
@@ -125,7 +125,7 @@ configure_flink() {
 
     if [ $IS_HEAD_NODE == "true" ];then
         update_metastore_config
-        cp -r ${output_dir}/flink/* ${FLINK_HOME}/conf
+        cp -r ${OUTPUT_DIR}/flink/* ${FLINK_HOME}/conf
     fi
 }
 

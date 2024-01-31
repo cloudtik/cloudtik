@@ -15,11 +15,11 @@ ETCD_HOME=$RUNTIME_PATH/etcd
 . "$ROOT_DIR"/common/scripts/util-functions.sh
 
 prepare_base_conf() {
-    source_dir=$(dirname "${BIN_DIR}")/conf
-    output_dir=/tmp/etcd/conf
-    rm -rf  $output_dir
-    mkdir -p $output_dir
-    cp -r $source_dir/* $output_dir
+    OUTPUT_DIR=/tmp/etcd/conf
+    local source_dir=$(dirname "${BIN_DIR}")/conf
+    rm -rf  ${OUTPUT_DIR}
+    mkdir -p ${OUTPUT_DIR}
+    cp -r $source_dir/* ${OUTPUT_DIR}
 }
 
 check_etcd_installed() {
@@ -39,7 +39,7 @@ update_data_dir() {
     fi
 
     mkdir -p ${data_dir}
-    sed -i "s#{%data.dir%}#${data_dir}#g" ${config_template_file}
+    sed -i "s#{%data.dir%}#${data_dir}#g" ${CONFIG_TEMPLATE_FILE}
 }
 
 configure_etcd() {
@@ -48,30 +48,30 @@ configure_etcd() {
     ETC_LOG_DIR=${ETCD_HOME}/logs
     mkdir -p ${ETC_LOG_DIR}
 
-    config_template_file=${output_dir}/etcd.yaml
-    sed -i "s#{%node.ip%}#${NODE_IP_ADDRESS}#g" ${config_template_file}
-    sed -i "s#{%node.host%}#${NODE_HOST_ADDRESS}#g" ${config_template_file}
+    CONFIG_TEMPLATE_FILE=${OUTPUT_DIR}/etcd.yaml
+    sed -i "s#{%node.ip%}#${NODE_IP_ADDRESS}#g" ${CONFIG_TEMPLATE_FILE}
+    sed -i "s#{%node.host%}#${NODE_HOST_ADDRESS}#g" ${CONFIG_TEMPLATE_FILE}
 
     NODE_NAME="server${CLOUDTIK_NODE_SEQ_ID}"
-    sed -i "s#{%node.name%}#${NODE_NAME}#g" ${config_template_file}
+    sed -i "s#{%node.name%}#${NODE_NAME}#g" ${CONFIG_TEMPLATE_FILE}
 
     update_data_dir
 
     ETC_LOG_FILE=${ETC_LOG_DIR}/etcd-server.log
-    sed -i "s#{%log.file%}#${ETC_LOG_FILE}#g" ${config_template_file}
+    sed -i "s#{%log.file%}#${ETC_LOG_FILE}#g" ${CONFIG_TEMPLATE_FILE}
 
-    sed -i "s#{%initial.cluster.token%}#${ETCD_CLUSTER_NAME}#g" ${config_template_file}
+    sed -i "s#{%initial.cluster.token%}#${ETCD_CLUSTER_NAME}#g" ${CONFIG_TEMPLATE_FILE}
 
     if [ "${CLOUDTIK_NODE_QUORUM_JOIN}" == "init" ]; then
         INITIAL_CLUSTER_STATE=existing
     else
         INITIAL_CLUSTER_STATE=new
     fi
-    sed -i "s#{%initial.cluster.state%}#${INITIAL_CLUSTER_STATE}#g" ${config_template_file}
+    sed -i "s#{%initial.cluster.state%}#${INITIAL_CLUSTER_STATE}#g" ${CONFIG_TEMPLATE_FILE}
 
     ETCD_CONFIG_DIR=${ETCD_HOME}/conf
     mkdir -p ${ETCD_CONFIG_DIR}
-    cp -r ${config_template_file} ${ETCD_CONFIG_DIR}/etcd.yaml
+    cp -r ${CONFIG_TEMPLATE_FILE} ${ETCD_CONFIG_DIR}/etcd.yaml
 }
 
 set_head_option "$@"

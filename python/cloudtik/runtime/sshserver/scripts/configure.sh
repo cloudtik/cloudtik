@@ -19,11 +19,11 @@ SSH_DEFAULT_PRIVATE_KEY_FILE=${SSH_CONFIG_HOME}/id_rsa
 BOOTSTRAP_PRIVATE_KEY_FILE=${USER_HOME}/cloudtik_bootstrap_key.pem
 
 prepare_base_conf() {
-    source_dir=$(dirname "${BIN_DIR}")/conf
-    output_dir=/tmp/ssh_server/conf
-    rm -rf  $output_dir
-    mkdir -p $output_dir
-    cp -r $source_dir/* $output_dir
+    OUTPUT_DIR=/tmp/ssh_server/conf
+    local source_dir=$(dirname "${BIN_DIR}")/conf
+    rm -rf  ${OUTPUT_DIR}
+    mkdir -p ${OUTPUT_DIR}
+    cp -r $source_dir/* ${OUTPUT_DIR}
 }
 
 configure_ssh_server() {
@@ -42,7 +42,7 @@ configure_ssh_server() {
         sudo chmod 600 ${SSH_AUTHORIZED_KEYS_FILE}
     fi
 
-    cp ${output_dir}/sshd_config ${SSH_SSHD_CONFIG_FILE}
+    cp ${OUTPUT_DIR}/sshd_config ${SSH_SSHD_CONFIG_FILE}
 
     if [ "$IS_HEAD_NODE" == "true" ]; then
         # for head, configure the private key as the default key to login ~/.ssh/id_rsa

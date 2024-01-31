@@ -22,11 +22,11 @@ check_minio_installed() {
 }
 
 prepare_base_conf() {
-    source_dir=$(dirname "${BIN_DIR}")/conf
-    output_dir=/tmp/minio/conf
-    rm -rf  $output_dir
-    mkdir -p $output_dir
-    cp -r $source_dir/* $output_dir
+    OUTPUT_DIR=/tmp/minio/conf
+    local source_dir=$(dirname "${BIN_DIR}")/conf
+    rm -rf  ${OUTPUT_DIR}
+    mkdir -p ${OUTPUT_DIR}
+    cp -r $source_dir/* ${OUTPUT_DIR}
 }
 
 prepare_data_disks() {
@@ -59,7 +59,7 @@ prepare_data_disks() {
 
 configure_minio() {
     prepare_base_conf
-    config_template_file=${output_dir}/minio
+    CONFIG_TEMPLATE_FILE=${OUTPUT_DIR}/minio
 
     mkdir -p ${MINIO_HOME}/conf
     mkdir -p ${MINIO_HOME}/logs
@@ -68,12 +68,12 @@ configure_minio() {
         || [ "${MINIO_SERVICE_ON_HEAD}" != "false" ]; then
         prepare_data_disks
 
-        sed -i "s#{%bind.ip%}#${NODE_IP_ADDRESS}#g" ${config_template_file}
-        sed -i "s#{%service.port%}#${MINIO_SERVICE_PORT}#g" ${config_template_file}
-        sed -i "s#{%console.port%}#${MINIO_CONSOLE_PORT}#g" ${config_template_file}
-        sed -i "s#{%minio.volumes%}#${MINIO_VOLUMES}#g" ${config_template_file}
+        sed -i "s#{%bind.ip%}#${NODE_IP_ADDRESS}#g" ${CONFIG_TEMPLATE_FILE}
+        sed -i "s#{%service.port%}#${MINIO_SERVICE_PORT}#g" ${CONFIG_TEMPLATE_FILE}
+        sed -i "s#{%console.port%}#${MINIO_CONSOLE_PORT}#g" ${CONFIG_TEMPLATE_FILE}
+        sed -i "s#{%minio.volumes%}#${MINIO_VOLUMES}#g" ${CONFIG_TEMPLATE_FILE}
 
-        cp -r ${config_template_file} ${MINIO_HOME}/conf/minio
+        cp -r ${CONFIG_TEMPLATE_FILE} ${MINIO_HOME}/conf/minio
     fi
 }
 

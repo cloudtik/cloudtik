@@ -23,11 +23,11 @@ check_xinetd_installed() {
 }
 
 prepare_base_conf() {
-    source_dir=$(dirname "${BIN_DIR}")/conf
-    output_dir=/tmp/xinetd/conf
-    rm -rf  $output_dir
-    mkdir -p $output_dir
-    cp -r $source_dir/* $output_dir
+    OUTPUT_DIR=/tmp/xinetd/conf
+    local source_dir=$(dirname "${BIN_DIR}")/conf
+    rm -rf  ${OUTPUT_DIR}
+    mkdir -p ${OUTPUT_DIR}
+    cp -r $source_dir/* ${OUTPUT_DIR}
 }
 
 configure_xinetd() {
@@ -40,11 +40,11 @@ configure_xinetd() {
     ETC_DEFAULT=/etc/default
     sudo mkdir -p ${ETC_DEFAULT}
 
-    xinetd_file=${output_dir}/xinetd
+    local xinetd_file=${OUTPUT_DIR}/xinetd
     update_in_file "${xinetd_file}" "{%xinetd.home%}" "${XINETD_HOME}"
     sudo cp ${xinetd_file} ${ETC_DEFAULT}/xinetd
 
-    xinetd_config_file=${output_dir}/xinetd.conf
+    local xinetd_config_file=${OUTPUT_DIR}/xinetd.conf
     update_in_file "${xinetd_config_file}" "{%xinetd.home%}" "${XINETD_HOME}"
 
     cp ${xinetd_config_file} ${XINETD_CONFIG_DIR}/xinetd.conf

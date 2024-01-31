@@ -58,7 +58,8 @@ def update_configurations():
 def configure_server_ensemble(nodes_info: Dict[str, Any]):
     # This method calls from node when configuring
     if nodes_info is None:
-        raise RuntimeError("Missing nodes info for configuring server ensemble.")
+        raise RuntimeError(
+            "Missing nodes info for configuring server ensemble.")
 
     server_ensemble = sort_nodes_by_seq_id(nodes_info)
     _write_server_ensemble(server_ensemble)
@@ -80,7 +81,8 @@ def _write_server_ensemble(server_ensemble: List[Dict[str, Any]]):
 
 def request_to_join_cluster(nodes_info: Dict[str, Any]):
     if nodes_info is None:
-        raise RuntimeError("Missing nodes info for join to the cluster.")
+        raise RuntimeError(
+            "Missing nodes info for join to the cluster.")
 
     initial_cluster = sort_nodes_by_seq_id(nodes_info)
     node_ip = get_runtime_node_ip()
@@ -90,11 +92,13 @@ def request_to_join_cluster(nodes_info: Dict[str, Any]):
     endpoints = [get_node_host_from_node_info(node_info, address_type)
                  for node_info in initial_cluster if node_info[RUNTIME_NODE_IP] != node_ip]
     if not endpoints:
-        raise RuntimeError("No exiting nodes found for contacting to join the cluster.")
+        raise RuntimeError(
+            "No exiting nodes found for contacting to join the cluster.")
 
     seq_id = os.environ.get(CLOUDTIK_RUNTIME_ENV_NODE_SEQ_ID)
     if not seq_id:
-        raise RuntimeError("Missing sequence ip environment variable for this node.")
+        raise RuntimeError(
+            "Missing sequence ip environment variable for this node.")
 
     node_host = get_runtime_node_host()
     _request_member_add(endpoints, node_host, seq_id)
@@ -117,8 +121,9 @@ def _request_member_add(endpoints, node_host, seq_id):
             raise quorum_error
         except Exception as e:
             # Other error retrying other endpoints
-            print("Failed to add member through endpoint: "
-                  "{}. Retrying with other endpoints...".format(
+            print(
+                "Failed to add member through endpoint: "
+                "{}. Retrying with other endpoints...".format(
                     endpoint))
             last_error = e
             continue
@@ -157,8 +162,9 @@ def _try_member_add(endpoint, zk_cli, server_to_add):
                     # only retry for waiting for quorum
                     if retries == 0:
                         raise NoQuorumError("No quorum of new config is connected")
-                    print("No quorum of new config is connected. "
-                          "Waiting {} seconds and retrying...".format(
+                    print(
+                        "No quorum of new config is connected. "
+                        "Waiting {} seconds and retrying...".format(
                             ZOOKEEPER_QUORUM_RETRY_INTERVAL))
                     continue
             raise e

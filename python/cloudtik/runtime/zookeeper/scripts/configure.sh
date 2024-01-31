@@ -14,11 +14,11 @@ RUNTIME_PATH=$USER_HOME/runtime
 . "$ROOT_DIR"/common/scripts/util-functions.sh
 
 prepare_base_conf() {
-    source_dir=$(dirname "${BIN_DIR}")/conf
-    output_dir=/tmp/zookeeper/conf
-    rm -rf  $output_dir
-    mkdir -p $output_dir
-    cp -r $source_dir/* $output_dir
+    OUTPUT_DIR=/tmp/zookeeper/conf
+    local source_dir=$(dirname "${BIN_DIR}")/conf
+    rm -rf  ${OUTPUT_DIR}
+    mkdir -p ${OUTPUT_DIR}
+    cp -r $source_dir/* ${OUTPUT_DIR}
 }
 
 check_zookeeper_installed() {
@@ -37,7 +37,7 @@ update_zookeeper_data_disks_config() {
     fi
 
     mkdir -p $zookeeper_data_dir
-    sed -i "s!{%zookeeper.dataDir%}!${zookeeper_data_dir}!g" $output_dir/zookeeper/zoo.cfg
+    sed -i "s!{%zookeeper.dataDir%}!${zookeeper_data_dir}!g" ${OUTPUT_DIR}/zookeeper/zoo.cfg
 }
 
 update_myid() {
@@ -47,7 +47,7 @@ update_myid() {
         exit 1
     fi
 
-    sed -i "s!{%zookeeper.myid%}!${CLOUDTIK_NODE_SEQ_ID}!g" $output_dir/zookeeper/myid
+    sed -i "s!{%zookeeper.myid%}!${CLOUDTIK_NODE_SEQ_ID}!g" ${OUTPUT_DIR}/zookeeper/myid
 }
 
 configure_zookeeper() {
@@ -58,8 +58,8 @@ configure_zookeeper() {
     # Zookeeper server ensemble will be updated in up-level of configure
     update_myid
 
-    cp -r ${output_dir}/zookeeper/zoo.cfg  ${ZOOKEEPER_HOME}/conf/zoo.cfg
-    cp -r ${output_dir}/zookeeper/myid  $zookeeper_data_dir/myid
+    cp -r ${OUTPUT_DIR}/zookeeper/zoo.cfg  ${ZOOKEEPER_HOME}/conf/zoo.cfg
+    cp -r ${OUTPUT_DIR}/zookeeper/myid  $zookeeper_data_dir/myid
 }
 
 set_head_option "$@"

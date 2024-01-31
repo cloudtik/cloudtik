@@ -15,11 +15,11 @@ NGINX_HOME=$RUNTIME_PATH/nginx
 . "$ROOT_DIR"/common/scripts/util-functions.sh
 
 prepare_base_conf() {
-    source_dir=$(dirname "${BIN_DIR}")/conf
-    output_dir=/tmp/nginx/conf
-    rm -rf  $output_dir
-    mkdir -p $output_dir
-    cp -r $source_dir/* $output_dir
+    OUTPUT_DIR=/tmp/nginx/conf
+    local source_dir=$(dirname "${BIN_DIR}")/conf
+    rm -rf  ${OUTPUT_DIR}
+    mkdir -p ${OUTPUT_DIR}
+    cp -r $source_dir/* ${OUTPUT_DIR}
 }
 
 check_nginx_installed() {
@@ -31,31 +31,31 @@ check_nginx_installed() {
 }
 
 configure_web() {
-    cat ${output_dir}/nginx-web-base.conf >> ${nginx_config_file}
+    cat ${OUTPUT_DIR}/nginx-web-base.conf >> ${NGINX_CONFIG_FILE}
     mkdir -p ${NGINX_CONFIG_DIR}/web
-    cp ${output_dir}/nginx-web.conf ${NGINX_CONFIG_DIR}/web/web.conf
+    cp ${OUTPUT_DIR}/nginx-web.conf ${NGINX_CONFIG_DIR}/web/web.conf
 }
 
 configure_dns_backend() {
     # configure a load balancer based on Consul DNS interface
-    local config_template_file=${output_dir}/nginx-load-balancer-dns.conf
+    local template_file=${OUTPUT_DIR}/nginx-load-balancer-dns.conf
 
     # Consul DNS interface based service discovery
-    sed -i "s#{%backend.service.dns.name%}#${NGINX_BACKEND_SERVICE_DNS_NAME}#g" ${config_template_file}
-    sed -i "s#{%backend.service.port%}#${NGINX_BACKEND_SERVICE_PORT}#g" ${config_template_file}
+    sed -i "s#{%backend.service.dns.name%}#${NGINX_BACKEND_SERVICE_DNS_NAME}#g" ${template_file}
+    sed -i "s#{%backend.service.port%}#${NGINX_BACKEND_SERVICE_PORT}#g" ${template_file}
 
-    cat ${config_template_file} >> ${nginx_config_file}
+    cat ${template_file} >> ${NGINX_CONFIG_FILE}
 }
 
 configure_static_backend() {
     # python configure script will write upstream block
-    cat ${output_dir}/nginx-load-balancer-static.conf >> ${nginx_config_file}
+    cat ${OUTPUT_DIR}/nginx-load-balancer-static.conf >> ${NGINX_CONFIG_FILE}
     mkdir -p ${NGINX_CONFIG_DIR}/upstreams
 }
 
 configure_dynamic_backend() {
     # python discovery script will write upstream block and do reload if needed
-    cat ${output_dir}/nginx-load-balancer-dynamic.conf >> ${nginx_config_file}
+    cat ${OUTPUT_DIR}/nginx-load-balancer-dynamic.conf >> ${NGINX_CONFIG_FILE}
     mkdir -p ${NGINX_CONFIG_DIR}/upstreams
     mkdir -p ${NGINX_CONFIG_DIR}/routers
 }
@@ -83,9 +83,9 @@ configure_api_gateway_dynamic() {
 }
 
 configure_api_gateway() {
-    cat ${output_dir}/nginx-api-gateway-base.conf >> ${nginx_config_file}
-    cp ${output_dir}/nginx-api-gateway.conf ${NGINX_CONFIG_DIR}/api-gateway.conf
-    cp ${output_dir}/nginx-api-gateway-json-errors.conf ${NGINX_CONFIG_DIR}/api-gateway-json-errors.conf
+    cat ${OUTPUT_DIR}/nginx-api-gateway-base.conf >> ${NGINX_CONFIG_FILE}
+    cp ${OUTPUT_DIR}/nginx-api-gateway.conf ${NGINX_CONFIG_DIR}/api-gateway.conf
+    cp ${OUTPUT_DIR}/nginx-api-gateway-json-errors.conf ${NGINX_CONFIG_DIR}/api-gateway-json-errors.conf
     mkdir -p ${NGINX_CONFIG_DIR}/routers
 
     if [ "${NGINX_CONFIG_MODE}" == "dns" ]; then
@@ -99,21 +99,21 @@ configure_api_gateway() {
 
 configure_nginx() {
     prepare_base_conf
-    nginx_config_file=${output_dir}/nginx.conf
+    NGINX_CONFIG_FILE=${OUTPUT_DIR}/nginx.conf
 
     mkdir -p ${NGINX_HOME}/logs
 
     ETC_DEFAULT=/etc/default
     sudo mkdir -p ${ETC_DEFAULT}
 
-    sed -i "s#{%nginx.home%}#${NGINX_HOME}#g" `grep "{%nginx.home%}" -rl ${output_dir}`
-    sudo cp ${output_dir}/nginx ${ETC_DEFAULT}/nginx
+    sed -i "s#{%nginx.home%}#${NGINX_HOME}#g" `grep "{%nginx.home%}" -rl ${OUTPUT_DIR}`
+    sudo cp ${OUTPUT_DIR}/nginx ${ETC_DEFAULT}/nginx
 
     NGINX_CONFIG_DIR=${NGINX_HOME}/conf
     mkdir -p ${NGINX_CONFIG_DIR}
 
-    sed -i "s#{%server.listen.ip%}#${NODE_IP_ADDRESS}#g" `grep "{%server.listen.ip%}" -rl ${output_dir}`
-    sed -i "s#{%server.listen.port%}#${NGINX_LISTEN_PORT}#g" `grep "{%server.listen.port%}" -rl ${output_dir}`
+    sed -i "s#{%server.listen.ip%}#${NODE_IP_ADDRESS}#g" `grep "{%server.listen.ip%}" -rl ${OUTPUT_DIR}`
+    sed -i "s#{%server.listen.port%}#${NGINX_LISTEN_PORT}#g" `grep "{%server.listen.port%}" -rl ${OUTPUT_DIR}`
 
     if [ "${NGINX_APP_MODE}" == "web" ]; then
         configure_web
@@ -125,7 +125,7 @@ configure_nginx() {
         echo "WARNING: Unknown application mode: ${NGINX_APP_MODE}"
     fi
 
-    cp ${nginx_config_file} ${NGINX_CONFIG_DIR}/nginx.conf
+    cp ${NGINX_CONFIG_FILE} ${NGINX_CONFIG_DIR}/nginx.conf
 }
 
 set_head_option "$@"

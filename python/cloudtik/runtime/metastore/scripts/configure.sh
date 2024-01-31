@@ -13,11 +13,11 @@ USER_HOME=/home/$(whoami)
 . "$ROOT_DIR"/common/scripts/util-functions.sh
 
 prepare_base_conf() {
-    source_dir=$(dirname "${BIN_DIR}")/conf
-    output_dir=/tmp/metastore/conf
-    rm -rf  $output_dir
-    mkdir -p $output_dir
-    cp -r $source_dir/* $output_dir
+    OUTPUT_DIR=/tmp/metastore/conf
+    local source_dir=$(dirname "${BIN_DIR}")/conf
+    rm -rf  ${OUTPUT_DIR}
+    mkdir -p ${OUTPUT_DIR}
+    cp -r $source_dir/* ${OUTPUT_DIR}
 }
 
 check_hive_metastore_installed() {
@@ -29,7 +29,7 @@ check_hive_metastore_installed() {
 
 configure_hive_metastore() {
     prepare_base_conf
-    config_template_file=${output_dir}/hive/metastore-site.xml
+    CONFIG_TEMPLATE_FILE=${OUTPUT_DIR}/hive/metastore-site.xml
 
     mkdir -p ${METASTORE_HOME}/logs
 
@@ -53,21 +53,21 @@ configure_hive_metastore() {
         DATABASE_CONNECTION="jdbc:postgresql://${DATABASE_ADDRESS}/${DATABASE_NAME}"
     fi
 
-    sed -i "s/{%metastore.bind.host%}/${NODE_IP_ADDRESS}/g" ${config_template_file}
+    sed -i "s/{%metastore.bind.host%}/${NODE_IP_ADDRESS}/g" ${CONFIG_TEMPLATE_FILE}
     # This is client configuration to access metastore
-    sed -i "s/{%metastore.host%}/${NODE_HOST_ADDRESS}/g" ${config_template_file}
+    sed -i "s/{%metastore.host%}/${NODE_HOST_ADDRESS}/g" ${CONFIG_TEMPLATE_FILE}
 
-    sed -i "s#{%DATABASE_CONNECTION%}#${DATABASE_CONNECTION}#g" ${config_template_file}
-    sed -i "s#{%DATABASE_DRIVER%}#${DATABASE_DRIVER}#g" ${config_template_file}
-    sed -i "s/{%DATABASE_USER%}/${DATABASE_USER}/g" ${config_template_file}
-    sed -i "s/{%DATABASE_PASSWORD%}/${DATABASE_PASSWORD}/g" ${config_template_file}
+    sed -i "s#{%DATABASE_CONNECTION%}#${DATABASE_CONNECTION}#g" ${CONFIG_TEMPLATE_FILE}
+    sed -i "s#{%DATABASE_DRIVER%}#${DATABASE_DRIVER}#g" ${CONFIG_TEMPLATE_FILE}
+    sed -i "s/{%DATABASE_USER%}/${DATABASE_USER}/g" ${CONFIG_TEMPLATE_FILE}
+    sed -i "s/{%DATABASE_PASSWORD%}/${DATABASE_PASSWORD}/g" ${CONFIG_TEMPLATE_FILE}
 
     # set metastore warehouse dir according to the storage options: HDFS, S3, GCS, Azure
     # The full path will be decided on the default.fs of hadoop core-site.xml
     METASTORE_WAREHOUSE_DIR=/shared/warehouse
-    sed -i "s|{%metastore.warehouse.dir%}|${METASTORE_WAREHOUSE_DIR}|g" ${config_template_file}
+    sed -i "s|{%metastore.warehouse.dir%}|${METASTORE_WAREHOUSE_DIR}|g" ${CONFIG_TEMPLATE_FILE}
 
-    cp -r ${config_template_file}  ${METASTORE_HOME}/conf/metastore-site.xml
+    cp -r ${CONFIG_TEMPLATE_FILE}  ${METASTORE_HOME}/conf/metastore-site.xml
 }
 
 set_head_option "$@"

@@ -15,11 +15,11 @@ MONGODB_HOME=$RUNTIME_PATH/mongodb
 . "$ROOT_DIR"/common/scripts/util-functions.sh
 
 prepare_base_conf() {
+    OUTPUT_DIR=/tmp/mongodb/conf
     local source_dir=$(dirname "${BIN_DIR}")/conf
-    output_dir=/tmp/mongodb/conf
-    rm -rf  $output_dir
-    mkdir -p $output_dir
-    cp -r $source_dir/* $output_dir
+    rm -rf  ${OUTPUT_DIR}
+    mkdir -p ${OUTPUT_DIR}
+    cp -r $source_dir/* ${OUTPUT_DIR}
 }
 
 check_mongodb_installed() {
@@ -40,7 +40,7 @@ update_data_dir() {
 
     DATA_DIR="${VOLUME_DIR}/data"
     mkdir -p ${DATA_DIR}
-    update_in_file "${config_template_file}" "{%data.dir%}" "${DATA_DIR}"
+    update_in_file "${CONFIG_TEMPLATE_FILE}" "{%data.dir%}" "${DATA_DIR}"
 }
 
 turn_on_start_replication_on_boot() {
@@ -55,7 +55,7 @@ turn_on_start_replication_on_boot() {
 }
 
 configure_common() {
-    local -r config_file="${1:-${config_template_file}}"
+    local -r config_file="${1:-${CONFIG_TEMPLATE_FILE}}"
       # TODO: can bind to a hostname instead of IP if hostname is stable
     update_in_file "${config_file}" "{%bind.address%}" "${NODE_IP_ADDRESS}"
     update_in_file "${config_file}" "{%home.dir%}" "${MONGODB_HOME}"
@@ -63,18 +63,18 @@ configure_common() {
 
 configure_mongod() {
     configure_common
-    update_in_file "${config_template_file}" "{%bind.port%}" "${MONGODB_SERVICE_PORT}"
+    update_in_file "${CONFIG_TEMPLATE_FILE}" "{%bind.port%}" "${MONGODB_SERVICE_PORT}"
     update_data_dir
 }
 
 configure_mongos() {
-    local -r config_file="${1:-${config_template_file}}"
+    local -r config_file="${1:-${CONFIG_TEMPLATE_FILE}}"
     configure_common "${config_file}"
     update_in_file "${config_file}" "{%bind.port%}" "${MONGODB_MONGOS_SERVICE_PORT}"
 }
 
 configure_replica_set() {
-    update_in_file "${config_template_file}" \
+    update_in_file "${CONFIG_TEMPLATE_FILE}" \
           "{%replication.set.name%}" "${MONGODB_REPLICATION_SET_NAME}"
 }
 
@@ -216,29 +216,29 @@ configure_mongodb() {
     MONGODB_MONGOS_CONFIG_FILE=${MONGODB_CONFIG_DIR}/mongos.conf
 
     if [ "${MONGODB_CLUSTER_MODE}" == "replication" ]; then
-        config_template_file=${output_dir}/mongod-replication.conf
+        CONFIG_TEMPLATE_FILE=${OUTPUT_DIR}/mongod-replication.conf
         configure_mongod
         configure_replica_set
-        cp ${config_template_file} ${MONGODB_CONFIG_FILE}
+        cp ${CONFIG_TEMPLATE_FILE} ${MONGODB_CONFIG_FILE}
     elif [ "${MONGODB_CLUSTER_MODE}" == "sharding" ]; then
         if [ "${MONGODB_SHARDING_CLUSTER_ROLE}" == "mongos" ]; then
-            config_template_file=${output_dir}/mongos.conf
+            CONFIG_TEMPLATE_FILE=${OUTPUT_DIR}/mongos.conf
             configure_mongos
-            cp ${config_template_file} ${MONGODB_MONGOS_CONFIG_FILE}
+            cp ${CONFIG_TEMPLATE_FILE} ${MONGODB_MONGOS_CONFIG_FILE}
         else
-            config_template_file=${output_dir}/mongod-sharding.conf
+            CONFIG_TEMPLATE_FILE=${OUTPUT_DIR}/mongod-sharding.conf
             configure_mongod
             configure_replica_set
-            cp ${config_template_file} ${MONGODB_CONFIG_FILE}
+            cp ${CONFIG_TEMPLATE_FILE} ${MONGODB_CONFIG_FILE}
 
             # The mongos need on a different port number
-            configure_mongos ${output_dir}/mongos.conf
-            cp ${output_dir}/mongos.conf ${MONGODB_MONGOS_CONFIG_FILE}
+            configure_mongos ${OUTPUT_DIR}/mongos.conf
+            cp ${OUTPUT_DIR}/mongos.conf ${MONGODB_MONGOS_CONFIG_FILE}
         fi
     else
-        config_template_file=${output_dir}/mongod.conf
+        CONFIG_TEMPLATE_FILE=${OUTPUT_DIR}/mongod.conf
         configure_mongod
-        cp ${config_template_file} ${MONGODB_CONFIG_FILE}
+        cp ${CONFIG_TEMPLATE_FILE} ${MONGODB_CONFIG_FILE}
     fi
 
     # Set variables for export to mongodb-init.sh

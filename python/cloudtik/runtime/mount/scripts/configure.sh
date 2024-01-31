@@ -18,15 +18,15 @@ MOUNT_HOME=$USER_HOME/runtime/mount
 . "$BIN_DIR"/mount-storage.sh
 
 prepare_base_conf() {
-    source_dir=$(dirname "${BIN_DIR}")/conf
-    output_dir=/tmp/mount/conf
-    rm -rf  $output_dir
-    mkdir -p $output_dir
-    cp -r $source_dir/* $output_dir
+    OUTPUT_DIR=/tmp/mount/conf
+    local source_dir=$(dirname "${BIN_DIR}")/conf
+    rm -rf  ${OUTPUT_DIR}
+    mkdir -p ${OUTPUT_DIR}
+    cp -r $source_dir/* ${OUTPUT_DIR}
 }
 
 export_configurations() {
-    local conf_file=${output_dir}/mount.conf
+    local conf_file=${OUTPUT_DIR}/mount.conf
     if [ ! -z "${HDFS_NAMENODE_URI}" ]; then
         echo "HDFS_NAMENODE_URI=${HDFS_NAMENODE_URI}">> $conf_file
     fi
@@ -43,7 +43,7 @@ configure_mount() {
 
     mkdir -p $MOUNT_HOME/conf
     export_configurations
-    cp ${output_dir}/mount.conf $MOUNT_HOME/conf/mount.conf
+    cp ${OUTPUT_DIR}/mount.conf $MOUNT_HOME/conf/mount.conf
 
     configure_storage_fs
 }
