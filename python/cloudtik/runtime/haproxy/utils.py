@@ -7,7 +7,8 @@ from cloudtik.core._private.service_discovery.runtime_services import get_servic
 from cloudtik.core._private.service_discovery.utils import get_canonical_service_name, \
     get_service_discovery_config, define_runtime_service_on_head_or_all, \
     SERVICE_DISCOVERY_FEATURE_LOAD_BALANCER, include_runtime_for_selector, exclude_runtime_of_cluster, \
-    include_service_name_for_selector, include_service_type_for_selector
+    include_service_name_for_selector, include_service_type_for_selector, get_service_type_override, \
+    get_service_discovery_config_for_update, set_service_type_override
 from cloudtik.core._private.util.core_utils import get_config_copy_for_update, get_config_for_update, \
     export_environment_variables, http_address_string, address_string
 from cloudtik.core._private.utils import get_runtime_config, get_cluster_name
@@ -46,6 +47,8 @@ HAPROXY_HTTP_CHECK_PORT_CONFIG_KEY = "http_check_port"
 HAPROXY_HTTP_CHECK_PATH_CONFIG_KEY = "http_check_path"
 HAPROXY_HTTP_CHECK_DISCOVERY_CONFIG_KEY = "http_check_discovery"
 HAPROXY_HTTP_CHECK_SELECTOR_CONFIG_KEY = "http_check_selector"
+
+HAPROXY_SERVICE_TYPE_DISCOVERY_CONFIG_KEY = "service_type_discovery"
 
 HAPROXY_SERVICE_TYPE = BUILT_IN_RUNTIME_HAPROXY
 HAPROXY_SERVICE_PORT_DEFAULT = 80
@@ -165,6 +168,10 @@ def _is_http_check_service_discovery(backend_config: Dict[str, Any]):
     return backend_config.get(HAPROXY_HTTP_CHECK_DISCOVERY_CONFIG_KEY, True)
 
 
+def _is_service_type_discovery(backend_config: Dict[str, Any]):
+    return backend_config.get(HAPROXY_SERVICE_TYPE_DISCOVERY_CONFIG_KEY, True)
+
+
 def _get_home_dir():
     return os.path.join(
         os.getenv("HOME"), "runtime", BUILT_IN_RUNTIME_HAPROXY)
@@ -241,13 +248,13 @@ def discover_http_check_on_head(
         # http check already configured by user
         return cluster_config
 
-    # Best effort for health check service discovery
+    # Best effort for service discovery
     backend_services = _discover_backend_service(
         backend_config, config_mode, cluster_config)
     if not backend_services:
         return cluster_config
 
-    # if there are more than one backend services, its hard to match service type
+    # if there are more than one backend services, it's hard to match service type
     if len(backend_services) > 1:
         return cluster_config
 
@@ -283,20 +290,91 @@ def _enable_http_check(
     return cluster_config
 
 
+def _is_service_type_configured(haproxy_config: Dict[str, Any]):
+    service_discovery_config = get_service_discovery_config(haproxy_config)
+    service_type = get_service_type_override(service_discovery_config)
+    if not service_type:
+        return False
+    return True
+
+
+def _update_service_type_config(
+        cluster_config: Dict[str, Any], service_type):
+    runtime_config = get_runtime_config(cluster_config)
+    haproxy_config = get_config_for_update(
+        runtime_config, BUILT_IN_RUNTIME_HAPROXY)
+    service_discovery_config = get_service_discovery_config_for_update(
+        haproxy_config)
+    set_service_type_override(service_discovery_config, service_type)
+    return cluster_config
+
+
+def discover_service_type_on_head(
+        haproxy_config: Dict[str, Any],
+        cluster_config: Dict[str, Any],
+        config_mode):
+    backend_config = _get_backend_config(haproxy_config)
+    if not _is_service_type_discovery(backend_config):
+        return cluster_config
+
+    if _is_service_type_configured(haproxy_config):
+        # service type already configured by user
+        return cluster_config
+
+    # Best effort for health check service discovery
+    backend_services = _discover_backend_service(
+        backend_config, config_mode, cluster_config)
+    if not backend_services:
+        return cluster_config
+
+    # if there are more than one backend services, it's hard to match service type
+    if len(backend_services) > 1:
+        return cluster_config
+
+    _, backend_service = next(iter(backend_services.items()))
+    service_type = backend_service.service_type
+    if service_type:
+        cluster_config = _update_service_type_config(
+            cluster_config, service_type)
+    return cluster_config
+
+
 def _prepare_config_on_head(
         runtime_config: Dict[str, Any], cluster_config: Dict[str, Any]):
     haproxy_config = _get_config(runtime_config)
-    backend_config = _get_backend_config(haproxy_config)
     app_mode = _get_app_mode(haproxy_config)
     if app_mode != HAPROXY_APP_MODE_LOAD_BALANCER:
         return cluster_config
 
+    cluster_config = _prepare_http_check_config(cluster_config, haproxy_config)
+    cluster_config = _prepare_service_type_config(cluster_config, haproxy_config)
+    return cluster_config
+
+
+def _prepare_http_check_config(
+        cluster_config: Dict[str, Any],
+        haproxy_config: Dict[str, Any]):
+    backend_config = _get_backend_config(haproxy_config)
     config_mode = _get_checked_config_mode(cluster_config, backend_config)
     if config_mode == HAPROXY_CONFIG_MODE_STATIC:
         # for static mode, we will not do auto discovery health check
         return cluster_config
 
     cluster_config = discover_http_check_on_head(
+        haproxy_config, cluster_config, config_mode)
+    return cluster_config
+
+
+def _prepare_service_type_config(
+        cluster_config: Dict[str, Any],
+        haproxy_config: Dict[str, Any]):
+    backend_config = _get_backend_config(haproxy_config)
+    config_mode = _get_checked_config_mode(cluster_config, backend_config)
+    if config_mode == HAPROXY_CONFIG_MODE_STATIC:
+        # for static mode, we will not do auto discovery service type
+        return cluster_config
+
+    cluster_config = discover_service_type_on_head(
         haproxy_config, cluster_config, config_mode)
     return cluster_config
 
@@ -528,9 +606,12 @@ def _get_runtime_services(
     service_name = get_canonical_service_name(
         service_discovery_config, cluster_name, HAPROXY_SERVICE_TYPE)
     service_port = _get_service_port(haproxy_config)
+    service_type = get_service_type_override(service_discovery_config)
+    if not service_type:
+        service_type = HAPROXY_SERVICE_TYPE
     services = {
         service_name: define_runtime_service_on_head_or_all(
-            HAPROXY_SERVICE_TYPE,
+            service_type,
             service_discovery_config, service_port,
             _is_high_availability(haproxy_config),
             features=[SERVICE_DISCOVERY_FEATURE_LOAD_BALANCER])

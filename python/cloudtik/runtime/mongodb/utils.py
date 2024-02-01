@@ -3,7 +3,7 @@ import uuid
 from typing import Any, Dict
 
 from cloudtik.core._private.util.core_utils import base64_encode_string, get_config_for_update, \
-    export_environment_variables
+    export_environment_variables, address_string
 from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_MONGODB
 from cloudtik.core._private.service_discovery.naming import get_cluster_head_host
 from cloudtik.core._private.service_discovery.runtime_services import get_service_discovery_runtime
@@ -437,7 +437,7 @@ def _get_runtime_endpoints(
     def add_mongod_endpoint():
         endpoints["mongodb"] = {
             "name": "MongoDB",
-            "url": "{}:{}".format(head_host, service_port)
+            "url": address_string(head_host, service_port)
         }
 
     cluster_mode = _get_cluster_mode(mongodb_config)
@@ -450,7 +450,7 @@ def _get_runtime_endpoints(
         def add_mongos_endpoint():
             endpoints["mongos"] = {
                 "name": "Mongos",
-                "url": "{}:{}".format(head_host, mongos_service_port)
+                "url": address_string(head_host, mongos_service_port)
             }
 
         cluster_role = _get_sharding_cluster_role(sharding_config)

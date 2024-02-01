@@ -3,7 +3,7 @@ from enum import Enum, auto
 from typing import Optional, Dict, Any, List, Union
 
 from cloudtik.core._private.util.core_utils import deserialize_config, serialize_config, \
-    get_list_for_update
+    get_list_for_update, get_config_for_update
 
 # The standard keys and values used for service discovery
 SERVICE_DISCOVERY_SERVICE_TYPE = "service_type"
@@ -56,6 +56,7 @@ SERVICE_DISCOVERY_CONFIG_SERVICE_DISCOVERY = "service"
 SERVICE_DISCOVERY_CONFIG_PREFIX = "prefix"
 SERVICE_DISCOVERY_CONFIG_TAGS = "tags"
 SERVICE_DISCOVERY_CONFIG_LABELS = "labels"
+SERVICE_DISCOVERY_CONFIG_SERVICE_TYPE = "service_type"
 SERVICE_DISCOVERY_CONFIG_PREFER_WORKSPACE = "prefer_workspace"
 
 # The config keys for a standard service selector
@@ -112,6 +113,22 @@ class ServiceRegisterException(RuntimeError):
 
 def get_service_discovery_config(config):
     return config.get(SERVICE_DISCOVERY_CONFIG_SERVICE_DISCOVERY, {})
+
+
+def get_service_discovery_config_for_update(config):
+    return get_config_for_update(
+        config, SERVICE_DISCOVERY_CONFIG_SERVICE_DISCOVERY)
+
+
+def get_service_type_override(
+        service_discovery_config: Optional[Dict[str, Any]]):
+    return service_discovery_config.get(
+        SERVICE_DISCOVERY_CONFIG_SERVICE_TYPE)
+
+
+def set_service_type_override(
+        service_discovery_config: Dict[str, Any], service_type):
+    service_discovery_config[SERVICE_DISCOVERY_CONFIG_SERVICE_TYPE] = service_type
 
 
 def is_prefer_workspace_discovery(

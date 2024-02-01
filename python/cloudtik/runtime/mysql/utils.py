@@ -8,6 +8,7 @@ from cloudtik.core._private.service_discovery.utils import \
     get_canonical_service_name, define_runtime_service, \
     get_service_discovery_config, SERVICE_DISCOVERY_FEATURE_DATABASE, define_runtime_service_on_head, \
     define_runtime_service_on_worker
+from cloudtik.core._private.util.core_utils import address_string
 from cloudtik.core._private.util.database_utils import DATABASE_PORT_MYSQL_DEFAULT, DATABASE_PASSWORD_MYSQL_DEFAULT
 from cloudtik.core._private.utils import is_node_seq_id_enabled, enable_node_seq_id, \
     get_workspace_name, get_cluster_name, get_runtime_config
@@ -197,7 +198,7 @@ def _get_runtime_endpoints(
     endpoints = {
         "mysql": {
             "name": "MySQL",
-            "url": "{}:{}".format(head_host, service_port)
+            "url": address_string(head_host, service_port)
         },
     }
     return endpoints

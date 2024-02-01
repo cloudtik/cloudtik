@@ -8,7 +8,7 @@ from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_YARN
 from cloudtik.core._private.service_discovery.naming import get_cluster_head_host
 from cloudtik.core._private.service_discovery.utils import get_canonical_service_name, define_runtime_service_on_head, \
     get_service_discovery_config, SERVICE_DISCOVERY_FEATURE_SCHEDULER
-from cloudtik.core._private.util.core_utils import http_address_string
+from cloudtik.core._private.util.core_utils import http_address_string, address_string
 from cloudtik.core._private.utils import \
     round_memory_size_to_gb, RUNTIME_CONFIG_KEY, get_config_for_update, get_node_type_resources, get_cluster_name
 from cloudtik.core.scaling_policy import ScalingPolicy
@@ -106,7 +106,7 @@ def _get_runtime_endpoints(cluster_config, cluster_head_ip):
     endpoints = {
         "yarn": {
             "name": "Yarn",
-            "url": "{}:{}".format(head_host, YARN_RESOURCE_MANAGER_PORT)
+            "url": address_string(head_host, YARN_RESOURCE_MANAGER_PORT)
         },
         "yarn-web": {
             "name": "Yarn Web UI",
