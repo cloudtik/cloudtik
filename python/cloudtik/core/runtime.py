@@ -66,6 +66,16 @@ class Runtime:
         """
         return cluster_config
 
+    def bootstrap_config_on_head(
+            self, cluster_config: Dict[str, Any]) -> Dict[str, Any]:
+        """Bootstrap runtime at the head.
+        Just like prepare_config_on_head but run after it. This is for ordering some very
+        primitive configuration process at the prepare config and a second pass for
+        configurations that depends on the prepare process.
+        The head configuration will be updated and saved with the returned configuration.
+        """
+        return cluster_config
+
     def with_environment_variables(
             self,
             config: Dict[str, Any], provider: NodeProvider,

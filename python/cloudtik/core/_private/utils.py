@@ -3847,10 +3847,18 @@ def prepare_runtime_config_on_head(config):
     old_config_digest = get_json_object_md5(config)
 
     # Iterate through all the runtimes
+    # First pass for prepare config on head
     runtime_types = get_runtime_types(runtime_config)
     for runtime_type in runtime_types:
         runtime = _get_runtime(runtime_type, runtime_config)
         config = runtime.prepare_config_on_head(
+            config)
+
+    # Second pass for bootstrap config on head
+    runtime_types = get_runtime_types(runtime_config)
+    for runtime_type in runtime_types:
+        runtime = _get_runtime(runtime_type, runtime_config)
+        config = runtime.bootstrap_config_on_head(
             config)
 
     new_config_digest = get_json_object_md5(config)

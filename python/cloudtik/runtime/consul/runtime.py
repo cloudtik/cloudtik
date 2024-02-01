@@ -17,9 +17,10 @@ class ConsulRuntime(RuntimeBase):
     service discovery and service DNS naming service.
 
     Hints:
-    1. Checking status:
+    1. Get service list:
     curl http://127.0.0.1:8500/v1/catalog/services
-
+    2. Get service status:
+    curl http://127.0.0.1:8500/v1/catalog/service/service_name
     """
 
     def __init__(self, runtime_config: Dict[str, Any]) -> None:
@@ -33,9 +34,6 @@ class ConsulRuntime(RuntimeBase):
         if not self.server_mode:
             # for client mode, we bootstrap the consul server cluster
             cluster_config = _bootstrap_join_list(cluster_config)
-
-        # collect the runtime services information
-        cluster_config = _bootstrap_runtime_services(cluster_config)
         return cluster_config
 
     def with_environment_variables(
@@ -47,6 +45,14 @@ class ConsulRuntime(RuntimeBase):
         return _with_runtime_environment_variables(
             self.server_mode, self.runtime_config,
             config=config)
+
+    def bootstrap_config_on_head(
+            self, cluster_config: Dict[str, Any]) -> Dict[str, Any]:
+        """Bootstrap runtime at the head.
+        """
+        # collect the runtime services information
+        cluster_config = _bootstrap_runtime_services(cluster_config)
+        return cluster_config
 
     def get_runtime_endpoints(
             self, cluster_config: Dict[str, Any], cluster_head_ip: str):
