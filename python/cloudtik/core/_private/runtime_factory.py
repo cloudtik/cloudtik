@@ -290,8 +290,9 @@ def _get_runtime_cls(runtime_type: str):
     return importer()
 
 
-def _get_runtime(runtime_type: str, runtime_config: Dict[str, Any],
-                 use_cache: bool = True) -> Runtime:
+def _get_runtime(
+        runtime_type: str, runtime_config: Dict[str, Any],
+        use_cache: bool = True) -> Runtime:
     """Get the instantiated runtime for a given runtime config.
 
     Note that this may be used by private runtimes that proxy methods to
