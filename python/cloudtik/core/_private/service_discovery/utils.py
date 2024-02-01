@@ -273,7 +273,9 @@ def deserialize_service_selector(service_selector_str):
 def exclude_runtime_of_cluster(
         service_selector, runtime, cluster_name):
     if not (runtime or cluster_name):
-        return
+        return service_selector
+    if service_selector is None:
+        service_selector = {}
     exclude_joined_labels = get_list_for_update(
         service_selector, SERVICE_SELECTOR_EXCLUDE_JOINED_LABELS)
 
@@ -287,7 +289,7 @@ def exclude_runtime_of_cluster(
     return service_selector
 
 
-def get_service_selector_for_update(config, config_key):
+def get_service_selector_copy(config, config_key):
     service_selector = config.get(
         config_key)
     if service_selector is None:
