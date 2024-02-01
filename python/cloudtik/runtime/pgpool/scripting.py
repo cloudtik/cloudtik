@@ -3,7 +3,7 @@ from shlex import quote
 
 from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_PGPOOL, BUILT_IN_RUNTIME_POSTGRES
 from cloudtik.core._private.service_discovery.utils import serialize_service_selector, \
-    include_runtime_service_for_selector
+    include_runtime_service_for_selector, get_service_selector_copy
 from cloudtik.core._private.util.core_utils import exec_with_output, get_address_string, exec_with_call, \
     address_from_string
 from cloudtik.core._private.util.database_utils import DATABASE_PORT_POSTGRES_DEFAULT
@@ -73,8 +73,8 @@ def start_pull_server(head):
     pull_identifier = _get_pull_identifier()
     logs_dir = _get_logs_dir()
 
-    service_selector = pgpool_config.get(
-        DATABASE_SERVICE_SELECTOR_KEY, {})
+    service_selector = get_service_selector_copy(
+        pgpool_config, DATABASE_SERVICE_SELECTOR_KEY)
 
     service_selector = include_runtime_service_for_selector(
         service_selector,

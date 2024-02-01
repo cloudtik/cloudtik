@@ -7,7 +7,7 @@ from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_NGINX
 from cloudtik.core._private.util.runtime_utils import get_runtime_value, get_runtime_config_from_node, \
     get_runtime_cluster_name
 from cloudtik.core._private.service_discovery.utils import exclude_runtime_of_cluster, \
-    serialize_service_selector
+    serialize_service_selector, get_service_selector_copy
 from cloudtik.runtime.nginx.utils import _get_config, NGINX_APP_MODE_LOAD_BALANCER, NGINX_CONFIG_MODE_STATIC, \
     _get_home_dir, _get_backend_config, NGINX_BACKEND_SERVERS_CONFIG_KEY, NGINX_LOAD_BALANCER_UPSTREAM_NAME, \
     NGINX_BACKEND_BALANCE_ROUND_ROBIN, NGINX_CONFIG_MODE_DNS, NGINX_BACKEND_SELECTOR_CONFIG_KEY, _get_logs_dir
@@ -113,10 +113,10 @@ def start_pull_server(head):
             discovery_class = "DiscoverAPIGatewayBackendServers"
 
     backend_config = _get_backend_config(nginx_config)
-    service_selector = backend_config.get(
-            NGINX_BACKEND_SELECTOR_CONFIG_KEY, {})
+    service_selector = get_service_selector_copy(
+        backend_config, NGINX_BACKEND_SELECTOR_CONFIG_KEY)
     cluster_name = get_runtime_cluster_name()
-    exclude_runtime_of_cluster(
+    service_selector = exclude_runtime_of_cluster(
         service_selector, BUILT_IN_RUNTIME_NGINX, cluster_name)
 
     service_selector_str = serialize_service_selector(service_selector)

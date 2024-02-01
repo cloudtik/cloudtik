@@ -4,7 +4,7 @@ from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_HDFS, BUILT_
     BUILT_IN_RUNTIME_CONSUL, BUILT_IN_RUNTIME_ZOOKEEPER, BUILT_IN_RUNTIME_MYSQL, BUILT_IN_RUNTIME_POSTGRES, \
     BUILT_IN_RUNTIME_ETCD, BUILT_IN_RUNTIME_MINIO
 from cloudtik.core._private.service_discovery.naming import get_cluster_node_address_type
-from cloudtik.core._private.service_discovery.utils import get_service_selector_for_update, \
+from cloudtik.core._private.service_discovery.utils import get_service_selector_copy, \
     include_feature_for_selector, ServiceAddressType, \
     include_runtime_service_for_selector
 from cloudtik.core._private.util.core_utils import get_config_for_update, http_address_string
@@ -94,7 +94,7 @@ def discover_runtime_service(
         service_type: Optional[Union[str, List[str]]] = None):
     # decide address type based on cluster configuration
     address_type = get_cluster_node_address_type(cluster_config)
-    service_selector = get_service_selector_for_update(
+    service_selector = get_service_selector_copy(
         config, service_selector_key)
     service_selector = include_runtime_service_for_selector(
         service_selector, runtime_type, service_type)
@@ -129,7 +129,7 @@ def discover_runtime_service_addresses_by_feature(
         cluster_config: Dict[str, Any],
         discovery_type: DiscoveryType,
         address_type: ServiceAddressType = ServiceAddressType.NODE_IP):
-    service_selector = get_service_selector_for_update(
+    service_selector = get_service_selector_copy(
         config, service_selector_key)
     # WARNING: feature selecting doesn't work for workspace service registry
     service_selector = include_feature_for_selector(

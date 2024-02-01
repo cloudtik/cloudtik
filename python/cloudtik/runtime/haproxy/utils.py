@@ -8,8 +8,8 @@ from cloudtik.core._private.service_discovery.utils import get_canonical_service
     get_service_discovery_config, define_runtime_service_on_head_or_all, \
     SERVICE_DISCOVERY_FEATURE_LOAD_BALANCER, include_runtime_for_selector, exclude_runtime_of_cluster, \
     include_service_name_for_selector, include_service_type_for_selector, get_service_type_override, \
-    get_service_discovery_config_for_update, set_service_type_override
-from cloudtik.core._private.util.core_utils import get_config_copy_for_update, get_config_for_update, \
+    get_service_discovery_config_for_update, set_service_type_override, get_service_selector_copy
+from cloudtik.core._private.util.core_utils import get_config_for_update, \
     export_environment_variables, http_address_string, address_string
 from cloudtik.core._private.utils import get_runtime_config, get_cluster_name
 from cloudtik.runtime.common.health_check import HEALTH_CHECK_RUNTIME, get_health_check_port_of_service, \
@@ -193,9 +193,9 @@ def _get_runtime_processes():
 
 def _get_backend_service_selector(
         backend_config, cluster_name):
-    service_selector = backend_config.get(
-            HAPROXY_BACKEND_SELECTOR_CONFIG_KEY, {})
-    exclude_runtime_of_cluster(
+    service_selector = get_service_selector_copy(
+        backend_config, HAPROXY_BACKEND_SELECTOR_CONFIG_KEY)
+    service_selector = exclude_runtime_of_cluster(
         service_selector, BUILT_IN_RUNTIME_HAPROXY, cluster_name)
     return service_selector
 
@@ -225,7 +225,7 @@ def _discover_health_check(
         cluster_config: Dict[str, Any],
         runtime_type: str):
     health_check_service_type = get_health_check_service_type_of(runtime_type)
-    service_selector = get_config_copy_for_update(
+    service_selector = get_service_selector_copy(
         backend_config, HAPROXY_HTTP_CHECK_SELECTOR_CONFIG_KEY)
     service_selector = include_runtime_for_selector(
         service_selector, HEALTH_CHECK_RUNTIME)

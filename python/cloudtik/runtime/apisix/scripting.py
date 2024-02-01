@@ -8,7 +8,7 @@ from cloudtik.core._private.util.runtime_utils import \
     get_runtime_config_from_node, load_and_save_yaml, get_runtime_value, \
     get_runtime_cluster_name
 from cloudtik.core._private.service_discovery.utils import \
-    exclude_runtime_of_cluster, serialize_service_selector
+    exclude_runtime_of_cluster, serialize_service_selector, get_service_selector_copy
 from cloudtik.core._private.utils import encrypt_string
 from cloudtik.runtime.apisix.utils import _get_config, _get_admin_port, _get_admin_key, _get_backend_config, \
     _get_config_mode, APISIX_BACKEND_SELECTOR_CONFIG_KEY, APISIX_CONFIG_MODE_DNS, APISIX_CONFIG_MODE_CONSUL, \
@@ -91,10 +91,10 @@ def start_pull_server(head):
 
     backend_config = _get_backend_config(apisix_config)
     config_mode = _get_config_mode(backend_config)
-    service_selector = backend_config.get(
-            APISIX_BACKEND_SELECTOR_CONFIG_KEY, {})
+    service_selector = get_service_selector_copy(
+        backend_config, APISIX_BACKEND_SELECTOR_CONFIG_KEY)
     cluster_name = get_runtime_cluster_name()
-    exclude_runtime_of_cluster(
+    service_selector = exclude_runtime_of_cluster(
         service_selector, BUILT_IN_RUNTIME_APISIX, cluster_name)
     service_selector_str = serialize_service_selector(service_selector)
     pull_identifier = _get_pull_identifier()
