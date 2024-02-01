@@ -60,10 +60,13 @@ of deciding a worker's idle status.
 If user want to automatically scaling up or down based on system metrics such as
 the system load, user can use auto-scaling.
 
-CloudTik built-in with 3 auto-scaling policy for use:
+CloudTik built-in with 2 auto-scaling policy for use:
 - Scaling with Load
 - Scaling with Time
+
+And scaling policy are also available for some runtimes:
 - Scaling with YARN
+- Scaling with Ray
 
 ### Scaling with Load
 If you want to scale the cluster based on the CPU or memory utilization (load),
@@ -216,6 +219,30 @@ runtime:
             "20 19:00": "*1"
 ```
 
+### Scaling by specific node types
+For built-in scaling policies, it can be configured by node types, which
+means that each node type uses a specific scaling policy with specific scaling
+options if you have more than one worker node types and want to scale the node
+types differently.
+
+To configure node type based scaling policy, under the scaling configuration key,
+use scaling_policy_by_node_type key to specify a map of node types to its scaling
+policy configurations. For example,
+
+```
+runtime:
+    scaling:
+        scaling_policy_by_node_type:
+            worker.default:
+                scaling_policy: scaling-with-load
+            worker.backup:
+                scaling_policy: scaling-with-time
+                scaling_periodic: weekly
+                scaling_math_base: on-min-workers
+                scaling_time_table:
+                    "10 07:00": "*2"
+                    "20 19:00": "*1"
+```
 
 ### Scaling with YARN
 If you want to scale the cluster based YARN application and resource utilization

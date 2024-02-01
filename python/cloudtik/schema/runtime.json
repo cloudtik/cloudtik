@@ -4,6 +4,41 @@
 	"description": "CloudTik runtime configuration schema",
     "type": "object",
     "definitions": {
+        "service_registration": {
+            "type": "object",
+            "description": "Configurations for runtime service registration to service discovery.",
+            "properties": {
+                "prefix": {
+                    "type": "string",
+                    "description": "The prefix string for the service."
+                },
+                "tags": {
+                    "type": "array",
+                    "description": "The tags for the service.",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "labels": {
+                    "type": "object",
+                    "description": "The labels for the service.",
+                    "patternProperties": {
+                        ".*":{
+                            "type": "string"
+                        }
+                    }
+                },
+                "service_type": {
+                    "type": "string",
+                    "description": "The service type to override. Only applicable for some proxy runtimes."
+                },
+                "prefer_workspace": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Whether the service prefers to be discovered by workspace."
+                }
+            }
+        },
         "service_selector": {
             "type": "object",
             "description": "Defines a series match conditions of services",
@@ -759,6 +794,11 @@
                         "http_check_selector": {
                             "$ref": "#/definitions/service_selector",
                             "description": "The selector for health check service discovery."
+                        },
+                        "service_type_discovery": {
+                            "type": "boolean",
+                            "default": true,
+                            "description": "Whether to do service type discovery."
                         }
                     }
                 }

@@ -1,8 +1,10 @@
 import socket
 
+from cloudtik.core._private.util.core_utils import address_string
+
 
 def get_backend_server_address(backend_server):
-    return "{}:{}".format(backend_server[0], backend_server[1])
+    return address_string(backend_server[0], backend_server[1])
 
 
 def get_backend_server_name(server_base_name, server_id):

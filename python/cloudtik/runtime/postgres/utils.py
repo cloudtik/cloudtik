@@ -1,7 +1,7 @@
 import os
 from typing import Any, Dict, Optional
 
-from cloudtik.core._private.util.core_utils import get_config_for_update
+from cloudtik.core._private.util.core_utils import get_config_for_update, address_string
 from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_POSTGRES, BUILT_IN_RUNTIME_MOUNT
 from cloudtik.core._private.service_discovery.naming import get_cluster_head_host
 from cloudtik.core._private.service_discovery.utils import \
@@ -312,7 +312,7 @@ def _get_runtime_endpoints(
     endpoints = {
         "postgres": {
             "name": "Postgres",
-            "url": "{}:{}".format(head_host, service_port)
+            "url": address_string(head_host, service_port)
         },
     }
     return endpoints

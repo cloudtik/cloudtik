@@ -2,7 +2,7 @@ import os
 from typing import Any, Dict, Optional
 
 from cloudtik.core._private.constants import CLOUDTIK_NODE_TYPE_WORKER_DEFAULT
-from cloudtik.core._private.util.core_utils import get_config_for_update
+from cloudtik.core._private.util.core_utils import get_config_for_update, address_string
 from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_REDIS
 from cloudtik.core._private.service_discovery.naming import get_cluster_head_host
 from cloudtik.core._private.service_discovery.utils import \
@@ -287,7 +287,7 @@ def _get_runtime_endpoints(
     endpoints = {
         "redis": {
             "name": "Redis",
-            "url": "{}:{}".format(head_host, service_port)
+            "url": address_string(head_host, service_port)
         },
     }
     return endpoints

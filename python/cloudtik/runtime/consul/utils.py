@@ -3,7 +3,8 @@ import logging
 import os
 from typing import Any, Dict
 
-from cloudtik.core._private.util.core_utils import get_list_for_update, get_config_for_update, http_address_string
+from cloudtik.core._private.util.core_utils import get_list_for_update, get_config_for_update, http_address_string, \
+    address_string
 from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_CONSUL
 from cloudtik.core._private.util.runtime_utils import RUNTIME_NODE_IP, sort_nodes_by_seq_id
 from cloudtik.core._private.service_discovery.runtime_services import get_runtime_services_by_node_type
@@ -209,7 +210,7 @@ def _get_runtime_endpoints(
     endpoints = {
         "consul": {
             "name": "Consul",
-            "url": "{}:{}".format(cluster_head_ip, CONSUL_SERVER_RPC_PORT)
+            "url": address_string(cluster_head_ip, CONSUL_SERVER_RPC_PORT)
         },
     }
     if server_mode:
@@ -219,7 +220,7 @@ def _get_runtime_endpoints(
         }
         endpoints["consul_dns"] = {
             "name": "Consul DNS",
-            "url": "{}:{}".format(cluster_head_ip, CONSUL_SERVER_DNS_PORT)
+            "url": address_string(cluster_head_ip, CONSUL_SERVER_DNS_PORT)
         }
 
     return endpoints
