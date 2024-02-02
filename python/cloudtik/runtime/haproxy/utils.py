@@ -332,7 +332,10 @@ def discover_service_type_on_head(
         return cluster_config
 
     _, backend_service = next(iter(backend_services.items()))
-    service_type = backend_service.service_type
+    # TODO: this service type may be something other than the main runtime service type
+    # Use runtime type as service type here: unless if in the future there is a need for
+    # service type which is not runtime type
+    service_type = backend_service.runtime_type
     if service_type:
         cluster_config = _update_service_type_config(
             cluster_config, service_type)
