@@ -47,7 +47,7 @@ configure_service_init() {
     local -r var_file=${PGPOOL_CONFIG_DIR}/pgpool
     echo "# Pgpool init variables" > $var_file
 
-    configure_variable PGPOOL_CONF_FILE "${PGPOOL_CONFIG_DIR}/pgpool.conf"
+    configure_variable PGPOOL_CONF_FILE "${PGPOOL_CONFIG_FILE}"
     configure_variable PGPOOL_PCP_FILE "${PGPOOL_CONFIG_DIR}/pcp.conf"
     configure_variable PGPOOL_HBA_FILE "${PGPOOL_CONFIG_DIR}/pool_hba.conf"
     configure_variable PGPOOL_AUTHENTICATION_METHOD "${PGPOOL_AUTHENTICATION_METHOD:-scram-sha-256}"
@@ -75,6 +75,7 @@ configure_pgpool() {
 
     PGPOOL_CONFIG_DIR=${PGPOOL_HOME}/conf
     mkdir -p ${PGPOOL_CONFIG_DIR}
+    PGPOOL_CONFIG_FILE="${PGPOOL_CONFIG_DIR}/pgpool.conf"
 
     # The listen_addresses cannot be ip address list. So we bind all.
     # update_place_holder "listen.address" "${NODE_IP_ADDRESS}"
@@ -90,9 +91,9 @@ configure_pgpool() {
     update_place_holder "health.check.user" "${PGPOOL_REPLICATION_USER}"
     update_place_holder "health.check.password" "${PGPOOL_REPLICATION_PASSWORD}"
 
-    cp $CONFIG_TEMPLATE_FILE ${PGPOOL_CONFIG_DIR}/pgpool.conf
+    cp $CONFIG_TEMPLATE_FILE ${PGPOOL_CONFIG_FILE}
     # make it owner only read/write for security
-    chmod 0600 "${PGPOOL_CONFIG_DIR}/pgpool.conf"
+    chmod 0600 "${PGPOOL_CONFIG_FILE}"
 
     cp ${OUTPUT_DIR}/pcp.conf ${PGPOOL_CONFIG_DIR}/pcp.conf
     cp ${OUTPUT_DIR}/pool_hba.conf ${PGPOOL_CONFIG_DIR}/pool_hba.conf
