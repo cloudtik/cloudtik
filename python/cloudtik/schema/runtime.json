@@ -1521,6 +1521,65 @@
                     }
                 }
             }
+        },
+        "pgbouncer": {
+            "type": "object",
+            "description": "PgBouncer runtime configurations",
+            "additionalProperties": true,
+            "properties": {
+                "port": {
+                    "type": "integer",
+                    "default": 6432,
+                    "description": "The PgBouncer server port."
+                },
+                "high_availability": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Whether to run a server on each node for high availability."
+                },
+                "admin_user": {
+                    "type": "string",
+                    "default": "cloudtik",
+                    "description": "Specify the PgBouncer admin username."
+                },
+                "default_pool_size": {
+                    "type": "integer",
+                    "default": 20,
+                    "description": "The default pool size."
+                },
+                "min_pool_size": {
+                    "type": "integer",
+                    "default": 0,
+                    "description": "The min pool size."
+                },
+                "reserve_pool_size": {
+                    "type": "integer",
+                    "default": 0,
+                    "description": "The reserve pool size."
+                },
+                "backend": {
+                    "type": "object",
+                    "description": "Backend configurations",
+                    "properties": {
+                        "config_mode": {
+                            "type": "string",
+                            "default": "dynamic",
+                            "description": "How the backend is configured: static, dynamic"
+                        },
+                        "databases": {
+                            "type": "object",
+                            "description": "Map from PgBouncer database to its backend configurations.",
+                            "additionalProperties": false,
+                            "patternProperties": {
+                                ".*": {
+                                    "$ref": "#/definitions/database_connect",
+                                    "description": "The database parameters."
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 }

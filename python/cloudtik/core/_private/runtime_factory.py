@@ -55,6 +55,7 @@ BUILT_IN_RUNTIME_MONGODB = "mongodb"
 BUILT_IN_RUNTIME_ELASTICSEARCH = "elasticsearch"
 BUILT_IN_RUNTIME_PGPOOL = "pgpool"
 BUILT_IN_RUNTIME_XINETD = "xinetd"
+BUILT_IN_RUNTIME_PGBOUNCER = "pgbouncer"
 
 DEFAULT_RUNTIMES = [BUILT_IN_RUNTIME_NODEX, BUILT_IN_RUNTIME_PROMETHEUS, BUILT_IN_RUNTIME_SPARK]
 
@@ -229,6 +230,11 @@ def _import_xinetd():
     return XinetdRuntime
 
 
+def _import_pgbouncer():
+    from cloudtik.runtime.pgbouncer.runtime import PgBouncerRuntime
+    return PgBouncerRuntime
+
+
 _RUNTIMES = {
     BUILT_IN_RUNTIME_AI: _import_ai,
     BUILT_IN_RUNTIME_SPARK: _import_spark,
@@ -264,6 +270,7 @@ _RUNTIMES = {
     BUILT_IN_RUNTIME_ELASTICSEARCH: _import_elasticsearch,
     BUILT_IN_RUNTIME_PGPOOL: _import_pgpool,
     BUILT_IN_RUNTIME_XINETD: _import_xinetd,
+    BUILT_IN_RUNTIME_PGBOUNCER: _import_pgbouncer,
 }
 
 
@@ -284,8 +291,8 @@ def _get_runtime_cls(runtime_type: str):
             runtime_cls = load_class(runtime_type)
             return runtime_cls
         except (ModuleNotFoundError, ImportError) as e:
-            raise NotImplementedError("Unsupported runtime: {}.".format(
-                runtime_type))
+            raise NotImplementedError(
+                "Unsupported runtime: {}.".format(runtime_type))
 
     return importer()
 
