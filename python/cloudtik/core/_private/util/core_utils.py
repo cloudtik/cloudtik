@@ -17,7 +17,8 @@ import sys
 import tempfile
 import threading
 import time
-from contextlib import closing
+from contextlib import closing, contextmanager
+from functools import partial
 from typing import Optional, List, Dict
 
 import ipaddr
@@ -1213,3 +1214,9 @@ def export_environment_variables(
     for key, val in environment_variables.items():
         str_value = get_env_string_value(val)
         os.environ[key] = str_value
+
+
+@contextmanager
+def open_with_mode(file, mode, os_mode=0o600):
+    with open(file, mode, opener=partial(os.open, mode=os_mode)) as f:
+        yield f

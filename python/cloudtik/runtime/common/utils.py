@@ -1,7 +1,7 @@
 from typing import Any, Dict
 
 from cloudtik.core._private.constants import CLOUDTIK_DEFAULT_STORAGE_URI, CLOUDTIK_DEFAULT_CLOUD_STORAGE_URI
-from cloudtik.core._private.util.core_utils import exec_with_output
+from cloudtik.core._private.util.core_utils import exec_with_output, get_config_for_update
 from cloudtik.core._private.runtime_factory import _get_runtime, BUILT_IN_RUNTIME_HDFS
 from cloudtik.core._private.utils import get_cluster_head_ip, is_runtime_enabled, \
     get_node_provider_of, get_runtime_config
@@ -61,3 +61,8 @@ def stop_pull_server_by_identifier(pull_identifier):
     cmd = ["cloudtik", "node", "pull", pull_identifier, "stop"]
     cmd_str = " ".join(cmd)
     exec_with_output(cmd_str)
+
+
+def get_runtime_config_for_update(config: Dict[str, Any], runtime_type: str):
+    runtime_config = get_runtime_config(config)
+    return get_config_for_update(runtime_config, runtime_type)

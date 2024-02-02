@@ -4,6 +4,7 @@ DATABASE_CONFIG_ADDRESS = "address"
 DATABASE_CONFIG_PORT = "port"
 DATABASE_CONFIG_USERNAME = "username"
 DATABASE_CONFIG_PASSWORD = "password"
+DATABASE_CONFIG_DATABASE = "database"
 
 DATABASE_ENGINE_MYSQL = "mysql"
 DATABASE_ENGINE_POSTGRES = "postgres"
@@ -36,6 +37,10 @@ def get_validated_engine(engine):
     return engine or DATABASE_ENGINE_MYSQL
 
 
+def get_database_address(database_config):
+    return database_config.get(DATABASE_CONFIG_ADDRESS)
+
+
 def get_database_port(database_config):
     port = database_config.get(DATABASE_CONFIG_PORT)
     if port:
@@ -51,11 +56,14 @@ def get_database_default_port(engine):
 
 
 def get_database_username(database_config):
-    username = database_config.get(
+    return database_config.get(
         DATABASE_CONFIG_USERNAME)
+
+
+def get_database_username_with_default(database_config):
+    username = get_database_username(database_config)
     if username:
         return username
-
     engine = get_database_engine(database_config)
     return get_database_default_username(engine)
 
@@ -67,11 +75,13 @@ def get_database_default_username(engine):
 
 
 def get_database_password(database_config):
-    password = database_config.get(
-        DATABASE_CONFIG_PASSWORD)
+    return database_config.get(DATABASE_CONFIG_PASSWORD)
+
+
+def get_database_password_with_default(database_config):
+    password = get_database_password(database_config)
     if password:
         return password
-
     engine = get_database_engine(database_config)
     return get_database_default_password(engine)
 
@@ -82,11 +92,14 @@ def get_database_default_password(engine):
             else DATABASE_PASSWORD_POSTGRES_DEFAULT)
 
 
+def get_database_name(database_config):
+    return database_config.get(DATABASE_CONFIG_DATABASE)
+
+
 def is_database_configured(database_config):
     if not database_config:
         return False
-    return True if database_config.get(
-        DATABASE_CONFIG_ADDRESS) else False
+    return True if get_database_address(database_config) else False
 
 
 def set_database_config(database_config, database_service):
@@ -107,11 +120,11 @@ def with_database_environment_variables(database_config, envs=None):
 
     envs[DATABASE_ENV_ENABLED] = True
     envs[DATABASE_ENV_ENGINE] = get_database_engine(database_config)
-    envs[DATABASE_ENV_HOST] = database_config[DATABASE_CONFIG_ADDRESS]
+    envs[DATABASE_ENV_HOST] = get_database_address(database_config)
     envs[DATABASE_ENV_PORT] = get_database_port(database_config)
 
     # The defaults apply to built-in Database runtime.
-    envs[DATABASE_ENV_USERNAME] = get_database_username(database_config)
-    envs[DATABASE_ENV_PASSWORD] = get_database_password(database_config)
+    envs[DATABASE_ENV_USERNAME] = get_database_username_with_default(database_config)
+    envs[DATABASE_ENV_PASSWORD] = get_database_password_with_default(database_config)
 
     return envs
