@@ -799,6 +799,11 @@
                             "type": "boolean",
                             "default": true,
                             "description": "Whether to do service type discovery."
+                        },
+                        "service_type_keep_original": {
+                            "type": "boolean",
+                            "default": false,
+                            "description": "Whether to keep the original service type discovered or by default use runtime type."
                         }
                     }
                 }

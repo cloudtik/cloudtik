@@ -49,6 +49,7 @@ HAPROXY_HTTP_CHECK_DISCOVERY_CONFIG_KEY = "http_check_discovery"
 HAPROXY_HTTP_CHECK_SELECTOR_CONFIG_KEY = "http_check_selector"
 
 HAPROXY_SERVICE_TYPE_DISCOVERY_CONFIG_KEY = "service_type_discovery"
+HAPROXY_SERVICE_TYPE_KEEP_ORIGINAL_CONFIG_KEY = "service_type_keep_original"
 
 HAPROXY_SERVICE_TYPE = BUILT_IN_RUNTIME_HAPROXY
 HAPROXY_SERVICE_PORT_DEFAULT = 80
@@ -170,6 +171,10 @@ def _is_http_check_service_discovery(backend_config: Dict[str, Any]):
 
 def _is_service_type_discovery(backend_config: Dict[str, Any]):
     return backend_config.get(HAPROXY_SERVICE_TYPE_DISCOVERY_CONFIG_KEY, True)
+
+
+def _is_service_type_keep_original(backend_config: Dict[str, Any]):
+    return backend_config.get(HAPROXY_SERVICE_TYPE_KEEP_ORIGINAL_CONFIG_KEY, False)
 
 
 def _get_home_dir():
@@ -335,7 +340,10 @@ def discover_service_type_on_head(
     # TODO: this service type may be something other than the main runtime service type
     # Use runtime type as service type here: unless if in the future there is a need for
     # service type which is not runtime type
-    service_type = backend_service.runtime_type
+    if _is_service_type_keep_original(backend_config):
+        service_type = backend_service.service_type
+    else:
+        service_type = backend_service.runtime_type
     if service_type:
         cluster_config = _update_service_type_config(
             cluster_config, service_type)
