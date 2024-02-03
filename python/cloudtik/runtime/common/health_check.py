@@ -15,6 +15,17 @@ HEALTH_CHECK_RUNTIME = BUILT_IN_RUNTIME_XINETD
 # service type = HEALTH_CHECK_RUNTIME-TARGET_RUNTIME
 HEALTH_CHECK_SERVICE_TYPE_TEMPLATE = HEALTH_CHECK_RUNTIME + "-{}"
 
+# Common role names
+# primary and secondary
+HEALTH_CHECK_ROLE_PRIMARY = "primary"
+HEALTH_CHECK_ROLE_SECONDARY = "secondary"
+# master and slave
+HEALTH_CHECK_ROLE_MASTER = "master"
+HEALTH_CHECK_ROLE_SLAVE = "slave"
+# active and standby
+HEALTH_CHECK_ROLE_ACTIVE = "active"
+HEALTH_CHECK_ROLE_STANDBY = "standby"
+
 
 def match_health_check_node(health_check, head):
     node_kind = health_check.get(HEALTH_CHECK_NODE_KIND)
@@ -33,3 +44,24 @@ def get_health_check_port_of_service(health_check_service):
 
 def get_health_check_service_type_of(runtime_type):
     return HEALTH_CHECK_SERVICE_TYPE_TEMPLATE.format(runtime_type)
+
+
+def get_service_role_from_path(health_check_path):
+    if not health_check_path:
+        return None
+    service_role = health_check_path.strip("/")
+    if not service_role:
+        return None
+    # Use the first segment of the path as the role
+    segments = service_role.split('/')
+    return segments[0]
+
+
+def get_service_type_from_health_check_path(runtime_type, health_check_path):
+    # Convention notice: role based the health check
+    # If it accepts a specified path for role, it is the desired service type
+    # suffix for the runtime type
+    service_role = get_service_role_from_path(health_check_path)
+    if service_role:
+        return runtime_type + "-" + service_role
+    return runtime_type

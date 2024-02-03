@@ -13,7 +13,7 @@ from cloudtik.core._private.util.core_utils import get_config_for_update, \
     export_environment_variables, http_address_string, address_string
 from cloudtik.core._private.utils import get_runtime_config, get_cluster_name
 from cloudtik.runtime.common.health_check import HEALTH_CHECK_RUNTIME, get_health_check_port_of_service, \
-    get_health_check_service_type_of
+    get_health_check_service_type_of, get_service_type_from_health_check_path
 from cloudtik.runtime.common.service_discovery.consul import get_rfc2782_service_dns_name
 from cloudtik.runtime.common.service_discovery.discovery import DiscoveryType, query_services
 from cloudtik.runtime.haproxy.admin_api import get_backend_server_name
@@ -342,7 +342,15 @@ def discover_service_type_on_head(
     if _is_service_type_keep_original(backend_config):
         service_type = backend_service.service_type
     else:
-        service_type = backend_service.runtime_type
+        # we can be smart here if three is health check and path
+        # Convention notice: if the health check explicitly specified path
+        # it is the desired service type suffix for the runtime type
+        if _is_backend_http_check_enabled(backend_config):
+            http_check_path = _get_backend_http_check_path(backend_config)
+            service_type = get_service_type_from_health_check_path(
+                backend_service.runtime_type, http_check_path)
+        else:
+            service_type = backend_service.runtime_type
     if service_type:
         cluster_config = _update_service_type_config(
             cluster_config, service_type)
