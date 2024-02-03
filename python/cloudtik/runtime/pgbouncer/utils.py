@@ -31,10 +31,17 @@ PGBOUNCER_BACKEND_CONFIG_KEY = "backend"
 PGBOUNCER_BACKEND_CONFIG_MODE_CONFIG_KEY = "config_mode"
 PGBOUNCER_BACKEND_DATABASES_CONFIG_KEY = "databases"
 
+PGBOUNCER_DATABASE_CONNECT_CONFIG_KEY = "connect"
+PGBOUNCER_DATABASE_BIND_USER_CONFIG_KEY = "bind_user"
+PGBOUNCER_DATABASE_AUTH_USER_CONFIG_KEY = "auth_user"
+PGBOUNCER_DATABASE_AUTH_PASSWORD_CONFIG_KEY = "auth_password"
+PGBOUNCER_DATABASE_AUTH_QUERY_CONFIG_KEY = "auth_query"
+
 PGBOUNCER_ADMIN_USER_CONFIG_KEY = "admin_user"
 
+PGBOUNCER_POOL_CONFIG_KEY = "pool"
 PGBOUNCER_POOL_MODE_CONFIG_KEY = "pool_mode"
-PGBOUNCER_DEFAULT_POOL_SIZE_CONFIG_KEY = "default_pool_size"
+PGBOUNCER_POOL_SIZE_CONFIG_KEY = "pool_size"
 PGBOUNCER_MIN_POOL_SIZE_CONFIG_KEY = "min_pool_size"
 PGBOUNCER_RESERVE_POOL_SIZE_CONFIG_KEY = "reserve_pool_size"
 
@@ -54,7 +61,7 @@ PGBOUNCER_POOL_MODE_SESSION = "session"
 PGBOUNCER_POOL_MODE_TRANSACTION = "transaction"
 PGBOUNCER_POOL_MODE_STATEMENT = "statement"
 
-PGBOUNCER_DEFAULT_POOL_SIZE_DEFAULT = 20
+PGBOUNCER_POOL_SIZE_DEFAULT = 20
 PGBOUNCER_MIN_POOL_SIZE_DEFAULT = 0
 PGBOUNCER_RESERVE_POOL_SIZE_DEFAULT = 0
 
@@ -83,6 +90,11 @@ def _is_high_availability(pgbouncer_config: Dict[str, Any]):
         PGBOUNCER_HIGH_AVAILABILITY_CONFIG_KEY, True)
 
 
+def _get_pool_config(pgbouncer_config: Dict[str, Any]):
+    return pgbouncer_config.get(
+        PGBOUNCER_POOL_CONFIG_KEY, {})
+
+
 def _get_backend_config(pgbouncer_config: Dict[str, Any]):
     return pgbouncer_config.get(
         PGBOUNCER_BACKEND_CONFIG_KEY, {})
@@ -90,6 +102,26 @@ def _get_backend_config(pgbouncer_config: Dict[str, Any]):
 
 def _get_backend_databases(backend_config):
     return backend_config.get(PGBOUNCER_BACKEND_DATABASES_CONFIG_KEY)
+
+
+def _get_database_connect(database_config):
+    return database_config.get(PGBOUNCER_DATABASE_CONNECT_CONFIG_KEY)
+
+
+def _is_database_bind_user(database_config):
+    return database_config.get(PGBOUNCER_DATABASE_BIND_USER_CONFIG_KEY, False)
+
+
+def _get_database_auth_user(database_config):
+    return database_config.get(PGBOUNCER_DATABASE_AUTH_USER_CONFIG_KEY)
+
+
+def _get_database_auth_password(database_config):
+    return database_config.get(PGBOUNCER_DATABASE_AUTH_PASSWORD_CONFIG_KEY)
+
+
+def _get_database_auth_query(database_config):
+    return database_config.get(PGBOUNCER_DATABASE_AUTH_QUERY_CONFIG_KEY)
 
 
 def _get_home_dir():
@@ -149,7 +181,9 @@ def _set_backend_databases_engine_type(
     if not backend_databases:
         return cluster_config
     for _, database_config in backend_databases.items():
-        database_config[DATABASE_CONFIG_ENGINE] = DATABASE_ENGINE_POSTGRES
+        database_connect = _get_database_connect(database_config)
+        if database_connect:
+            database_connect[DATABASE_CONFIG_ENGINE] = DATABASE_ENGINE_POSTGRES
     return cluster_config
 
 
@@ -259,13 +293,14 @@ def _with_runtime_environment_variables(
         PGBOUNCER_ADMIN_USER_CONFIG_KEY, PGBOUNCER_ADMIN_USER_DEFAULT)
     runtime_envs["PGBOUNCER_ADMIN_USER"] = admin_user
 
-    runtime_envs["PGBOUNCER_POOL_MODE"] = pgbouncer_config.get(
+    pool_config = _get_pool_config(pgbouncer_config)
+    runtime_envs["PGBOUNCER_POOL_MODE"] = pool_config.get(
         PGBOUNCER_POOL_MODE_CONFIG_KEY, PGBOUNCER_POOL_MODE_SESSION)
-    runtime_envs["PGBOUNCER_DEFAULT_POOL_SIZE"] = pgbouncer_config.get(
-        PGBOUNCER_DEFAULT_POOL_SIZE_CONFIG_KEY, PGBOUNCER_DEFAULT_POOL_SIZE_DEFAULT)
-    runtime_envs["PGBOUNCER_MIN_POOL_SIZE"] = pgbouncer_config.get(
+    runtime_envs["PGBOUNCER_POOL_SIZE"] = pool_config.get(
+        PGBOUNCER_POOL_SIZE_CONFIG_KEY, PGBOUNCER_POOL_SIZE_DEFAULT)
+    runtime_envs["PGBOUNCER_MIN_POOL_SIZE"] = pool_config.get(
         PGBOUNCER_MIN_POOL_SIZE_CONFIG_KEY, PGBOUNCER_MIN_POOL_SIZE_DEFAULT)
-    runtime_envs["PGBOUNCER_RESERVE_POOL_SIZE"] = pgbouncer_config.get(
+    runtime_envs["PGBOUNCER_RESERVE_POOL_SIZE"] = pool_config.get(
         PGBOUNCER_RESERVE_POOL_SIZE_CONFIG_KEY, PGBOUNCER_RESERVE_POOL_SIZE_DEFAULT)
 
     high_availability = _is_high_availability(pgbouncer_config)

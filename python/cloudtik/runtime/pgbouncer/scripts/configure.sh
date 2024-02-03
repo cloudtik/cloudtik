@@ -71,7 +71,7 @@ configure_pgbouncer() {
     update_place_holder "admin.user" "${PGBOUNCER_ADMIN_USER}"
 
     # pool sizes
-    update_place_holder "default.pool.size" "${PGBOUNCER_DEFAULT_POOL_SIZE}"
+    update_place_holder "default.pool.size" "${PGBOUNCER_POOL_SIZE}"
     update_place_holder "min.pool.size" "${PGBOUNCER_MIN_POOL_SIZE}"
     update_place_holder "reserve.pool.size" "${PGBOUNCER_RESERVE_POOL_SIZE}"
 
