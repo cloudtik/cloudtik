@@ -73,7 +73,7 @@ configure_service_init() {
         # The default role assigned if there is not sentinel
         local role="primary"
         if [ "${IS_HEAD_NODE}" != "true" ]; then
-            role="standby"
+            role="secondary"
         fi
         configure_variable REDIS_REPLICATION_ROLE "$role"
 

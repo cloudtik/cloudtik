@@ -58,8 +58,8 @@ MONGODB_SHARDING_CLUSTER_ROLE_SHARD = "shardsvr"
 MONGODB_MONGOS_PORT_CONFIG_KEY = "mongos_port"
 
 MONGODB_SERVICE_TYPE = BUILT_IN_RUNTIME_MONGODB
+MONGODB_SECONDARY_SERVICE_TYPE = MONGODB_SERVICE_TYPE + "-secondary"
 
-MONGODB_REPLICA_SERVICE_TYPE = MONGODB_SERVICE_TYPE + "-replica"
 MONGODB_CONFIG_SERVER_SERVICE_TYPE = MONGODB_SERVICE_TYPE + "-configsvr"
 MONGODB_MONGOS_SERVICE_TYPE = MONGODB_SERVICE_TYPE + "-mongos"
 MONGODB_SHARD_SERVER_SERVICE_TYPE = MONGODB_SERVICE_TYPE + "-shardsvr"
@@ -528,10 +528,10 @@ def _get_runtime_services(
     if cluster_mode == MONGODB_CLUSTER_MODE_REPLICATION:
         # all nodes are possible primary
         replica_service_name = get_canonical_service_name(
-            service_discovery_config, cluster_name, MONGODB_REPLICA_SERVICE_TYPE)
+            service_discovery_config, cluster_name, MONGODB_SECONDARY_SERVICE_TYPE)
         services = {
             replica_service_name: define_runtime_service(
-                MONGODB_REPLICA_SERVICE_TYPE,
+                MONGODB_SECONDARY_SERVICE_TYPE,
                 service_discovery_config, service_port),
         }
     elif cluster_mode == MONGODB_CLUSTER_MODE_SHARDING:

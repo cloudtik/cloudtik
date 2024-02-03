@@ -1,23 +1,23 @@
 #!/bin/bash
 #
 # This script checks if redis server health and whether it is a primary server
-# or replica server for replication.
+# or secondary server for replication.
 #
-# if request has no path or with /primary
+# if request has no path or with /primary, /master
 # response:
 # "HTTP/1.1 200 OK" (if running as primary)
 # - OR -
 # "HTTP/1.1 503 Service Unavailable" (else)
 #
-# if request has path with /standby, /replica
+# if request has path with /secondary, /slave
 # response:
-# "HTTP/1.1 200 OK" (if is running as standby)
+# "HTTP/1.1 200 OK" (if is running as secondary)
 # - OR -
-# "HTTP/1.1 503 Service Unavailable" (if not running as standby)
+# "HTTP/1.1 503 Service Unavailable" (if not running as secondary)
 #
 # if request has path with /any or other paths
 # response:
-# "HTTP/1.1 200 OK" (if is running as primary or standby)
+# "HTTP/1.1 200 OK" (if is running as primary or secondary)
 # - OR -
 # "HTTP/1.1 503 Service Unavailable" (if service is not available)
 #
@@ -63,7 +63,7 @@ _get_replication_server_role() {
     if [ "$replication_role" == "master" ]; then
         echo "primary"
     elif [ "$replication_role" == "slave" ]; then
-        echo "replica"
+        echo "secondary"
     else
         return 1
     fi
@@ -88,7 +88,7 @@ _get_sharding_server_role() {
                 echo "primary"
                 return 0
             elif [[ ${node_flags[@]} =~ "slave" ]]; then
-                echo "replica"
+                echo "secondary"
                 return 0
             else
                 return 1
@@ -140,18 +140,19 @@ _main() {
     fi
     if [[ -z "${HTTP_REQ_URI_PATH}" ]] \
         || [[ "${HTTP_REQ_URI_PATH}" == "/" ]] \
-        || [[ "${HTTP_REQ_URI_PATH}" == "/primary" ]]; then
+        || [[ "${HTTP_REQ_URI_PATH}" == "/primary" ]] \
+        || [[ "${HTTP_REQ_URI_PATH}" == "/master" ]]; then
         if [[ "${server_role}" == "primary" ]]; then
             response 200 "OK: ${server_role}"
         fi
-    elif [[ "${HTTP_REQ_URI_PATH}" == "/standby" ]] \
-        || [[ "${HTTP_REQ_URI_PATH}" == "/replica" ]]; then
-        if [[ "${server_role}" == "replica" ]]; then
+    elif [[ "${HTTP_REQ_URI_PATH}" == "/secondary" ]] \
+        || [[ "${HTTP_REQ_URI_PATH}" == "/slave" ]]; then
+        if [[ "${server_role}" == "secondary" ]]; then
             response 200 "OK: ${server_role}"
         fi
     else
         if [[ "${server_role}" == "primary" ]] \
-            || [[ "${server_role}" == "replica" ]]; then
+            || [[ "${server_role}" == "secondary" ]]; then
             response 200 "OK: ${server_role}"
         fi
     fi
