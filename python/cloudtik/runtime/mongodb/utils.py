@@ -527,10 +527,10 @@ def _get_runtime_services(
     cluster_mode = _get_cluster_mode(mongodb_config)
     if cluster_mode == MONGODB_CLUSTER_MODE_REPLICATION:
         # all nodes are possible primary
-        replica_service_name = get_canonical_service_name(
+        secondary_service_name = get_canonical_service_name(
             service_discovery_config, cluster_name, MONGODB_SECONDARY_SERVICE_TYPE)
         services = {
-            replica_service_name: define_runtime_service(
+            secondary_service_name: define_runtime_service(
                 MONGODB_SECONDARY_SERVICE_TYPE,
                 service_discovery_config, service_port),
         }

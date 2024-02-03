@@ -9,7 +9,7 @@
 # - OR -
 # "HTTP/1.1 503 Service Unavailable" (else)
 #
-# if request has path with /secondary /standby
+# if request has path with /secondary
 # response:
 # "HTTP/1.1 200 OK" (if is running as secondary)
 # - OR -
@@ -53,7 +53,6 @@ _get_replication_server_role() {
     if [ "$replication_status" == "" ]; then
         echo "primary"
     else
-        # it's a replica
         echo "secondary"
     fi
 }
@@ -133,8 +132,7 @@ _main() {
         if [[ "${server_role}" == "primary" ]]; then
             response 200 "OK: ${server_role}"
         fi
-    elif [[ "${HTTP_REQ_URI_PATH}" == "/secondary" ]] \
-        || [[ "${HTTP_REQ_URI_PATH}" == "/standby" ]]; then
+    elif [[ "${HTTP_REQ_URI_PATH}" == "/secondary" ]]; then
         if [[ "${server_role}" == "secondary" ]]; then
             response 200 "OK: ${server_role}"
         fi
