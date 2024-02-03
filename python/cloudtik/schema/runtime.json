@@ -1542,20 +1542,31 @@
                     "default": "cloudtik",
                     "description": "Specify the PgBouncer admin username."
                 },
-                "default_pool_size": {
-                    "type": "integer",
-                    "default": 20,
-                    "description": "The default pool size."
-                },
-                "min_pool_size": {
-                    "type": "integer",
-                    "default": 0,
-                    "description": "The min pool size."
-                },
-                "reserve_pool_size": {
-                    "type": "integer",
-                    "default": 0,
-                    "description": "The reserve pool size."
+                "pool": {
+                    "type": "object",
+                    "description": "Backend configurations",
+                    "properties": {
+                        "pool_mode": {
+                            "type": "string",
+                            "default": "session",
+                            "description": "The pool mode: session, transaction, statement."
+                        },
+                        "pool_size": {
+                            "type": "integer",
+                            "default": 20,
+                            "description": "The pool size."
+                        },
+                        "min_pool_size": {
+                            "type": "integer",
+                            "default": 0,
+                            "description": "The min pool size."
+                        },
+                        "reserve_pool_size": {
+                            "type": "integer",
+                            "default": 0,
+                            "description": "The reserve pool size."
+                        }
+                    }
                 },
                 "backend": {
                     "type": "object",
@@ -1572,8 +1583,27 @@
                             "additionalProperties": false,
                             "patternProperties": {
                                 ".*": {
-                                    "$ref": "#/definitions/database_connect",
-                                    "description": "The database parameters."
+                                    "type": "object",
+                                    "description": "Database configurations",
+                                    "properties": {
+                                        "connect": {
+                                            "$ref": "#/definitions/database_connect",
+                                            "description": "The database parameters."
+                                        },
+                                        "bind_user": {
+                                            "type": "boolean",
+                                            "default": false,
+                                            "description": "Whether to bind the user to the connection."
+                                        },
+                                        "auth_user": {
+                                            "type": "string",
+                                            "description": "The auth user for querying user"
+                                        },
+                                        "auth_password": {
+                                            "type": "string",
+                                            "description": "The auth user password"
+                                        }
+                                    }
                                 }
                             }
                         }
