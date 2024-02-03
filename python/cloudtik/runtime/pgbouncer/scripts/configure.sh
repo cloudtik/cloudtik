@@ -78,6 +78,8 @@ configure_pgbouncer() {
     cp $CONFIG_TEMPLATE_FILE ${PGBOUNCER_CONFIG_FILE}
     # make it owner only read/write for security
     chmod 0600 "${PGBOUNCER_CONFIG_FILE}"
+    # The template file is use to append backend databases at the end
+    cp ${PGBOUNCER_CONFIG_FILE} ${PGBOUNCER_CONFIG_DIR}/pgbouncer-template.ini
 
     # Set variables for export to postgres-init.sh
     configure_service_init

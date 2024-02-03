@@ -7,14 +7,13 @@ from cloudtik.core._private.service_discovery.runtime_services import get_servic
 from cloudtik.core._private.service_discovery.utils import \
     get_canonical_service_name, \
     define_runtime_service_on_head_or_all, get_service_discovery_config, SERVICE_DISCOVERY_FEATURE_DATABASE
-from cloudtik.core._private.util.core_utils import get_config_for_update, address_string, get_address_string
+from cloudtik.core._private.util.core_utils import get_config_for_update, address_string
 from cloudtik.core._private.util.database_utils import \
     DATABASE_PASSWORD_POSTGRES_DEFAULT, DATABASE_USERNAME_POSTGRES_DEFAULT, DATABASE_CONFIG_ENGINE, \
     DATABASE_ENGINE_POSTGRES
 from cloudtik.core._private.utils import RUNTIME_CONFIG_KEY, get_runtime_config, get_cluster_name
-from cloudtik.runtime.common.service_discovery.discovery import DiscoveryType
 from cloudtik.runtime.common.service_discovery.runtime_discovery import \
-    is_database_service_discovery, get_database_runtime_in_cluster, DATABASE_SERVICE_SELECTOR_KEY, discover_database
+    is_database_service_discovery, get_database_runtime_in_cluster
 
 RUNTIME_PROCESSES = [
         # The first element is the substring to filter.
@@ -30,6 +29,7 @@ PGBOUNCER_HIGH_AVAILABILITY_CONFIG_KEY = "high_availability"
 PGBOUNCER_BACKEND_CONFIG_KEY = "backend"
 PGBOUNCER_BACKEND_CONFIG_MODE_CONFIG_KEY = "config_mode"
 PGBOUNCER_BACKEND_DATABASES_CONFIG_KEY = "databases"
+PGBOUNCER_BACKEND_DYNAMIC_CONFIG_KEY = "dynamic"
 
 PGBOUNCER_DATABASE_CONNECT_CONFIG_KEY = "connect"
 PGBOUNCER_DATABASE_BIND_USER_CONFIG_KEY = "bind_user"
@@ -38,6 +38,7 @@ PGBOUNCER_DATABASE_AUTH_PASSWORD_CONFIG_KEY = "auth_password"
 PGBOUNCER_DATABASE_AUTH_QUERY_CONFIG_KEY = "auth_query"
 
 PGBOUNCER_ADMIN_USER_CONFIG_KEY = "admin_user"
+PGBOUNCER_ADMIN_PASSWORD_CONFIG_KEY = "admin_password"
 
 PGBOUNCER_POOL_CONFIG_KEY = "pool"
 PGBOUNCER_POOL_MODE_CONFIG_KEY = "pool_mode"
@@ -51,8 +52,10 @@ PGBOUNCER_SERVICE_PORT_DEFAULT = 6432
 
 PGBOUNCER_CONFIG_MODE_STATIC = "static"
 PGBOUNCER_CONFIG_MODE_DYNAMIC = "dynamic"
+PGBOUNCER_CONFIG_MODE_LOCAL = "local"
 
-PGBOUNCER_ADMIN_USER_DEFAULT = DATABASE_USERNAME_POSTGRES_DEFAULT
+PGBOUNCER_ADMIN_USER_DEFAULT = "pgbouncer"
+PGBOUNCER_ADMIN_PASSWORD_DEFAULT = DATABASE_PASSWORD_POSTGRES_DEFAULT
 
 PGBOUNCER_POSTGRES_USER_DEFAULT = DATABASE_USERNAME_POSTGRES_DEFAULT
 PGBOUNCER_POSTGRES_PASSWORD_DEFAULT = DATABASE_PASSWORD_POSTGRES_DEFAULT
@@ -90,6 +93,16 @@ def _is_high_availability(pgbouncer_config: Dict[str, Any]):
         PGBOUNCER_HIGH_AVAILABILITY_CONFIG_KEY, True)
 
 
+def _get_admin_user(pgbouncer_config: Dict[str, Any]):
+    return pgbouncer_config.get(
+        PGBOUNCER_ADMIN_USER_CONFIG_KEY, PGBOUNCER_ADMIN_USER_DEFAULT)
+
+
+def _get_admin_password(pgbouncer_config: Dict[str, Any]):
+    return pgbouncer_config.get(
+        PGBOUNCER_ADMIN_PASSWORD_CONFIG_KEY, PGBOUNCER_ADMIN_PASSWORD_DEFAULT)
+
+
 def _get_pool_config(pgbouncer_config: Dict[str, Any]):
     return pgbouncer_config.get(
         PGBOUNCER_POOL_CONFIG_KEY, {})
@@ -105,7 +118,7 @@ def _get_backend_databases(backend_config):
 
 
 def _get_database_connect(database_config):
-    return database_config.get(PGBOUNCER_DATABASE_CONNECT_CONFIG_KEY)
+    return database_config.get(PGBOUNCER_DATABASE_CONNECT_CONFIG_KEY, {})
 
 
 def _is_database_bind_user(database_config):
@@ -122,6 +135,10 @@ def _get_database_auth_password(database_config):
 
 def _get_database_auth_query(database_config):
     return database_config.get(PGBOUNCER_DATABASE_AUTH_QUERY_CONFIG_KEY)
+
+
+def _get_dynamic_config(backend_config):
+    return backend_config.get(PGBOUNCER_BACKEND_DYNAMIC_CONFIG_KEY)
 
 
 def _get_home_dir():
@@ -161,7 +178,7 @@ def _get_default_config_mode(config, backend_config):
     return config_mode
 
 
-def _get_config_mode(
+def _get_checked_config_mode(
         pgbouncer_config: Dict[str, Any], cluster_config: Dict[str, Any]):
     backend_config = _get_backend_config(pgbouncer_config)
     config_mode = backend_config.get(
@@ -182,54 +199,15 @@ def _set_backend_databases_engine_type(
         return cluster_config
     for _, database_config in backend_databases.items():
         database_connect = _get_database_connect(database_config)
-        if database_connect:
-            database_connect[DATABASE_CONFIG_ENGINE] = DATABASE_ENGINE_POSTGRES
-    return cluster_config
-
-
-def _set_backend_databases_config(
-        pgbouncer_config: Dict[str, Any], server_addresses):
-    backend_config = get_config_for_update(
-            pgbouncer_config, PGBOUNCER_BACKEND_CONFIG_KEY)
-    backend_databases = [
-        get_address_string(
-            server_address[0], server_address[1]) for server_address in server_addresses]
-    backend_config[PGBOUNCER_BACKEND_DATABASES_CONFIG_KEY] = backend_databases
-
-
-def discover_postgres_on_head(
-        cluster_config: Dict[str, Any], runtime_type):
-    runtime_config = get_runtime_config(cluster_config)
-    runtime_type_config = runtime_config.get(runtime_type, {})
-    if not is_database_service_discovery(runtime_type_config):
-        return cluster_config
-
-    # There is service discovery to come here
-    database_service = discover_database(
-        runtime_type_config, DATABASE_SERVICE_SELECTOR_KEY,
-        cluster_config=cluster_config,
-        discovery_type=DiscoveryType.CLUSTER,
-        database_runtime_type=BUILT_IN_RUNTIME_POSTGRES,
-        database_service_type=PGBOUNCER_DISCOVER_POSTGRES_SERVICE_TYPES)
-    if database_service:
-        runtime_type_config = get_config_for_update(
-            runtime_config, runtime_type)
-        _, service_addresses = database_service
-        # set the backend servers
-        _set_backend_databases_config(
-            runtime_type_config, service_addresses)
-
+        database_connect[DATABASE_CONFIG_ENGINE] = DATABASE_ENGINE_POSTGRES
     return cluster_config
 
 
 def _prepare_config_on_head(
         runtime_config: Dict[str, Any], cluster_config: Dict[str, Any]):
     pgbouncer_config = _get_config(runtime_config)
-    config_mode = _get_config_mode(pgbouncer_config, cluster_config)
-    if config_mode == PGBOUNCER_CONFIG_MODE_DYNAMIC:
-        cluster_config = discover_postgres_on_head(
-            cluster_config, BUILT_IN_RUNTIME_PGBOUNCER)
-    else:
+    config_mode = _get_checked_config_mode(pgbouncer_config, cluster_config)
+    if config_mode == PGBOUNCER_CONFIG_MODE_STATIC:
         # for static, add the postgres engine type
         cluster_config = _set_backend_databases_engine_type(
             cluster_config)
@@ -251,31 +229,40 @@ def _is_valid_postgres_config(config: Dict[str, Any], final=False):
     runtime_config = get_runtime_config(config)
     pgbouncer_config = _get_config(runtime_config)
     backend_config = _get_backend_config(pgbouncer_config)
-    backend_databases = _get_backend_databases(backend_config)
-    # check backend servers either static or discovered
-    if backend_databases:
-        return True
 
-    config_mode = _get_config_mode(pgbouncer_config, config)
+    config_mode = _get_checked_config_mode(pgbouncer_config, config)
     if config_mode == PGBOUNCER_CONFIG_MODE_STATIC:
+        backend_databases = _get_backend_databases(backend_config)
+        if backend_databases:
+            return True
         raise ValueError(
             "Missing backend servers for static configuration.")
-
-    # TODO: check in cluster postgres database
-    database_runtime = _get_database_runtime_in_cluster(
-        runtime_config)
-    if database_runtime:
-        return True
-
-    # if there is service discovery mechanism, assume we can get from service discovery
-    if (not final and is_database_service_discovery(pgbouncer_config)
-            and get_service_discovery_runtime(runtime_config)):
-        return True
+    elif config_mode == PGBOUNCER_CONFIG_MODE_LOCAL:
+        # TODO: check in cluster postgres database
+        database_runtime = _get_database_runtime_in_cluster(
+            runtime_config)
+        if database_runtime:
+            return True
+    else:
+        # if there is service discovery mechanism, assume we can get from service discovery
+        if (is_database_service_discovery(pgbouncer_config)
+                and get_service_discovery_runtime(runtime_config)):
+            return True
 
     return False
 
 
 def _validate_config(config: Dict[str, Any], final=False):
+    runtime_config = get_runtime_config(config)
+    pgbouncer_config = _get_config(runtime_config)
+
+    # Check admin password
+    admin_user = _get_admin_user(pgbouncer_config)
+    admin_password = _get_admin_password(pgbouncer_config)
+    if not admin_user or not admin_password:
+        raise ValueError(
+            "Admin user and password must be both specified.")
+
     if not _is_valid_postgres_config(config, final):
         raise ValueError(
             "Postgres must be configured for PgBouncer.")
@@ -308,7 +295,7 @@ def _with_runtime_environment_variables(
         runtime_envs["PGBOUNCER_HIGH_AVAILABILITY"] = high_availability
 
     backend_config = _get_backend_config(pgbouncer_config)
-    config_mode = _get_config_mode(pgbouncer_config, config)
+    config_mode = _get_checked_config_mode(pgbouncer_config, config)
     if config_mode == PGBOUNCER_CONFIG_MODE_STATIC:
         _with_runtime_envs_for_static(backend_config, runtime_envs)
     else:

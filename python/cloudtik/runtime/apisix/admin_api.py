@@ -18,9 +18,10 @@ apart from dashes ( - ), periods ( . ) and underscores ( _ )
 
 
 class BackendService(JSONSerializableObject):
-    def __init__(self, service_name, servers=None,
-                 service_dns_name=None, service_port=None,
-                 route_path=None, service_path=None):
+    def __init__(
+            self, service_name, servers=None,
+            service_dns_name=None, service_port=None,
+            route_path=None, service_path=None):
         self.service_name = service_name
         self.servers = servers
         self.service_dns_name = service_dns_name

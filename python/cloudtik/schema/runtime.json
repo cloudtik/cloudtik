@@ -130,11 +130,15 @@
                 },
                 "username": {
                     "type": "string",
-                    "description": "Database administrator login name. default: cloudtik"
+                    "description": "Database username. default: cloudtik"
                 },
                 "password": {
                     "type": "string",
-                    "description": "Database administrator login password."
+                    "description": "Database user password."
+                },
+                "database": {
+                    "type": "string",
+                    "description": "Database to connect. Applicable for only specific cases."
                 }
             }
         }
@@ -1542,6 +1546,11 @@
                     "default": "cloudtik",
                     "description": "Specify the PgBouncer admin username."
                 },
+                "admin_password": {
+                    "type": "string",
+                    "default": "cloudtik",
+                    "description": "Specify the PgBouncer admin password."
+                },
                 "pool": {
                     "type": "object",
                     "description": "Backend configurations",
@@ -1604,6 +1613,29 @@
                                             "description": "The auth user password"
                                         }
                                     }
+                                }
+                            }
+                        },
+                        "dynamic": {
+                            "type": "object",
+                            "description": "The dynamic configurations.",
+                            "properties": {
+                                "connect": {
+                                    "$ref": "#/definitions/database_connect",
+                                    "description": "The database parameters: user, password, database."
+                                },
+                                "bind_user": {
+                                    "type": "boolean",
+                                    "default": false,
+                                    "description": "Whether to bind the user to the connection."
+                                },
+                                "auth_user": {
+                                    "type": "string",
+                                    "description": "The auth user for querying user"
+                                },
+                                "auth_password": {
+                                    "type": "string",
+                                    "description": "The auth user password"
                                 }
                             }
                         }
