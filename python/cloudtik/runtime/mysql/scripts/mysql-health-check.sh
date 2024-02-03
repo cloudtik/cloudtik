@@ -9,15 +9,15 @@
 # - OR -
 # "HTTP/1.1 503 Service Unavailable" (else)
 #
-# if request has path with /standby, /secondary
+# if request has path with /secondary
 # response:
-# "HTTP/1.1 200 OK" (if is running as standby)
+# "HTTP/1.1 200 OK" (if is running as secondary)
 # - OR -
-# "HTTP/1.1 503 Service Unavailable" (if not running as standby)
+# "HTTP/1.1 503 Service Unavailable" (if not running as secondary)
 #
 # if request has path with /any or other paths
 # response:
-# "HTTP/1.1 200 OK" (if is running as primary or standby)
+# "HTTP/1.1 200 OK" (if is running as primary or secondary)
 # - OR -
 # "HTTP/1.1 503 Service Unavailable" (if service is not available)
 #
@@ -75,6 +75,7 @@ _get_group_replication_server_role() {
         local member_role="${member_info[4]}"
         if [ "$member_host" == "$my_hostname" ]; then
             if [ "$member_state" == "ONLINE" ]; then
+                # PRIMARY or SECONDARY role convert to lower case
                 echo $(echo $member_role | tr '[:upper:]' '[:lower:]')
                 return 0
             else
@@ -131,8 +132,7 @@ _main() {
         if [[ "${server_role}" == "primary" ]]; then
             response 200 "OK: ${server_role}"
         fi
-    elif [[ "${HTTP_REQ_URI_PATH}" == "/standby" ]] \
-        || [[ "${HTTP_REQ_URI_PATH}" == "/secondary" ]]; then
+    elif [[ "${HTTP_REQ_URI_PATH}" == "/secondary" ]]; then
         if [[ "${server_role}" == "secondary" ]]; then
             response 200 "OK: ${server_role}"
         fi

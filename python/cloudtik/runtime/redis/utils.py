@@ -42,7 +42,7 @@ REDIS_MASTER_NODE_TYPE_CONFIG_KEY = "master_node_type"
 REDIS_HEALTH_CHECK_PORT_CONFIG_KEY = "health_check_port"
 
 REDIS_SERVICE_TYPE = BUILT_IN_RUNTIME_REDIS
-REDIS_REPLICA_SERVICE_TYPE = REDIS_SERVICE_TYPE + "-replica"
+REDIS_SECONDARY_SERVICE_TYPE = REDIS_SERVICE_TYPE + "-secondary"
 REDIS_NODE_SERVICE_TYPE = REDIS_SERVICE_TYPE + "-node"
 REDIS_SENTINEL_SERVICE_TYPE = REDIS_SERVICE_TYPE + "-sentinel"
 
@@ -328,7 +328,7 @@ def _get_runtime_services(
         replication_config = _get_replication_config(redis_config)
         sentinel_enabled = _is_sentinel_enabled(replication_config)
         if sentinel_enabled:
-            # every node is possible be primary and standby
+            # every node is possible be primary and secondary
             sentinel_service_name = get_canonical_service_name(
                 service_discovery_config, cluster_name, REDIS_SENTINEL_SERVICE_TYPE)
             sentinel_port = _get_sentinel_port(replication_config, service_port)
@@ -340,13 +340,13 @@ def _get_runtime_services(
                     sentinel_port),
             }
         else:
-            # primary service on head and replica service on workers
-            replica_service_name = get_canonical_service_name(
-                service_discovery_config, cluster_name, REDIS_REPLICA_SERVICE_TYPE)
+            # primary service on head and secondary service on workers
+            secondary_service_name = get_canonical_service_name(
+                service_discovery_config, cluster_name, REDIS_SECONDARY_SERVICE_TYPE)
             services = {
                 service_name: define_redis_service(define_runtime_service_on_head),
-                replica_service_name: define_redis_service(
-                    define_runtime_service_on_worker, REDIS_REPLICA_SERVICE_TYPE),
+                secondary_service_name: define_redis_service(
+                    define_runtime_service_on_worker, REDIS_SECONDARY_SERVICE_TYPE),
             }
     elif cluster_mode == REDIS_CLUSTER_MODE_SHARDING:
         # Service register for each node but don't give key-value feature to avoid

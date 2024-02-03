@@ -193,7 +193,7 @@ redis_sentinel_get_primary_node() {
             # myself marked as primary. It seemed that primary failover is not happening
             info "Failover didn't happen. Starting as primary..."
         else
-            info "Starting as standby following '${upstream_host}:${upstream_port}'..."
+            info "Starting as secondary following '${upstream_host}:${upstream_port}'..."
             primary_host="$upstream_host"
             primary_port="$upstream_port"
         fi
@@ -214,7 +214,7 @@ redis_sentinel_get_primary_node() {
 #   Series of exports used for initialization
 #########################
 redis_sentinel_set_role() {
-    local role="standby"
+    local role="secondary"
     local primary_node
     local primary_host
     local primary_port
@@ -229,8 +229,8 @@ redis_sentinel_set_role() {
       primary_port="$REDIS_PORT"
       role="primary"
     else
-      info "Node configured as standby"
-      role="standby"
+      info "Node configured as secondary"
+      role="secondary"
     fi
 
     export REDIS_REPLICATION_ROLE="$role"

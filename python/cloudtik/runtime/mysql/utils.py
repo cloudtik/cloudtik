@@ -47,7 +47,7 @@ MYSQL_DATABASE_PASSWORD_CONFIG_KEY = "password"
 MYSQL_HEALTH_CHECK_PORT_CONFIG_KEY = "health_check_port"
 
 MYSQL_SERVICE_TYPE = BUILT_IN_RUNTIME_MYSQL
-MYSQL_REPLICA_SERVICE_TYPE = MYSQL_SERVICE_TYPE + "-replica"
+MYSQL_SECONDARY_SERVICE_TYPE = MYSQL_SERVICE_TYPE + "-secondary"
 MYSQL_NODE_SERVICE_TYPE = MYSQL_SERVICE_TYPE + "-node"
 
 MYSQL_SERVICE_PORT_DEFAULT = DATABASE_PORT_MYSQL_DEFAULT
@@ -228,16 +228,16 @@ def _get_runtime_services(
 
     cluster_mode = _get_cluster_mode(mysql_config)
     if cluster_mode == MYSQL_CLUSTER_MODE_REPLICATION:
-        # primary service on head and replica service on workers
-        replica_service_name = get_canonical_service_name(
-            service_discovery_config, cluster_name, MYSQL_REPLICA_SERVICE_TYPE)
+        # primary service on head and secondary service on workers
+        secondary_service_name = get_canonical_service_name(
+            service_discovery_config, cluster_name, MYSQL_SECONDARY_SERVICE_TYPE)
         services = {
             service_name: define_runtime_service_on_head(
                 MYSQL_SERVICE_TYPE,
                 service_discovery_config, service_port,
                 features=[SERVICE_DISCOVERY_FEATURE_DATABASE]),
-            replica_service_name: define_runtime_service_on_worker(
-                MYSQL_REPLICA_SERVICE_TYPE,
+            secondary_service_name: define_runtime_service_on_worker(
+                MYSQL_SECONDARY_SERVICE_TYPE,
                 service_discovery_config, service_port,
                 features=[SERVICE_DISCOVERY_FEATURE_DATABASE]),
         }

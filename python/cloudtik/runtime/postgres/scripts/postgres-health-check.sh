@@ -8,7 +8,7 @@
 # - OR -
 # "HTTP/1.1 503 Service Unavailable" (else)
 #
-# if request has path with /standby
+# if request has path with /secondary, /standby
 # response:
 # "HTTP/1.1 200 OK" (if postgres is running as standby)
 # - OR -
@@ -71,8 +71,8 @@ _main() {
         if [[ "${server_role}" == "primary" ]]; then
             response 200 "OK: ${server_role}"
         fi
-    elif [[ "${HTTP_REQ_URI_PATH}" == "/standby" ]] \
-        || [[ "${HTTP_REQ_URI_PATH}" == "/secondary" ]]; then
+    elif [[ "${HTTP_REQ_URI_PATH}" == "/secondary" ]] \
+        || [[ "${HTTP_REQ_URI_PATH}" == "/standby" ]]; then
         if [[ "${server_role}" == "standby" ]]; then
             response 200 "OK: ${server_role}"
         fi

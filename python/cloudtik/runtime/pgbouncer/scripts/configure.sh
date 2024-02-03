@@ -64,7 +64,7 @@ configure_pgbouncer() {
     PGBOUNCER_CONFIG_FILE=${PGBOUNCER_CONFIG_DIR}/pgbouncer.ini
 
     # The listen_addresses cannot be ip address list. So we bind all.
-    update_place_holder "listen.port" "${NODE_IP_ADDRESS}"
+    update_place_holder "listen.ip" "${NODE_IP_ADDRESS}"
     update_place_holder "listen.port" "${PGBOUNCER_SERVICE_PORT}"
     update_place_holder "pgbouncer.home" "${PGBOUNCER_HOME}"
     update_place_holder "pool.mode" "${PGBOUNCER_POOL_MODE}"
