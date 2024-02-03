@@ -72,27 +72,28 @@ def _add_connect_username_password(
 
 
 def _add_auth_username_password(
-        username_password_map, username_password_conflicts,
-        database_config):
+        username_password_map, database_config):
     # WARNING: we should avoid auth user password conflicts
     username = _get_database_auth_user(database_config)
     password = _get_database_auth_password(database_config)
-    _add_user_password(
-        username_password_map, username_password_conflicts,
-        username, password)
+    if not username or not password:
+        return
+    username_password_map[username] = password
 
 
 def _get_username_password_info(backend_databases):
     username_password_conflicts = set()
     username_password_map = {}
+    auth_user_password_map = {}
     for _, database_config in backend_databases.items():
         database_connect = _get_database_connect(database_config)
         _add_connect_username_password(
             username_password_map,  username_password_conflicts,
             database_connect)
         _add_auth_username_password(
-            username_password_map, username_password_conflicts,
-            database_config)
+            auth_user_password_map, database_config)
+    # Make sure auth user password always appear
+    username_password_map.update(auth_user_password_map)
     return username_password_map, username_password_conflicts
 
 
