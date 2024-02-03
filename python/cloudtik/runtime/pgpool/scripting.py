@@ -13,7 +13,7 @@ from cloudtik.runtime.common.service_discovery.runtime_discovery import DATABASE
 from cloudtik.runtime.pgpool.utils import _get_config, _get_home_dir, _get_backend_config, \
     PGPOOL_BACKEND_SERVERS_CONFIG_KEY, PGPOOL_DISCOVER_POSTGRES_SERVICE_TYPES, _get_logs_dir
 
-PGPOOL_PULL_LOCAL_TARGETS_INTERVAL = 15
+PGPOOL_PULL_BACKENDS_INTERVAL = 15
 PGPOOL_MAX_SERVERS = 1024
 
 ###################################
@@ -87,7 +87,7 @@ def start_pull_server(head):
     cmd = ["cloudtik", "node", "pull", pull_identifier, "start"]
     cmd += ["--pull-class=cloudtik.runtime.pgpool.discovery.DiscoverBackendServers"]
     cmd += ["--interval={}".format(
-        PGPOOL_PULL_LOCAL_TARGETS_INTERVAL)]
+        PGPOOL_PULL_BACKENDS_INTERVAL)]
     cmd += ["--logs-dir={}".format(quote(logs_dir))]
 
     # job parameters

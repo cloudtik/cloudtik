@@ -166,8 +166,9 @@ def update_load_balancer_configuration(
 
 
 class APIGatewayBackendService(JSONSerializableObject):
-    def __init__(self, service_name, backend_servers,
-                 route_path=None, service_path=None):
+    def __init__(
+            self, service_name, backend_servers,
+            route_path=None, service_path=None):
         self.service_name = service_name
         self.backend_servers = backend_servers
         self.route_path = route_path
@@ -249,8 +250,9 @@ def _save_api_gateway_router_config(
 
 
 class APIGatewayDNSBackendService(JSONSerializableObject):
-    def __init__(self, service_name, service_port,
-                 service_dns_name, route_path=None, service_path=None):
+    def __init__(
+            self, service_name, service_port,
+            service_dns_name, route_path=None, service_path=None):
         self.service_name = service_name
         self.service_port = service_port
         self.service_dns_name = service_dns_name
@@ -295,9 +297,6 @@ def _save_api_gateway_dns_router_config(
         router_file, route_path, backend_name,
         service_dns_name, service_port, service_path=None):
     variable_name = backend_name.replace('-', '_')
-    target_path = "/"
-    if service_path:
-        target_path = service_path + target_path
     with open(router_file, "w") as f:
         # IMPORTANT NOTE: for each backend, we generate two location blocks
         # one for exact match /abc and redirect to /abc/

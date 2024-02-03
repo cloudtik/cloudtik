@@ -365,9 +365,11 @@ def check_process_exists(pid):
 def kill_process_by_pid(pid):
     try:
         os.kill(pid, signal.SIGKILL)
-        logger.debug("The process with PID {} has been killed.".format(pid))
+        logger.debug(
+            "The process with PID {} has been killed.".format(pid))
     except OSError as e:
-        logger.info("There is no process with PID {}".format(pid))
+        logger.info(
+            "There is no process with PID {}".format(pid))
 
 
 def stop_process_tree(pid, include_parent=True, force=False):
@@ -389,7 +391,7 @@ def stop_process_tree(pid, include_parent=True, force=False):
             pass
 
 
-def read_pid_from_pidfile(pidfile_path):
+def read_pid_from_pid_file(pidfile_path):
     """ Read the PID recorded in the named PID file.
 
         Read and return the numeric PID recorded as text in the named
@@ -424,7 +426,7 @@ def read_pid_from_pidfile(pidfile_path):
 
 
 def get_process_of_pid_file(pid_file: str):
-    pid = read_pid_from_pidfile(pid_file)
+    pid = read_pid_from_pid_file(pid_file)
     if pid is None:
         return None
     try:
@@ -432,6 +434,18 @@ def get_process_of_pid_file(pid_file: str):
         return proc
     except psutil.NoSuchProcess:
         return None
+
+
+def kill_process_by_pid_file(pid_file, sig=signal.SIGKILL):
+    try:
+        pid = read_pid_from_pid_file(pid_file)
+        if pid is None:
+            return
+        os.kill(pid, sig)
+    except OSError:
+        logger.debug(
+            "Failed to kill the process by {}. It may not exist.".format(
+                pid_file))
 
 
 def get_system_memory(
@@ -1220,3 +1234,17 @@ def export_environment_variables(
 def open_with_mode(file, mode, os_mode=0o600):
     with open(file, mode, opener=partial(os.open, mode=os_mode)) as f:
         yield f
+
+
+def is_file_changed(source_file, target_file):
+    if not os.path.exists(source_file):
+        return False
+    changed = True
+    if os.path.exists(target_file):
+        with open(target_file, 'r') as file:
+            target_contents = file.read()
+        with open(source_file, 'r') as file:
+            source_contents = file.read()
+        if source_contents == target_contents:
+            changed = False
+    return changed

@@ -141,8 +141,9 @@ def update_configuration(backend_servers):
 
 
 class APIGatewayBackendService(JSONSerializableObject):
-    def __init__(self, service_name, backend_servers,
-                 route_path=None, service_path=None):
+    def __init__(
+            self, service_name, backend_servers,
+            route_path=None, service_path=None):
         self.service_name = service_name
         self.backend_servers = backend_servers
         self.route_path = route_path

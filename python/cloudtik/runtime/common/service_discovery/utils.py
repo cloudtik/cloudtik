@@ -1,11 +1,10 @@
-from cloudtik.core._private.util.core_utils import get_address_string
-
+from cloudtik.core._private.util.core_utils import get_address_string, JSONSerializableObject
 
 API_GATEWAY_SERVICE_DISCOVERY_LABEL_ROUTE_PATH = "route-path"
 API_GATEWAY_SERVICE_DISCOVERY_LABEL_SERVICE_PATH = "service-path"
 
 
-class ServiceInstance:
+class ServiceInstance(JSONSerializableObject):
     """A service instance returned by discovering processes"""
     def __init__(
             self, service_name, service_addresses,
