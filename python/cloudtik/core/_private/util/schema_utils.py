@@ -71,7 +71,8 @@ def validate_schema(
             raise e from None
         else:
             # For none verbose mode, show short message
-            raise RuntimeError("JSON schema validation error: {}.".format(e.message)) from None
+            raise RuntimeError(
+                "JSON schema validation error: {}.".format(e.message)) from None
 
 
 def validate_schema_by_name(

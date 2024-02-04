@@ -74,12 +74,13 @@ def _configure_databases(
         conf_dir, "pgbouncer-template.ini")
     config_file_working = os.path.join(
         conf_dir, "pgbouncer-working.ini")
-    shutil.copyfile(config_file_template, config_file_working)
+    shutil.copy2(config_file_template, config_file_working)
     _update_backends(
         config_file_working, backend_databases, username_password_conflicts)
 
     config_file = _get_config_file()
     if not is_file_changed(config_file_working, config_file):
+        os.remove(config_file_working)
         return False
     shutil.move(config_file_working, config_file)
     return True
