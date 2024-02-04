@@ -35,7 +35,6 @@ PGBOUNCER_BACKEND_CONFIG_MODE_CONFIG_KEY = "config_mode"
 PGBOUNCER_BACKEND_DATABASES_CONFIG_KEY = "databases"
 PGBOUNCER_BACKEND_DATABASE_CONFIG_KEY = "database_config"
 
-PGBOUNCER_DATABASE_CONNECT_CONFIG_KEY = "connect"
 PGBOUNCER_DATABASE_BIND_USER_CONFIG_KEY = "bind_user"
 PGBOUNCER_DATABASE_AUTH_USER_CONFIG_KEY = "auth_user"
 PGBOUNCER_DATABASE_AUTH_PASSWORD_CONFIG_KEY = "auth_password"
@@ -126,14 +125,9 @@ def _get_backend_databases(backend_config):
     return backend_config.get(PGBOUNCER_BACKEND_DATABASES_CONFIG_KEY, {})
 
 
-def _get_database_connect(database_config):
-    return database_config.get(PGBOUNCER_DATABASE_CONNECT_CONFIG_KEY, {})
-
-
-def _get_checked_database_connect(database_config):
-    database_connect = _get_database_connect(database_config)
-    database_connect[DATABASE_CONFIG_ENGINE] = DATABASE_ENGINE_POSTGRES
-    return database_connect
+def _get_checked_database_config(database_config):
+    database_config[DATABASE_CONFIG_ENGINE] = DATABASE_ENGINE_POSTGRES
+    return database_config
 
 
 def _is_database_bind_user(database_config):
@@ -250,10 +244,9 @@ def _bootstrap_local_backend_database(
 
     # database config properties
     database_options = _get_backend_database_config(backend_config)
-    connect_options = _get_database_connect(database_options)
-    db_user = get_database_username(connect_options)
-    db_password = get_database_password(connect_options)
-    db_name = get_database_name(connect_options)
+    db_user = get_database_username(database_options)
+    db_password = get_database_password(database_options)
+    db_name = get_database_name(database_options)
     auth_user = _get_database_auth_user(database_options)
     auth_password = _get_database_auth_password(database_options)
     bind_user = _is_database_bind_user(database_options)
@@ -266,8 +259,7 @@ def _bootstrap_local_backend_database(
         auth_user, bind_user)
     # user and auth passwords
     if db_password:
-        database_connect = _get_database_connect(database_config)
-        database_connect[DATABASE_CONFIG_PASSWORD] = db_password
+        database_config[DATABASE_CONFIG_PASSWORD] = db_password
     if auth_password:
         database_config[PGBOUNCER_DATABASE_AUTH_PASSWORD_CONFIG_KEY] = auth_password
 
@@ -349,17 +341,15 @@ def get_database_config_of(
         auth_user=None,
         bind_user=None):
     database_config = {}
-    database_connect = get_config_for_update(
-        database_config, PGBOUNCER_DATABASE_CONNECT_CONFIG_KEY)
 
     database_service = (DATABASE_ENGINE_POSTGRES, service_addresses)
-    set_database_config(database_connect, database_service)
+    set_database_config(database_config, database_service)
 
     # set other options from global settings
     if db_user:
-        database_connect[DATABASE_CONFIG_USERNAME] = db_user
+        database_config[DATABASE_CONFIG_USERNAME] = db_user
     if db_name:
-        database_connect[DATABASE_CONFIG_DATABASE] = db_name
+        database_config[DATABASE_CONFIG_DATABASE] = db_name
     if auth_user:
         database_config[PGBOUNCER_DATABASE_AUTH_USER_CONFIG_KEY] = auth_user
     if bind_user:
