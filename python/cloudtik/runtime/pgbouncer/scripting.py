@@ -52,7 +52,7 @@ def configure_backend(head):
     runtime_config = get_runtime_config_from_node(head)
     pgbouncer_config = _get_config(runtime_config)
     backend_config = _get_backend_config(pgbouncer_config)
-    # We go the same configuration process for static, dynamic local
+    # We go the same configuration process for static, dynamic and local
     backend_databases = _get_backend_databases(backend_config)
 
     (username_password_map,

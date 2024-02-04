@@ -6,8 +6,9 @@ from cloudtik.core._private.service_discovery.utils import SERVICE_SELECTOR_RUNT
 from cloudtik.core._private.util.pull.pull_job import PullJob
 from cloudtik.core._private.util.rest_api import \
     REST_API_AUTH_TYPE, REST_API_AUTH_BASIC, REST_API_AUTH_BASIC_USERNAME, REST_API_AUTH_BASIC_PASSWORD
-from cloudtik.runtime.common.service_discovery.consul import query_services, query_service_nodes, get_service_name_of_node, \
+from cloudtik.runtime.common.service_discovery.consul import get_service_name_of_node, \
     get_service_address_of_node, get_service_cluster_of_node
+from cloudtik.runtime.common.service_discovery.discovery import query_services_with_nodes
 from cloudtik.runtime.grafana.admin_api import list_data_sources, add_data_source, delete_data_source
 from cloudtik.runtime.grafana.utils import get_data_source_name, get_prometheus_data_source, \
     GRAFANA_DATA_SOURCE_AUTO_CREATED
@@ -83,8 +84,7 @@ class DiscoverDataSources(PullJob):
     def pull(self):
         selected_services = self._query_services()
         data_sources = {}
-        for service_name in selected_services:
-            service_nodes = self._query_service_nodes(service_name)
+        for service_name, service_nodes in selected_services.items():
             # each node is a data source. if many nodes form a load balancer in a cluster
             # it should be filtered by service selector using service name ,tags or labels
             for service_node in service_nodes:
@@ -106,10 +106,7 @@ class DiscoverDataSources(PullJob):
                 runtimes.append(runtime)
 
     def _query_services(self):
-        return query_services(self.service_selector)
-
-    def _query_service_nodes(self, service_name):
-        return query_service_nodes(service_name, self.service_selector)
+        return query_services_with_nodes(self.service_selector)
 
     def _configure_data_sources(self, data_sources):
         # 1. delete data sources was added but now exists

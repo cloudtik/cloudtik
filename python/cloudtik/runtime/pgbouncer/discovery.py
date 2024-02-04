@@ -3,7 +3,7 @@ import logging
 from cloudtik.core._private.service_discovery.utils import deserialize_service_selector, ServiceAddressType
 from cloudtik.core._private.util.core_utils import get_json_object_hash
 from cloudtik.core._private.util.pull.pull_job import PullJob
-from cloudtik.runtime.common.service_discovery.consul import query_services_from_consul
+from cloudtik.runtime.common.service_discovery.discovery import query_services_from_local_discovery
 from cloudtik.runtime.pgbouncer.scripting import update_configuration
 
 logger = logging.getLogger(__name__)
@@ -48,7 +48,7 @@ class DiscoverBackendServers(PullJob):
             self.last_config_hash = config_hash
 
     def _query_services(self):
-        services = query_services_from_consul(
+        services = query_services_from_local_discovery(
             self.service_selector, self.address_type)
         if services is None:
             services = {}
