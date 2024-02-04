@@ -1,7 +1,8 @@
 import os
 from typing import Any, Dict
 
-from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_PGBOUNCER, BUILT_IN_RUNTIME_POSTGRES
+from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_PGBOUNCER, BUILT_IN_RUNTIME_POSTGRES, \
+    BUILT_IN_RUNTIME_HAPROXY, BUILT_IN_RUNTIME_PGPOOL
 from cloudtik.core._private.service_discovery.naming import get_cluster_head_host
 from cloudtik.core._private.service_discovery.runtime_services import get_service_discovery_runtime
 from cloudtik.core._private.service_discovery.utils import \
@@ -10,10 +11,13 @@ from cloudtik.core._private.service_discovery.utils import \
 from cloudtik.core._private.util.core_utils import get_config_for_update, address_string
 from cloudtik.core._private.util.database_utils import \
     DATABASE_PASSWORD_POSTGRES_DEFAULT, DATABASE_USERNAME_POSTGRES_DEFAULT, DATABASE_CONFIG_ENGINE, \
-    DATABASE_ENGINE_POSTGRES
-from cloudtik.core._private.utils import RUNTIME_CONFIG_KEY, get_runtime_config, get_cluster_name
+    DATABASE_ENGINE_POSTGRES, DATABASE_CONFIG_USERNAME, DATABASE_CONFIG_DATABASE, set_database_config, \
+    get_database_username, get_database_name, get_database_password, DATABASE_CONFIG_PASSWORD, \
+    DATABASE_PORT_POSTGRES_DEFAULT
+from cloudtik.core._private.utils import RUNTIME_CONFIG_KEY, get_runtime_config, get_cluster_name, get_runtime_types
 from cloudtik.runtime.common.service_discovery.runtime_discovery import \
-    is_database_service_discovery, get_database_runtime_in_cluster
+    is_database_service_discovery
+from cloudtik.runtime.common.utils import get_runtime_config_of
 
 RUNTIME_PROCESSES = [
         # The first element is the substring to filter.
@@ -126,6 +130,12 @@ def _get_database_connect(database_config):
     return database_config.get(PGBOUNCER_DATABASE_CONNECT_CONFIG_KEY, {})
 
 
+def _get_checked_database_connect(database_config):
+    database_connect = _get_database_connect(database_config)
+    database_connect[DATABASE_CONFIG_ENGINE] = DATABASE_ENGINE_POSTGRES
+    return database_connect
+
+
 def _is_database_bind_user(database_config):
     return database_config.get(PGBOUNCER_DATABASE_BIND_USER_CONFIG_KEY, False)
 
@@ -144,6 +154,11 @@ def _get_database_auth_query(database_config):
 
 def _get_backend_database_config(backend_config):
     return backend_config.get(PGBOUNCER_BACKEND_DATABASE_CONFIG_KEY, {})
+
+
+def get_database_name_from_name(name):
+    database_name = name.replace("-", "_")
+    return database_name
 
 
 def _get_home_dir():
@@ -175,6 +190,9 @@ def _get_default_config_mode(config, backend_config):
     if _get_backend_databases(backend_config):
         # if there are static servers configured
         config_mode = PGBOUNCER_CONFIG_MODE_STATIC
+    elif _get_database_runtime_in_cluster(
+            cluster_runtime_config, strict=True):
+        config_mode = PGBOUNCER_CONFIG_MODE_LOCAL
     elif get_service_discovery_runtime(cluster_runtime_config):
         config_mode = PGBOUNCER_CONFIG_MODE_DYNAMIC
     else:
@@ -186,26 +204,11 @@ def _get_default_config_mode(config, backend_config):
 def _get_checked_config_mode(
         pgbouncer_config: Dict[str, Any], cluster_config: Dict[str, Any]):
     backend_config = _get_backend_config(pgbouncer_config)
-    config_mode = backend_config.get(
-        PGBOUNCER_BACKEND_CONFIG_MODE_CONFIG_KEY)
+    config_mode = _get_config_mode(backend_config)
     if not config_mode:
         config_mode = _get_default_config_mode(
             cluster_config, backend_config)
     return config_mode
-
-
-def _set_backend_databases_engine_type(
-        cluster_config: Dict[str, Any]):
-    runtime_config = get_runtime_config(cluster_config)
-    pgbouncer_config = _get_config(runtime_config)
-    backend_config = _get_backend_config(pgbouncer_config)
-    backend_databases = _get_backend_databases(backend_config)
-    if not backend_databases:
-        return cluster_config
-    for _, database_config in backend_databases.items():
-        database_connect = _get_database_connect(database_config)
-        database_connect[DATABASE_CONFIG_ENGINE] = DATABASE_ENGINE_POSTGRES
-    return cluster_config
 
 
 def _prepare_config(
@@ -216,35 +219,168 @@ def _prepare_config(
     config_mode = _get_config_mode(backend_config)
     if not config_mode:
         # do update
-        config_mode = _get_checked_config_mode(
-            pgbouncer_config, cluster_config)
         pgbouncer_config = _get_config_for_update(cluster_config)
         backend_config = get_config_for_update(
-            pgbouncer_config, PGBOUNCER_BACKEND_CONFIG_MODE_CONFIG_KEY)
+            pgbouncer_config, PGBOUNCER_BACKEND_CONFIG_KEY)
+
+        config_mode = _get_checked_config_mode(
+            pgbouncer_config, cluster_config)
         backend_config[PGBOUNCER_BACKEND_CONFIG_MODE_CONFIG_KEY] = config_mode
 
     return cluster_config
 
 
-def _prepare_config_on_head(
+def _bootstrap_config(
         runtime_config: Dict[str, Any], cluster_config: Dict[str, Any]):
     pgbouncer_config = _get_config(runtime_config)
     config_mode = _get_checked_config_mode(pgbouncer_config, cluster_config)
-    if config_mode == PGBOUNCER_CONFIG_MODE_STATIC:
-        # for static, add the postgres engine type
-        cluster_config = _set_backend_databases_engine_type(
-            cluster_config)
-
-    _validate_config(cluster_config, final=True)
+    if config_mode == PGBOUNCER_CONFIG_MODE_LOCAL:
+        cluster_config = _bootstrap_local_backend_database(
+            runtime_config, cluster_config)
     return cluster_config
 
 
-def _get_database_runtime_in_cluster(runtime_config):
-    database_runtime = get_database_runtime_in_cluster(
+def _bootstrap_local_backend_database(
+        runtime_config: Dict[str, Any], cluster_config: Dict[str, Any]):
+    pgbouncer_config = _get_config(runtime_config)
+    backend_config = _get_backend_config(pgbouncer_config)
+
+    # set high availability based on target postgres servers
+    _update_high_availability(runtime_config, cluster_config)
+
+    # database config properties
+    database_options = _get_backend_database_config(backend_config)
+    connect_options = _get_database_connect(database_options)
+    db_user = get_database_username(connect_options)
+    db_password = get_database_password(connect_options)
+    db_name = get_database_name(connect_options)
+    auth_user = _get_database_auth_user(database_options)
+    auth_password = _get_database_auth_password(database_options)
+    bind_user = _is_database_bind_user(database_options)
+
+    postgres_port = _get_local_postgres_port(runtime_config)
+    service_addresses = [("127.0.0.1", postgres_port)]
+    database_config = get_database_config_of(
+        service_addresses,
+        db_user, db_name,
+        auth_user, bind_user)
+    # user and auth passwords
+    if db_password:
+        database_connect = _get_database_connect(database_config)
+        database_connect[DATABASE_CONFIG_PASSWORD] = db_password
+    if auth_password:
+        database_config[PGBOUNCER_DATABASE_AUTH_PASSWORD_CONFIG_KEY] = auth_password
+
+    database_name = db_name or get_database_name_from_name(
+        get_cluster_name(cluster_config))
+    return _update_backend_database(
+        cluster_config, database_name, database_config)
+
+
+def _update_high_availability(
+        runtime_config: Dict[str, Any], cluster_config: Dict[str, Any]):
+    runtime_type = _get_database_runtime_in_cluster(
         runtime_config)
-    if (database_runtime
-            and database_runtime == BUILT_IN_RUNTIME_POSTGRES):
-        return database_runtime
+    if not runtime_type:
+        return
+
+    # TODO: allow user to override this setting
+    high_availability = _get_high_availability_of_runtime(
+        runtime_config, runtime_type)
+    pgbouncer_config = _get_config_for_update(cluster_config)
+    pgbouncer_config[PGBOUNCER_HIGH_AVAILABILITY_CONFIG_KEY] = high_availability
+
+
+def _update_backend_database(
+        cluster_config: Dict[str, Any],
+        database_name, database_config):
+    # update
+    pgbouncer_config = _get_config_for_update(cluster_config)
+    backend_config = get_config_for_update(
+        pgbouncer_config, PGBOUNCER_BACKEND_CONFIG_KEY)
+    backend_databases = get_config_for_update(
+        backend_config, PGBOUNCER_BACKEND_DATABASES_CONFIG_KEY)
+    backend_databases[database_name] = database_config
+    return cluster_config
+
+
+def _get_local_postgres_port(runtime_config: Dict[str, Any]):
+    runtime_type = _get_database_runtime_in_cluster(
+        runtime_config)
+    if not runtime_type:
+        return DATABASE_PORT_POSTGRES_DEFAULT
+    # try getting the proper port from the service runtime config
+    return _get_service_port_of_runtime(runtime_config, runtime_type)
+
+
+def _get_high_availability_of_runtime(runtime_config: Dict[str, Any], runtime_type):
+    runtime_type_config = get_runtime_config_of(
+        runtime_config, runtime_type)
+    # we know about these runtimes
+    if runtime_type == BUILT_IN_RUNTIME_POSTGRES:
+        # Postgres cluster mode is not None
+        cluster_mode = runtime_type_config.get("cluster_mode")
+        if cluster_mode != "none":
+            return True
+    elif runtime_type == BUILT_IN_RUNTIME_PGPOOL:
+        # Use the same high availability flag (default True)
+        return runtime_type_config.get(
+            PGBOUNCER_HIGH_AVAILABILITY_CONFIG_KEY, True)
+    elif runtime_type == BUILT_IN_RUNTIME_HAPROXY:
+        # Use the same high availability flag (default False)
+        return runtime_type_config.get(
+            PGBOUNCER_HIGH_AVAILABILITY_CONFIG_KEY, False)
+    return False
+
+
+def _get_service_port_of_runtime(runtime_config: Dict[str, Any], runtime_type):
+    runtime_type_config = get_runtime_config_of(
+        runtime_config, runtime_type)
+    # we know about these runtimes about port settings and default port
+    default_port = DATABASE_PORT_POSTGRES_DEFAULT
+    return runtime_type_config.get(
+        PGBOUNCER_SERVICE_PORT_CONFIG_KEY, default_port)
+
+
+def get_database_config_of(
+        service_addresses,
+        db_user=None,
+        db_name=None,
+        auth_user=None,
+        bind_user=None):
+    database_config = {}
+    database_connect = get_config_for_update(
+        database_config, PGBOUNCER_DATABASE_CONNECT_CONFIG_KEY)
+
+    database_service = (DATABASE_ENGINE_POSTGRES, service_addresses)
+    set_database_config(database_connect, database_service)
+
+    # set other options from global settings
+    if db_user:
+        database_connect[DATABASE_CONFIG_USERNAME] = db_user
+    if db_name:
+        database_connect[DATABASE_CONFIG_DATABASE] = db_name
+    if auth_user:
+        database_config[PGBOUNCER_DATABASE_AUTH_USER_CONFIG_KEY] = auth_user
+    if bind_user:
+        database_config[PGBOUNCER_DATABASE_BIND_USER_CONFIG_KEY] = bind_user
+    return database_config
+
+
+def _get_database_runtime_in_cluster(runtime_config, strict=False):
+    runtime_types = get_runtime_types(runtime_config)
+    runtime_type = BUILT_IN_RUNTIME_POSTGRES
+    if runtime_type in runtime_types:
+        return runtime_type
+    runtime_type = BUILT_IN_RUNTIME_PGPOOL
+    if runtime_type in runtime_types:
+        # Pgpool also may be a postgres service, assume it
+        return runtime_type
+    if not strict:
+        runtime_type = BUILT_IN_RUNTIME_HAPROXY
+        if runtime_type in runtime_types:
+            # HAProxy also may be a postgres service, assume it
+            return runtime_type
     return None
 
 
@@ -261,7 +397,7 @@ def _is_valid_postgres_config(config: Dict[str, Any], final=False):
         raise ValueError(
             "Missing backend servers for static configuration.")
     elif config_mode == PGBOUNCER_CONFIG_MODE_LOCAL:
-        # TODO: check in cluster postgres database
+        # check in cluster postgres database
         database_runtime = _get_database_runtime_in_cluster(
             runtime_config)
         if database_runtime:
@@ -317,23 +453,10 @@ def _with_runtime_environment_variables(
     if high_availability:
         runtime_envs["PGBOUNCER_HIGH_AVAILABILITY"] = high_availability
 
-    backend_config = _get_backend_config(pgbouncer_config)
     config_mode = _get_checked_config_mode(pgbouncer_config, config)
-    if config_mode == PGBOUNCER_CONFIG_MODE_STATIC:
-        _with_runtime_envs_for_static(backend_config, runtime_envs)
-    else:
-        _with_runtime_envs_for_dynamic(backend_config, runtime_envs)
     runtime_envs["PGBOUNCER_CONFIG_MODE"] = config_mode
 
     return runtime_envs
-
-
-def _with_runtime_envs_for_static(backend_config, runtime_envs):
-    pass
-
-
-def _with_runtime_envs_for_dynamic(backend_config, runtime_envs):
-    pass
 
 
 def _get_runtime_endpoints(
