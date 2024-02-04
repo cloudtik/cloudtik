@@ -66,3 +66,8 @@ def stop_pull_server_by_identifier(pull_identifier):
 def get_runtime_config_for_update(config: Dict[str, Any], runtime_type: str):
     runtime_config = get_runtime_config(config)
     return get_config_for_update(runtime_config, runtime_type)
+
+
+def get_runtime_config_of(
+        runtime_config: Dict[str, Any], runtime_type: str):
+    return runtime_config.get(runtime_type, {})

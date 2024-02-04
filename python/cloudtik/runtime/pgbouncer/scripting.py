@@ -7,20 +7,19 @@ from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_PGBOUNCER
 from cloudtik.core._private.service_discovery.utils import include_runtime_service_for_selector, \
     serialize_service_selector, get_service_selector_copy, exclude_runtime_of_cluster
 from cloudtik.core._private.util.core_utils import open_with_mode, exec_with_output, \
-    kill_process_by_pid_file, is_file_changed, get_config_for_update
+    kill_process_by_pid_file, is_file_changed
 from cloudtik.core._private.util.database_utils import get_database_username_with_default, \
     get_database_password_with_default, \
-    get_database_address, get_database_port, get_database_name, set_database_config, DATABASE_ENGINE_POSTGRES, \
-    get_database_username, DATABASE_CONFIG_USERNAME, DATABASE_CONFIG_DATABASE
+    get_database_address, get_database_port, get_database_name, get_database_username
 from cloudtik.core._private.util.runtime_utils import get_runtime_config_from_node, get_runtime_node_address_type, \
     get_runtime_cluster_name
 from cloudtik.runtime.common.service_discovery.runtime_discovery import DATABASE_SERVICE_SELECTOR_KEY
 from cloudtik.runtime.pgbouncer.utils import _get_config, _get_home_dir, _get_backend_databases, _get_backend_config, \
-    _is_database_bind_user, _get_database_connect, _get_database_auth_user, \
+    _is_database_bind_user, _get_checked_database_connect, _get_database_auth_user, \
     _get_database_auth_password, _get_logs_dir, PGBOUNCER_DISCOVER_POSTGRES_SERVICE_TYPES, \
-    PGBOUNCER_DATABASE_CONNECT_CONFIG_KEY, _get_admin_user, _get_admin_password, _get_backend_database_config, \
-    PGBOUNCER_DATABASE_AUTH_USER_CONFIG_KEY, PGBOUNCER_DATABASE_BIND_USER_CONFIG_KEY, PGBOUNCER_CONFIG_MODE_DYNAMIC, \
-    _get_config_mode
+    _get_admin_user, _get_admin_password, _get_backend_database_config, \
+    PGBOUNCER_CONFIG_MODE_DYNAMIC, \
+    _get_config_mode, get_database_config_of, _get_database_connect, get_database_name_from_name
 
 PGBOUNCER_PULL_BACKENDS_INTERVAL = 15
 
@@ -126,7 +125,7 @@ def _add_auth_username_password(
 def add_database_config_username_password(
         username_password_map, auth_user_password_map,
         username_password_conflicts, database_config):
-    database_connect = _get_database_connect(database_config)
+    database_connect = _get_checked_database_connect(database_config)
     _add_connect_username_password(
         username_password_map, username_password_conflicts,
         database_connect)
@@ -200,7 +199,7 @@ def _get_backend_database_defs(
 
 def _get_backend_database_def(
         database_name, database_config, username_password_conflicts):
-    database_connect = _get_database_connect(database_config)
+    database_connect = _get_checked_database_connect(database_config)
     host = get_database_address(database_connect)
     if not host:
         return None
@@ -254,7 +253,7 @@ def start_pull_server(head):
     runtime_config = get_runtime_config_from_node(head)
     pgbouncer_config = _get_config(runtime_config)
     backend_config = _get_backend_config(pgbouncer_config)
-    dynamic_config = _get_backend_database_config(backend_config)
+    database_config = _get_backend_database_config(backend_config)
 
     pull_identifier = _get_pull_identifier()
     logs_dir = _get_logs_dir()
@@ -284,18 +283,18 @@ def start_pull_server(head):
         cmd += ["service_selector={}".format(service_selector_str)]
     cmd += ["address_type={}".format(str(address_type))]
 
-    if dynamic_config:
-        database_connect = _get_database_connect(dynamic_config)
+    if database_config:
+        database_connect = _get_database_connect(database_config)
         db_user = get_database_username(database_connect)
         if db_user:
             cmd += ["db_user={}".format(db_user)]
         db_name = get_database_name(database_connect)
         if db_name:
             cmd += ["db_name={}".format(db_name)]
-        auth_user = _get_database_auth_user(dynamic_config)
+        auth_user = _get_database_auth_user(database_config)
         if auth_user:
             cmd += ["auth_user={}".format(auth_user)]
-        bind_user = _is_database_bind_user(dynamic_config)
+        bind_user = _is_database_bind_user(database_config)
         if bind_user:
             cmd += ["bind_user=true"]
 
@@ -336,41 +335,11 @@ def _get_databases_from_services(
         bind_user=None):
     backend_databases = {}
     for service_name, service_instance in services.items():
-        database_name = get_database_name_from_service_name(
+        database_name = get_database_name_from_name(
             service_name)
-        database_config = get_database_config_from_service(
-            service_instance, db_user, db_name,
+        database_config = get_database_config_of(
+            service_instance.service_addresses,
+            db_user, db_name,
             auth_user, bind_user)
         backend_databases[database_name] = database_config
     return backend_databases
-
-
-def get_database_name_from_service_name(service_name):
-    database_name = service_name.replace("-", "_")
-    return database_name
-
-
-def get_database_config_from_service(
-        service_instance,
-        db_user=None,
-        db_name=None,
-        auth_user=None,
-        bind_user=None):
-    database_config = {}
-    database_connect = get_config_for_update(
-        database_config, PGBOUNCER_DATABASE_CONNECT_CONFIG_KEY)
-
-    service_addresses = service_instance.service_addresses
-    database_service = (DATABASE_ENGINE_POSTGRES, service_addresses)
-    set_database_config(database_connect, database_service)
-
-    # set other options from global settings
-    if db_user:
-        database_connect[DATABASE_CONFIG_USERNAME] = db_user
-    if db_name:
-        database_connect[DATABASE_CONFIG_DATABASE] = db_name
-    if auth_user:
-        database_config[PGBOUNCER_DATABASE_AUTH_USER_CONFIG_KEY] = auth_user
-    if bind_user:
-        database_config[PGBOUNCER_DATABASE_BIND_USER_CONFIG_KEY] = bind_user
-    return database_config
