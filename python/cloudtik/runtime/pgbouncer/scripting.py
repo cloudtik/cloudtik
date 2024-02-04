@@ -5,20 +5,22 @@ from shlex import quote
 
 from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_PGBOUNCER
 from cloudtik.core._private.service_discovery.utils import include_runtime_service_for_selector, \
-    serialize_service_selector, get_service_selector_copy
+    serialize_service_selector, get_service_selector_copy, exclude_runtime_of_cluster
 from cloudtik.core._private.util.core_utils import open_with_mode, exec_with_output, \
     kill_process_by_pid_file, is_file_changed, get_config_for_update
 from cloudtik.core._private.util.database_utils import get_database_username_with_default, \
     get_database_password_with_default, \
     get_database_address, get_database_port, get_database_name, set_database_config, DATABASE_ENGINE_POSTGRES, \
     get_database_username, DATABASE_CONFIG_USERNAME, DATABASE_CONFIG_DATABASE
-from cloudtik.core._private.util.runtime_utils import get_runtime_config_from_node, get_runtime_node_address_type
+from cloudtik.core._private.util.runtime_utils import get_runtime_config_from_node, get_runtime_node_address_type, \
+    get_runtime_cluster_name
 from cloudtik.runtime.common.service_discovery.runtime_discovery import DATABASE_SERVICE_SELECTOR_KEY
 from cloudtik.runtime.pgbouncer.utils import _get_config, _get_home_dir, _get_backend_databases, _get_backend_config, \
     _is_database_bind_user, _get_database_connect, _get_database_auth_user, \
     _get_database_auth_password, _get_logs_dir, PGBOUNCER_DISCOVER_POSTGRES_SERVICE_TYPES, \
-    PGBOUNCER_DATABASE_CONNECT_CONFIG_KEY, _get_admin_user, _get_admin_password, _get_dynamic_config, \
-    PGBOUNCER_DATABASE_AUTH_USER_CONFIG_KEY, PGBOUNCER_DATABASE_BIND_USER_CONFIG_KEY
+    PGBOUNCER_DATABASE_CONNECT_CONFIG_KEY, _get_admin_user, _get_admin_password, _get_backend_database_config, \
+    PGBOUNCER_DATABASE_AUTH_USER_CONFIG_KEY, PGBOUNCER_DATABASE_BIND_USER_CONFIG_KEY, PGBOUNCER_CONFIG_MODE_DYNAMIC, \
+    _get_config_mode
 
 PGBOUNCER_PULL_BACKENDS_INTERVAL = 15
 
@@ -50,7 +52,7 @@ def configure_backend(head):
     runtime_config = get_runtime_config_from_node(head)
     pgbouncer_config = _get_config(runtime_config)
     backend_config = _get_backend_config(pgbouncer_config)
-    # no matter static or dynamic, we need to the backend servers
+    # We go the same configuration process for static, dynamic local
     backend_databases = _get_backend_databases(backend_config)
 
     (username_password_map,
@@ -104,8 +106,6 @@ def _add_user_password(
 def _add_connect_username_password(
         username_password_map, username_password_conflicts,
         database_connect):
-    if not database_connect:
-        return
     username = get_database_username_with_default(database_connect)
     password = get_database_password_with_default(database_connect)
     _add_user_password(
@@ -139,18 +139,19 @@ def _get_username_password_info(
     username_password_map = {}
     auth_user_password_map = {}
     username_password_conflicts = set()
+    backend_config = _get_backend_config(pgbouncer_config)
+    config_mode = _get_config_mode(backend_config)
     for _, database_config in backend_databases.items():
         add_database_config_username_password(
             username_password_map, auth_user_password_map,
             username_password_conflicts, database_config)
 
-    # dynamic username and passwords
-    backend_config = _get_backend_config(pgbouncer_config)
-    dynamic_config = _get_dynamic_config(backend_config)
-    if dynamic_config:
+    if config_mode == PGBOUNCER_CONFIG_MODE_DYNAMIC:
+        # dynamic username and passwords (it will go with static databases for local mode)
+        database_config = _get_backend_database_config(backend_config)
         add_database_config_username_password(
             username_password_map, auth_user_password_map,
-            username_password_conflicts, dynamic_config)
+            username_password_conflicts, database_config)
 
     # Make sure auth user password always appear
     username_password_map.update(auth_user_password_map)
@@ -173,31 +174,31 @@ def _update_auth_file(auth_file, username_password_map):
     # a MD5-hashed password, or a SCRAM secret.
     # PgBouncer ignores the rest of the line. Double quotes in a field value
     # can be escaped by writing two double quotes.
-    user_password_lines = []
-    # for same username but different passwords, we need put the password in the connect line
+    user_password_defs = []
+    # for same username but different passwords, we need put the password in the connect def
     for username, password in username_password_map.items():
         escaped_username = _escape_auth_value(username)
         escaped_password = _escape_auth_value(password)
-        user_password_line = f"\"{escaped_username}\" \"{escaped_password}\""
-        user_password_lines.append(user_password_line)
-    user_password_block = "\n".join(user_password_lines)
+        user_password_def = f"\"{escaped_username}\" \"{escaped_password}\""
+        user_password_defs.append(user_password_def)
+    user_password_block = "\n".join(user_password_defs)
     with open_with_mode(auth_file, "w", os_mode=0o600) as f:
         f.write(user_password_block)
         f.write("\n")
 
 
-def _get_backend_database_lines(
+def _get_backend_database_defs(
         backend_databases, username_password_conflicts):
-    backend_database_lines = []
+    backend_database_defs = []
     for database_name, database_config in backend_databases.items():
-        backend_database_line = _get_backend_database_line(
+        backend_database_def = _get_backend_database_def(
             database_name, database_config, username_password_conflicts)
-        if backend_database_line:
-            backend_database_lines.append(backend_database_line)
-    return backend_database_lines
+        if backend_database_def:
+            backend_database_defs.append(backend_database_def)
+    return backend_database_defs
 
 
-def _get_backend_database_line(
+def _get_backend_database_def(
         database_name, database_config, username_password_conflicts):
     database_connect = _get_database_connect(database_config)
     host = get_database_address(database_connect)
@@ -215,7 +216,7 @@ def _get_backend_database_line(
         username = get_database_username_with_default(database_connect)
         connect_str += f" user={username}"
         if username in username_password_conflicts:
-            # need use password in the connect line
+            # need use password in the connect def
             password = get_database_password_with_default(database_connect)
             connect_str += f" password={password}"
 
@@ -231,15 +232,15 @@ def _get_backend_database_line(
         connect_str += f" auth_query='{auth_query}'"
     """
 
-    connect_line = "{} = {}".format(database_name, connect_str)
-    return connect_line
+    database_def = "{} = {}".format(database_name, connect_str)
+    return database_def
 
 
 def _update_backends(config_file, backend_databases, username_password_conflicts):
     # append the database connect string params at the end
-    backend_database_lines = _get_backend_database_lines(
+    backend_database_defs = _get_backend_database_defs(
         backend_databases, username_password_conflicts)
-    backend_databases_block = "\n".join(backend_database_lines)
+    backend_databases_block = "\n".join(backend_database_defs)
     with open(config_file, "a") as f:
         f.write(backend_databases_block)
         f.write("\n")
@@ -253,7 +254,7 @@ def start_pull_server(head):
     runtime_config = get_runtime_config_from_node(head)
     pgbouncer_config = _get_config(runtime_config)
     backend_config = _get_backend_config(pgbouncer_config)
-    dynamic_config = _get_dynamic_config(backend_config)
+    dynamic_config = _get_backend_database_config(backend_config)
 
     pull_identifier = _get_pull_identifier()
     logs_dir = _get_logs_dir()
@@ -261,6 +262,10 @@ def start_pull_server(head):
     service_selector = get_service_selector_copy(
         pgbouncer_config, DATABASE_SERVICE_SELECTOR_KEY)
 
+    # exclude myself also as postgres service
+    cluster_name = get_runtime_cluster_name()
+    service_selector = exclude_runtime_of_cluster(
+        service_selector, BUILT_IN_RUNTIME_PGBOUNCER, cluster_name)
     service_selector = include_runtime_service_for_selector(
         service_selector,
         service_type=PGBOUNCER_DISCOVER_POSTGRES_SERVICE_TYPES)
@@ -330,7 +335,7 @@ def _get_databases_from_services(
         auth_user=None,
         bind_user=None):
     backend_databases = {}
-    for service_name, service_instance in services:
+    for service_name, service_instance in services.items():
         database_name = get_database_name_from_service_name(
             service_name)
         database_config = get_database_config_from_service(
