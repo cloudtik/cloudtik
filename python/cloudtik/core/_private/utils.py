@@ -12,7 +12,6 @@ from typing import Any, Dict, Optional, Tuple, List, Union
 import sys
 import time
 import math
-from functools import partial
 import click
 import ipaddr
 import re
@@ -34,7 +33,8 @@ from cloudtik.core._private.constants import CLOUDTIK_WHEELS, \
     CLOUDTIK_ENCRYPTION_PREFIX, CLOUDTIK_RUNTIME_ENV_SECRETS, CLOUDTIK_BOOTSTRAP_CONFIG_FILE
 from cloudtik.core._private.util.core_utils import load_class, double_quote, check_process_exists, \
     get_cloudtik_temp_dir, \
-    get_config_for_update, get_json_object_md5, to_hex_string, from_hex_string, get_node_ip_address, split_list
+    get_config_for_update, get_json_object_md5, to_hex_string, from_hex_string, get_node_ip_address, split_list, \
+    open_with_mode
 from cloudtik.core._private.crypto import AESCipher
 from cloudtik.core._private.debug import log_once
 from cloudtik.core._private.runtime_factory import _get_runtime, _get_runtime_cls, DEFAULT_RUNTIMES, \
@@ -257,7 +257,7 @@ def save_config_cache(
 
     config_cache_dir = os.path.dirname(cache_key)
     os.makedirs(config_cache_dir, exist_ok=True)
-    with open(cache_key, "w", opener=partial(os.open, mode=0o600)) as f:
+    with open_with_mode(cache_key, "w", os_mode=0o600) as f:
         encrypted_config = encrypt_config(config)
         config_cache = {
             "_version": cache_version,
@@ -3684,7 +3684,7 @@ def save_server_process(
     server_process_dir = os.path.dirname(server_process_file)
     if not os.path.exists(server_process_dir):
         os.makedirs(server_process_dir, exist_ok=True)
-    with open(server_process_file, "w", opener=partial(os.open, mode=0o600)) as f:
+    with open_with_mode(server_process_file, "w", os_mode=0o600) as f:
         f.write(json.dumps(server_process))
 
 

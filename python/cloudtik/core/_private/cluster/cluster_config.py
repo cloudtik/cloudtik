@@ -1,9 +1,8 @@
 import json
 import os
 from typing import Any, Dict, Optional
-from functools import partial
 
-from cloudtik.core._private.util.core_utils import get_cloudtik_temp_dir, get_json_object_hash
+from cloudtik.core._private.util.core_utils import get_cloudtik_temp_dir, get_json_object_hash, open_with_mode
 from cloudtik.core._private.debug import log_once
 from cloudtik.core._private.utils import prepare_config, decrypt_config, runtime_prepare_config, validate_config, \
     verify_config, encrypt_config, RUNTIME_CONFIG_KEY, runtime_bootstrap_config, load_yaml_config
@@ -123,7 +122,7 @@ def _bootstrap_config(
 
     if not no_config_cache or init_config_cache:
         os.makedirs(config_cache_dir, exist_ok=True)
-        with open(cache_key, "w", opener=partial(os.open, mode=0o600)) as f:
+        with open_with_mode(cache_key, "w", os_mode=0o600) as f:
             encrypted_config = encrypt_config(resolved_config)
             config_cache = {
                 "_version": CONFIG_CACHE_VERSION,

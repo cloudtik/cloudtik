@@ -3,7 +3,6 @@ import json
 import logging
 import os
 import time
-from functools import partial
 from typing import Any, Dict, Optional
 
 import requests
@@ -55,6 +54,7 @@ from huaweicloudsdkvpc.v2 import AcceptVpcPeeringRequest, \
 from obs import CreateBucketHeader, TagInfo
 
 from cloudtik.core._private.cli_logger import cf, cli_logger
+from cloudtik.core._private.util.core_utils import open_with_mode
 from cloudtik.core._private.utils import check_cidr_conflict, \
     get_workspace_nat_public_ip_bandwidth_conf, is_managed_cloud_storage, \
     is_peering_firewall_allow_ssh_only, \
@@ -1512,8 +1512,9 @@ def list_huaweicloud_storages(
         config: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     provider_config = get_provider_config(config)
     workspace_name = get_workspace_name(config)
+    obs_client = _make_obs_client(provider_config)
     buckets = _get_managed_obs_buckets(
-        provider_config, workspace_name)
+        obs_client, workspace_name)
     object_storages = {}
     if buckets is None:
         return object_storages
@@ -1939,8 +1940,7 @@ def _get_available_key_pair(config):
             # We need to make sure to _create_ the file with the right
             # permissions. In order to do that we need to change the
             # default os.open behavior to include the mode we want.
-            with open(key_path, "w",
-                      opener=partial(os.open, mode=0o600)) as f:
+            with open_with_mode(key_path, "w", os_mode=0o600) as f:
                 f.write(target_key.private_key)
             break
         else:
