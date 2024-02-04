@@ -1,6 +1,5 @@
 from distutils.version import StrictVersion
 from functools import lru_cache
-from functools import partial
 import copy
 import itertools
 import json
@@ -16,7 +15,7 @@ from cloudtik.core.tags import CLOUDTIK_TAG_NODE_KIND, NODE_KIND_HEAD, CLOUDTIK_
     CLOUDTIK_TAG_WORKSPACE_NAME, CLOUDTIK_TAG_NODE_SEQ_ID, CLOUDTIK_TAG_NODE_NAME
 from cloudtik.core._private.provider_factory import _PROVIDER_PRETTY_NAMES
 from cloudtik.core._private.cli_logger import cli_logger, cf
-from cloudtik.core._private.util.core_utils import get_node_ip_address
+from cloudtik.core._private.util.core_utils import get_node_ip_address, open_with_mode
 from cloudtik.core._private.utils import check_cidr_conflict, is_use_internal_ip, \
     is_managed_cloud_storage, is_use_managed_cloud_storage, is_managed_cloud_database, is_use_managed_cloud_database, \
     is_worker_role_for_cloud_storage, is_use_working_vpc, is_use_peering_vpc, is_peering_firewall_allow_ssh_only, \
@@ -3733,7 +3732,7 @@ def _configure_key_pair(config):
             # We need to make sure to _create_ the file with the right
             # permissions. In order to do that we need to change the default
             # os.open behavior to include the mode we want.
-            with open(key_path, "w", opener=partial(os.open, mode=0o600)) as f:
+            with open_with_mode(key_path, "w", os_mode=0o600) as f:
                 f.write(key.key_material)
             break
 

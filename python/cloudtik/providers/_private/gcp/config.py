@@ -1,5 +1,4 @@
 import copy
-from functools import partial
 import os
 import logging
 from typing import Any, Dict, Optional
@@ -12,7 +11,7 @@ from googleapiclient import errors
 
 from google.oauth2 import service_account
 
-from cloudtik.core._private.util.core_utils import get_config_for_update, get_node_ip_address
+from cloudtik.core._private.util.core_utils import get_config_for_update, get_node_ip_address, open_with_mode
 from cloudtik.core._private.util.database_utils import DATABASE_ENGINE_POSTGRES, DATABASE_ENGINE_MYSQL
 from cloudtik.core.workspace_provider import Existence, CLOUDTIK_MANAGED_CLOUD_STORAGE, \
     CLOUDTIK_MANAGED_CLOUD_STORAGE_URI, CLOUDTIK_MANAGED_CLOUD_DATABASE, CLOUDTIK_MANAGED_CLOUD_DATABASE_ENDPOINT, \
@@ -3293,11 +3292,7 @@ def _configure_key_pair(config, compute):
             # We need to make sure to _create_ the file with the right
             # permissions. In order to do that we need to change the default
             # os.open behavior to include the mode we want.
-            with open(
-                    private_key_path,
-                    "w",
-                    opener=partial(os.open, mode=0o600),
-            ) as f:
+            with open_with_mode(private_key_path, "w", os_mode=0o600) as f:
                 f.write(private_key)
 
             with open(public_key_path, "w") as f:
