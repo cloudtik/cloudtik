@@ -29,7 +29,7 @@ PGBOUNCER_HIGH_AVAILABILITY_CONFIG_KEY = "high_availability"
 PGBOUNCER_BACKEND_CONFIG_KEY = "backend"
 PGBOUNCER_BACKEND_CONFIG_MODE_CONFIG_KEY = "config_mode"
 PGBOUNCER_BACKEND_DATABASES_CONFIG_KEY = "databases"
-PGBOUNCER_BACKEND_DYNAMIC_CONFIG_KEY = "dynamic"
+PGBOUNCER_BACKEND_DATABASE_CONFIG_KEY = "database_config"
 
 PGBOUNCER_DATABASE_CONNECT_CONFIG_KEY = "connect"
 PGBOUNCER_DATABASE_BIND_USER_CONFIG_KEY = "bind_user"
@@ -113,8 +113,13 @@ def _get_backend_config(pgbouncer_config: Dict[str, Any]):
         PGBOUNCER_BACKEND_CONFIG_KEY, {})
 
 
+def _get_config_mode(backend_config: Dict[str, Any]):
+    return backend_config.get(
+        PGBOUNCER_BACKEND_CONFIG_MODE_CONFIG_KEY)
+
+
 def _get_backend_databases(backend_config):
-    return backend_config.get(PGBOUNCER_BACKEND_DATABASES_CONFIG_KEY)
+    return backend_config.get(PGBOUNCER_BACKEND_DATABASES_CONFIG_KEY, {})
 
 
 def _get_database_connect(database_config):
@@ -137,8 +142,8 @@ def _get_database_auth_query(database_config):
     return database_config.get(PGBOUNCER_DATABASE_AUTH_QUERY_CONFIG_KEY)
 
 
-def _get_dynamic_config(backend_config):
-    return backend_config.get(PGBOUNCER_BACKEND_DYNAMIC_CONFIG_KEY)
+def _get_backend_database_config(backend_config):
+    return backend_config.get(PGBOUNCER_BACKEND_DATABASE_CONFIG_KEY, {})
 
 
 def _get_home_dir():
@@ -200,6 +205,24 @@ def _set_backend_databases_engine_type(
     for _, database_config in backend_databases.items():
         database_connect = _get_database_connect(database_config)
         database_connect[DATABASE_CONFIG_ENGINE] = DATABASE_ENGINE_POSTGRES
+    return cluster_config
+
+
+def _prepare_config(
+        runtime_config: Dict[str, Any],
+        cluster_config: Dict[str, Any]) -> Dict[str, Any]:
+    pgbouncer_config = _get_config(runtime_config)
+    backend_config = _get_backend_config(pgbouncer_config)
+    config_mode = _get_config_mode(backend_config)
+    if not config_mode:
+        # do update
+        config_mode = _get_checked_config_mode(
+            pgbouncer_config, cluster_config)
+        pgbouncer_config = _get_config_for_update(cluster_config)
+        backend_config = get_config_for_update(
+            pgbouncer_config, PGBOUNCER_BACKEND_CONFIG_MODE_CONFIG_KEY)
+        backend_config[PGBOUNCER_BACKEND_CONFIG_MODE_CONFIG_KEY] = config_mode
+
     return cluster_config
 
 

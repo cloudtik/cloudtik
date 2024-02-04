@@ -1584,7 +1584,7 @@
                         "config_mode": {
                             "type": "string",
                             "default": "dynamic",
-                            "description": "How the backend is configured: static, dynamic"
+                            "description": "How the backend is configured: static, dynamic or local"
                         },
                         "databases": {
                             "type": "object",
@@ -1616,9 +1616,9 @@
                                 }
                             }
                         },
-                        "dynamic": {
+                        "database_config": {
                             "type": "object",
-                            "description": "The dynamic configurations.",
+                            "description": "The shared database configurations for non-static databases.",
                             "properties": {
                                 "connect": {
                                     "$ref": "#/definitions/database_connect",
