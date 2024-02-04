@@ -344,6 +344,13 @@ def get_tags_of_service_nodes(service_nodes):
     return list(tags)
 
 
+def get_addresses_of_service_nodes(
+        service_nodes,
+        address_type: ServiceAddressType = ServiceAddressType.NODE_IP,):
+    return [get_service_address_of_node(
+        service_node, address_type=address_type) for service_node in service_nodes]
+
+
 def query_service(
         service_name, service_selector,
         address_type: ServiceAddressType = ServiceAddressType.NODE_IP,
@@ -372,8 +379,8 @@ def query_service(
             service_name, tags)]
     else:
         # return service nodes IP or nodes FQDN
-        service_addresses = [get_service_address_of_node(
-            service_node, address_type=address_type) for service_node in service_nodes]
+        service_addresses = get_addresses_of_service_nodes(
+            service_nodes, address_type=address_type)
 
     return ServiceInstance(
         service_name, service_addresses,
@@ -409,3 +416,58 @@ def query_services_from_consul(
                 services_to_return[service_name] = service_instance
 
         return services_to_return
+
+
+def query_services_with_nodes(
+        service_selector,
+        address: Optional[Tuple[str, int]] = None,
+        first: bool = False):
+    services_with_nodes = {}
+    services = query_services(service_selector, address=address)
+    if not services:
+        return services_with_nodes
+
+    if first:
+        service_name, service_tags = next(iter(services.items()))
+        service_nodes = query_service_nodes(
+            service_name, service_selector, address=address)
+        if service_nodes:
+            services_with_nodes[service_name] = service_nodes
+    else:
+        for service_name, service_tags in services.items():
+            service_nodes = query_service_nodes(
+                service_name, service_selector, address=address)
+            if service_nodes:
+                services_with_nodes[service_name] = service_nodes
+
+    return services_with_nodes
+
+
+def query_services_with_addresses(
+        service_selector,
+        address_type: ServiceAddressType = ServiceAddressType.NODE_IP,
+        address: Optional[Tuple[str, int]] = None,
+        first: bool = False):
+    services_with_addresses = {}
+    services = query_services(service_selector, address=address)
+    if not services:
+        return services_with_addresses
+
+    if first:
+        service_name, service_tags = next(iter(services.items()))
+        service_nodes = query_service_nodes(
+            service_name, service_selector, address=address)
+        if service_nodes:
+            service_addresses = get_addresses_of_service_nodes(
+                service_nodes, address_type=address_type)
+            services_with_addresses[service_name] = service_addresses
+    else:
+        for service_name, service_tags in services.items():
+            service_nodes = query_service_nodes(
+                service_name, service_selector, address=address)
+            if service_nodes:
+                service_addresses = get_addresses_of_service_nodes(
+                    service_nodes, address_type=address_type)
+                services_with_addresses[service_name] = service_addresses
+
+    return services_with_addresses

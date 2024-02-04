@@ -2,8 +2,9 @@ import logging
 
 from cloudtik.core._private.service_discovery.utils import deserialize_service_selector
 from cloudtik.core._private.util.pull.pull_job import PullJob
-from cloudtik.runtime.common.service_discovery.consul \
-    import query_services, query_service_nodes, get_service_address_of_node, get_common_label_of_service_nodes
+from cloudtik.runtime.common.service_discovery.consul import \
+    get_service_address_of_node, get_common_label_of_service_nodes
+from cloudtik.runtime.common.service_discovery.discovery import query_services_with_addresses, query_services_with_nodes
 from cloudtik.runtime.common.service_discovery.utils import API_GATEWAY_SERVICE_DISCOVERY_LABEL_ROUTE_PATH, \
     API_GATEWAY_SERVICE_DISCOVERY_LABEL_SERVICE_PATH
 from cloudtik.runtime.haproxy.admin_api import list_backend_servers, enable_backend_slot, disable_backend_slot, \
@@ -98,11 +99,8 @@ class DiscoverBackendServers(PullJob):
     def pull(self):
         selected_services = self._query_services()
         backend_servers = []
-        for service_name in selected_services:
-            service_nodes = self._query_service_nodes(service_name)
-            for service_node in service_nodes:
-                server_address = get_service_address_of_node(service_node)
-                backend_servers.append(server_address)
+        for service_name, server_addresses in selected_services.items():
+            backend_servers += server_addresses
         if not backend_servers:
             logger.warning(
                 "No live servers return from the service selector.")
@@ -113,10 +111,8 @@ class DiscoverBackendServers(PullJob):
         update_configuration(backend_servers)
 
     def _query_services(self):
-        return query_services(self.service_selector)
-
-    def _query_service_nodes(self, service_name):
-        return query_service_nodes(service_name, self.service_selector)
+        return query_services_with_addresses(
+            self.service_selector)
 
 
 class DiscoverAPIGatewayBackendServers(PullJob):
@@ -141,8 +137,7 @@ class DiscoverAPIGatewayBackendServers(PullJob):
         active_backends = _list_backends()
         new_backends = set()
         api_gateway_backends = {}
-        for service_name in selected_services:
-            service_nodes = self._query_service_nodes(service_name)
+        for service_name, service_nodes in selected_services.items():
             backend_service = self.get_backend_service(
                 service_name, service_nodes)
             backend_name = service_name
@@ -166,10 +161,7 @@ class DiscoverAPIGatewayBackendServers(PullJob):
             balance_method=self.balance_method)
 
     def _query_services(self):
-        return query_services(self.service_selector)
-
-    def _query_service_nodes(self, service_name):
-        return query_service_nodes(service_name, self.service_selector)
+        return query_services_with_nodes(self.service_selector)
 
     @staticmethod
     def get_backend_service(service_name, service_nodes):

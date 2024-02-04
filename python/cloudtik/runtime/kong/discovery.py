@@ -3,9 +3,10 @@ import logging
 from cloudtik.core._private.util.core_utils import get_json_object_hash, get_address_string
 from cloudtik.core._private.service_discovery.utils import deserialize_service_selector
 from cloudtik.core._private.util.pull.pull_job import PullJob
-from cloudtik.runtime.common.service_discovery.consul \
-    import query_services, query_service_nodes, get_service_address_of_node, get_common_label_of_service_nodes, \
-    get_service_fqdn_address, get_tags_of_service_nodes
+from cloudtik.runtime.common.service_discovery.consul import \
+    get_service_address_of_node, get_common_label_of_service_nodes, get_service_fqdn_address, \
+    get_tags_of_service_nodes
+from cloudtik.runtime.common.service_discovery.discovery import query_services_with_nodes
 from cloudtik.runtime.common.service_discovery.utils import API_GATEWAY_SERVICE_DISCOVERY_LABEL_ROUTE_PATH, \
     API_GATEWAY_SERVICE_DISCOVERY_LABEL_SERVICE_PATH
 from cloudtik.runtime.kong.admin_api import add_or_update_backend, \
@@ -47,10 +48,7 @@ class DiscoverJob(PullJob):
         self.last_config_hash = None
 
     def _query_services(self):
-        return query_services(self.service_selector)
-
-    def _query_service_nodes(self, service_name):
-        return query_service_nodes(service_name, self.service_selector)
+        return query_services_with_nodes(self.service_selector)
 
 
 class DiscoverBackendServers(DiscoverJob):
@@ -71,23 +69,17 @@ class DiscoverBackendServers(DiscoverJob):
 
     def pull(self):
         selected_services = self._query_services()
-
         backends = {}
-        for service_name in selected_services:
-            service_nodes = self._query_service_nodes(service_name)
-            if not service_nodes:
-                logger.warning(
-                    "No live servers return from the service selector.")
-            else:
-                backend_name = service_name
-                try:
-                    backend_service = self.get_backend_service(
-                        service_name, service_nodes)
-                    backends[backend_name] = backend_service
-                except Exception as e:
-                    logger.error(
-                        "Failed to get backend service: {}.".format(
-                            str(e)))
+        for service_name, service_nodes in selected_services.items():
+            backend_name = service_name
+            try:
+                backend_service = self.get_backend_service(
+                    service_name, service_nodes)
+                backends[backend_name] = backend_service
+            except Exception as e:
+                logger.error(
+                    "Failed to get backend service: {}.".format(
+                        str(e)))
 
         backends_hash = get_json_object_hash(backends)
         if backends_hash != self.last_config_hash:

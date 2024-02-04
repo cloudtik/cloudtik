@@ -10,7 +10,9 @@ from cloudtik.core._private.service_discovery.utils import ServiceAddressType, i
 from cloudtik.core._private.util.runtime_utils import subscribe_cluster_runtime_config, get_runtime_node_address_type, \
     get_runtime_cluster_name
 from cloudtik.core._private.utils import RUNTIME_CONFIG_KEY
-from cloudtik.runtime.common.service_discovery.consul import query_services_from_consul
+from cloudtik.runtime.common.service_discovery.consul import query_services_from_consul, \
+    query_services_with_addresses as query_services_with_addresses_from_consul, \
+    query_services_with_nodes as query_services_with_nodes_from_consul
 from cloudtik.runtime.common.service_discovery.workspace import query_services_from_workspace
 
 
@@ -30,7 +32,7 @@ def query_services(
     if (discovery_type == DiscoveryType.ANY or
             discovery_type == DiscoveryType.LOCAL or
             discovery_type == DiscoveryType.CLUSTER):
-        services = query_services_with_discovery_service(
+        services = query_services_from_discovery(
             runtime_config, service_selector,
             discovery_type=discovery_type,
             address_type=address_type,
@@ -68,7 +70,7 @@ def query_service(
     )
 
 
-def query_services_with_discovery_service(
+def query_services_from_discovery(
         runtime_config: Dict[str, Any], service_selector,
         discovery_type: DiscoveryType = DiscoveryType.ANY,
         address_type: ServiceAddressType = ServiceAddressType.NODE_IP,
@@ -108,6 +110,16 @@ def query_services_with_discovery_service(
         if discovery_type == DiscoveryType.CLUSTER:
             return None
     return None
+
+
+def query_services_from_local_discovery(
+        service_selector,
+        address_type: ServiceAddressType = ServiceAddressType.NODE_IP,
+        first: bool = False):
+    return query_services_from_consul(
+            service_selector,
+            address_type=address_type,
+            first=first)
 
 
 def discover_services_from_node(
@@ -151,7 +163,7 @@ def _discover_services_from_node(
     if address_type is None:
         # auto address type
         address_type = get_runtime_node_address_type()
-    return query_services_with_discovery_service(
+    return query_services_from_discovery(
         runtime_config, service_selector,
         discovery_type=discovery_type,
         address_type=address_type,
@@ -244,3 +256,18 @@ def get_service_node_addresses(
         if node_address not in nodes_addresses:
             nodes_addresses[node_address] = None
     return list(nodes_addresses.keys())
+
+
+def query_services_with_nodes(
+        service_selector,
+        first: bool = False):
+    return query_services_with_nodes_from_consul(
+        service_selector, first=first)
+
+
+def query_services_with_addresses(
+        service_selector,
+        address_type: ServiceAddressType = ServiceAddressType.NODE_IP,
+        first: bool = False):
+    return query_services_with_addresses_from_consul(
+        service_selector, address_type=address_type, first=first)
