@@ -16,7 +16,7 @@ class PgBouncerRuntime(RuntimeBase):
 
     Hints:
     1. Checking status:
-        PGPASSWORD=password psql -p 6432 -h localhost -U cloudtik -d pgbouncer <<< "SHOW STATS;"
+        PGPASSWORD=cloudtik psql -p 6432 -h localhost -U pgbouncer -d pgbouncer <<< "SHOW STATS;"
     SHOW STATS: Displays transaction count, timing, etc.
     SHOW POOLS: Displays active, waiting client and server counts.
                 It also shows how long the oldest client waited in the queue.
@@ -24,7 +24,8 @@ class PgBouncerRuntime(RuntimeBase):
     SHOW SERVERS: Displays information about database connections made by PgBouncer.
     SHOW CLIENTS: Displays information about clients that connected via PgBouncer.
     SHOW DATABASES: Displays information about configured databases.
-
+    2. Testing the pool:
+        PGPASSWORD=cloudtik psql -p 6432 -h localhost -U cloudtik -d database_name
     """
 
     def __init__(self, runtime_config: Dict[str, Any]) -> None:

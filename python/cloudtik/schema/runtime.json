@@ -1594,11 +1594,8 @@
                                 ".*": {
                                     "type": "object",
                                     "description": "Database configurations",
+                                    "allOf": [{ "$ref": "#/definitions/database_connect" }],
                                     "properties": {
-                                        "connect": {
-                                            "$ref": "#/definitions/database_connect",
-                                            "description": "The database parameters."
-                                        },
                                         "bind_user": {
                                             "type": "boolean",
                                             "default": false,
@@ -1619,11 +1616,8 @@
                         "database_config": {
                             "type": "object",
                             "description": "The shared database configurations for non-static databases.",
+                            "allOf": [{ "$ref": "#/definitions/database_connect" }],
                             "properties": {
-                                "connect": {
-                                    "$ref": "#/definitions/database_connect",
-                                    "description": "The database parameters: user, password, database."
-                                },
                                 "bind_user": {
                                     "type": "boolean",
                                     "default": false,

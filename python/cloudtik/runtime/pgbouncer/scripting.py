@@ -15,11 +15,11 @@ from cloudtik.core._private.util.runtime_utils import get_runtime_config_from_no
     get_runtime_cluster_name
 from cloudtik.runtime.common.service_discovery.runtime_discovery import DATABASE_SERVICE_SELECTOR_KEY
 from cloudtik.runtime.pgbouncer.utils import _get_config, _get_home_dir, _get_backend_databases, _get_backend_config, \
-    _is_database_bind_user, _get_checked_database_connect, _get_database_auth_user, \
+    _is_database_bind_user, _get_checked_database_config, _get_database_auth_user, \
     _get_database_auth_password, _get_logs_dir, PGBOUNCER_DISCOVER_POSTGRES_SERVICE_TYPES, \
     _get_admin_user, _get_admin_password, _get_backend_database_config, \
     PGBOUNCER_CONFIG_MODE_DYNAMIC, \
-    _get_config_mode, get_database_config_of, _get_database_connect, get_database_name_from_name
+    _get_config_mode, get_database_config_of, get_database_name_from_name
 
 PGBOUNCER_PULL_BACKENDS_INTERVAL = 15
 
@@ -104,9 +104,9 @@ def _add_user_password(
 
 def _add_connect_username_password(
         username_password_map, username_password_conflicts,
-        database_connect):
-    username = get_database_username_with_default(database_connect)
-    password = get_database_password_with_default(database_connect)
+        database_config):
+    username = get_database_username_with_default(database_config)
+    password = get_database_password_with_default(database_config)
     _add_user_password(
         username_password_map, username_password_conflicts,
         username, password)
@@ -125,10 +125,10 @@ def _add_auth_username_password(
 def add_database_config_username_password(
         username_password_map, auth_user_password_map,
         username_password_conflicts, database_config):
-    database_connect = _get_checked_database_connect(database_config)
+    database_config = _get_checked_database_config(database_config)
     _add_connect_username_password(
         username_password_map, username_password_conflicts,
-        database_connect)
+        database_config)
     _add_auth_username_password(
         auth_user_password_map, database_config)
 
@@ -199,24 +199,24 @@ def _get_backend_database_defs(
 
 def _get_backend_database_def(
         database_name, database_config, username_password_conflicts):
-    database_connect = _get_checked_database_connect(database_config)
-    host = get_database_address(database_connect)
+    database_config = _get_checked_database_config(database_config)
+    host = get_database_address(database_config)
     if not host:
         return None
 
-    port = get_database_port(database_connect)
+    port = get_database_port(database_config)
     connect_str = f"host={host} port={port}"
 
-    db_name = get_database_name(database_connect)
+    db_name = get_database_name(database_config)
     if db_name:
         connect_str += f" dbname={db_name}"
 
     if _is_database_bind_user(database_config):
-        username = get_database_username_with_default(database_connect)
+        username = get_database_username_with_default(database_config)
         connect_str += f" user={username}"
         if username in username_password_conflicts:
             # need use password in the connect def
-            password = get_database_password_with_default(database_connect)
+            password = get_database_password_with_default(database_config)
             connect_str += f" password={password}"
 
     auth_user = _get_database_auth_user(database_config)
@@ -284,11 +284,10 @@ def start_pull_server(head):
     cmd += ["address_type={}".format(str(address_type))]
 
     if database_config:
-        database_connect = _get_database_connect(database_config)
-        db_user = get_database_username(database_connect)
+        db_user = get_database_username(database_config)
         if db_user:
             cmd += ["db_user={}".format(db_user)]
-        db_name = get_database_name(database_connect)
+        db_name = get_database_name(database_config)
         if db_name:
             cmd += ["db_name={}".format(db_name)]
         auth_user = _get_database_auth_user(database_config)
