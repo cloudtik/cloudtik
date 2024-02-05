@@ -23,17 +23,37 @@ export HADOOP_CONF_DIR=${HADOOP_HOME}/etc/hdfs
 
 case "$SERVICE_COMMAND" in
 start)
-    if [ $IS_HEAD_NODE == "true" ]; then
-        $HADOOP_HOME/bin/hdfs --daemon start namenode
+    if [ "${HDFS_CLUSTER_MODE}" == "ha_cluster" ]; then
+        if [ "${HDFS_CLUSTER_ROLE}" == "name" ]; then
+            $HADOOP_HOME/bin/hdfs --daemon start namenode
+        elif [ "${HDFS_CLUSTER_ROLE}" == "journal" ]; then
+            $HADOOP_HOME/bin/hdfs --daemon start journalnode
+        else
+            $HADOOP_HOME/bin/hdfs --daemon start datanode
+        fi
     else
-        $HADOOP_HOME/bin/hdfs --daemon start datanode
+        if [ $IS_HEAD_NODE == "true" ]; then
+            $HADOOP_HOME/bin/hdfs --daemon start namenode
+        else
+            $HADOOP_HOME/bin/hdfs --daemon start datanode
+        fi
     fi
     ;;
 stop)
-    if [ $IS_HEAD_NODE == "true" ]; then
-        $HADOOP_HOME/bin/hdfs --daemon stop namenode
+    if [ "${HDFS_CLUSTER_MODE}" == "ha_cluster" ]; then
+        if [ "${HDFS_CLUSTER_ROLE}" == "name" ]; then
+            $HADOOP_HOME/bin/hdfs --daemon stop namenode
+        elif [ "${HDFS_CLUSTER_ROLE}" == "journal" ]; then
+            $HADOOP_HOME/bin/hdfs --daemon stop journalnode
+        else
+            $HADOOP_HOME/bin/hdfs --daemon stop datanode
+        fi
     else
-        $HADOOP_HOME/bin/hdfs --daemon stop datanode
+        if [ $IS_HEAD_NODE == "true" ]; then
+            $HADOOP_HOME/bin/hdfs --daemon stop namenode
+        else
+            $HADOOP_HOME/bin/hdfs --daemon stop datanode
+        fi
     fi
     ;;
 -h|--help)

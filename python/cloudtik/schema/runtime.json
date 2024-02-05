@@ -479,6 +479,21 @@
             "description": "HDFS runtime configurations",
             "additionalProperties": true,
             "properties": {
+                "cluster_mode": {
+                    "type": "string",
+                    "default": "simple",
+                    "description": "The cluster mode to use: simple, ha_cluster."
+                },
+                "ha_cluster": {
+                    "type": "object",
+                    "description": "HA cluster configurations",
+                    "properties": {
+                        "cluster_role": {
+                            "type": "string",
+                            "description": "The role of the current cluster: name, journal, data."
+                        }
+                    }
+                },
                 "force_clean": {
                     "type": "boolean",
                     "description": "Whether to force clean the data directory when starting.",

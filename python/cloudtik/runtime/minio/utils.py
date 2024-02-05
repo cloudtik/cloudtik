@@ -278,6 +278,7 @@ def _get_server_pool_spec(
         workspace_name, cluster_name, data_dir_spec):
     id_start = server_pool_id * server_pool_size
     if not _is_service_on_head(minio_config):
+        # WARNING: this depends on the head node seq id = 1
         # skip head node seq id
         id_start += 1
 
