@@ -2,13 +2,13 @@ from typing import Dict, Any, Optional, List
 
 from cloudtik.core._private.constants import CLOUDTIK_RUNTIME_ENV_NODE_HOST, CLOUDTIK_RUNTIME_ENV_HEAD_HOST, \
     CLOUDTIK_RUNTIME_ENV_NODE_IP, CLOUDTIK_RUNTIME_ENV_HEAD_IP
-from cloudtik.core._private.util.core_utils import is_valid_dns_name
 from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_DNSMASQ, BUILT_IN_RUNTIME_BIND, \
     BUILT_IN_RUNTIME_COREDNS
 from cloudtik.core._private.service_discovery.runtime_services import get_service_discovery_runtime
 from cloudtik.core._private.service_discovery.utils import ServiceAddressType
+from cloudtik.core._private.util.core_utils import is_valid_dns_name
 from cloudtik.core._private.utils import is_config_use_hostname, get_runtime_config, \
-    get_workspace_name, get_cluster_name, is_node_seq_id_enabled, is_runtime_enabled, is_config_use_fqdn, \
+    get_workspace_name, get_cluster_name, is_runtime_enabled, is_config_use_fqdn, \
     _get_worker_nodes_info, NODE_INFO_NODE_IP, get_cluster_head_ip
 from cloudtik.core.tags import CLOUDTIK_TAG_HEAD_NODE_SEQ_ID, CLOUDTIK_TAG_NODE_SEQ_ID
 
@@ -93,8 +93,7 @@ def is_resolvable_cluster_node_name(runtime_config: Dict[str, Any]):
 def is_cluster_hostname_available(config):
     runtime_config = get_runtime_config(config)
     if (not is_discoverable_cluster_node_name(runtime_config)
-            or not is_resolvable_cluster_node_name(runtime_config)
-            or not is_node_seq_id_enabled(config)):
+            or not is_resolvable_cluster_node_name(runtime_config)):
         return False
 
     # the cluster name must be a valid DNS domain name

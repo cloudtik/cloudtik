@@ -3,20 +3,20 @@ from typing import Any, Dict
 
 from cloudtik.core._private.constants import \
     CLOUDTIK_DATA_DISK_MOUNT_POINT, CLOUDTIK_DATA_DISK_MOUNT_NAME_PREFIX
-from cloudtik.core._private.util.core_utils import get_config_for_update, http_address_string, \
-    export_environment_variables
 from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_MINIO
-from cloudtik.core._private.util.runtime_utils import get_data_disk_dirs, get_runtime_cluster_name, \
-    get_runtime_workspace_name
+from cloudtik.core._private.service_discovery.naming import get_cluster_node_name, get_cluster_node_fqdn, \
+    is_discoverable_cluster_node_name, get_cluster_head_host
 from cloudtik.core._private.service_discovery.runtime_services import get_service_discovery_runtime
 from cloudtik.core._private.service_discovery.utils import \
     get_canonical_service_name, define_runtime_service, \
     get_service_discovery_config, SERVICE_DISCOVERY_PROTOCOL_HTTP, SERVICE_DISCOVERY_FEATURE_METRICS, \
     SERVICE_DISCOVERY_NODE_KIND_NODE, SERVICE_DISCOVERY_NODE_KIND_WORKER
-from cloudtik.core._private.service_discovery.naming import get_cluster_node_name, get_cluster_node_fqdn, \
-    is_discoverable_cluster_node_name, get_cluster_head_host
+from cloudtik.core._private.util.core_utils import get_config_for_update, http_address_string, \
+    export_environment_variables
+from cloudtik.core._private.util.runtime_utils import get_data_disk_dirs, get_runtime_cluster_name, \
+    get_runtime_workspace_name
 from cloudtik.core._private.utils import get_runtime_config, get_runtime_config_for_update, _sum_min_workers, \
-    enable_node_seq_id, is_node_seq_id_enabled, get_node_cluster_ip_of, get_cluster_name
+    get_node_cluster_ip_of, get_cluster_name
 from cloudtik.runtime.common.service_discovery.workspace import register_service_to_workspace
 
 RUNTIME_PROCESSES = [
@@ -91,10 +91,6 @@ def _get_runtime_logs():
 
 
 def _bootstrap_runtime_config(cluster_config: Dict[str, Any]) -> Dict[str, Any]:
-    # We must enable the node seq id
-    if not is_node_seq_id_enabled(cluster_config):
-        enable_node_seq_id(cluster_config)
-
     runtime_config = get_runtime_config_for_update(cluster_config)
     minio_config = get_config_for_update(runtime_config, BUILT_IN_RUNTIME_MINIO)
     minio_workers = _sum_min_workers(cluster_config)

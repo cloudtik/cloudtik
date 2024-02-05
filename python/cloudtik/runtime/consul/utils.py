@@ -3,21 +3,21 @@ import logging
 import os
 from typing import Any, Dict
 
-from cloudtik.core._private.util.core_utils import get_list_for_update, get_config_for_update, http_address_string, \
-    address_string
 from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_CONSUL
-from cloudtik.core._private.util.runtime_utils import RUNTIME_NODE_IP, sort_nodes_by_seq_id
-from cloudtik.core._private.service_discovery.runtime_services import get_runtime_services_by_node_type
 from cloudtik.core._private.service_discovery.naming import CONSUL_CONFIG_DISABLE_CLUSTER_NODE_NAME
+from cloudtik.core._private.service_discovery.runtime_services import get_runtime_services_by_node_type
 from cloudtik.core._private.service_discovery.utils import SERVICE_DISCOVERY_TAGS, SERVICE_DISCOVERY_LABELS, \
     SERVICE_DISCOVERY_LABEL_RUNTIME, \
     SERVICE_DISCOVERY_LABEL_CLUSTER, \
     SERVICE_DISCOVERY_TAG_CLUSTER_PREFIX, ServiceRegisterException, \
     get_runtime_service_features, SERVICE_DISCOVERY_TAG_FEATURE_PREFIX, SERVICE_DISCOVERY_SERVICE_TYPE, \
     SERVICE_DISCOVERY_LABEL_SERVICE
+from cloudtik.core._private.util.core_utils import get_list_for_update, get_config_for_update, http_address_string, \
+    address_string
+from cloudtik.core._private.util.runtime_utils import RUNTIME_NODE_IP, sort_nodes_by_seq_id
 from cloudtik.core._private.utils import \
     _get_node_type_specific_runtime_config, \
-    RUNTIME_CONFIG_KEY, is_node_seq_id_enabled, enable_node_seq_id, get_cluster_name, get_available_node_types, \
+    RUNTIME_CONFIG_KEY, get_cluster_name, get_available_node_types, \
     get_head_node_type, get_runtime_types
 from cloudtik.runtime.common.service_discovery.cluster import register_service_to_cluster
 from cloudtik.runtime.common.service_discovery.discovery import DiscoveryType
@@ -82,9 +82,6 @@ def _get_feature_tag(cluster_name):
 
 def _bootstrap_runtime_config(
         cluster_config: Dict[str, Any]) -> Dict[str, Any]:
-    # We must enable the node seq id
-    if not is_node_seq_id_enabled(cluster_config):
-        enable_node_seq_id(cluster_config)
     return cluster_config
 
 

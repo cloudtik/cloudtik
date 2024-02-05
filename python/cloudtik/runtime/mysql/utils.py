@@ -10,8 +10,7 @@ from cloudtik.core._private.service_discovery.utils import \
     define_runtime_service_on_worker
 from cloudtik.core._private.util.core_utils import address_string
 from cloudtik.core._private.util.database_utils import DATABASE_PORT_MYSQL_DEFAULT, DATABASE_PASSWORD_MYSQL_DEFAULT
-from cloudtik.core._private.utils import is_node_seq_id_enabled, enable_node_seq_id, \
-    get_workspace_name, get_cluster_name, get_runtime_config
+from cloudtik.core._private.utils import get_workspace_name, get_cluster_name, get_runtime_config
 from cloudtik.runtime.common.health_check import HEALTH_CHECK_PORT, HEALTH_CHECK_NODE_KIND, HEALTH_CHECK_SCRIPT, \
     HEALTH_CHECK_NODE_KIND_NODE, HEALTH_CHECK_NODE_KIND_HEAD
 
@@ -120,14 +119,6 @@ def _get_runtime_logs():
 def _bootstrap_runtime_config(
         runtime_config: Dict[str, Any],
         cluster_config: Dict[str, Any]) -> Dict[str, Any]:
-    mysql_config = _get_config(runtime_config)
-    cluster_mode = _get_cluster_mode(mysql_config)
-    if cluster_mode != MYSQL_CLUSTER_MODE_NONE:
-        # We must enable the node seq id (stable seq id is preferred)
-        # But we don't enforce it.
-        if not is_node_seq_id_enabled(cluster_config):
-            enable_node_seq_id(cluster_config)
-
     return cluster_config
 
 

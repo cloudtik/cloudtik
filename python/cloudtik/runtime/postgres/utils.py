@@ -1,17 +1,17 @@
 import os
 from typing import Any, Dict, Optional
 
-from cloudtik.core._private.util.core_utils import get_config_for_update, address_string
 from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_POSTGRES, BUILT_IN_RUNTIME_MOUNT
 from cloudtik.core._private.service_discovery.naming import get_cluster_head_host
 from cloudtik.core._private.service_discovery.utils import \
     get_canonical_service_name, get_service_discovery_config, \
     SERVICE_DISCOVERY_FEATURE_DATABASE, define_runtime_service_on_head, \
     define_runtime_service_on_worker, define_runtime_service
+from cloudtik.core._private.util.core_utils import get_config_for_update, address_string
 from cloudtik.core._private.util.database_utils import DATABASE_PORT_POSTGRES_DEFAULT, \
     DATABASE_USERNAME_POSTGRES_DEFAULT, DATABASE_PASSWORD_POSTGRES_DEFAULT
-from cloudtik.core._private.utils import is_node_seq_id_enabled, enable_node_seq_id, \
-    _sum_min_workers, get_runtime_config_for_update, get_runtime_config, get_cluster_name
+from cloudtik.core._private.utils import _sum_min_workers, get_runtime_config_for_update, get_runtime_config, \
+    get_cluster_name
 from cloudtik.runtime.common.health_check import HEALTH_CHECK_PORT, HEALTH_CHECK_SCRIPT, HEALTH_CHECK_NODE_KIND, \
     HEALTH_CHECK_NODE_KIND_HEAD, HEALTH_CHECK_NODE_KIND_NODE
 from cloudtik.runtime.common.service_discovery.cluster import has_runtime_in_cluster
@@ -172,11 +172,6 @@ def _bootstrap_runtime_config(
     postgres_config = _get_config(runtime_config)
     cluster_mode = _get_cluster_mode(postgres_config)
     if cluster_mode != POSTGRES_CLUSTER_MODE_NONE:
-        # We must enable the node seq id (stable seq id is preferred)
-        # But we don't enforce it.
-        if not is_node_seq_id_enabled(cluster_config):
-            enable_node_seq_id(cluster_config)
-
         synchronous_config = _get_replication_synchronous_config(
             postgres_config)
         if _get_replication_synchronous_mode(

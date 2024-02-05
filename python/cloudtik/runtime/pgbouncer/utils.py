@@ -224,7 +224,7 @@ def _prepare_config(
     return cluster_config
 
 
-def _bootstrap_config(
+def _bootstrap_runtime_config(
         runtime_config: Dict[str, Any], cluster_config: Dict[str, Any]):
     pgbouncer_config = _get_config(runtime_config)
     config_mode = _get_checked_config_mode(pgbouncer_config, cluster_config)

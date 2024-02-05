@@ -3,13 +3,13 @@ import os
 from typing import Any, Dict
 
 from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_ZOOKEEPER
-from cloudtik.core._private.util.runtime_utils import sort_nodes_by_seq_id, get_node_host_from_node_info
 from cloudtik.core._private.service_discovery.naming import get_cluster_node_address_type
 from cloudtik.core._private.service_discovery.utils import \
     get_canonical_service_name, define_runtime_service_on_worker, \
     get_service_discovery_config, ServiceRegisterException, SERVICE_DISCOVERY_FEATURE_KEY_VALUE
+from cloudtik.core._private.util.runtime_utils import sort_nodes_by_seq_id, get_node_host_from_node_info
 from cloudtik.core._private.utils import \
-    is_node_seq_id_enabled, enable_node_seq_id, get_cluster_name
+    get_cluster_name
 from cloudtik.runtime.common.service_discovery.cluster import register_service_to_cluster
 from cloudtik.runtime.common.service_discovery.workspace import register_service_to_workspace
 
@@ -47,10 +47,8 @@ def _get_runtime_logs():
     return all_logs
 
 
-def _bootstrap_runtime_config(cluster_config: Dict[str, Any]) -> Dict[str, Any]:
-    # We must enable the node seq id
-    if not is_node_seq_id_enabled(cluster_config):
-        enable_node_seq_id(cluster_config)
+def _bootstrap_runtime_config(
+        cluster_config: Dict[str, Any]) -> Dict[str, Any]:
     return cluster_config
 
 

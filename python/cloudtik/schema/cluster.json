@@ -79,11 +79,6 @@
                     "description": "Whether the node sequence id assigned to each node is stable. If a node is dead, a new node will be launched with the seq id of this node.",
                     "default": false
                 },
-                "disable_node_seq_id": {
-                    "type": "boolean",
-                    "description": "Whether disable the feature of assigning node sequence id to each node",
-                    "default": false
-                },
                 "retry_setup_command": {
                     "type": "boolean",
                     "description": "Whether to retry setup command if the command failed",

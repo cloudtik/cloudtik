@@ -2,16 +2,16 @@ import os
 import uuid
 from typing import Any, Dict
 
-from cloudtik.core._private.util.core_utils import base64_encode_string, get_config_for_update, \
-    export_environment_variables, address_string
 from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_MONGODB
 from cloudtik.core._private.service_discovery.naming import get_cluster_head_host
 from cloudtik.core._private.service_discovery.runtime_services import get_service_discovery_runtime
 from cloudtik.core._private.service_discovery.utils import \
     get_canonical_service_name, define_runtime_service, \
     get_service_discovery_config, define_runtime_service_on_head
-from cloudtik.core._private.utils import is_node_seq_id_enabled, enable_node_seq_id, \
-    get_runtime_config, get_node_cluster_ip_of, get_workspace_name, get_cluster_name
+from cloudtik.core._private.util.core_utils import base64_encode_string, get_config_for_update, \
+    export_environment_variables, address_string
+from cloudtik.core._private.utils import get_runtime_config, get_node_cluster_ip_of, get_workspace_name, \
+    get_cluster_name
 from cloudtik.runtime.common.service_discovery.discovery import DiscoveryType
 from cloudtik.runtime.common.service_discovery.runtime_discovery import \
     discover_runtime_service
@@ -190,14 +190,6 @@ def _prepare_config(
 def _bootstrap_runtime_config(
         runtime_config: Dict[str, Any],
         cluster_config: Dict[str, Any]) -> Dict[str, Any]:
-    mongodb_config = _get_config(runtime_config)
-    cluster_mode = _get_cluster_mode(mongodb_config)
-    if cluster_mode != MONGODB_CLUSTER_MODE_NONE:
-        # We must enable the node seq id (stable seq id is preferred)
-        # But we don't enforce it.
-        if not is_node_seq_id_enabled(cluster_config):
-            enable_node_seq_id(cluster_config)
-
     return cluster_config
 
 
