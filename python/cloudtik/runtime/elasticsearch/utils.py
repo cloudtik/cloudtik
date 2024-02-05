@@ -8,7 +8,7 @@ from cloudtik.core._private.service_discovery.utils import \
     get_canonical_service_name, define_runtime_service, \
     get_service_discovery_config, define_runtime_service_on_head
 from cloudtik.core._private.util.core_utils import get_config_for_update, http_address_string
-from cloudtik.core._private.utils import is_node_seq_id_enabled, enable_node_seq_id, get_runtime_config_for_update, \
+from cloudtik.core._private.utils import get_runtime_config_for_update, \
     get_runtime_config, get_cluster_name
 from cloudtik.runtime.common.service_discovery.cluster import has_runtime_in_cluster
 
@@ -218,11 +218,6 @@ def _bootstrap_runtime_config(
     elasticsearch_config = _get_config(runtime_config)
     cluster_mode = _get_cluster_mode(elasticsearch_config)
     if cluster_mode != ELASTICSEARCH_CLUSTER_MODE_NONE:
-        # We must enable the node seq id (stable seq id is preferred)
-        # But we don't enforce it.
-        if not is_node_seq_id_enabled(cluster_config):
-            enable_node_seq_id(cluster_config)
-
         if cluster_mode == ELASTICSEARCH_CLUSTER_MODE_CLUSTER:
             clustering_config = _get_clustering_config(elasticsearch_config)
             # check whether we need to use role by node type

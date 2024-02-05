@@ -2,15 +2,14 @@ import os
 from typing import Any, Dict, Optional
 
 from cloudtik.core._private.constants import CLOUDTIK_NODE_TYPE_WORKER_DEFAULT
-from cloudtik.core._private.util.core_utils import get_config_for_update, address_string
 from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_REDIS
 from cloudtik.core._private.service_discovery.naming import get_cluster_head_host
 from cloudtik.core._private.service_discovery.utils import \
     get_canonical_service_name, define_runtime_service, \
     get_service_discovery_config, SERVICE_DISCOVERY_FEATURE_KEY_VALUE, define_runtime_service_on_head, \
     define_runtime_service_on_worker
-from cloudtik.core._private.utils import is_node_seq_id_enabled, enable_node_seq_id, \
-    _sum_min_workers, get_runtime_config_for_update, get_cluster_name
+from cloudtik.core._private.util.core_utils import get_config_for_update, address_string
+from cloudtik.core._private.utils import _sum_min_workers, get_runtime_config_for_update, get_cluster_name
 from cloudtik.runtime.common.health_check import HEALTH_CHECK_NODE_KIND_HEAD, HEALTH_CHECK_NODE_KIND_NODE, \
     HEALTH_CHECK_PORT, HEALTH_CHECK_SCRIPT, HEALTH_CHECK_NODE_KIND
 
@@ -215,11 +214,6 @@ def _bootstrap_runtime_config(
     redis_config = _get_config(runtime_config)
     cluster_mode = _get_cluster_mode(redis_config)
     if cluster_mode != REDIS_CLUSTER_MODE_NONE:
-        # We must enable the node seq id (stable seq id is preferred)
-        # But we don't enforce it.
-        if not is_node_seq_id_enabled(cluster_config):
-            enable_node_seq_id(cluster_config)
-
         if cluster_mode == REDIS_CLUSTER_MODE_SHARDING:
             sharding_config = _get_sharding_config(redis_config)
             # check whether we need to use role by node type or based on master size

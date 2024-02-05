@@ -271,9 +271,7 @@ class ClusterScaler:
         self.disable_launch_config_check = self.config["provider"].get(
             "disable_launch_config_check", False)
 
-        # Disable the feature to assign each node with a unique number
-        self.disable_node_seq_id = get_config_option(
-            self.config, "disable_node_seq_id", False)
+        # Always assign each node with a unique number
         self.stable_node_seq_id = get_config_option(
             self.config, "stable_node_seq_id", False)
 
@@ -442,9 +440,8 @@ class ClusterScaler:
             self.non_terminated_nodes, self._pending_launches)
         self.terminate_nodes_to_enforce_config_constraints(now)
 
-        if not self.disable_node_seq_id:
-            # Assign node sequence id
-            self.assign_node_seq_ids()
+        # Assign node sequence id
+        self.assign_node_seq_ids()
 
         wait_for_update = self.quorum_manager.wait_for_update()
         if not wait_for_update:
@@ -1538,9 +1535,7 @@ class ClusterScaler:
             cluster_metrics_summary, cluster_scaler_summary)
 
     def _is_stable_node_seq_id(self):
-        return (True
-                if not self.disable_node_seq_id and self.stable_node_seq_id
-                else False)
+        return self.stable_node_seq_id
 
     def _get_next_stable_seq_id(self):
         # for stable seq id, if the node died with a seq id, we need to reuse that

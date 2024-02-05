@@ -3344,26 +3344,12 @@ def get_config_option(
     return options.get(option_name, default)
 
 
-def is_node_seq_id_enabled(config):
-    return not get_config_option(
-        config, "disable_node_seq_id", False)
-
-
-def enable_node_seq_id(config):
-    config_options = get_config_options_for_update(config)
-    config_options["disable_node_seq_id"] = False
-
-
 def is_stable_node_seq_id_enabled(config):
-    if not is_node_seq_id_enabled(config):
-        return False
     return get_config_option(
         config, "stable_node_seq_id", False)
 
 
 def enable_stable_node_seq_id(config):
-    if not is_node_seq_id_enabled(config):
-        enable_node_seq_id(config)
     config_options = get_config_options_for_update(config)
     config_options["stable_node_seq_id"] = True
 
