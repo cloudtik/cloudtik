@@ -29,6 +29,7 @@ check_hadoop_installed() {
 
 get_first_dfs_dir() {
     local data_disk_dir=$(get_first_data_disk_dir)
+    local data_dir
     if [ -z "$data_disk_dir" ]; then
         data_dir="${HADOOP_HOME}/data/dfs"
     else
@@ -93,7 +94,8 @@ update_proxy_user_for_current_user() {
 
 update_nfs_dump_dir() {
     # set nfs gateway dump dir
-    data_disk_dir=$(get_first_data_disk_dir)
+    local data_disk_dir=$(get_first_data_disk_dir)
+    local nfs_dump_dir
     if [ -z "$data_disk_dir" ]; then
         nfs_dump_dir="/tmp/.hdfs-nfs"
     else
@@ -102,13 +104,34 @@ update_nfs_dump_dir() {
     sed -i "s!{%dfs.nfs3.dump.dir%}!${nfs_dump_dir}!g" ${HDFS_SITE_CONFIG}
 }
 
-configure_hdfs() {
-    prepare_base_conf
-    mkdir -p ${HADOOP_HOME}/logs
+format_hdfs() {
+    # format only once if there is no force format flag
+    local dfs_dir=$(get_first_dfs_dir)
+    local hdfs_init_file=${dfs_dir}/.initialized
+    if [ ! -f "${hdfs_init_file}" ]; then
+        export HADOOP_CONF_DIR=${HDFS_CONF_DIR}
+        # Stop namenode in case it was running left from last try
+        ${HADOOP_HOME}/bin/hdfs --daemon stop namenode > /dev/null 2>&1
+        # Format hdfs once
+        ${HADOOP_HOME}/bin/hdfs --loglevel WARN namenode -format -force
+        if [ $? -eq 0 ]; then
+            mkdir -p "${dfs_dir}"
+            touch "${hdfs_init_file}"
+        fi
+    fi
+}
 
-    CORE_SITE_CONFIG=${OUTPUT_DIR}/hadoop/core-site.xml
-    HDFS_SITE_CONFIG=${OUTPUT_DIR}/hadoop/hdfs-site.xml
+update_journal_data_disks_config() {
+    local dfs_dir=$(get_first_dfs_dir)
+    local journal_data_dir="${data_dir}/journal"
+    if [ "$HDFS_FORCE_CLEAN" == "true" ]; then
+        sudo rm -rf "$journal_data_dir"
+    fi
+    mkdir -p "$journal_data_dir"
+    sed -i "s!{%dfs.journalnode.edits.dir%}!${journal_data_dir}!g" ${HDFS_SITE_CONFIG}
+}
 
+configure_simple_hdfs() {
     fs_default_dir="hdfs://${HEAD_HOST_ADDRESS}:${HDFS_SERVICE_PORT}"
     sed -i "s!{%fs.default.name%}!${fs_default_dir}!g" ${CORE_SITE_CONFIG}
 
@@ -116,9 +139,6 @@ configure_hdfs() {
     update_hdfs_data_disks_config
     update_nfs_dump_dir
 
-    HDFS_CONF_DIR=${HADOOP_HOME}/etc/hdfs
-    # copy the existing hadoop conf
-    mkdir -p ${HDFS_CONF_DIR}
     cp -r  ${HADOOP_HOME}/etc/hadoop/* ${HDFS_CONF_DIR}/
     # override hdfs conf
     cp ${CORE_SITE_CONFIG} ${HDFS_CONF_DIR}/core-site.xml
@@ -130,20 +150,54 @@ configure_hdfs() {
     cp ${HDFS_SITE_CONFIG} ${HADOOP_HOME}/etc/hadoop/hdfs-site.xml
 
     if [ $IS_HEAD_NODE == "true" ]; then
-        # format only once if there is no force format flag
-        local dfs_dir=$(get_first_dfs_dir)
-        HDFS_INIT_FILE=${dfs_dir}/.initialized
-        if [ ! -f "${HDFS_INIT_FILE}" ]; then
-            export HADOOP_CONF_DIR=${HDFS_CONF_DIR}
-            # Stop namenode in case it was running left from last try
-            ${HADOOP_HOME}/bin/hdfs --daemon stop namenode > /dev/null 2>&1
-            # Format hdfs once
-            ${HADOOP_HOME}/bin/hdfs --loglevel WARN namenode -format -force
-            if [ $? -eq 0 ]; then
-                mkdir -p "${dfs_dir}"
-                touch "${HDFS_INIT_FILE}"
-            fi
-        fi
+        format_hdfs
+    fi
+}
+
+configure_name_cluster() {
+    :
+}
+
+
+configure_journal_cluster() {
+    HDFS_SITE_CONFIG=${OUTPUT_DIR}/hadoop/hdfs-site-journal.xml
+    update_journal_data_disks_config
+    cp -r  ${HADOOP_HOME}/etc/hadoop/* ${HDFS_CONF_DIR}/
+    # override hdfs conf
+    cp ${HDFS_SITE_CONFIG} ${HDFS_CONF_DIR}/hdfs-site.xml
+}
+
+
+configure_data_cluster() {
+    :
+}
+
+
+configure_ha_cluster() {
+    if [ "${HDFS_CLUSTER_ROLE}" == "name" ]; then
+        configure_name_cluster
+    elif [ "${HDFS_CLUSTER_ROLE}" == "journal" ]; then
+        configure_journal_cluster
+    else
+        configure_data_cluster
+    fi
+}
+
+configure_hdfs() {
+    prepare_base_conf
+    mkdir -p ${HADOOP_HOME}/logs
+
+    HDFS_CONF_DIR=${HADOOP_HOME}/etc/hdfs
+    # copy the existing hadoop conf
+    mkdir -p ${HDFS_CONF_DIR}
+
+    CORE_SITE_CONFIG=${OUTPUT_DIR}/hadoop/core-site.xml
+    HDFS_SITE_CONFIG=${OUTPUT_DIR}/hadoop/hdfs-site.xml
+
+    if [ "${HDFS_CLUSTER_MODE}" == "ha_cluster" ]; then
+        configure_ha_cluster
+    else
+        configure_simple_hdfs
     fi
 }
 
