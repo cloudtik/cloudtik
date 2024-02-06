@@ -104,41 +104,6 @@ update_nfs_dump_dir() {
     sed -i "s!{%dfs.nfs3.dump.dir%}!${nfs_dump_dir}!g" ${HDFS_SITE_CONFIG}
 }
 
-initialize_name_node() {
-    local init_method="${1:?init method is required}"
-    local dfs_dir=$(get_first_dfs_dir)
-    local hdfs_init_file=${dfs_dir}/.initialized
-    if [ ! -f "${hdfs_init_file}" ]; then
-        export HADOOP_CONF_DIR=${HDFS_CONF_DIR}
-
-        # format ZK if needed
-        if [ "${init_method}" == "format" ] \
-            && [ "${HDFS_AUTO_FAILOVER}" == "true" ]; then
-            ${HADOOP_HOME}/bin/hdfs zkfc -formatZK -force
-        fi
-
-        # Stop namenode in case it was running left from last try
-        ${HADOOP_HOME}/bin/hdfs --daemon stop namenode > /dev/null 2>&1
-        # Format hdfs once
-        ${HADOOP_HOME}/bin/hdfs --loglevel WARN namenode -${init_method} -force
-
-        if [ $? -eq 0 ]; then
-            mkdir -p "${dfs_dir}"
-            touch "${hdfs_init_file}"
-        fi
-    fi
-}
-
-format_hdfs() {
-    # format only once
-    initialize_name_node "format"
-}
-
-bootstrap_standby() {
-    # bootstrap standby only once
-    initialize_name_node "bootstrapStandby"
-}
-
 update_journal_data_disks_config() {
     local dfs_dir=$(get_first_dfs_dir)
     local journal_data_dir="${dfs_dir}/journal"
@@ -224,10 +189,6 @@ configure_simple_hdfs() {
     update_nfs_dump_dir
 
     finalize_hdfs_config
-
-    if [ $IS_HEAD_NODE == "true" ]; then
-        format_hdfs
-    fi
 }
 
 configure_name_cluster() {
@@ -259,13 +220,6 @@ configure_name_cluster() {
       "{%dfs.ha.zookeeper.quorum%}" "${hdfs_zookeeper_quorum}"
 
     finalize_hdfs_config
-
-    # for HA, the name node on head will do the format for the first time
-    if [ $IS_HEAD_NODE == "true" ]; then
-        format_hdfs
-    else
-        bootstrap_standby
-    fi
 }
 
 configure_journal_cluster() {

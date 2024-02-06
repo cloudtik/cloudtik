@@ -24,6 +24,9 @@ HDFS_DAEMON_CMD="$HADOOP_HOME/bin/hdfs --daemon"
 
 case "$SERVICE_COMMAND" in
 start)
+    # check and initialize if needed
+    bash $BIN_DIR/hdfs-init.sh >${HADOOP_HOME}/logs/hdfs-init.log 2>&1
+
     if [ "${HDFS_CLUSTER_MODE}" == "ha_cluster" ]; then
         if [ "${HDFS_CLUSTER_ROLE}" == "name" ]; then
             $HDFS_DAEMON_CMD start namenode
