@@ -11,7 +11,7 @@ from cloudtik.core._private.service_discovery.utils import \
 from cloudtik.core._private.util.core_utils import get_config_for_update, address_string
 from cloudtik.core._private.utils import _sum_min_workers, get_runtime_config_for_update, get_cluster_name
 from cloudtik.runtime.common.health_check import HEALTH_CHECK_NODE_KIND_HEAD, HEALTH_CHECK_NODE_KIND_NODE, \
-    HEALTH_CHECK_PORT, HEALTH_CHECK_SCRIPT, HEALTH_CHECK_NODE_KIND
+    HEALTH_CHECK_PORT, HEALTH_CHECK_NODE_KIND
 
 REDIS_SERVICE_PORT_CONFIG_KEY = "port"
 
@@ -374,7 +374,6 @@ def _get_health_check(
 
     health_check = {
         HEALTH_CHECK_PORT: health_check_port,
-        HEALTH_CHECK_SCRIPT: "scripts/redis-health-check.sh",
         HEALTH_CHECK_NODE_KIND: node_kind,
     }
     return health_check

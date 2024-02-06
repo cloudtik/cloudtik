@@ -43,7 +43,7 @@
         <value>true</value>
     </property>
     <property>
-        <name>dfs.client.failover.proxy.provider.mycluster</name>
+        <name>dfs.client.failover.proxy.provider.{%dfs.name.service%}</name>
         <value>org.apache.hadoop.hdfs.server.namenode.ha.ConfiguredFailoverProxyProvider</value>
     </property>
     <property>

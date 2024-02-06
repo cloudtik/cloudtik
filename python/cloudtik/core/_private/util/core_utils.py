@@ -1033,6 +1033,18 @@ def address_from_string(address):
     return address.split(":")
 
 
+def service_address_from_string(
+        address, default_port: int):
+    segments = address.split(':')
+    n = len(segments)
+    if n < 1 or n > 2:
+        raise ValueError(
+            "Invalid service address. Correct format: service-host:service-port")
+    host = segments[0]
+    port = str(segments[1]) if n > 1 else default_port
+    return host, port
+
+
 def is_valid_dns_name(name):
     return bool(re.match("^[a-z0-9-]*$", name))
 

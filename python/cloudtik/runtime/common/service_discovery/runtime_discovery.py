@@ -14,6 +14,10 @@ from cloudtik.core._private.util.database_utils import is_database_configured, s
     DATABASE_ENGINE_MYSQL
 from cloudtik.core._private.util.runtime_utils import get_runtime_head_host
 from cloudtik.core._private.utils import get_runtime_config
+from cloudtik.runtime.common.hadoop import HDFS_SERVICE_DISCOVERY_KEY, HDFS_URI_KEY, HDFS_SERVICE_SELECTOR_KEY, \
+    MINIO_SERVICE_DISCOVERY_KEY, MINIO_URI_KEY, MINIO_SERVICE_SELECTOR_KEY, HDFS_NAME_SERVICE_DISCOVERY_KEY, \
+    HDFS_NAME_URI_KEY, HDFS_NAME_SERVICE_SELECTOR_KEY, get_name_uri_of_service, HDFS_NAME_SERVICE_TYPE, \
+    HDFS_SERVICE_TYPE
 from cloudtik.runtime.common.service_discovery.cluster import has_runtime_in_cluster
 from cloudtik.runtime.common.service_discovery.discovery import query_service, DiscoveryType
 from cloudtik.runtime.common.service_discovery.utils import get_service_addresses_string
@@ -24,14 +28,6 @@ DATABASE_SERVICE_PORT_CONFIG_KEY = "port"
 MYSQL_ROOT_PASSWORD_CONFIG_KEY = "root_password"
 POSTGRES_ADMIN_USER_CONFIG_KEY = "admin_user"
 POSTGRES_ADMIN_PASSWORD_CONFIG_KEY = "admin_password"
-
-HDFS_URI_KEY = "hdfs_namenode_uri"
-HDFS_SERVICE_DISCOVERY_KEY = "hdfs_service_discovery"
-HDFS_SERVICE_SELECTOR_KEY = "hdfs_service_selector"
-
-MINIO_URI_KEY = "minio_endpoint_uri"
-MINIO_SERVICE_DISCOVERY_KEY = "minio_service_discovery"
-MINIO_SERVICE_SELECTOR_KEY = "minio_service_selector"
 
 METASTORE_URI_KEY = "hive_metastore_uri"
 METASTORE_SERVICE_DISCOVERY_KEY = "metastore_service_discovery"
@@ -182,6 +178,7 @@ def discover_hdfs(
         cluster_config=cluster_config,
         discovery_type=discovery_type,
         runtime_type=BUILT_IN_RUNTIME_HDFS,
+        service_type=HDFS_SERVICE_TYPE
     )
     if not service_addresses:
         return None
@@ -701,3 +698,47 @@ def with_database_runtime_environment_variables(
     envs[DATABASE_ENV_PASSWORD] = password
 
     return envs
+
+
+def is_hdfs_name_service_discovery(runtime_type_config):
+    return runtime_type_config.get(
+        HDFS_NAME_SERVICE_DISCOVERY_KEY, True)
+
+
+def discover_hdfs_name_on_head(
+        cluster_config: Dict[str, Any], runtime_type):
+    runtime_config = get_runtime_config(cluster_config)
+    runtime_type_config = runtime_config.get(runtime_type, {})
+    if not is_hdfs_name_service_discovery(runtime_type_config):
+        return cluster_config
+
+    name_uri = runtime_type_config.get(HDFS_NAME_URI_KEY)
+    if name_uri:
+        # Name service already configured
+        return cluster_config
+
+    # There is service discovery to come here
+    name_service = discover_hdfs_name(
+        runtime_type_config,
+        HDFS_NAME_SERVICE_SELECTOR_KEY,
+        cluster_config=cluster_config)
+    if name_service:
+        name_uri = get_name_uri_of_service(name_service)
+        # do update
+        runtime_type_config = get_config_for_update(
+            runtime_config, runtime_type)
+        runtime_type_config[HDFS_NAME_URI_KEY] = name_uri
+    return cluster_config
+
+
+def discover_hdfs_name(
+        config: Dict[str, Any],
+        service_selector_key: str,
+        cluster_config: Dict[str, Any]):
+    return discover_runtime_service(
+        config, service_selector_key,
+        cluster_config=cluster_config,
+        discovery_type=DiscoveryType.CLUSTER,
+        runtime_type=BUILT_IN_RUNTIME_HDFS,
+        service_type=HDFS_NAME_SERVICE_TYPE
+    )

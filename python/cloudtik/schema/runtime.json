@@ -511,6 +511,11 @@
                     "type": "boolean",
                     "description": "Whether to force clean the data directory when starting.",
                     "default": false
+                },
+                "health_check_port": {
+                    "type": "integer",
+                    "default": 19000,
+                    "description": "The HDFS NameNode health check port if there is super-server daemon."
                 }
             }
         },

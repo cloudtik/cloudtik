@@ -12,7 +12,7 @@ from cloudtik.core._private.util.database_utils import DATABASE_PORT_POSTGRES_DE
     DATABASE_USERNAME_POSTGRES_DEFAULT, DATABASE_PASSWORD_POSTGRES_DEFAULT
 from cloudtik.core._private.utils import _sum_min_workers, get_runtime_config_for_update, get_runtime_config, \
     get_cluster_name
-from cloudtik.runtime.common.health_check import HEALTH_CHECK_PORT, HEALTH_CHECK_SCRIPT, HEALTH_CHECK_NODE_KIND, \
+from cloudtik.runtime.common.health_check import HEALTH_CHECK_PORT, HEALTH_CHECK_NODE_KIND, \
     HEALTH_CHECK_NODE_KIND_HEAD, HEALTH_CHECK_NODE_KIND_NODE
 from cloudtik.runtime.common.service_discovery.cluster import has_runtime_in_cluster
 
@@ -383,7 +383,6 @@ def _get_health_check(
 
     health_check = {
         HEALTH_CHECK_PORT: health_check_port,
-        HEALTH_CHECK_SCRIPT: "scripts/postgres-health-check.sh",
         HEALTH_CHECK_NODE_KIND: node_kind,
     }
     return health_check

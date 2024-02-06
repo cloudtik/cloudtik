@@ -257,6 +257,26 @@ configure_ha_cluster() {
     fi
 }
 
+configure_variable() {
+    set_variable_in_file "${HDFS_CONF_DIR}/hdfs" "$@"
+}
+
+configure_service_init() {
+    # The following environment variables are needed for hdfs-init.sh
+    echo "# HDFS init variables" > ${HDFS_CONF_DIR}/hdfs
+    configure_variable HDFS_PORT "${HDFS_SERVICE_PORT}"
+    configure_variable HDFS_HTTP_PORT "${HDFS_HTTP_PORT}"
+    configure_variable HDFS_HEAD_NODE ${IS_HEAD_NODE}
+    configure_variable HDFS_NODE_IP "${NODE_IP_ADDRESS}"
+    configure_variable HDFS_CLUSTER_MODE "${HDFS_CLUSTER_MODE}"
+
+    if [ "${HDFS_CLUSTER_MODE}" == "ha_cluster" ]; then
+        if [ "${HDFS_CLUSTER_ROLE}" == "name" ]; then
+            configure_variable HDFS_NAME_SERVICE_ID "nn${CLOUDTIK_NODE_SEQ_ID}"
+        fi
+    fi
+}
+
 configure_hdfs() {
     prepare_base_conf
     mkdir -p ${HADOOP_HOME}/logs
@@ -274,11 +294,15 @@ configure_hdfs() {
     else
         configure_simple_hdfs
     fi
+
+    # Set variables for export for hdfs-init.sh
+    configure_service_init
 }
 
 set_head_option "$@"
 check_hadoop_installed
 set_head_address
+set_node_address
 configure_hdfs
 
 exit 0

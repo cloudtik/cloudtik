@@ -30,8 +30,11 @@ def get_service_addresses_string(service_addresses, separator=None):
                      for service_address in service_addresses])
 
 
-def get_service_addresses_from_string(addresses_string):
-    addresses_list = [x.strip() for x in addresses_string.split(',')]
+def get_service_addresses_from_string(addresses_string, separator=None):
+    # allow two format: host,host,host or host:port,host:port
+    if not separator:
+        separator = ","
+    addresses_list = [x.strip() for x in addresses_string.split(separator)]
     service_addresses = []
     for address_string in addresses_list:
         address_parts = [x.strip() for x in address_string.split(':')]
