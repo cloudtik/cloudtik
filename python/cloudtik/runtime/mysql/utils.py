@@ -11,7 +11,7 @@ from cloudtik.core._private.service_discovery.utils import \
 from cloudtik.core._private.util.core_utils import address_string
 from cloudtik.core._private.util.database_utils import DATABASE_PORT_MYSQL_DEFAULT, DATABASE_PASSWORD_MYSQL_DEFAULT
 from cloudtik.core._private.utils import get_workspace_name, get_cluster_name, get_runtime_config
-from cloudtik.runtime.common.health_check import HEALTH_CHECK_PORT, HEALTH_CHECK_NODE_KIND, HEALTH_CHECK_SCRIPT, \
+from cloudtik.runtime.common.health_check import HEALTH_CHECK_PORT, HEALTH_CHECK_NODE_KIND, \
     HEALTH_CHECK_NODE_KIND_NODE, HEALTH_CHECK_NODE_KIND_HEAD
 
 RUNTIME_PROCESSES = [
@@ -264,7 +264,6 @@ def _get_health_check(
 
     health_check = {
         HEALTH_CHECK_PORT: health_check_port,
-        HEALTH_CHECK_SCRIPT: "scripts/mysql-health-check.sh",
         HEALTH_CHECK_NODE_KIND: node_kind,
     }
     return health_check

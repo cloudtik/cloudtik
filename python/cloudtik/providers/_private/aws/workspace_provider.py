@@ -65,6 +65,7 @@ class AWSWorkspaceProvider(WorkspaceProvider):
         Maximum value length – 256 Unicode characters in UTF-8
         The allowed characters across services are: letters (a-z, A-Z), numbers (0-9),
         and spaces representable in UTF-8, and the following characters: + - = . _ : / @
+        EC2 resources allow any characters. Tag keys and values are case sensitive.
         """
         # Add prefix to the variables
         global_variables_prefixed = {}
