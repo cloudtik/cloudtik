@@ -45,7 +45,7 @@ install_trino() {
         fi
         echo "export TRINO_HOME=$TRINO_HOME">> ${USER_HOME}/.bashrc
 
-        if [ $IS_HEAD_NODE == "true" ]; then
+        if [ "$IS_HEAD_NODE" == "true" ]; then
             # Download trino cli on head
             (cd $RUNTIME_PATH \
               && wget -q --show-progress \

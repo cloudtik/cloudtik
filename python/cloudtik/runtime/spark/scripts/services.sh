@@ -29,7 +29,7 @@ set_head_address
 
 case "$SERVICE_COMMAND" in
 start)
-    if [ $IS_HEAD_NODE == "true" ]; then
+    if [ "$IS_HEAD_NODE" == "true" ]; then
         # Create event log dir on cloud storage if needed
         # This needs to be done after hadoop file system has been configured correctly
         ${HADOOP_HOME}/bin/hadoop --loglevel WARN fs -mkdir -p /shared/spark-events
@@ -41,7 +41,7 @@ start)
     fi
     ;;
 stop)
-    if [ $IS_HEAD_NODE == "true" ]; then
+    if [ "$IS_HEAD_NODE" == "true" ]; then
         $SPARK_HOME/sbin/stop-history-server.sh
         stop_process_by_name "jupyter"
     fi

@@ -25,6 +25,7 @@ HDFS_DAEMON_CMD="$HADOOP_HOME/bin/hdfs --daemon"
 case "$SERVICE_COMMAND" in
 start)
     # check and initialize if needed
+    export HDFS_HEAD_NODE=${IS_HEAD_NODE}
     bash $BIN_DIR/hdfs-init.sh >${HADOOP_HOME}/logs/hdfs-init.log 2>&1
 
     if [ "${HDFS_CLUSTER_MODE}" == "ha_cluster" ]; then
@@ -39,7 +40,7 @@ start)
             $HDFS_DAEMON_CMD start datanode
         fi
     else
-        if [ $IS_HEAD_NODE == "true" ]; then
+        if [ "$IS_HEAD_NODE" == "true" ]; then
             $HDFS_DAEMON_CMD start namenode
         else
             $HDFS_DAEMON_CMD start datanode
@@ -59,7 +60,7 @@ stop)
             $HDFS_DAEMON_CMD stop datanode
         fi
     else
-        if [ $IS_HEAD_NODE == "true" ]; then
+        if [ "$IS_HEAD_NODE" == "true" ]; then
             $HDFS_DAEMON_CMD stop namenode
         else
             $HDFS_DAEMON_CMD stop datanode

@@ -28,7 +28,7 @@ set_service_command "$@"
 
 case "$SERVICE_COMMAND" in
 start)
-    if [ $IS_HEAD_NODE == "true" ]; then
+    if [ "$IS_HEAD_NODE" == "true" ]; then
         # Create dirs on cloud storage if needed
         # This needs to be done after hadoop file system has been configured correctly
         ${HADOOP_HOME}/bin/hadoop --loglevel WARN fs -mkdir -p /shared/flink-checkpoints
@@ -43,7 +43,7 @@ start)
     fi
     ;;
 stop)
-    if [ $IS_HEAD_NODE == "true" ]; then
+    if [ "$IS_HEAD_NODE" == "true" ]; then
         # Make sure HADOOP_CLASSPATH is set
         export HADOOP_CLASSPATH=`$HADOOP_HOME/bin/hadoop classpath`
         $FLINK_HOME/bin/historyserver.sh stop > /dev/null

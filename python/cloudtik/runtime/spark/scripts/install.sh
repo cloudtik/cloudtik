@@ -51,7 +51,7 @@ install_spark() {
 
     if [ "$METASTORE_ENABLED" == "true" ] \
           && [ "$HIVE_FOR_METASTORE_JARS" == "true" ] \
-          && [ $IS_HEAD_NODE == "true" ]; then
+          && [ "$IS_HEAD_NODE" == "true" ]; then
         # To be improved: we may need to install Hive anyway
         # Spark Hive Metastore nees quit some Hive dependencies
         # "hive-metastore", "hive-exec", "hive-common", "hive-serde"
@@ -74,7 +74,7 @@ install_spark() {
 }
 
 install_jupyter_for_spark() {
-    if [ $IS_HEAD_NODE == "true" ];then
+    if [ "$IS_HEAD_NODE" == "true" ];then
         # Install Jupyter and spylon-kernel for Spark
         if ! type jupyter >/dev/null 2>&1; then
           echo "Install JupyterLab..."
