@@ -1251,3 +1251,13 @@ def is_file_changed(source_file, target_file):
         if source_contents == target_contents:
             changed = False
     return changed
+
+
+def get_intersect_labels(labels1, labels2, value: bool = True):
+    if not labels1 or not labels2:
+        return None
+    labels = labels1.keys() & labels2.keys()
+    if value:
+        return {key: labels1[key] for key in labels if labels2[key] == labels2[key]}
+    else:
+        return {key: labels1[key] for key in labels}

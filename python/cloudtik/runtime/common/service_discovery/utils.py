@@ -9,13 +9,15 @@ class ServiceInstance(JSONSerializableObject):
     def __init__(
             self, service_name, service_addresses,
             service_type, runtime_type,
-            cluster_name=None, tags=None):
+            cluster_name=None, tags=None,
+            labels=None):
         self.service_name = service_name
         self.service_addresses = service_addresses
         self.service_type = service_type
         self.runtime_type = runtime_type
         self.cluster_name = cluster_name
         self.tags = tags
+        self.labels = labels
 
 
 def get_service_addresses_string(service_addresses, separator=None):

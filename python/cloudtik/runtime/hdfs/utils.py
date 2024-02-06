@@ -13,7 +13,7 @@ from cloudtik.core._private.utils import get_node_cluster_ip_of, get_cluster_nam
     get_runtime_config_for_update, _sum_min_workers
 from cloudtik.runtime.common.service_discovery.discovery import DiscoveryType
 from cloudtik.runtime.common.service_discovery.runtime_discovery import discover_zookeeper_on_head, \
-    ZOOKEEPER_CONNECT_KEY, is_zookeeper_service_discovery, discover_runtime_service_addresses
+    ZOOKEEPER_CONNECT_KEY, is_zookeeper_service_discovery, discover_runtime_service_addresses, discover_runtime_service
 from cloudtik.runtime.common.service_discovery.utils import get_service_addresses_string
 from cloudtik.runtime.common.service_discovery.workspace import register_service_to_workspace
 
@@ -49,6 +49,10 @@ HDFS_FORCE_CLEAN_KEY = "force_clean"
 HDFS_JOURNAL_CONNECT_KEY = "journal_connect"
 HDFS_JOURNAL_SERVICE_DISCOVERY_KEY = "journal_service_discovery"
 HDFS_JOURNAL_SERVICE_SELECTOR_KEY = "journal_service_selector"
+
+HDFS_NAME_CONNECT_KEY = "name_connect"
+HDFS_NAME_SERVICE_DISCOVERY_KEY = "name_service_discovery"
+HDFS_NAME_SERVICE_SELECTOR_KEY = "name_service_selector"
 
 HDFS_SERVICE_TYPE = BUILT_IN_RUNTIME_HDFS
 HDFS_SERVICE_PORT = 9000
@@ -184,7 +188,7 @@ def _validate_ha_cluster_config(
             if (final or not is_journal_service_discovery(hdfs_config) or
                     not get_service_discovery_runtime(cluster_runtime_config)):
                 raise ValueError(
-                    "HDFS Journal must be configured for HDFS HA cluster.")
+                    "HDFS Journal must be configured for HDFS HA name cluster.")
 
         if _is_ha_cluster_auto_failover(ha_cluster_config):
             zookeeper_uri = hdfs_config.get(ZOOKEEPER_CONNECT_KEY)
@@ -194,7 +198,16 @@ def _validate_ha_cluster_config(
                 if (final or not is_zookeeper_service_discovery(hdfs_config) or
                         not get_service_discovery_runtime(cluster_runtime_config)):
                     raise ValueError(
-                        "Zookeeper must be configured for HDFS HA cluster.")
+                        "Zookeeper must be configured for HDFS HA name cluster with automatic failover.")
+    elif cluster_role == HDFS_HA_CLUSTER_ROLE_DATA:
+        name_uri = hdfs_config.get(HDFS_NAME_CONNECT_KEY)
+        if not name_uri:
+            # if there is service discovery mechanism,
+            # assume we can get from service discovery if this is not final
+            if (final or not is_name_service_discovery(hdfs_config) or
+                    not get_service_discovery_runtime(cluster_runtime_config)):
+                raise ValueError(
+                    "HDFS Name cluster must be configured for HDFS HA data cluster.")
 
 
 def _prepare_config_on_head(
@@ -210,7 +223,9 @@ def _prepare_config_on_head(
             if _is_ha_cluster_auto_failover(ha_cluster_config):
                 cluster_config = discover_zookeeper_on_head(
                     cluster_config, BUILT_IN_RUNTIME_HDFS)
-
+        elif cluster_role == HDFS_HA_CLUSTER_ROLE_DATA:
+            cluster_config = discover_name_on_head(
+                cluster_config, BUILT_IN_RUNTIME_HDFS)
     # call validate config to fail earlier
     _validate_config(
         runtime_config, cluster_config, final=True)
@@ -292,10 +307,21 @@ def _with_data_configure(hdfs_config, envs=None):
     if envs is None:
         envs = {}
 
-    # TODO: set name service ID and name cluster name based on discovery
-    # envs["HDFS_NAME_CLUSTER_NAME"] = cluster_name
-    # envs["HDFS_NAME_SERVICE"] = cluster_name
-    # envs["HDFS_NUM_NAME_NODES"] = num_name_nodes
+    # set name service ID and name cluster name based on discovery
+    name_uri = hdfs_config.get(HDFS_NAME_CONNECT_KEY)
+    if not name_uri:
+        # This usually will not happen. Checks are done before this.
+        raise RuntimeError(
+            "Name uri is not configured for HDFS HA data cluster.")
+    name_segments = name_uri.split(':')
+    if len(name_segments) != 2:
+        raise ValueError(
+            "Invalid name uri format. Correct format: cluster-name:num-name-nodes")
+    cluster_name = name_segments[0]
+    num_name_nodes = name_segments[1]
+    envs["HDFS_NAME_CLUSTER_NAME"] = cluster_name
+    envs["HDFS_NAME_SERVICE"] = cluster_name
+    envs["HDFS_NUM_NAME_NODES"] = num_name_nodes
     return envs
 
 
@@ -490,7 +516,8 @@ Journal service discovery conventions:
 
 
 def is_journal_service_discovery(runtime_type_config):
-    return runtime_type_config.get(HDFS_JOURNAL_SERVICE_DISCOVERY_KEY, True)
+    return runtime_type_config.get(
+        HDFS_JOURNAL_SERVICE_DISCOVERY_KEY, True)
 
 
 def discover_journal_on_head(
@@ -507,9 +534,9 @@ def discover_journal_on_head(
 
     # There is service discovery to come here
     journal_addresses = discover_journal(
-        runtime_type_config, HDFS_JOURNAL_SERVICE_SELECTOR_KEY,
-        cluster_config=cluster_config,
-        discovery_type=DiscoveryType.CLUSTER)
+        runtime_type_config,
+        HDFS_JOURNAL_SERVICE_SELECTOR_KEY,
+        cluster_config=cluster_config)
     if journal_addresses:
         # check the number of journal nodes vs the configurations if user specified
         ha_cluster_config = _get_ha_cluster_config(runtime_type_config)
@@ -533,13 +560,82 @@ def discover_journal_on_head(
 def discover_journal(
         config: Dict[str, Any],
         service_selector_key: str,
-        cluster_config: Dict[str, Any],
-        discovery_type: DiscoveryType,):
+        cluster_config: Dict[str, Any]):
     service_addresses = discover_runtime_service_addresses(
         config, service_selector_key,
         cluster_config=cluster_config,
-        discovery_type=discovery_type,
+        discovery_type=DiscoveryType.CLUSTER,
         runtime_type=BUILT_IN_RUNTIME_HDFS,
         service_type=HDFS_JOURNAL_SERVICE_TYPE
     )
     return service_addresses
+
+
+def is_name_service_discovery(runtime_type_config):
+    return runtime_type_config.get(
+        HDFS_NAME_SERVICE_DISCOVERY_KEY, True)
+
+
+def discover_name_on_head(
+        cluster_config: Dict[str, Any], runtime_type):
+    runtime_config = get_runtime_config(cluster_config)
+    runtime_type_config = runtime_config.get(runtime_type, {})
+    if not is_name_service_discovery(runtime_type_config):
+        return cluster_config
+
+    name_uri = runtime_type_config.get(HDFS_NAME_CONNECT_KEY)
+    if name_uri:
+        # Name service already configured
+        return cluster_config
+
+    # There is service discovery to come here
+    name_service = discover_name(
+        runtime_type_config,
+        HDFS_JOURNAL_SERVICE_SELECTOR_KEY,
+        cluster_config=cluster_config)
+    if name_service:
+        name_uri = _get_name_uri_from_service(name_service)
+        # do update
+        runtime_type_config = get_config_for_update(
+            runtime_config, runtime_type)
+        runtime_type_config[HDFS_NAME_CONNECT_KEY] = name_uri
+    return cluster_config
+
+
+def discover_name(
+        config: Dict[str, Any],
+        service_selector_key: str,
+        cluster_config: Dict[str, Any]):
+    return discover_runtime_service(
+        config, service_selector_key,
+        cluster_config=cluster_config,
+        discovery_type=DiscoveryType.CLUSTER,
+        runtime_type=BUILT_IN_RUNTIME_HDFS,
+        service_type=HDFS_SERVICE_TYPE
+    )
+
+
+def _get_name_uri_from_service(service):
+    # name uri in the format of: name-service-name:number-of-name-nodes
+    name_cluster_name = service.cluster_name
+    if not name_cluster_name:
+        raise RuntimeError(
+            "Service {} nodes are not come from the same cluster.".format(
+                service.service_name))
+    num_name_nodes = _get_num_name_nodes_from_service(service)
+    if not num_name_nodes:
+        raise RuntimeError(
+            "Failed to get number of name nodes from service {}".format(
+                service.service_name))
+    name_uri = "{}:{}".format(name_cluster_name, num_name_nodes)
+    return name_uri
+
+
+def _get_num_name_nodes_from_service(service):
+    labels = service.labels
+    if not labels:
+        return None
+    num_name_nodes_str = labels.get(HDFS_NUM_NAME_NODES_LABEL)
+    if not num_name_nodes_str:
+        return None
+    return str(num_name_nodes_str)
