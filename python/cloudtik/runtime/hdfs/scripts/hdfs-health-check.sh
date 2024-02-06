@@ -27,8 +27,11 @@
 BIN_DIR="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 ROOT_DIR="$(dirname "$(dirname "$BIN_DIR")")"
 RUNTIME_PATH=/home/$(whoami)/runtime
+
+# These are needed for running hdfs commands
 export HADOOP_HOME=$RUNTIME_PATH/hadoop
 export HADOOP_CONF_DIR=${HADOOP_HOME}/etc/hdfs
+export JAVA_HOME=$RUNTIME_PATH/jdk
 
 # health check common functions
 . "$ROOT_DIR"/common/scripts/util-health-check.sh
