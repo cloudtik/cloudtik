@@ -3,7 +3,7 @@ from enum import Enum, auto
 from typing import Optional, Dict, Any, List, Union
 
 from cloudtik.core._private.util.core_utils import deserialize_config, serialize_config, \
-    get_list_for_update, get_config_for_update
+    get_list_for_update, get_config_for_update, get_config_copy
 
 # The standard keys and values used for service discovery
 SERVICE_DISCOVERY_SERVICE_TYPE = "service_type"
@@ -120,6 +120,10 @@ def get_service_discovery_config_for_update(config):
         config, SERVICE_DISCOVERY_CONFIG_SERVICE_DISCOVERY)
 
 
+def get_service_discovery_config_copy(config):
+    return get_config_copy(config, SERVICE_DISCOVERY_CONFIG_SERVICE_DISCOVERY)
+
+
 def get_service_type_override(
         service_discovery_config: Optional[Dict[str, Any]]):
     return service_discovery_config.get(
@@ -129,6 +133,15 @@ def get_service_type_override(
 def set_service_type_override(
         service_discovery_config: Dict[str, Any], service_type):
     service_discovery_config[SERVICE_DISCOVERY_CONFIG_SERVICE_TYPE] = service_type
+
+
+def set_service_discovery_label(
+        service_discovery_config: Dict[str, Any], name, value):
+    if not name:
+        return
+    labels = get_config_for_update(
+        service_discovery_config, SERVICE_DISCOVERY_CONFIG_LABELS)
+    labels[name] = str(value)
 
 
 def is_prefer_workspace_discovery(
@@ -290,13 +303,7 @@ def exclude_runtime_of_cluster(
 
 
 def get_service_selector_copy(config, config_key):
-    service_selector = config.get(
-        config_key)
-    if service_selector is None:
-        service_selector = {}
-    else:
-        service_selector = copy.deepcopy(service_selector)
-    return service_selector
+    return get_config_copy(config, config_key)
 
 
 def include_list_for_selector(

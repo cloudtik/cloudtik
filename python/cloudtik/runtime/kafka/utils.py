@@ -77,7 +77,8 @@ def _validate_config(config: Dict[str, Any], final=False):
         # if there is service discovery mechanism, assume we can get from service discovery
         if (final or not is_zookeeper_service_discovery(kafka_config) or
                 not get_service_discovery_runtime(runtime_config)):
-            raise ValueError("Zookeeper must be configured for Kafka.")
+            raise ValueError(
+                "Zookeeper must be configured for Kafka.")
 
 
 def _get_runtime_endpoints(cluster_config, cluster_head_ip):

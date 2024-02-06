@@ -491,6 +491,19 @@
                         "cluster_role": {
                             "type": "string",
                             "description": "The role of the current cluster: name, journal, data."
+                        },
+                        "num_journal_nodes": {
+                            "type": "integer",
+                            "description": "If specified for name role, used to check the valid of journal addresses."
+                        },
+                        "num_name_nodes": {
+                            "type": "integer",
+                            "description": "If specified for name role, the number of the name nodes. Default to the min workers + 1"
+                        },
+                        "auto_failover": {
+                            "type": "boolean",
+                            "default": true,
+                            "description": "Whether to enable automatic-failover using ZooKeeper."
                         }
                     }
                 },

@@ -509,9 +509,9 @@ def discover_zookeeper_on_head(
 
     # There is service discovery to come here
     zookeeper_uri = discover_zookeeper(
-                    runtime_type_config, ZOOKEEPER_SERVICE_SELECTOR_KEY,
-                    cluster_config=cluster_config,
-                    discovery_type=DiscoveryType.CLUSTER)
+        runtime_type_config, ZOOKEEPER_SERVICE_SELECTOR_KEY,
+        cluster_config=cluster_config,
+        discovery_type=DiscoveryType.CLUSTER)
     if zookeeper_uri:
         runtime_type_config = get_config_for_update(
             runtime_config, runtime_type)
@@ -652,9 +652,9 @@ def discover_etcd_on_head(
 
     # There is service discovery to come here
     etcd_uri = discover_etcd(
-                    runtime_type_config, ETCD_SERVICE_SELECTOR_KEY,
-                    cluster_config=cluster_config,
-                    discovery_type=DiscoveryType.CLUSTER)
+        runtime_type_config, ETCD_SERVICE_SELECTOR_KEY,
+        cluster_config=cluster_config,
+        discovery_type=DiscoveryType.CLUSTER)
     if etcd_uri:
         runtime_type_config = get_config_for_update(
             runtime_config, runtime_type)

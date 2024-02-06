@@ -993,11 +993,14 @@ def get_config_for_update(config, config_key):
     return config[config_key]
 
 
-def get_config_copy_for_update(config, config_key):
-    if config_key not in config:
-        return {}
-    config_for_key = config[config_key]
-    return copy.deepcopy(config_for_key)
+def get_config_copy(config, config_key):
+    config_for_key = config.get(
+        config_key)
+    if config_for_key is None:
+        config_for_key = {}
+    else:
+        config_for_key = copy.deepcopy(config_for_key)
+    return config_for_key
 
 
 def get_list_for_update(config, config_key):

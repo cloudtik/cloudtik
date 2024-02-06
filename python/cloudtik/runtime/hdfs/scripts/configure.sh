@@ -104,16 +104,24 @@ update_nfs_dump_dir() {
     sed -i "s!{%dfs.nfs3.dump.dir%}!${nfs_dump_dir}!g" ${HDFS_SITE_CONFIG}
 }
 
-format_hdfs() {
-    # format only once if there is no force format flag
+initialize_name_node() {
+    local init_method="${1:?init method is required}"
     local dfs_dir=$(get_first_dfs_dir)
     local hdfs_init_file=${dfs_dir}/.initialized
     if [ ! -f "${hdfs_init_file}" ]; then
         export HADOOP_CONF_DIR=${HDFS_CONF_DIR}
+
+        # format ZK if needed
+        if [ "${init_method}" == "format" ] \
+            && [ "${HDFS_AUTO_FAILOVER}" == "true" ]; then
+            ${HADOOP_HOME}/bin/hdfs zkfc -formatZK -force
+        fi
+
         # Stop namenode in case it was running left from last try
         ${HADOOP_HOME}/bin/hdfs --daemon stop namenode > /dev/null 2>&1
         # Format hdfs once
-        ${HADOOP_HOME}/bin/hdfs --loglevel WARN namenode -format -force
+        ${HADOOP_HOME}/bin/hdfs --loglevel WARN namenode -${init_method} -force
+
         if [ $? -eq 0 ]; then
             mkdir -p "${dfs_dir}"
             touch "${hdfs_init_file}"
@@ -121,25 +129,28 @@ format_hdfs() {
     fi
 }
 
+format_hdfs() {
+    # format only once
+    initialize_name_node "format"
+}
+
+bootstrap_standby() {
+    # bootstrap standby only once
+    initialize_name_node "bootstrapStandby"
+}
+
 update_journal_data_disks_config() {
     local dfs_dir=$(get_first_dfs_dir)
-    local journal_data_dir="${data_dir}/journal"
+    local journal_data_dir="${dfs_dir}/journal"
     if [ "$HDFS_FORCE_CLEAN" == "true" ]; then
         sudo rm -rf "$journal_data_dir"
     fi
     mkdir -p "$journal_data_dir"
-    sed -i "s!{%dfs.journalnode.edits.dir%}!${journal_data_dir}!g" ${HDFS_SITE_CONFIG}
+    update_in_file "${HDFS_SITE_CONFIG}" \
+      "{%dfs.journalnode.edits.dir%}" "${journal_data_dir}"
 }
 
-configure_simple_hdfs() {
-    fs_default_dir="hdfs://${HEAD_HOST_ADDRESS}:${HDFS_SERVICE_PORT}"
-    sed -i "s!{%fs.default.name%}!${fs_default_dir}!g" ${CORE_SITE_CONFIG}
-
-    update_proxy_user_for_current_user
-    update_hdfs_data_disks_config
-    update_nfs_dump_dir
-
-    cp -r  ${HADOOP_HOME}/etc/hadoop/* ${HDFS_CONF_DIR}/
+finalize_hdfs_config() {
     # override hdfs conf
     cp ${CORE_SITE_CONFIG} ${HDFS_CONF_DIR}/core-site.xml
     cp ${HDFS_SITE_CONFIG} ${HDFS_CONF_DIR}/hdfs-site.xml
@@ -148,6 +159,71 @@ configure_simple_hdfs() {
     # Hadoop, it will override this file
     cp ${CORE_SITE_CONFIG} ${HADOOP_HOME}/etc/hadoop/core-site.xml
     cp ${HDFS_SITE_CONFIG} ${HADOOP_HOME}/etc/hadoop/hdfs-site.xml
+}
+
+get_hdfs_name_nodes() {
+    local name_nodes=""
+    local end_name_id=${HDFS_NUM_NAME_NODES}
+    for i in $(seq 1 $end_name_id); do
+        if [ -z "${name_nodes}" ]; then
+            name_nodes="nn$i"
+        else
+            name_nodes="${name_nodes},nn$i"
+        fi
+    done
+    echo "${name_nodes}"
+}
+
+get_hdfs_name_node_addresses() {
+    local name_index="$1"
+    local name_service="${HDFS_NAME_SERVICE}"
+    local cluster_name="${HDFS_NAME_CLUSTER_NAME}"
+    local address_properties="\
+    <property>\n\
+        <name>dfs.namenode.rpc-address.${name_service}.nn${name_index}</name>\n\
+        <value>${cluster_name}-${name_index}.node.cloudtik:${HDFS_SERVICE_PORT}</value>\n\
+    </property>\n\
+    <property>\n\
+        <name>dfs.namenode.http-address.${name_service}.nn${name_index}</name>\n\
+        <value>${cluster_name}-${name_index}.node.cloudtik:${HDFS_HTTP_PORT}</value>\n\
+    </property>"
+    echo "${address_properties}"
+}
+
+get_hdfs_name_addresses() {
+    local name_addresses=""
+    local end_name_id=${HDFS_NUM_NAME_NODES}
+    for i in $(seq 1 $end_name_id); do
+        local name_node_addresses="$(get_hdfs_name_node_addresses "$i")"
+        if [ -z "${name_addresses}" ]; then
+            name_addresses="${name_node_addresses}"
+        else
+            name_addresses="${name_addresses}\n${name_node_addresses}"
+        fi
+    done
+    echo "${name_addresses}"
+}
+
+update_name_services() {
+    local hdfs_name_nodes="$(get_hdfs_name_nodes)"
+    update_in_file "${HDFS_SITE_CONFIG}" \
+      "{%dfs.ha.name.nodes%}" "${hdfs_name_nodes}"
+
+    local hdfs_name_addresses="$(get_hdfs_name_addresses)"
+    update_in_file "${HDFS_SITE_CONFIG}" \
+      "{%dfs.ha.name.addresses%}" "${hdfs_name_addresses}"
+}
+
+configure_simple_hdfs() {
+    local fs_default_dir="hdfs://${HEAD_HOST_ADDRESS}:${HDFS_SERVICE_PORT}"
+    update_in_file ${CORE_SITE_CONFIG} \
+      "{%fs.default.name%}" "${fs_default_dir}"
+
+    update_proxy_user_for_current_user
+    update_hdfs_data_disks_config
+    update_nfs_dump_dir
+
+    finalize_hdfs_config
 
     if [ $IS_HEAD_NODE == "true" ]; then
         format_hdfs
@@ -155,23 +231,66 @@ configure_simple_hdfs() {
 }
 
 configure_name_cluster() {
-    :
-}
+    HDFS_SITE_CONFIG=${OUTPUT_DIR}/hadoop/hdfs-site-name.xml
 
+    local fs_default_dir="hdfs://${HDFS_NAME_SERVICE}"
+    update_in_file ${CORE_SITE_CONFIG} \
+      "{%fs.default.name%}" "${fs_default_dir}"
+    update_in_file "${HDFS_SITE_CONFIG}" \
+      "{%dfs.name.service%}" "${HDFS_NAME_SERVICE}"
+    update_name_services
+
+    update_proxy_user_for_current_user
+    update_hdfs_data_disks_config
+    update_nfs_dump_dir
+
+    update_in_file "${HDFS_SITE_CONFIG}" \
+      "{%dfs.namenode.journal.nodes%}" "${HDFS_JOURNAL_NODES}"
+
+    local hdfs_auto_failover="false"
+    local hdfs_zookeeper_quorum=""
+    if [ "${HDFS_AUTO_FAILOVER}" == "true" ]; then
+        hdfs_zookeeper_quorum="${HDFS_ZOOKEEPER_QUORUM}"
+        hdfs_auto_failover="true"
+    fi
+    update_in_file "${HDFS_SITE_CONFIG}" \
+      "{%dfs.ha.auto.failover%}" "${hdfs_auto_failover}"
+    update_in_file "${HDFS_SITE_CONFIG}" \
+      "{%dfs.ha.zookeeper.quorum%}" "${hdfs_zookeeper_quorum}"
+
+    finalize_hdfs_config
+
+    # for HA, the name node on head will do the format for the first time
+    if [ $IS_HEAD_NODE == "true" ]; then
+        format_hdfs
+    else
+        bootstrap_standby
+    fi
+}
 
 configure_journal_cluster() {
     HDFS_SITE_CONFIG=${OUTPUT_DIR}/hadoop/hdfs-site-journal.xml
     update_journal_data_disks_config
-    cp -r  ${HADOOP_HOME}/etc/hadoop/* ${HDFS_CONF_DIR}/
     # override hdfs conf
     cp ${HDFS_SITE_CONFIG} ${HDFS_CONF_DIR}/hdfs-site.xml
 }
 
-
 configure_data_cluster() {
-    :
-}
+    HDFS_SITE_CONFIG=${OUTPUT_DIR}/hadoop/hdfs-site-data.xml
 
+    local fs_default_dir="hdfs://${HDFS_NAME_SERVICE}"
+    update_in_file ${CORE_SITE_CONFIG} \
+      "{%fs.default.name%}" "${fs_default_dir}"
+    update_in_file "${HDFS_SITE_CONFIG}" \
+      "{%dfs.name.service%}" "${HDFS_NAME_SERVICE}"
+    update_name_services
+
+    update_proxy_user_for_current_user
+    update_hdfs_data_disks_config
+    update_nfs_dump_dir
+
+    finalize_hdfs_config
+}
 
 configure_ha_cluster() {
     if [ "${HDFS_CLUSTER_ROLE}" == "name" ]; then
@@ -190,6 +309,7 @@ configure_hdfs() {
     HDFS_CONF_DIR=${HADOOP_HOME}/etc/hdfs
     # copy the existing hadoop conf
     mkdir -p ${HDFS_CONF_DIR}
+    cp -r ${HADOOP_HOME}/etc/hadoop/* ${HDFS_CONF_DIR}/
 
     CORE_SITE_CONFIG=${OUTPUT_DIR}/hadoop/core-site.xml
     HDFS_SITE_CONFIG=${OUTPUT_DIR}/hadoop/hdfs-site.xml

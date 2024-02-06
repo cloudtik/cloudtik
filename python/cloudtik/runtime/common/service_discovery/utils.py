@@ -18,9 +18,11 @@ class ServiceInstance(JSONSerializableObject):
         self.tags = tags
 
 
-def get_service_addresses_string(service_addresses):
+def get_service_addresses_string(service_addresses, separator=None):
     # allow two format: host,host,host or host:port,host:port
-    return ",".join([get_address_string(
+    if not separator:
+        separator = ","
+    return separator.join([get_address_string(
         service_address[0], service_address[1])
                      if service_address[1] else service_address[0]
                      for service_address in service_addresses])
