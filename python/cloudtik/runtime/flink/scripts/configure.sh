@@ -35,7 +35,7 @@ check_flink_installed() {
 
 set_resources_for_flink() {
     # For Head Node
-    if [ $IS_HEAD_NODE == "true" ]; then
+    if [ "$IS_HEAD_NODE" == "true" ]; then
         local -r bootstrap_config="~/cloudtik_bootstrap_config.yaml"
         flink_taskmanager_cores=$(cat "$bootstrap_config" | jq '."runtime"."flink"."flink_resource"."flink_taskmanager_cores"')
         flink_taskmanager_memory=$(cat "$bootstrap_config" | jq '."runtime"."flink"."flink_resource"."flink_taskmanager_memory"')M
@@ -70,7 +70,7 @@ update_flink_storage_dirs() {
 }
 
 update_flink_runtime_config() {
-    if [ $IS_HEAD_NODE == "true" ];then
+    if [ "$IS_HEAD_NODE" == "true" ];then
         sed -i "s/{%flink.taskmanager.numberOfTaskSlots%}/${flink_taskmanager_cores}/g" ${FLINK_CONFIG_FILE}
         sed -i "s/{%flink.taskmanager.memory.process.size%}/${flink_taskmanager_memory}/g" ${FLINK_CONFIG_FILE}
         sed -i "s/{%flink.jobmanager.memory.process.size%}/${flink_jobmanager_memory}/g" ${FLINK_CONFIG_FILE}
@@ -123,14 +123,14 @@ configure_flink() {
     update_flink_local_dir
     update_flink_storage_dirs
 
-    if [ $IS_HEAD_NODE == "true" ];then
+    if [ "$IS_HEAD_NODE" == "true" ];then
         update_metastore_config
         cp -r ${OUTPUT_DIR}/flink/* ${FLINK_HOME}/conf
     fi
 }
 
 configure_jupyter_for_flink() {
-  if [ $IS_HEAD_NODE == "true" ]; then
+  if [ "$IS_HEAD_NODE" == "true" ]; then
       mkdir -p ${RUNTIME_PATH}/jupyter/logs
 
       echo Y | jupyter lab --generate-config;

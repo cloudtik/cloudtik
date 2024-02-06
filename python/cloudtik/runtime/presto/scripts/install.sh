@@ -41,7 +41,7 @@ install_presto() {
             exit 1
         fi
         echo "export PRESTO_HOME=$PRESTO_HOME">> ${USER_HOME}/.bashrc
-        if [ $IS_HEAD_NODE == "true" ]; then
+        if [ "$IS_HEAD_NODE" == "true" ]; then
             # Download presto cli on head
             (cd $RUNTIME_PATH \
               && wget -q --show-progress \

@@ -193,7 +193,7 @@ configure_presto() {
     update_presto_data_disks_config
 
     mkdir -p ${PRESTO_HOME}/etc
-    if [ $IS_HEAD_NODE == "true" ]; then
+    if [ "$IS_HEAD_NODE" == "true" ]; then
         cp ${OUTPUT_DIR}/presto/config.properties  ${PRESTO_HOME}/etc/config.properties
     else
         cp ${OUTPUT_DIR}/presto/config.worker.properties  ${PRESTO_HOME}/etc/config.properties

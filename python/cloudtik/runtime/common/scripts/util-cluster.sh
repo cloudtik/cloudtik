@@ -82,7 +82,7 @@ set_head_host_address() {
 get_head_ip_address() {
     local head_ip_address
     if [ -z "${HEAD_IP_ADDRESS}" ]; then
-        if [ $IS_HEAD_NODE == "true" ]; then
+        if [ "$IS_HEAD_NODE" == "true" ]; then
             if [ -n "${CLOUDTIK_NODE_IP}" ]; then
                 head_ip_address=${CLOUDTIK_NODE_IP}
             else
@@ -108,7 +108,7 @@ get_head_host_address() {
         if [ -n "${CLOUDTIK_HEAD_HOST}" ]; then
             head_host_address=${CLOUDTIK_HEAD_HOST}
         else
-            if [ $IS_HEAD_NODE == "true" ]; then
+            if [ "$IS_HEAD_NODE" == "true" ]; then
                 head_host_address=$(get_node_host_address)
             else
                 head_host_address=$(get_head_ip_address)

@@ -21,13 +21,13 @@ set_service_command "$@"
 case "$SERVICE_COMMAND" in
 start)
     # Do nothing for head. Zookeeper doesn't participate on head node
-    if [ $IS_HEAD_NODE == "false" ]; then
+    if [ "$IS_HEAD_NODE" == "false" ]; then
         ${ZOOKEEPER_HOME}/bin/zkServer.sh start
     fi
     ;;
 stop)
     # Do nothing for head. Zookeeper doesn't participate on head node
-    if [ $IS_HEAD_NODE == "false" ]; then
+    if [ "$IS_HEAD_NODE" == "false" ]; then
         ${ZOOKEEPER_HOME}/bin/zkServer.sh stop
     fi
     ;;

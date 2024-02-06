@@ -35,7 +35,7 @@ check_spark_installed() {
 
 set_resources_for_spark() {
     # For Head Node
-    if [ $IS_HEAD_NODE == "true" ]; then
+    if [ "$IS_HEAD_NODE" == "true" ]; then
         local -r bootstrap_config="~/cloudtik_bootstrap_config.yaml"
         spark_executor_cores=$(cat "$bootstrap_config" | jq '."runtime"."spark"."spark_executor_resource"."spark_executor_cores"')
         spark_executor_memory=$(cat "$bootstrap_config" | jq '."runtime"."spark"."spark_executor_resource"."spark_executor_memory"')M
@@ -79,7 +79,7 @@ update_spark_storage_dirs() {
 }
 
 update_spark_runtime_config() {
-    if [ $IS_HEAD_NODE == "true" ];then
+    if [ "$IS_HEAD_NODE" == "true" ];then
         sed -i "s/{%spark.executor.cores%}/${spark_executor_cores}/g" ${SPARK_DEFAULTS}
         sed -i "s/{%spark.executor.memory%}/${spark_executor_memory}/g" ${SPARK_DEFAULTS}
         sed -i "s/{%spark.driver.memory%}/${spark_driver_memory}/g" ${SPARK_DEFAULTS}
@@ -142,14 +142,14 @@ configure_spark() {
     update_spark_storage_dirs
     update_spark_credential_config
 
-    if [ $IS_HEAD_NODE == "true" ];then
+    if [ "$IS_HEAD_NODE" == "true" ];then
         update_metastore_config
         cp -r ${OUTPUT_DIR}/spark/* ${SPARK_HOME}/conf
     fi
 }
 
 configure_jupyter_for_spark() {
-  if [ $IS_HEAD_NODE == "true" ]; then
+  if [ "$IS_HEAD_NODE" == "true" ]; then
       mkdir -p ${RUNTIME_PATH}/jupyter/logs
 
       echo Y | jupyter lab --generate-config;

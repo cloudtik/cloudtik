@@ -27,7 +27,7 @@ set_head_address
 
 case "$SERVICE_COMMAND" in
 start)
-    if [ $IS_HEAD_NODE == "true" ]; then
+    if [ "$IS_HEAD_NODE" == "true" ]; then
         echo "Starting Resource Manager..."
         $HADOOP_HOME/bin/yarn --daemon start resourcemanager
     else
@@ -35,7 +35,7 @@ start)
     fi
     ;;
 stop)
-    if [ $IS_HEAD_NODE == "true" ]; then
+    if [ "$IS_HEAD_NODE" == "true" ]; then
         $HADOOP_HOME/bin/yarn --daemon stop resourcemanager
     else
         $HADOOP_HOME/bin/yarn --daemon stop nodemanager

@@ -21,13 +21,13 @@ set_service_command "$@"
 case "$SERVICE_COMMAND" in
 start)
     # Do nothing for head. Kafka doesn't participate on head node
-    if [ $IS_HEAD_NODE == "false" ]; then
+    if [ "$IS_HEAD_NODE" == "false" ]; then
         nohup ${KAFKA_HOME}/bin/kafka-server-start.sh ${KAFKA_HOME}/config/server.properties >${KAFKA_HOME}/logs/kafka-server-start.log 2>&1 &
     fi
     ;;
 stop)
     # Do nothing for head. Kafka doesn't participate on head node
-    if [ $IS_HEAD_NODE == "false" ]; then
+    if [ "$IS_HEAD_NODE" == "false" ]; then
         ${KAFKA_HOME}/bin/kafka-server-stop.sh stop
     fi
     ;;

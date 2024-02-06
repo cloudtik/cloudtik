@@ -21,7 +21,7 @@ set_service_command "$@"
 
 case "$SERVICE_COMMAND" in
 start)
-    if [ $IS_HEAD_NODE == "true" ]; then
+    if [ "$IS_HEAD_NODE" == "true" ]; then
         ray start --head --node-ip-address=$CLOUDTIK_NODE_IP --port=6379 \
           --no-monitor --disable-usage-stats > /dev/null
     else

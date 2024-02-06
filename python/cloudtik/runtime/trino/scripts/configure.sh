@@ -235,7 +235,7 @@ configure_trino() {
     update_trino_data_disks_config
 
     mkdir -p ${TRINO_HOME}/etc
-    if [ $IS_HEAD_NODE == "true" ]; then
+    if [ "$IS_HEAD_NODE" == "true" ]; then
         cp ${OUTPUT_DIR}/trino/config.properties  ${TRINO_HOME}/etc/config.properties
     else
         cp ${OUTPUT_DIR}/trino/config.worker.properties  ${TRINO_HOME}/etc/config.properties

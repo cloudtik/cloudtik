@@ -97,7 +97,7 @@ configure_kafka() {
 set_head_option "$@"
 set_zookeeper_connect "$@"
 
-if [ $IS_HEAD_NODE == "false" ];then
+if [ "$IS_HEAD_NODE" == "false" ];then
     # Zookeeper doesn't run on head node
     check_kafka_installed
     set_head_address

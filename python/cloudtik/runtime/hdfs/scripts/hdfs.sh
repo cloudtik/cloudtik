@@ -62,14 +62,14 @@ bootstrap_standby() {
 }
 
 initialize_simple_hdfs() {
-    if [ $IS_HEAD_NODE == "true" ]; then
+    if [ "$HDFS_HEAD_NODE" == "true" ]; then
         format_hdfs
     fi
 }
 
 initialize_name_cluster() {
     # for HA, the name node on head will do the format for the first time
-    if [ $IS_HEAD_NODE == "true" ]; then
+    if [ "$HDFS_HEAD_NODE" == "true" ]; then
         format_hdfs
     else
         bootstrap_standby
