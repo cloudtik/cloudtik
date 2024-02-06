@@ -20,39 +20,46 @@ set_service_command "$@"
 
 # HDFS use its own conf dir
 export HADOOP_CONF_DIR=${HADOOP_HOME}/etc/hdfs
+HDFS_DAEMON_CMD="$HADOOP_HOME/bin/hdfs --daemon"
 
 case "$SERVICE_COMMAND" in
 start)
     if [ "${HDFS_CLUSTER_MODE}" == "ha_cluster" ]; then
         if [ "${HDFS_CLUSTER_ROLE}" == "name" ]; then
-            $HADOOP_HOME/bin/hdfs --daemon start namenode
+            $HDFS_DAEMON_CMD start namenode
+            if [ "${HDFS_AUTO_FAILOVER}" == "true" ]; then
+                $HDFS_DAEMON_CMD start zkfc
+            fi
         elif [ "${HDFS_CLUSTER_ROLE}" == "journal" ]; then
-            $HADOOP_HOME/bin/hdfs --daemon start journalnode
+            $HDFS_DAEMON_CMD start journalnode
         else
-            $HADOOP_HOME/bin/hdfs --daemon start datanode
+            $HDFS_DAEMON_CMD start datanode
         fi
     else
         if [ $IS_HEAD_NODE == "true" ]; then
-            $HADOOP_HOME/bin/hdfs --daemon start namenode
+            $HDFS_DAEMON_CMD start namenode
         else
-            $HADOOP_HOME/bin/hdfs --daemon start datanode
+            $HDFS_DAEMON_CMD start datanode
         fi
     fi
     ;;
 stop)
     if [ "${HDFS_CLUSTER_MODE}" == "ha_cluster" ]; then
         if [ "${HDFS_CLUSTER_ROLE}" == "name" ]; then
-            $HADOOP_HOME/bin/hdfs --daemon stop namenode
+            if [ "${HDFS_AUTO_FAILOVER}" == "true" ]; then
+                $HDFS_DAEMON_CMD stop zkfc
+            fi
+            $HDFS_DAEMON_CMD stop namenode
         elif [ "${HDFS_CLUSTER_ROLE}" == "journal" ]; then
-            $HADOOP_HOME/bin/hdfs --daemon stop journalnode
+            $HDFS_DAEMON_CMD stop journalnode
         else
-            $HADOOP_HOME/bin/hdfs --daemon stop datanode
+            $HDFS_DAEMON_CMD stop datanode
         fi
     else
         if [ $IS_HEAD_NODE == "true" ]; then
-            $HADOOP_HOME/bin/hdfs --daemon stop namenode
+            $HDFS_DAEMON_CMD stop namenode
         else
-            $HADOOP_HOME/bin/hdfs --daemon stop datanode
+            $HDFS_DAEMON_CMD stop datanode
         fi
     fi
     ;;

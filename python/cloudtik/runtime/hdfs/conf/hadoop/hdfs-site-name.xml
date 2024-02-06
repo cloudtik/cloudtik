@@ -18,6 +18,35 @@
 
 <configuration>
     <property>
+        <name>dfs.nameservices</name>
+        <value>{%dfs.name.service%}</value>
+    </property>
+    <property>
+        <name>dfs.ha.namenodes.{%dfs.name.service%}</name>
+        <value>{%dfs.ha.name.nodes%}</value>
+    </property>
+{%dfs.ha.name.addresses%}
+    <property>
+        <name>dfs.ha.automatic-failover.enabled</name>
+        <value>{%dfs.ha.auto.failover%}</value>
+    </property>
+    <property>
+        <name>ha.zookeeper.quorum</name>
+        <value>{%dfs.ha.zookeeper.quorum%}</value>
+    </property>
+    <property>
+        <name>dfs.ha.fencing.methods</name>
+        <value>shell(/bin/true)</value>
+    </property>
+    <property>
+        <name>dfs.ha.nn.not-become-active-in-safemode</name>
+        <value>true</value>
+    </property>
+    <property>
+        <name>dfs.client.failover.proxy.provider.mycluster</name>
+        <value>org.apache.hadoop.hdfs.server.namenode.ha.ConfiguredFailoverProxyProvider</value>
+    </property>
+    <property>
         <name>dfs.replication</name>
         <value>3</value>
     </property>
@@ -38,6 +67,10 @@
         <value>{%dfs.nfs3.dump.dir%}</value>
     </property>
     <property>
+        <name>dfs.namenode.shared.edits.dir</name>
+        <value>qjournal://{%dfs.namenode.journal.nodes%}/{%dfs.name.service%}</value>
+    </property>
+    <property>
         <name>dfs.namenode.name.dir</name>
         <value>{%dfs.namenode.name.dir%}</value>
     </property>
@@ -52,25 +85,5 @@
     <property>
         <name>dfs.namenode.accesstime.precision</name>
         <value>3600000</value>
-    </property>
-    <property>
-        <name>dfs.datanode.data.dir</name>
-        <value>{%dfs.datanode.data.dir%}</value>
-    </property>
-    <property>
-        <name>dfs.datanode.handler.count</name>
-        <value>30</value>
-    </property>
-    <property>
-        <name>dfs.datanode.max.xcievers</name>
-        <value>8192</value>
-    </property>
-    <property>
-        <name>dfs.datanode.max.transfer.threads</name>
-        <value>65536</value>
-    </property>
-    <property>
-        <name>dfs.datanode.socket.write.timeout</name>
-        <value>1200000</value>
     </property>
 </configuration>
