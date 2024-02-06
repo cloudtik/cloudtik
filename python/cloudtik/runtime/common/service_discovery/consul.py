@@ -8,6 +8,7 @@ from cloudtik.core._private.service_discovery.utils import SERVICE_SELECTOR_SERV
     SERVICE_DISCOVERY_TAG_CLUSTER_PREFIX, SERVICE_DISCOVERY_TAG_SYSTEM_PREFIX, ServiceAddressType, \
     SERVICE_DISCOVERY_LABEL_RUNTIME, SERVICE_SELECTOR_SERVICE_TYPES, SERVICE_DISCOVERY_LABEL_SERVICE, \
     SERVICE_DISCOVERY_LABEL_SEQ
+from cloudtik.core._private.util.core_utils import get_intersect_labels
 from cloudtik.core._private.util.rest_api import rest_api_get_json
 from cloudtik.runtime.common.service_discovery.utils import ServiceInstance
 
@@ -344,6 +345,24 @@ def get_tags_of_service_nodes(service_nodes):
     return list(tags)
 
 
+def get_labels_of_service_nodes(service_nodes):
+    if not service_nodes:
+        return {}
+
+    service_node = service_nodes[0]
+    # get a common set of labels
+    labels = service_node.get("ServiceMeta")
+    if not labels:
+        return {}
+
+    for service_node in service_nodes[1:]:
+        service_labels = service_node.get("ServiceMeta")
+        labels = get_intersect_labels(labels, service_labels)
+        if not labels:
+            return {}
+    return labels
+
+
 def get_addresses_of_service_nodes(
         service_nodes,
         address_type: ServiceAddressType = ServiceAddressType.NODE_IP,):
@@ -360,12 +379,15 @@ def query_service(
     if not service_nodes:
         return None
 
-    # the runtime of the service nodes should be the same
-    runtime_type = _get_runtime_of_service_nodes(service_nodes)
-    service_type = _get_service_type_of_service_nodes(service_nodes)
-
+    # Common labels
+    labels = get_labels_of_service_nodes(service_nodes)
+    # the runtime of the service nodes usually be the same
+    # different for the cases that different runtimes may provide the same service types
+    runtime_type = labels.get(SERVICE_DISCOVERY_LABEL_RUNTIME)
+    # Usually service type should be the same
+    service_type = labels.get(SERVICE_DISCOVERY_LABEL_SERVICE)
     # WARNING: the cluster of the service nodes may not be the same. None if not the same
-    cluster_name = _get_cluster_of_service_nodes(service_nodes)
+    cluster_name = labels.get(SERVICE_DISCOVERY_LABEL_CLUSTER)
 
     if address_type == ServiceAddressType.SERVICE_FQDN:
         # return service FQDN
@@ -386,7 +408,8 @@ def query_service(
         service_name, service_addresses,
         service_type=service_type,
         runtime_type=runtime_type,
-        cluster_name=cluster_name)
+        cluster_name=cluster_name,
+        labels=labels)
 
 
 def query_services_from_consul(

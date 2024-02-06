@@ -78,7 +78,8 @@ update_proxy_user_for_current_user() {
     CURRENT_SYSTEM_USER=$(whoami)
 
     if [ "${CURRENT_SYSTEM_USER}" != "root" ]; then
-        HADOOP_PROXY_USER_PROPERTIES="<property>\n\
+        HADOOP_PROXY_USER_PROPERTIES="\
+    <property>\n\
         <name>hadoop.proxyuser.${CURRENT_SYSTEM_USER}.groups</name>\n\
         <value>*</value>\n\
     </property>\n\
