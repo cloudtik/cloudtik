@@ -5,7 +5,7 @@ from cloudtik.core._private.constants import \
     CLOUDTIK_DATA_DISK_MOUNT_POINT, CLOUDTIK_DATA_DISK_MOUNT_NAME_PREFIX
 from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_MINIO
 from cloudtik.core._private.service_discovery.naming import get_cluster_node_name, get_cluster_node_fqdn, \
-    is_discoverable_cluster_node_name, get_cluster_head_host
+    get_cluster_head_host, is_cluster_hostname_available
 from cloudtik.core._private.service_discovery.runtime_services import get_service_discovery_runtime
 from cloudtik.core._private.service_discovery.utils import \
     get_canonical_service_name, define_runtime_service, \
@@ -107,9 +107,9 @@ def _validate_config(config: Dict[str, Any], final=False):
         raise RuntimeError(
             "MinIO needs Consul service discovery to be configured.")
 
-    if not is_discoverable_cluster_node_name(runtime_config):
+    if not is_cluster_hostname_available(config):
         raise RuntimeError(
-            "MinIO needs sequential cluster node name from service discovery DNS.")
+            "MinIO needs resolvable sequential cluster hostname from service discovery DNS.")
 
 
 def _with_runtime_environment_variables(

@@ -12,6 +12,9 @@ USER_HOME=/home/$(whoami)
 # Util functions
 . "$ROOT_DIR"/common/scripts/util-functions.sh
 
+# Hadoop common functions
+. "$ROOT_DIR"/common/scripts/hadoop.sh
+
 prepare_base_conf() {
     OUTPUT_DIR=/tmp/hdfs/conf
     local source_dir=$(dirname "${BIN_DIR}")/conf
@@ -127,50 +130,9 @@ finalize_hdfs_config() {
     cp ${HDFS_SITE_CONFIG} ${HADOOP_HOME}/etc/hadoop/hdfs-site.xml
 }
 
-get_hdfs_name_nodes() {
-    local name_nodes=""
-    local end_name_id=${HDFS_NUM_NAME_NODES}
-    for i in $(seq 1 $end_name_id); do
-        if [ -z "${name_nodes}" ]; then
-            name_nodes="nn$i"
-        else
-            name_nodes="${name_nodes},nn$i"
-        fi
-    done
-    echo "${name_nodes}"
-}
-
-get_hdfs_name_node_addresses() {
-    local name_index="$1"
-    local name_service="${HDFS_NAME_SERVICE}"
-    local cluster_name="${HDFS_NAME_CLUSTER_NAME}"
-    local address_properties="\
-    <property>\n\
-        <name>dfs.namenode.rpc-address.${name_service}.nn${name_index}</name>\n\
-        <value>${cluster_name}-${name_index}.node.cloudtik:${HDFS_SERVICE_PORT}</value>\n\
-    </property>\n\
-    <property>\n\
-        <name>dfs.namenode.http-address.${name_service}.nn${name_index}</name>\n\
-        <value>${cluster_name}-${name_index}.node.cloudtik:${HDFS_HTTP_PORT}</value>\n\
-    </property>"
-    echo "${address_properties}"
-}
-
-get_hdfs_name_addresses() {
-    local name_addresses=""
-    local end_name_id=${HDFS_NUM_NAME_NODES}
-    for i in $(seq 1 $end_name_id); do
-        local name_node_addresses="$(get_hdfs_name_node_addresses "$i")"
-        if [ -z "${name_addresses}" ]; then
-            name_addresses="${name_node_addresses}"
-        else
-            name_addresses="${name_addresses}\n${name_node_addresses}"
-        fi
-    done
-    echo "${name_addresses}"
-}
-
 update_name_services() {
+    update_in_file "${HDFS_SITE_CONFIG}" \
+      "{%dfs.name.service%}" "${HDFS_NAME_SERVICE}"
     local hdfs_name_nodes="$(get_hdfs_name_nodes)"
     update_in_file "${HDFS_SITE_CONFIG}" \
       "{%dfs.ha.name.nodes%}" "${hdfs_name_nodes}"
@@ -198,8 +160,6 @@ configure_name_cluster() {
     local fs_default_dir="hdfs://${HDFS_NAME_SERVICE}"
     update_in_file ${CORE_SITE_CONFIG} \
       "{%fs.default.name%}" "${fs_default_dir}"
-    update_in_file "${HDFS_SITE_CONFIG}" \
-      "{%dfs.name.service%}" "${HDFS_NAME_SERVICE}"
     update_name_services
 
     update_proxy_user_for_current_user
@@ -236,8 +196,6 @@ configure_data_cluster() {
     local fs_default_dir="hdfs://${HDFS_NAME_SERVICE}"
     update_in_file ${CORE_SITE_CONFIG} \
       "{%fs.default.name%}" "${fs_default_dir}"
-    update_in_file "${HDFS_SITE_CONFIG}" \
-      "{%dfs.name.service%}" "${HDFS_NAME_SERVICE}"
     update_name_services
 
     update_proxy_user_for_current_user
