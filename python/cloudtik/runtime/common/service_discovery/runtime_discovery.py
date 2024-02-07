@@ -7,7 +7,7 @@ from cloudtik.core._private.service_discovery.naming import get_cluster_node_add
 from cloudtik.core._private.service_discovery.utils import get_service_selector_copy, \
     include_feature_for_selector, ServiceAddressType, \
     include_runtime_service_for_selector
-from cloudtik.core._private.util.core_utils import get_config_for_update, http_address_string
+from cloudtik.core._private.util.core_utils import get_config_for_update, http_address_string, address_string
 from cloudtik.core._private.util.database_utils import is_database_configured, set_database_config, \
     DATABASE_ENV_ENABLED, DATABASE_ENV_ENGINE, DATABASE_ENV_HOST, DATABASE_ENV_PORT, DATABASE_ENV_USERNAME, \
     DATABASE_ENV_PASSWORD, get_database_default_port, get_database_default_username, get_database_default_password, \
@@ -16,7 +16,7 @@ from cloudtik.core._private.util.runtime_utils import get_runtime_head_host
 from cloudtik.core._private.utils import get_runtime_config
 from cloudtik.runtime.common.hadoop import HDFS_SERVICE_DISCOVERY_KEY, HDFS_URI_KEY, HDFS_SERVICE_SELECTOR_KEY, \
     MINIO_SERVICE_DISCOVERY_KEY, MINIO_URI_KEY, MINIO_SERVICE_SELECTOR_KEY, HDFS_NAME_SERVICE_DISCOVERY_KEY, \
-    HDFS_NAME_URI_KEY, HDFS_NAME_SERVICE_SELECTOR_KEY, get_name_uri_of_service, HDFS_NAME_SERVICE_TYPE, \
+    HDFS_NAME_URI_KEY, HDFS_NAME_SERVICE_SELECTOR_KEY, get_hdfs_name_uri_of_service, HDFS_NAME_SERVICE_TYPE, \
     HDFS_SERVICE_TYPE
 from cloudtik.runtime.common.service_discovery.cluster import has_runtime_in_cluster
 from cloudtik.runtime.common.service_discovery.discovery import query_service, DiscoveryType
@@ -705,6 +705,31 @@ def is_hdfs_name_service_discovery(runtime_type_config):
         HDFS_NAME_SERVICE_DISCOVERY_KEY, True)
 
 
+def discover_hdfs_name_from_workspace(
+        cluster_config: Dict[str, Any], runtime_type):
+    runtime_config = get_runtime_config(cluster_config)
+    runtime_type_config = runtime_config.get(runtime_type, {})
+    if (runtime_type_config.get(HDFS_NAME_URI_KEY) or
+            not is_hdfs_name_service_discovery(runtime_type_config)):
+        return cluster_config
+
+    name_service = discover_hdfs_name(
+        runtime_type_config,
+        HDFS_NAME_SERVICE_SELECTOR_KEY,
+        cluster_config=cluster_config,
+        discovery_type=DiscoveryType.WORKSPACE)
+    if name_service:
+        # For service from workspace, there is no labels
+        # the service address is (name-service-name@num-name-nodes, name-service-port)
+        service_address = name_service.service_addresses[0]
+        name_uri = address_string(
+            service_address[0], service_address[1])
+        runtime_type_config = get_config_for_update(
+            runtime_config, runtime_type)
+        runtime_type_config[HDFS_NAME_URI_KEY] = name_uri
+    return cluster_config
+
+
 def discover_hdfs_name_on_head(
         cluster_config: Dict[str, Any], runtime_type):
     runtime_config = get_runtime_config(cluster_config)
@@ -721,9 +746,10 @@ def discover_hdfs_name_on_head(
     name_service = discover_hdfs_name(
         runtime_type_config,
         HDFS_NAME_SERVICE_SELECTOR_KEY,
-        cluster_config=cluster_config)
+        cluster_config=cluster_config,
+        discovery_type=DiscoveryType.CLUSTER)
     if name_service:
-        name_uri = get_name_uri_of_service(name_service)
+        name_uri = get_hdfs_name_uri_of_service(name_service)
         # do update
         runtime_type_config = get_config_for_update(
             runtime_config, runtime_type)
@@ -734,11 +760,12 @@ def discover_hdfs_name_on_head(
 def discover_hdfs_name(
         config: Dict[str, Any],
         service_selector_key: str,
-        cluster_config: Dict[str, Any]):
+        cluster_config: Dict[str, Any],
+        discovery_type: DiscoveryType):
     return discover_runtime_service(
         config, service_selector_key,
         cluster_config=cluster_config,
-        discovery_type=DiscoveryType.CLUSTER,
+        discovery_type=discovery_type,
         runtime_type=BUILT_IN_RUNTIME_HDFS,
         service_type=HDFS_NAME_SERVICE_TYPE
     )

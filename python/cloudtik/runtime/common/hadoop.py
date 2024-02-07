@@ -40,6 +40,23 @@ def with_remote_storage(hadoop_config, envs=None):
     minio_uri = hadoop_config.get(MINIO_URI_KEY)
     if minio_uri:
         envs["MINIO_ENDPOINT_URI"] = minio_uri
+    hdfs_name_uri = hadoop_config.get(HDFS_NAME_URI_KEY)
+    if hdfs_name_uri:
+        envs = with_hdfs_name_service(hdfs_name_uri, envs=envs)
+
+    return envs
+
+
+def with_hdfs_name_service(hdfs_name_uri, envs=None):
+    if envs is None:
+        envs = {}
+    envs["HDFS_NAME_URI"] = hdfs_name_uri
+    (name_service,
+     num_name_nodes,
+     name_service_port) = parse_hdfs_name_uri(hdfs_name_uri)
+    envs["HDFS_NAME_SERVICE"] = name_service
+    envs["HDFS_NUM_NAME_NODES"] = num_name_nodes
+    envs["HDFS_SERVICE_PORT"] = name_service_port
     return envs
 
 
@@ -62,11 +79,11 @@ def with_storage_properties(runtime_config, envs=None):
     return envs
 
 
-def get_name_service_address(name_cluster_name, num_name_nodes):
+def get_hdfs_name_service_address(name_cluster_name, num_name_nodes):
     return "{}@{}".format(name_cluster_name, num_name_nodes)
 
 
-def get_name_uri_of_service(service):
+def get_hdfs_name_uri_of_service(service):
     # name uri in the format of: name-service-name@num-name-nodes:name-service-port
     name_cluster_name = service.cluster_name
     if not name_cluster_name:
@@ -78,12 +95,12 @@ def get_name_uri_of_service(service):
         raise RuntimeError(
             "Failed to get number of name nodes from service {}".format(
                 service.service_name))
-    name_service_address = get_name_service_address(
+    name_service_address = get_hdfs_name_service_address(
         name_cluster_name, num_name_nodes)
     name_service_port = _get_name_service_port_from_service(service)
-    name_uri = address_string(
+    hdfs_name_uri = address_string(
         name_service_address, name_service_port)
-    return name_uri
+    return hdfs_name_uri
 
 
 def _get_num_name_nodes_from_service(service):
@@ -107,10 +124,10 @@ def _get_name_service_port_from_service(service):
     return name_service_port
 
 
-def parse_name_uri(name_uri):
+def parse_hdfs_name_uri(hdfs_name_uri):
     # the name uri: name-service-name@num-name-nodes:name-service-port
     name_service_host, name_service_port = service_address_from_string(
-        name_uri, HDFS_SERVICE_PORT_DEFAULT)
+        hdfs_name_uri, HDFS_SERVICE_PORT_DEFAULT)
     host_segments = name_service_host.split('@')
     n = len(host_segments)
     if n != 2:

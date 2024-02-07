@@ -419,7 +419,9 @@ mount_minio() {
 
     echo "Mounting MinIO bucket ${MINIO_BUCKET} to ${FS_MOUNT_PATH}..."
     s3fs ${MINIO_BUCKET} ${FS_MOUNT_PATH} -o mp_umask=002 \
-        -o passwd_file=~/.passwd-s3fs-minio,use_path_request_style,url=${endpoint_url} > /dev/null
+        -o passwd_file=~/.passwd-s3fs-minio \
+        -o use_path_request_style \
+        -o url=${endpoint_url} > /dev/null
 }
 
 mount_minio_fs() {

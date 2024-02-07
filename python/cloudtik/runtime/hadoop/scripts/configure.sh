@@ -12,6 +12,9 @@ USER_HOME=/home/$(whoami)
 # Util functions
 . "$ROOT_DIR"/common/scripts/util-functions.sh
 
+# Hadoop common functions
+. "$ROOT_DIR"/common/scripts/hadoop.sh
+
 # Hadoop cloud credential configuration functions
 . "$BIN_DIR"/hadoop-cloud-credential.sh
 
@@ -23,12 +26,18 @@ prepare_base_conf() {
     cp -r $source_dir/* ${OUTPUT_DIR}
 
     # Make copy for local and remote HDFS
-    cp ${OUTPUT_DIR}/hadoop/core-site.xml ${OUTPUT_DIR}/hadoop/core-site-local.xml
-    cp ${OUTPUT_DIR}/hadoop/core-site.xml ${OUTPUT_DIR}/hadoop/core-site-remote.xml
+    local hadoop_dir=${OUTPUT_DIR}/hadoop
+    cp ${hadoop_dir}/core-site.xml ${hadoop_dir}/core-site-local.xml
+    cp ${hadoop_dir}/core-site.xml ${hadoop_dir}/core-site-remote.xml
 
     # Make copy for local and remote MinIO
-    cp ${OUTPUT_DIR}/hadoop/core-site-minio.xml ${OUTPUT_DIR}/hadoop/core-site-minio-local.xml
-    cp ${OUTPUT_DIR}/hadoop/core-site-minio.xml ${OUTPUT_DIR}/hadoop/core-site-minio-remote.xml
+    cp ${hadoop_dir}/core-site-minio.xml ${hadoop_dir}/core-site-minio-local.xml
+    cp ${hadoop_dir}/core-site-minio.xml ${hadoop_dir}/core-site-minio-remote.xml
+
+    cp ${hadoop_dir}/hdfs-site.xml ${hadoop_dir}/hdfs-site-local.xml
+    cp ${hadoop_dir}/hdfs-site.xml ${hadoop_dir}/hdfs-site-remote.xml
+
+    cp ${hadoop_dir}/hdfs-site-name.xml ${hadoop_dir}/hdfs-site-name-remote.xml
 }
 
 check_hadoop_installed() {
@@ -39,7 +48,8 @@ check_hadoop_installed() {
 }
 
 set_hdfs_storage() {
-    if [ ! -z  "${HDFS_NAMENODE_URI}" ];then
+    if [ -n "${HDFS_NAMENODE_URI}" ]
+        || [ -n "${HDFS_NAME_URI}" ];then
         REMOTE_HDFS_STORAGE="true"
     else
         REMOTE_HDFS_STORAGE="false"
@@ -53,7 +63,7 @@ set_hdfs_storage() {
 }
 
 set_minio_storage() {
-    if [ ! -z  "${MINIO_ENDPOINT_URI}" ];then
+    if [ -n "${MINIO_ENDPOINT_URI}" ];then
         REMOTE_MINIO_STORAGE="true"
     else
         REMOTE_MINIO_STORAGE="false"
@@ -90,13 +100,28 @@ update_config_for_hdfs() {
         HADOOP_CORE_SITE=${OUTPUT_DIR}/hadoop/core-site.xml
     fi
     # configure namenode uri for core-site.xml
-    HADOOP_FS_DEFAULT="${HDFS_NAMENODE_URI}"
-    sed -i "s!{%fs.default.name%}!${HADOOP_FS_DEFAULT}!g" $HADOOP_CORE_SITE
+    local fs_default_dir
+    if [ -n "${HDFS_NAMENODE_URI}" ]; then
+        fs_default_dir="${HDFS_NAMENODE_URI}"
+        HADOOP_HDFS_SITE=${OUTPUT_DIR}/hadoop/hdfs-site.xml
+    else
+        # HDFS HA name service
+        HADOOP_HDFS_SITE=${OUTPUT_DIR}/hadoop/hdfs-site-name.xml
+        fs_default_dir="hdfs://${HDFS_NAME_SERVICE}"
+
+        # update the hdfs-site.xml for the addresses
+        update_name_services
+    fi
+    sed -i "s!{%fs.default.name%}!${fs_default_dir}!g" $HADOOP_CORE_SITE
+    HADOOP_FS_DEFAULT="${fs_default_dir}"
+
+    update_nfs_dump_dir
 
     if [ "${cloud_storage_provider}" != "none" ]; then
         # Still update credential config for cloud provider storage in the case of explict usage
         update_cloud_storage_credential_config
     fi
+    cp ${HADOOP_HDFS_SITE} ${HADOOP_CONFIG_DIR}/hdfs-site.xml
 }
 
 update_config_for_minio() {
@@ -203,44 +228,73 @@ update_nfs_dump_dir() {
     else
         nfs_dump_dir="$data_disk_dir/tmp/.hdfs-nfs"
     fi
-    sed -i "s!{%dfs.nfs3.dump.dir%}!${nfs_dump_dir}!g" ${OUTPUT_DIR}/hadoop/hdfs-site.xml
+    sed -i "s!{%dfs.nfs3.dump.dir%}!${nfs_dump_dir}!g" ${HADOOP_HDFS_SITE}
+}
+
+update_name_services() {
+    update_in_file "${HADOOP_HDFS_SITE}" \
+      "{%dfs.name.service%}" "${HDFS_NAME_SERVICE}"
+    local hdfs_name_nodes="$(get_hdfs_name_nodes)"
+    update_in_file "${HADOOP_HDFS_SITE}" \
+      "{%dfs.ha.name.nodes%}" "${hdfs_name_nodes}"
+    local hdfs_name_addresses="$(get_hdfs_name_addresses)"
+    update_in_file "${HADOOP_HDFS_SITE}" \
+      "{%dfs.ha.name.addresses%}" "${hdfs_name_addresses}"
 }
 
 update_local_storage_config_remote_hdfs() {
     REMOTE_HDFS_CONF_DIR=${HADOOP_HOME}/etc/remote
     # copy the existing hadoop conf
     mkdir -p ${REMOTE_HDFS_CONF_DIR}
-    cp -r ${HADOOP_HOME}/etc/hadoop/* ${REMOTE_HDFS_CONF_DIR}/
+    cp -r ${HADOOP_CONFIG_DIR}/* ${REMOTE_HDFS_CONF_DIR}/
 
     HADOOP_CORE_SITE=${OUTPUT_DIR}/hadoop/core-site-remote.xml
-    fs_default_dir="${HDFS_NAMENODE_URI}"
+
+    local fs_default_dir
+    if [ -n "${HDFS_NAMENODE_URI}" ]; then
+        fs_default_dir="${HDFS_NAMENODE_URI}"
+        HADOOP_HDFS_SITE=${OUTPUT_DIR}/hadoop/hdfs-site-remote.xml
+    else
+        # HDFS HA name service
+        HADOOP_HDFS_SITE=${OUTPUT_DIR}/hadoop/hdfs-site-name-remote.xml
+        fs_default_dir="hdfs://${HDFS_NAME_SERVICE}"
+
+        # update the hdfs-site.xml for the addresses
+        update_name_services
+    fi
     sed -i "s!{%fs.default.name%}!${fs_default_dir}!g" $HADOOP_CORE_SITE
 
+    update_nfs_dump_dir
+
     # override with remote hdfs conf
-    cp $HADOOP_CORE_SITE ${REMOTE_HDFS_CONF_DIR}/core-site.xml
-    cp -r ${OUTPUT_DIR}/hadoop/hdfs-site.xml ${REMOTE_HDFS_CONF_DIR}/
+    cp ${HADOOP_CORE_SITE} ${REMOTE_HDFS_CONF_DIR}/core-site.xml
+    cp ${HADOOP_HDFS_SITE} ${REMOTE_HDFS_CONF_DIR}/hdfs-site.xml
 }
 
 update_local_storage_config_local_hdfs() {
     LOCAL_HDFS_CONF_DIR=${HADOOP_HOME}/etc/local
     # copy the existing hadoop conf
     mkdir -p ${LOCAL_HDFS_CONF_DIR}
-    cp -r ${HADOOP_HOME}/etc/hadoop/* ${LOCAL_HDFS_CONF_DIR}/
+    cp -r ${HADOOP_CONFIG_DIR}/* ${LOCAL_HDFS_CONF_DIR}/
 
     HADOOP_CORE_SITE=${OUTPUT_DIR}/hadoop/core-site-local.xml
+    HADOOP_HDFS_SITE=${OUTPUT_DIR}/hadoop/hdfs-site-local.xml
+
     fs_default_dir="hdfs://${HEAD_HOST_ADDRESS}:${HDFS_SERVICE_PORT}"
     sed -i "s!{%fs.default.name%}!${fs_default_dir}!g" $HADOOP_CORE_SITE
 
+    update_nfs_dump_dir
+
     # override with local hdfs conf
-    cp $HADOOP_CORE_SITE ${LOCAL_HDFS_CONF_DIR}/core-site.xml
-    cp -r ${OUTPUT_DIR}/hadoop/hdfs-site.xml ${LOCAL_HDFS_CONF_DIR}/
+    cp ${HADOOP_CORE_SITE} ${LOCAL_HDFS_CONF_DIR}/core-site.xml
+    cp ${HADOOP_HDFS_SITE} ${LOCAL_HDFS_CONF_DIR}/hdfs-site.xml
 }
 
 update_local_storage_config_remote_minio() {
     REMOTE_MINIO_CONF_DIR=${HADOOP_HOME}/etc/remote
     # copy the existing hadoop conf
     mkdir -p ${REMOTE_MINIO_CONF_DIR}
-    cp -r ${HADOOP_HOME}/etc/hadoop/* ${REMOTE_MINIO_CONF_DIR}/
+    cp -r ${HADOOP_CONFIG_DIR}/* ${REMOTE_MINIO_CONF_DIR}/
 
     HADOOP_CORE_SITE=${OUTPUT_DIR}/hadoop/core-site-minio-remote.xml
     HADOOP_CREDENTIAL_HOME=${REMOTE_MINIO_CONF_DIR}
@@ -253,12 +307,10 @@ update_local_storage_config_remote_minio() {
 
     update_minio_storage_credential_config
 
-    cp $HADOOP_CORE_SITE ${REMOTE_MINIO_CONF_DIR}/core-site.xml
+    cp ${HADOOP_CORE_SITE} ${REMOTE_MINIO_CONF_DIR}/core-site.xml
 }
 
 update_local_storage_config() {
-    update_nfs_dump_dir
-
     if [ "${REMOTE_HDFS_STORAGE}" == "true" ]; then
         update_local_storage_config_remote_hdfs
     elif [ "${REMOTE_MINIO_STORAGE}" == "true" ]; then
@@ -273,14 +325,15 @@ update_local_storage_config() {
 update_config_for_hadoop() {
     HADOOP_CORE_SITE=""
     HADOOP_FS_DEFAULT=""
+    HADOOP_CONFIG_DIR=${HADOOP_HOME}/etc/hadoop
 
     set_cluster_storage
     set_cloud_storage_provider
     update_config_for_hadoop_default
 
     sed -i "s!{%hadoop.fs.default%}!${HADOOP_FS_DEFAULT}!g" ${OUTPUT_DIR}/hadoop-fs-default
-    cp ${OUTPUT_DIR}/hadoop-fs-default ${HADOOP_HOME}/etc/hadoop/hadoop-fs-default
-    cp $HADOOP_CORE_SITE ${HADOOP_HOME}/etc/hadoop/core-site.xml
+    cp ${OUTPUT_DIR}/hadoop-fs-default ${HADOOP_CONFIG_DIR}/hadoop-fs-default
+    cp ${HADOOP_CORE_SITE} ${HADOOP_CONFIG_DIR}/core-site.xml
 
     update_local_storage_config
 }

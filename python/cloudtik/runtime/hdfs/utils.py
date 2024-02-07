@@ -2,7 +2,8 @@ import os
 from typing import Any, Dict, Optional
 
 from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_HDFS
-from cloudtik.core._private.service_discovery.naming import get_cluster_head_host, is_discoverable_cluster_node_name
+from cloudtik.core._private.service_discovery.naming import get_cluster_head_host, \
+    is_cluster_hostname_available
 from cloudtik.core._private.service_discovery.runtime_services import get_service_discovery_runtime
 from cloudtik.core._private.service_discovery.utils import get_canonical_service_name, define_runtime_service_on_head, \
     get_service_discovery_config, SERVICE_DISCOVERY_FEATURE_STORAGE, define_runtime_service, \
@@ -13,7 +14,7 @@ from cloudtik.core._private.utils import get_node_cluster_ip_of, get_cluster_nam
     get_runtime_config_for_update, _sum_min_workers
 from cloudtik.runtime.common.hadoop import HDFS_SERVICE_PORT_DEFAULT, \
     HDFS_NUM_NAME_NODES_LABEL, HDFS_NAME_URI_KEY, HDFS_SERVICE_TYPE, \
-    HDFS_NAME_SERVICE_TYPE, parse_name_uri, get_name_service_address
+    HDFS_NAME_SERVICE_TYPE, get_hdfs_name_service_address, with_hdfs_name_service
 from cloudtik.runtime.common.health_check import \
     HEALTH_CHECK_PORT, HEALTH_CHECK_NODE_KIND, HEALTH_CHECK_NODE_KIND_NODE, \
     HEALTH_CHECK_NODE_KIND_HEAD
@@ -142,7 +143,7 @@ def _register_name_service_to_workspace(
     ha_cluster_config = _get_ha_cluster_config(hdfs_config)
     cluster_name = get_cluster_name(cluster_config)
     num_name_nodes = _get_ha_cluster_num_name_nodes(ha_cluster_config)
-    name_service_address = get_name_service_address(cluster_name, num_name_nodes)
+    name_service_address = get_hdfs_name_service_address(cluster_name, num_name_nodes)
     register_service_to_workspace(
         cluster_config, BUILT_IN_RUNTIME_HDFS,
         service_addresses=[(name_service_address, service_port)],
@@ -191,6 +192,12 @@ def _validate_config(
             hdfs_config, cluster_config, final=final)
 
 
+def validate_cluster_hostname(cluster_config: Dict[str, Any]):
+    if not is_cluster_hostname_available(cluster_config):
+        raise RuntimeError(
+            "HDFS HA name or data cluster needs resolvable hostname from service discovery DNS.")
+
+
 def _validate_ha_cluster_config(
         hdfs_config: Dict[str, Any],
         cluster_config: Dict[str, Any],
@@ -202,12 +209,10 @@ def _validate_ha_cluster_config(
         raise RuntimeError(
             "HDFS HA cluster needs Consul service discovery to be configured.")
 
-    if not is_discoverable_cluster_node_name(cluster_runtime_config):
-        raise RuntimeError(
-            "HDFS HA cluster needs sequential cluster node name from service discovery DNS.")
-
     cluster_role = _get_ha_cluster_role(ha_cluster_config)
     if cluster_role == HDFS_HA_CLUSTER_ROLE_NAME:
+        validate_cluster_hostname(cluster_config)
+
         # this only needed for name cluster
         journal_uri = hdfs_config.get(HDFS_JOURNAL_CONNECT_KEY)
         if not journal_uri:
@@ -228,6 +233,8 @@ def _validate_ha_cluster_config(
                     raise ValueError(
                         "Zookeeper must be configured for HDFS HA name cluster with automatic failover.")
     elif cluster_role == HDFS_HA_CLUSTER_ROLE_DATA:
+        validate_cluster_hostname(cluster_config)
+
         name_uri = hdfs_config.get(HDFS_NAME_URI_KEY)
         if not name_uri:
             # if there is service discovery mechanism,
@@ -283,7 +290,6 @@ def _with_runtime_environment_variables(
             # Use the cluster name as the name service ID
             # This is the default name cluster. data cluster will set based on discovery
             cluster_name = get_cluster_name(config)
-            runtime_envs["HDFS_NAME_CLUSTER_NAME"] = cluster_name
             runtime_envs["HDFS_NAME_SERVICE"] = cluster_name
 
             num_name_nodes = _get_ha_cluster_num_name_nodes(ha_cluster_config)
@@ -332,23 +338,13 @@ def _with_name_configure(hdfs_config, envs=None):
 
 
 def _with_data_configure(hdfs_config, envs=None):
-    if envs is None:
-        envs = {}
-
     # set name service ID and name cluster name based on discovery
-    name_uri = hdfs_config.get(HDFS_NAME_URI_KEY)
-    if not name_uri:
+    hdfs_name_uri = hdfs_config.get(HDFS_NAME_URI_KEY)
+    if not hdfs_name_uri:
         # This usually will not happen. Checks are done before this.
         raise RuntimeError(
             "Name uri is not configured for HDFS HA data cluster.")
-
-    (cluster_name,
-     num_name_nodes,
-     name_service_port) = parse_name_uri(name_uri)
-    envs["HDFS_NAME_CLUSTER_NAME"] = cluster_name
-    envs["HDFS_NAME_SERVICE"] = cluster_name
-    envs["HDFS_NUM_NAME_NODES"] = num_name_nodes
-    envs["HDFS_SERVICE_PORT"] = name_service_port
+    envs = with_hdfs_name_service(hdfs_name_uri, envs=envs)
     return envs
 
 
