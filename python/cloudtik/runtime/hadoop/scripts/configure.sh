@@ -48,8 +48,8 @@ check_hadoop_installed() {
 }
 
 set_hdfs_storage() {
-    if [ -n "${HDFS_NAMENODE_URI}" ]
-        || [ -n "${HDFS_NAME_URI}" ];then
+    if [ -n "${HDFS_NAMENODE_URI}" ] \
+        || [ -n "${HDFS_NAME_URI}" ]; then
         REMOTE_HDFS_STORAGE="true"
     else
         REMOTE_HDFS_STORAGE="false"
@@ -63,7 +63,7 @@ set_hdfs_storage() {
 }
 
 set_minio_storage() {
-    if [ -n "${MINIO_ENDPOINT_URI}" ];then
+    if [ -n "${MINIO_ENDPOINT_URI}" ]; then
         REMOTE_MINIO_STORAGE="true"
     else
         REMOTE_MINIO_STORAGE="false"
@@ -79,7 +79,7 @@ set_cluster_storage() {
 }
 
 update_config_for_local_hdfs() {
-    if [ "${cloud_storage_provider}" != "none" ];then
+    if [ "${cloud_storage_provider}" != "none" ]; then
         HADOOP_CORE_SITE=${OUTPUT_DIR}/hadoop/${cloud_storage_provider}/core-site.xml
     else
         HADOOP_CORE_SITE=${OUTPUT_DIR}/hadoop/core-site.xml
@@ -153,7 +153,7 @@ update_config_for_gcp() {
 
 update_config_for_azure() {
     HADOOP_CORE_SITE=${OUTPUT_DIR}/hadoop/${cloud_storage_provider}/core-site.xml
-    if [ "$AZURE_STORAGE_TYPE" == "blob" ];then
+    if [ "$AZURE_STORAGE_TYPE" == "blob" ]; then
         AZURE_SCHEMA="wasbs"
         AZURE_ENDPOINT="blob"
     else
