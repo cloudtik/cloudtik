@@ -1,0 +1,40 @@
+# A unique identifier for the cluster.
+cluster_name: etcd
+
+# The workspace name
+workspace_name: lab
+
+cloudtik_wheel_url: file:///cloudtik/data/share/cloudtik-1.5.0-cp38-cp38-manylinux2014_x86_64.nightly.whl
+
+# Cloud-provider specific configuration.
+provider:
+    type: virtual
+
+auth:
+    ssh_user: {%user%}
+
+available_node_types:
+    head.default:
+        node_config:
+            instance_type:
+                CPU: 4 # number of cores
+                memory: 4G  # memory, for example 1024M, 1G
+            data_disks:
+                - /home/{%user%}/lab/disks
+            data_dirs:
+                - /home/{%user%}/lab/share
+    worker.default:
+        node_config:
+            instance_type:
+                CPU: 4 # number of cores
+                memory: 4G  # memory, for example 1024M, 1G
+            data_disks:
+                - /home/{%user%}/lab/disks
+            data_dirs:
+                - /home/{%user%}/lab/share
+        min_workers: 3
+
+runtime:
+    types: [nodex, consul, dnsmasq, etcd]
+    dnsmasq:
+        default_resolver: True
