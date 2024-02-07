@@ -1,0 +1,6 @@
+# A unique identifier for the workspace.
+workspace_name: lab
+
+# For virtual, a workspace is isolated by a docker bridge on host
+provider:
+    type: virtual
