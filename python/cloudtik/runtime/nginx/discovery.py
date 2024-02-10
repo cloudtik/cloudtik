@@ -2,7 +2,7 @@ import logging
 
 from cloudtik.core._private.util.core_utils import get_json_object_hash, get_address_string
 from cloudtik.core._private.service_discovery.utils import deserialize_service_selector
-from cloudtik.core._private.util.pull.pull_job import PullJob
+from cloudtik.core._private.util.service.pull_job import PullJob
 from cloudtik.runtime.common.service_discovery.consul import \
     get_service_address_of_node, get_tags_of_service_nodes, get_service_fqdn_address, \
     get_common_label_of_service_nodes
@@ -18,8 +18,10 @@ logger = logging.getLogger(__name__)
 class DiscoverJob(PullJob):
     def __init__(
             self,
+            interval=None,
             service_selector=None,
             balance_method=None):
+        super().__init__(interval)
         self.service_selector = deserialize_service_selector(
             service_selector)
         self.balance_method = balance_method
@@ -36,9 +38,10 @@ class DiscoverBackendServers(DiscoverJob):
 
     def __init__(
             self,
+            interval=None,
             service_selector=None,
             balance_method=None):
-        super().__init__(service_selector, balance_method)
+        super().__init__(interval, service_selector, balance_method)
 
     def pull(self):
         selected_services = self._query_services()
@@ -71,9 +74,10 @@ class DiscoverAPIGatewayBackendServers(DiscoverJob):
 
     def __init__(
             self,
+            interval=None,
             service_selector=None,
             balance_method=None):
-        super().__init__(service_selector, balance_method)
+        super().__init__(interval, service_selector, balance_method)
         # TODO: logging the job parameters
 
     def pull(self):
@@ -112,9 +116,10 @@ class DiscoverAPIGatewayBackendServers(DiscoverJob):
 class DiscoverAPIGatewayBackends(DiscoverJob):
     def __init__(
             self,
+            interval=None,
             service_selector=None,
             balance_method=None):
-        super().__init__(service_selector, balance_method)
+        super().__init__(interval, service_selector, balance_method)
         # TODO: logging the job parameters
 
     def pull(self):

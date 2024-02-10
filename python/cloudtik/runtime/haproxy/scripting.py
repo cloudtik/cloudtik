@@ -8,6 +8,7 @@ from cloudtik.core._private.util.runtime_utils import \
     get_runtime_config_from_node, get_runtime_value, get_runtime_node_ip, \
     get_runtime_cluster_name
 from cloudtik.core._private.service_discovery.utils import serialize_service_selector
+from cloudtik.runtime.common.utils import stop_pull_service_by_identifier
 from cloudtik.runtime.haproxy.utils import _get_config, HAPROXY_APP_MODE_LOAD_BALANCER, HAPROXY_CONFIG_MODE_STATIC, \
     HAPROXY_BACKEND_SERVERS_CONFIG_KEY, _get_home_dir, _get_backend_config, get_default_server_name, \
     HAPROXY_SERVICE_PORT_DEFAULT, HAPROXY_SERVICE_PROTOCOL_HTTP, \
@@ -47,11 +48,11 @@ def _configure_static_backend(haproxy_config):
                     server_name, server))
 
 
-def _get_pull_identifier():
+def _get_service_identifier():
     return "{}-discovery".format(BUILT_IN_RUNTIME_HAPROXY)
 
 
-def start_pull_server(head):
+def start_pull_service(head):
     runtime_config = get_runtime_config_from_node(head)
     haproxy_config = _get_config(runtime_config)
 
@@ -67,17 +68,17 @@ def start_pull_server(head):
         backend_config, cluster_name)
     service_selector_str = serialize_service_selector(service_selector)
 
-    pull_identifier = _get_pull_identifier()
+    service_identifier = _get_service_identifier()
     logs_dir = _get_logs_dir()
 
-    cmd = ["cloudtik", "node", "pull", pull_identifier, "start"]
-    cmd += ["--pull-class=cloudtik.runtime.haproxy.discovery.{}".format(
+    cmd = ["cloudtik", "node", "service", service_identifier, "start"]
+    cmd += ["--service-class=cloudtik.runtime.haproxy.discovery.{}".format(
         discovery_class)]
-    cmd += ["--interval={}".format(
-        HAPROXY_DISCOVER_BACKEND_SERVERS_INTERVAL)]
     cmd += ["--logs-dir={}".format(quote(logs_dir))]
 
     # job parameters
+    cmd += ["interval={}".format(
+        HAPROXY_DISCOVER_BACKEND_SERVERS_INTERVAL)]
     if service_selector_str:
         cmd += ["service_selector={}".format(service_selector_str)]
     if app_mode == HAPROXY_APP_MODE_LOAD_BALANCER:
@@ -96,11 +97,9 @@ def start_pull_server(head):
     exec_with_output(cmd_str)
 
 
-def stop_pull_server():
-    pull_identifier = _get_pull_identifier()
-    cmd = ["cloudtik", "node", "pull", pull_identifier, "stop"]
-    cmd_str = " ".join(cmd)
-    exec_with_output(cmd_str)
+def stop_pull_service():
+    service_identifier = _get_service_identifier()
+    stop_pull_service_by_identifier(service_identifier)
 
 
 def _get_backend_server_block(backend_servers):

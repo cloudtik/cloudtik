@@ -1,20 +1,20 @@
 import argparse
 
 from cloudtik.core._private.util.runtime_utils import get_runtime_bool, get_runtime_value
-from cloudtik.runtime.pgbouncer.scripting import start_pull_server, stop_pull_server
+from cloudtik.runtime.pgbouncer.scripting import start_pull_service, stop_pull_service
 from cloudtik.runtime.pgbouncer.utils import PGBOUNCER_CONFIG_MODE_DYNAMIC
 
 
 def start_service(head):
     config_mode = get_runtime_value("PGBOUNCER_CONFIG_MODE")
     if config_mode == PGBOUNCER_CONFIG_MODE_DYNAMIC:
-        start_pull_server(head)
+        start_pull_service(head)
 
 
 def stop_service():
     config_mode = get_runtime_value("PGBOUNCER_CONFIG_MODE")
     if config_mode == PGBOUNCER_CONFIG_MODE_DYNAMIC:
-        stop_pull_server()
+        stop_pull_service()
 
 
 def main():

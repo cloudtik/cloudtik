@@ -8,6 +8,7 @@ from cloudtik.core._private.util.runtime_utils import get_runtime_value, get_run
     get_runtime_cluster_name
 from cloudtik.core._private.service_discovery.utils import exclude_runtime_of_cluster, \
     serialize_service_selector, get_service_selector_copy
+from cloudtik.runtime.common.utils import stop_pull_service_by_identifier
 from cloudtik.runtime.nginx.utils import _get_config, NGINX_APP_MODE_LOAD_BALANCER, NGINX_CONFIG_MODE_STATIC, \
     _get_home_dir, _get_backend_config, NGINX_BACKEND_SERVERS_CONFIG_KEY, NGINX_LOAD_BALANCER_UPSTREAM_NAME, \
     NGINX_BACKEND_BALANCE_ROUND_ROBIN, NGINX_CONFIG_MODE_DNS, NGINX_BACKEND_SELECTOR_CONFIG_KEY, _get_logs_dir
@@ -94,11 +95,11 @@ def _save_upstream_config(
         f.write("}\n")
 
 
-def _get_pull_identifier():
+def _get_service_identifier():
     return "{}-discovery".format(BUILT_IN_RUNTIME_NGINX)
 
 
-def start_pull_server(head):
+def start_pull_service(head):
     runtime_config = get_runtime_config_from_node(head)
     nginx_config = _get_config(runtime_config)
 
@@ -121,17 +122,17 @@ def start_pull_server(head):
 
     service_selector_str = serialize_service_selector(service_selector)
 
-    pull_identifier = _get_pull_identifier()
+    service_identifier = _get_service_identifier()
     logs_dir = _get_logs_dir()
 
-    cmd = ["cloudtik", "node", "pull", pull_identifier, "start"]
-    cmd += ["--pull-class=cloudtik.runtime.nginx.discovery.{}".format(
+    cmd = ["cloudtik", "node", "service", service_identifier, "start"]
+    cmd += ["--service-class=cloudtik.runtime.nginx.discovery.{}".format(
         discovery_class)]
-    cmd += ["--interval={}".format(
-        NGINX_DISCOVER_BACKEND_SERVERS_INTERVAL)]
     cmd += ["--logs-dir={}".format(quote(logs_dir))]
 
     # job parameters
+    cmd += ["interval={}".format(
+        NGINX_DISCOVER_BACKEND_SERVERS_INTERVAL)]
     if service_selector_str:
         cmd += ["service_selector={}".format(service_selector_str)]
 
@@ -144,11 +145,9 @@ def start_pull_server(head):
     exec_with_output(cmd_str)
 
 
-def stop_pull_server():
-    pull_identifier = _get_pull_identifier()
-    cmd = ["cloudtik", "node", "pull", pull_identifier, "stop"]
-    cmd_str = " ".join(cmd)
-    exec_with_output(cmd_str)
+def stop_pull_service():
+    service_identifier = _get_service_identifier()
+    stop_pull_service_by_identifier(service_identifier)
 
 
 def update_load_balancer_configuration(

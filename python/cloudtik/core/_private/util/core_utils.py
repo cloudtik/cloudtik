@@ -448,6 +448,15 @@ def kill_process_by_pid_file(pid_file, sig=signal.SIGKILL):
                 pid_file))
 
 
+def write_pid_file(
+        pid_file, pid: int):
+    pid_dir = os.path.dirname(pid_file)
+    if not os.path.exists(pid_dir):
+        os.makedirs(pid_dir, exist_ok=True)
+    with open_with_mode(pid_file, "w", os_mode=0o600, encoding='utf-8') as f:
+        f.write(str(pid))
+
+
 def get_system_memory(
     # For cgroups v1:
     memory_limit_filename="/sys/fs/cgroup/memory/memory.limit_in_bytes",
@@ -1246,8 +1255,8 @@ def export_environment_variables(
 
 
 @contextmanager
-def open_with_mode(file, mode, os_mode=0o600):
-    with open(file, mode, opener=partial(os.open, mode=os_mode)) as f:
+def open_with_mode(file, mode, os_mode=0o600, encoding=None):
+    with open(file, mode, opener=partial(os.open, mode=os_mode), encoding=encoding) as f:
         yield f
 
 

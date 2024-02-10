@@ -2,15 +2,15 @@ import argparse
 
 from cloudtik.core._private.util.runtime_utils import get_runtime_bool
 from cloudtik.runtime.apisix.scripting \
-    import start_pull_server, stop_pull_server
+    import start_pull_service, stop_pull_service
 
 
 def start_service(head):
-    start_pull_server(head)
+    start_pull_service(head)
 
 
 def stop_service():
-    stop_pull_server()
+    stop_pull_service()
 
 
 def main():

@@ -5,7 +5,7 @@ from cloudtik.core._private.util.core_utils import get_json_object_hash, get_add
 from cloudtik.core._private.util.runtime_utils import save_yaml, get_node_host_from_node_state
 from cloudtik.core._private.service_discovery.utils import ServiceAddressType
 from cloudtik.core._private.state.state_utils import NODE_STATE_NODE_TYPE
-from cloudtik.core._private.util.pull.pull_job import PullJob
+from cloudtik.core._private.util.service.pull_job import PullJob
 from cloudtik.runtime.common.service_discovery.cluster_nodes import ClusterNodes
 from cloudtik.runtime.prometheus.utils import _get_home_dir
 
@@ -64,12 +64,14 @@ class DiscoverLocalTargets(PullJob):
 
     def __init__(
             self,
+            interval=None,
             services=None,
             redis_address=None,
             redis_password=None,
             workspace_name=None,
             cluster_name=None,
             address_type=None):
+        super().__init__(interval)
         self.pull_services = _parse_services(services)
         self.cluster_nodes = ClusterNodes(redis_address, redis_password)
         self.workspace_name = workspace_name

@@ -2,7 +2,7 @@ import argparse
 import os
 
 from cloudtik.core._private.util.runtime_utils import get_runtime_bool
-from cloudtik.runtime.prometheus.scripting import start_pull_server, stop_pull_server
+from cloudtik.runtime.prometheus.scripting import start_pull_service, stop_pull_service
 from cloudtik.runtime.prometheus.utils import _get_home_dir
 
 
@@ -16,12 +16,12 @@ def _is_scrape_local_file():
 def start_service(head):
     if _is_scrape_local_file():
         # needed for only scrape local cluster with file
-        start_pull_server(head)
+        start_pull_service(head)
 
 
 def stop_service():
     if _is_scrape_local_file():
-        stop_pull_server()
+        stop_pull_service()
 
 
 def main():

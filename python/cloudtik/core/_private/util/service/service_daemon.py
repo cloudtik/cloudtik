@@ -6,51 +6,47 @@ from cloudtik.core._private import constants
 from cloudtik.core._private.cli_logger import cli_logger
 from cloudtik.core._private.constants import SESSION_LATEST
 from cloudtik.core._private.util.core_utils import get_cloudtik_temp_dir, check_process_exists, stop_process_tree, \
-    get_named_log_file_handles, get_cloudtik_home_dir, create_shared_directory
+    get_named_log_file_handles, get_cloudtik_home_dir, create_shared_directory, write_pid_file, read_pid_from_pid_file
 from cloudtik.core._private.services import start_cloudtik_process
-from cloudtik.core._private.utils import save_server_process, get_server_process
 
-PULL_PATH = os.path.abspath(os.path.dirname(__file__))
-PROCESS_PULL_SERVER = "cloudtik_pull_server"
+SERVICE_DAEMON_PATH = os.path.abspath(os.path.dirname(__file__))
+PROCESS_SERVICE_DAEMON = "cloudtik_service_daemon"
 
 
 def _get_logging_name(identifier):
     return identifier
 
 
-def pull_server(
+def service_daemon(
         identifier, command,
-        pull_class, pull_script,
-        pull_args, interval,
+        service_class, pull_script,
+        service_args,
         logs_dir=None, redirect_output=True):
     if not identifier:
         raise ValueError(
-            "Pulling identifier cannot be empty.")
+            " identifier cannot be empty.")
     if command == "start":
-        if not pull_class and not pull_script:
+        if not service_class and not pull_script:
             raise ValueError(
-                "You need either specify a pull class or a pull script.")
-        start_pull_server(
-            identifier, pull_class, pull_script, pull_args,
-            interval=interval, logs_dir=logs_dir,
+                "You need either specify a service class or a pull script.")
+        start_service_daemon(
+            identifier, service_class, pull_script, service_args,
+            logs_dir=logs_dir,
             redirect_output=redirect_output)
     elif command == "stop":
-        _stop_pull_server(identifier)
+        _stop_service_daemon(identifier)
     else:
         raise ValueError(
             "Invalid command parameter: {}".format(command))
 
 
-def get_pull_server_process_file(identifier: str):
+def get_service_daemon_process_file(identifier: str):
     return os.path.join(
-        get_cloudtik_temp_dir(), "cloudtik-pull-{}".format(identifier))
+        get_cloudtik_temp_dir(), "cloudtik-service-{}".format(identifier))
 
 
-def get_pull_server_pid(process_file: str):
-    server_process = get_server_process(process_file)
-    if server_process is None:
-        return None
-    pid = server_process.get("pid")
+def get_service_daemon_pid(process_file: str):
+    pid = read_pid_from_pid_file(process_file)
     if pid is None:
         return None
     if not check_process_exists(pid):
@@ -58,12 +54,11 @@ def get_pull_server_pid(process_file: str):
     return pid
 
 
-def _start_pull_server(
+def _start_service_daemon(
         identifier,
-        pull_class,
+        service_class,
         pull_script,
-        pull_args,
-        interval,
+        service_args,
         logs_dir,
         logging_name,
         stdout_file=None,
@@ -74,11 +69,10 @@ def _start_pull_server(
     """Run a process to controller the other processes.
 
     Args:
-        identifier (str): The identifier of the pull server.
-        pull_class (str): The puller module and class.
+        identifier (str): The identifier of the service.
+        service_class (str): The service runner module and class.
         pull_script (str): The puller script file.
-        pull_args(List[str]): The list of arguments pass to the puller
-        interval (int): The interval in seconds for each pull.
+        service_args(List[str]): The list of arguments pass to the service runner.
         logs_dir(str): The path to the log directory.
         stdout_file: A file handle opened for writing to redirect stdout to. If
             no redirection should happen, then this should be None.
@@ -92,11 +86,11 @@ def _start_pull_server(
     Returns:
         ProcessInfo for the process that was started.
     """
-    pull_server_path = os.path.join(PULL_PATH, "cloudtik_pull_server.py")
+    service_daemon_path = os.path.join(SERVICE_DAEMON_PATH, "cloudtik_service_daemon.py")
     command = [
         sys.executable,
         "-u",
-        pull_server_path,
+        service_daemon_path,
         f"--logs-dir={logs_dir}",
         f"--logging-rotate-bytes={max_bytes}",
         f"--logging-rotate-backup-count={backup_count}",
@@ -106,34 +100,32 @@ def _start_pull_server(
         command.append("--logging-level=" + logging_level)
 
     command.append("--identifier=" + identifier)
-    if pull_class:
-        command.append("--pull-class=" + quote(pull_class))
+    if service_class:
+        command.append("--service-class=" + quote(service_class))
     if pull_script:
         command.append("--pull-script=" + quote(pull_script))
-    if interval:
-        command.append("--interval=" + str(interval))
-    if pull_args:
-        command += list(pull_args)
+    if service_args:
+        command += list(service_args)
 
     process_info = start_cloudtik_process(
         command,
-        PROCESS_PULL_SERVER,
+        PROCESS_SERVICE_DAEMON,
         stdout_file=stdout_file,
         stderr_file=stderr_file,
         fate_share=False)
     return process_info
 
 
-def start_pull_server(
+def start_service_daemon(
         identifier,
-        pull_class, pull_script,
-        pull_args, interval,
+        service_class, pull_script,
+        service_args,
         logs_dir=None, redirect_output=True):
-    pull_server_process_file = get_pull_server_process_file(identifier)
-    pid = get_pull_server_pid(pull_server_process_file)
+    service_daemon_process_file = get_service_daemon_process_file(identifier)
+    pid = get_service_daemon_pid(service_daemon_process_file)
     if pid is not None:
         cli_logger.print(
-            "The pull server for {} is already running. "
+            "The service daemon for {} is already running. "
             "If you want to restart, stop it first and start.", identifier)
         return
 
@@ -161,12 +153,11 @@ def start_pull_server(
             constants.CLOUDTIK_LOGGING_ROTATE_BACKUP_COUNT_ENV,
             constants.LOGGING_ROTATE_BACKUP_COUNT))
 
-    process_info = _start_pull_server(
+    process_info = _start_service_daemon(
         identifier,
-        pull_class,
+        service_class,
         pull_script,
-        pull_args,
-        interval,
+        service_args,
         logs_dir,
         logging_name,
         stdout_file=stdout_file,
@@ -176,23 +167,22 @@ def start_pull_server(
         backup_count=backup_count)
 
     pid = process_info.process.pid
-    pull_server_process = {"pid": pid}
-    save_server_process(pull_server_process_file, pull_server_process)
+    write_pid_file(service_daemon_process_file, pid)
 
     cli_logger.print(
-        "Successfully started pull server: {}".format(identifier))
+        "Successfully started service daemon: {}".format(identifier))
 
 
-def _stop_pull_server(identifier):
+def _stop_service_daemon(identifier):
     # find the pid file and stop it
-    pull_server_process_file = get_pull_server_process_file(identifier)
-    pid = get_pull_server_pid(pull_server_process_file)
+    service_daemon_process_file = get_service_daemon_process_file(identifier)
+    pid = get_service_daemon_pid(service_daemon_process_file)
     if pid is None:
         cli_logger.print(
-            "The pull server for {} was not started.", identifier)
+            "The service daemon for {} was not started.", identifier)
         return
 
     stop_process_tree(pid)
-    save_server_process(pull_server_process_file, {})
+    os.remove(service_daemon_process_file)
     cli_logger.print(
-        "Successfully stopped pull server of {}.", identifier)
+        "Successfully stopped service daemon of {}.", identifier)
