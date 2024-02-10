@@ -8,6 +8,7 @@ from cloudtik.core._private.util.runtime_utils import \
     get_runtime_config_from_node, get_runtime_value, get_runtime_node_ip, \
     get_runtime_cluster_name
 from cloudtik.core._private.service_discovery.utils import serialize_service_selector
+from cloudtik.runtime.common.utils import stop_pull_service_by_identifier
 from cloudtik.runtime.haproxy.utils import _get_config, HAPROXY_APP_MODE_LOAD_BALANCER, HAPROXY_CONFIG_MODE_STATIC, \
     HAPROXY_BACKEND_SERVERS_CONFIG_KEY, _get_home_dir, _get_backend_config, get_default_server_name, \
     HAPROXY_SERVICE_PORT_DEFAULT, HAPROXY_SERVICE_PROTOCOL_HTTP, \
@@ -98,9 +99,7 @@ def start_pull_service(head):
 
 def stop_pull_service():
     service_identifier = _get_service_identifier()
-    cmd = ["cloudtik", "node", "service", service_identifier, "stop"]
-    cmd_str = " ".join(cmd)
-    exec_with_output(cmd_str)
+    stop_pull_service_by_identifier(service_identifier)
 
 
 def _get_backend_server_block(backend_servers):

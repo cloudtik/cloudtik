@@ -8,6 +8,7 @@ from cloudtik.core._private.util.runtime_utils import get_runtime_value, get_run
     get_runtime_cluster_name
 from cloudtik.core._private.service_discovery.utils import exclude_runtime_of_cluster, \
     serialize_service_selector, get_service_selector_copy
+from cloudtik.runtime.common.utils import stop_pull_service_by_identifier
 from cloudtik.runtime.nginx.utils import _get_config, NGINX_APP_MODE_LOAD_BALANCER, NGINX_CONFIG_MODE_STATIC, \
     _get_home_dir, _get_backend_config, NGINX_BACKEND_SERVERS_CONFIG_KEY, NGINX_LOAD_BALANCER_UPSTREAM_NAME, \
     NGINX_BACKEND_BALANCE_ROUND_ROBIN, NGINX_CONFIG_MODE_DNS, NGINX_BACKEND_SELECTOR_CONFIG_KEY, _get_logs_dir
@@ -146,9 +147,7 @@ def start_pull_service(head):
 
 def stop_pull_service():
     service_identifier = _get_service_identifier()
-    cmd = ["cloudtik", "node", "service", service_identifier, "stop"]
-    cmd_str = " ".join(cmd)
-    exec_with_output(cmd_str)
+    stop_pull_service_by_identifier(service_identifier)
 
 
 def update_load_balancer_configuration(

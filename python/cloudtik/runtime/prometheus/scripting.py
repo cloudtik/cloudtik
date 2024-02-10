@@ -14,6 +14,7 @@ from cloudtik.core._private.service_discovery.utils import \
     SERVICE_SELECTOR_RUNTIMES, SERVICE_SELECTOR_CLUSTERS, SERVICE_DISCOVERY_LABEL_RUNTIME, \
     SERVICE_DISCOVERY_LABEL_CLUSTER, SERVICE_SELECTOR_EXCLUDE_JOINED_LABELS, SERVICE_SELECTOR_SERVICE_TYPES, \
     SERVICE_DISCOVERY_LABEL_SERVICE
+from cloudtik.runtime.common.utils import stop_pull_service_by_identifier
 from cloudtik.runtime.prometheus.utils import PROMETHEUS_SERVICE_DISCOVERY_CONSUL, \
     PROMETHEUS_SCRAPE_SERVICES_CONFIG_KEY, _get_config, PROMETHEUS_SCRAPE_SCOPE_WORKSPACE, _get_home_dir, \
     PROMETHEUS_SCRAPE_SCOPE_FEDERATION, PROMETHEUS_SERVICE_DISCOVERY_FILE, _get_federation_targets, \
@@ -228,6 +229,4 @@ def start_pull_service(head):
 
 def stop_pull_service():
     service_identifier = _get_service_identifier()
-    cmd = ["cloudtik", "node", "service", service_identifier, "stop"]
-    cmd_str = " ".join(cmd)
-    exec_with_output(cmd_str)
+    stop_pull_service_by_identifier(service_identifier)

@@ -7,6 +7,7 @@ from cloudtik.core._private.util.runtime_utils import get_runtime_config_from_no
     save_yaml, get_runtime_node_ip, get_runtime_head_host, get_runtime_cluster_name
 from cloudtik.core._private.service_discovery.utils import \
     serialize_service_selector, get_service_selector_copy
+from cloudtik.runtime.common.utils import stop_pull_service_by_identifier
 from cloudtik.runtime.grafana.utils import _get_config, GRAFANA_DATA_SOURCES_CONFIG_KEY, \
     GRAFANA_DATA_SOURCES_SCOPE_LOCAL, get_data_source_name, get_prometheus_data_source, _get_home_dir, \
     _get_service_port, GRAFANA_DATA_SOURCES_SERVICES_CONFIG_KEY, _get_logs_dir
@@ -100,6 +101,4 @@ def start_pull_service(head):
 
 def stop_pull_service():
     service_identifier = _get_service_identifier()
-    cmd = ["cloudtik", "node", "service", service_identifier, "stop"]
-    cmd_str = " ".join(cmd)
-    exec_with_output(cmd_str)
+    stop_pull_service_by_identifier(service_identifier)

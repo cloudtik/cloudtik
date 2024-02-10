@@ -147,22 +147,22 @@ def main():
         backup_count=args.logging_rotate_backup_count)
 
     logger.info(
-        f"Starting Service using CloudTik installation: {cloudtik.__file__}")
+        f"Starting Service daemon using CloudTik installation: {cloudtik.__file__}")
     logger.info(
         f"CloudTik version: {cloudtik.__version__}")
     logger.info(
         f"CloudTik commit: {cloudtik.__commit__}")
     logger.info(
-        f"Service started with command: {sys.argv}")
+        f"Service daemon started with command: {sys.argv}")
 
-    service_server = ServiceDaemon(
+    service_daemon = ServiceDaemon(
         args.identifier,
         args.service_class,
         args.pull_script,
         service_args=argv,
     )
 
-    service_server.run()
+    service_daemon.run()
 
 
 if __name__ == "__main__":

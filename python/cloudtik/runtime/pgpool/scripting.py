@@ -10,6 +10,7 @@ from cloudtik.core._private.util.database_utils import DATABASE_PORT_POSTGRES_DE
 from cloudtik.core._private.util.runtime_utils import get_runtime_config_from_node, get_runtime_node_address_type
 from cloudtik.core._private.utils import load_properties_file, save_properties_file, run_system_command
 from cloudtik.runtime.common.service_discovery.runtime_discovery import DATABASE_SERVICE_SELECTOR_KEY
+from cloudtik.runtime.common.utils import stop_pull_service_by_identifier
 from cloudtik.runtime.pgpool.utils import _get_config, _get_home_dir, _get_backend_config, \
     PGPOOL_BACKEND_SERVERS_CONFIG_KEY, PGPOOL_DISCOVER_POSTGRES_SERVICE_TYPES, _get_logs_dir
 
@@ -101,9 +102,7 @@ def start_pull_service(head):
 
 def stop_pull_service():
     service_identifier = _get_service_identifier()
-    cmd = ["cloudtik", "node", "service", service_identifier, "stop"]
-    cmd_str = " ".join(cmd)
-    exec_with_output(cmd_str)
+    stop_pull_service_by_identifier(service_identifier)
 
 
 def update_configuration(backend_servers):
