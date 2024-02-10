@@ -1,7 +1,7 @@
 import logging
 
 from cloudtik.core._private.service_discovery.utils import deserialize_service_selector
-from cloudtik.core._private.util.pull.pull_job import PullJob
+from cloudtik.core._private.util.service.pull_job import PullJob
 from cloudtik.runtime.common.service_discovery.consul import \
     get_service_address_of_node, get_common_label_of_service_nodes
 from cloudtik.runtime.common.service_discovery.discovery import query_services_with_addresses, query_services_with_nodes
@@ -90,8 +90,10 @@ class DiscoverBackendServers(PullJob):
 
     def __init__(
             self,
+            interval=None,
             service_selector=None,
             backend_name=None):
+        super().__init__(interval)
         self.service_selector = deserialize_service_selector(
             service_selector)
         self.backend_name = backend_name
@@ -121,10 +123,12 @@ class DiscoverAPIGatewayBackendServers(PullJob):
 
     def __init__(
             self,
+            interval=None,
             service_selector=None,
             bind_ip=None,
             bind_port=None,
             balance_method=None):
+        super().__init__(interval)
         self.service_selector = deserialize_service_selector(
             service_selector)
         self.bind_ip = bind_ip

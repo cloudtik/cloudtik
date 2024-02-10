@@ -57,8 +57,8 @@ def get_runtime_default_storage_of(config: Dict[str, Any], runtime_name: str):
         return None
 
 
-def stop_pull_server_by_identifier(pull_identifier):
-    cmd = ["cloudtik", "node", "pull", pull_identifier, "stop"]
+def stop_pull_service_by_identifier(service_identifier):
+    cmd = ["cloudtik", "node", "service", service_identifier, "stop"]
     cmd_str = " ".join(cmd)
     exec_with_output(cmd_str)
 

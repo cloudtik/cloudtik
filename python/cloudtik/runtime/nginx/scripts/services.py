@@ -1,7 +1,7 @@
 import argparse
 
 from cloudtik.core._private.util.runtime_utils import get_runtime_value, get_runtime_bool
-from cloudtik.runtime.nginx.scripting import stop_pull_server, start_pull_server
+from cloudtik.runtime.nginx.scripting import stop_pull_service, start_pull_service
 from cloudtik.runtime.nginx.utils \
     import NGINX_APP_MODE_API_GATEWAY, NGINX_CONFIG_MODE_DNS, \
     NGINX_APP_MODE_LOAD_BALANCER, NGINX_CONFIG_MODE_DYNAMIC
@@ -23,12 +23,12 @@ def _need_pull_server():
 
 def start_service(head):
     if _need_pull_server():
-        start_pull_server(head)
+        start_pull_service(head)
 
 
 def stop_service():
     if _need_pull_server():
-        stop_pull_server()
+        stop_pull_service()
 
 
 def main():

@@ -3,7 +3,7 @@ import logging
 from cloudtik.core._private.util.core_utils import get_list_for_update, http_address_string
 from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_PROMETHEUS
 from cloudtik.core._private.service_discovery.utils import SERVICE_SELECTOR_RUNTIMES, deserialize_service_selector
-from cloudtik.core._private.util.pull.pull_job import PullJob
+from cloudtik.core._private.util.service.pull_job import PullJob
 from cloudtik.core._private.util.rest_api import \
     REST_API_AUTH_TYPE, REST_API_AUTH_BASIC, REST_API_AUTH_BASIC_USERNAME, REST_API_AUTH_BASIC_PASSWORD
 from cloudtik.runtime.common.service_discovery.consul import get_service_name_of_node, \
@@ -65,8 +65,10 @@ class DiscoverDataSources(PullJob):
 
     def __init__(
             self,
+            interval=None,
             admin_endpoint=None,
             service_selector=None):
+        super().__init__(interval)
         if not admin_endpoint:
             raise RuntimeError(
                 "Grafana endpoint is needed for pulling data sources.")

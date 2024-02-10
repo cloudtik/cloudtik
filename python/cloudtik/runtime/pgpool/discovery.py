@@ -2,7 +2,7 @@ import logging
 
 from cloudtik.core._private.service_discovery.utils import deserialize_service_selector, ServiceAddressType
 from cloudtik.core._private.util.core_utils import get_json_object_hash, get_address_string
-from cloudtik.core._private.util.pull.pull_job import PullJob
+from cloudtik.core._private.util.service.pull_job import PullJob
 from cloudtik.runtime.common.service_discovery.discovery import query_services_with_addresses
 from cloudtik.runtime.pgpool.scripting import update_configuration, do_node_check
 
@@ -14,8 +14,10 @@ class DiscoverBackendServers(PullJob):
 
     def __init__(
             self,
+            interval=None,
             service_selector=None,
             address_type=None):
+        super().__init__(interval)
         self.service_selector = deserialize_service_selector(
             service_selector)
         if address_type:

@@ -15,7 +15,7 @@ from cloudtik.runtime.apisix.utils import _get_config, _get_admin_port, _get_adm
     _get_home_dir, _get_logs_dir
 from cloudtik.runtime.common.service_discovery.runtime_discovery import ETCD_URI_KEY
 from cloudtik.runtime.common.service_discovery.utils import get_service_addresses_from_string
-from cloudtik.runtime.common.utils import stop_pull_server_by_identifier
+from cloudtik.runtime.common.utils import stop_pull_service_by_identifier
 
 APISIX_DISCOVER_BACKEND_SERVERS_INTERVAL = 15
 
@@ -71,7 +71,7 @@ def _update_configurations(update_callback):
 # Calls from node when running services
 #######################################
 
-def _get_pull_identifier():
+def _get_service_identifier():
     return "{}-discovery".format(BUILT_IN_RUNTIME_APISIX)
 
 
@@ -80,7 +80,7 @@ def _get_admin_api_endpoint(node_ip, admin_port):
         node_ip, admin_port)
 
 
-def start_pull_server(head):
+def start_pull_service(head):
     runtime_config = get_runtime_config_from_node(head)
     apisix_config = _get_config(runtime_config)
     admin_endpoint = _get_admin_api_endpoint(
@@ -97,16 +97,16 @@ def start_pull_server(head):
     service_selector = exclude_runtime_of_cluster(
         service_selector, BUILT_IN_RUNTIME_APISIX, cluster_name)
     service_selector_str = serialize_service_selector(service_selector)
-    pull_identifier = _get_pull_identifier()
+    service_identifier = _get_service_identifier()
     logs_dir = _get_logs_dir()
 
-    cmd = ["cloudtik", "node", "pull", pull_identifier, "start"]
-    cmd += ["--pull-class=cloudtik.runtime.apisix.discovery.DiscoverBackendServers"]
-    cmd += ["--interval={}".format(
-        APISIX_DISCOVER_BACKEND_SERVERS_INTERVAL)]
+    cmd = ["cloudtik", "node", "service", service_identifier, "start"]
+    cmd += ["--service-class=cloudtik.runtime.apisix.discovery.DiscoverBackendServers"]
     cmd += ["--logs-dir={}".format(quote(logs_dir))]
 
     # job parameters
+    cmd += ["interval={}".format(
+        APISIX_DISCOVER_BACKEND_SERVERS_INTERVAL)]
     cmd += ["admin_endpoint={}".format(quote(admin_endpoint))]
     cmd += ["admin_key={}".format(admin_key)]
     if service_selector_str:
@@ -121,6 +121,6 @@ def start_pull_server(head):
     exec_with_output(cmd_str)
 
 
-def stop_pull_server():
-    pull_identifier = _get_pull_identifier()
-    stop_pull_server_by_identifier(pull_identifier)
+def stop_pull_service():
+    service_identifier = _get_service_identifier()
+    stop_pull_service_by_identifier(service_identifier)

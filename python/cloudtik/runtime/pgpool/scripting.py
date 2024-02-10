@@ -62,15 +62,15 @@ def configure_backend(head):
     _update_backends(backend_servers)
 
 
-def _get_pull_identifier():
+def _get_service_identifier():
     return "{}-discovery".format(BUILT_IN_RUNTIME_PGPOOL)
 
 
-def start_pull_server(head):
+def start_pull_service(head):
     runtime_config = get_runtime_config_from_node(head)
     pgpool_config = _get_config(runtime_config)
 
-    pull_identifier = _get_pull_identifier()
+    service_identifier = _get_service_identifier()
     logs_dir = _get_logs_dir()
 
     service_selector = get_service_selector_copy(
@@ -84,13 +84,13 @@ def start_pull_server(head):
     service_selector_str = serialize_service_selector(service_selector)
     address_type = get_runtime_node_address_type()
 
-    cmd = ["cloudtik", "node", "pull", pull_identifier, "start"]
-    cmd += ["--pull-class=cloudtik.runtime.pgpool.discovery.DiscoverBackendServers"]
-    cmd += ["--interval={}".format(
-        PGPOOL_PULL_BACKENDS_INTERVAL)]
+    cmd = ["cloudtik", "node", "service", service_identifier, "start"]
+    cmd += ["--service-class=cloudtik.runtime.pgpool.discovery.DiscoverBackendServers"]
     cmd += ["--logs-dir={}".format(quote(logs_dir))]
 
     # job parameters
+    cmd += ["interval={}".format(
+        PGPOOL_PULL_BACKENDS_INTERVAL)]
     if service_selector_str:
         cmd += ["service_selector={}".format(service_selector_str)]
     cmd += ["address_type={}".format(str(address_type))]
@@ -99,9 +99,9 @@ def start_pull_server(head):
     exec_with_output(cmd_str)
 
 
-def stop_pull_server():
-    pull_identifier = _get_pull_identifier()
-    cmd = ["cloudtik", "node", "pull", pull_identifier, "stop"]
+def stop_pull_service():
+    service_identifier = _get_service_identifier()
+    cmd = ["cloudtik", "node", "service", service_identifier, "stop"]
     cmd_str = " ".join(cmd)
     exec_with_output(cmd_str)
 

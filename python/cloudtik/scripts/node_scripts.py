@@ -28,7 +28,7 @@ from cloudtik.core._private.util.redis_utils import find_redis_address, validate
     wait_for_redis_to_start
 from cloudtik.core._private.resource_spec import ResourceSpec
 from cloudtik.core._private.util.runtime_utils import get_runtime_value
-from cloudtik.core._private.util.pull.pull_server import pull_server
+from cloudtik.core._private.util.service.service_daemon import service_daemon
 from cloudtik.core._private.utils import parse_resources_json, run_script
 from cloudtik.runtime.common.service_discovery.cluster_nodes import get_cluster_live_nodes_address
 from cloudtik.runtime.common.service_discovery.discovery import get_service_node_addresses
@@ -492,7 +492,7 @@ def resources(cpu, memory, in_mb):
 @click.argument("identifier", required=True, type=str)
 @click.argument("command", required=True, type=str)
 @click.option(
-    "--pull-class",
+    "--service-class",
     required=False,
     type=str,
     help="The python module and class to run for pulling")
@@ -501,11 +501,6 @@ def resources(cpu, memory, in_mb):
     required=False,
     type=str,
     help="The bash script or python script to run for pulling")
-@click.option(
-    "--interval",
-    required=False,
-    type=int,
-    help="The pulling interval in seconds.")
 @click.option(
     "--logs-dir",
     required=False,
@@ -518,16 +513,16 @@ def resources(cpu, memory, in_mb):
     default=False,
     help="Do not redirect stdout and stderr to files")
 @click.argument("script_args", nargs=-1)
-def pull(
+def service(
         identifier, command,
-        pull_class, pull_script,
-        interval, logs_dir, no_redirect_output, script_args):
+        service_class, pull_script,
+        logs_dir, no_redirect_output, script_args):
     """Start a pull service with pull class and parameters."""
     redirect_output = None if not no_redirect_output else True
-    pull_server(
+    service_daemon(
         identifier, command,
-        pull_class, pull_script, script_args,
-        interval=interval, logs_dir=logs_dir,
+        service_class, pull_script, script_args,
+        logs_dir=logs_dir,
         redirect_output=redirect_output)
 
 
@@ -764,7 +759,7 @@ node.add_command(start)
 node.add_command(stop)
 node.add_command(run)
 node.add_command(resources)
-node.add_command(pull)
+node.add_command(service)
 node.add_command(wait_for_port)
 node.add_command(nodes)
 node.add_command(service_nodes)

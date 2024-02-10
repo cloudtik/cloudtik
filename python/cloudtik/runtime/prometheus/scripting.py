@@ -175,7 +175,7 @@ def _save_federation_targets(federation_targets):
     save_yaml(config_file, federation_targets)
 
 
-def _get_pull_identifier():
+def _get_service_identifier():
     return "{}-discovery".format(BUILT_IN_RUNTIME_PROMETHEUS)
 
 
@@ -191,12 +191,12 @@ def _get_pull_services_str(pull_services: Dict[str, Any]) -> str:
     return ",".join(pull_service_str_list)
 
 
-def start_pull_server(head):
+def start_pull_service(head):
     runtime_config = get_runtime_config_from_node(head)
     prometheus_config = _get_config(runtime_config)
     pull_services = prometheus_config.get(PROMETHEUS_PULL_SERVICES_CONFIG_KEY)
 
-    pull_identifier = _get_pull_identifier()
+    service_identifier = _get_service_identifier()
     logs_dir = _get_logs_dir()
 
     redis_host = get_runtime_head_host(head)
@@ -205,13 +205,13 @@ def start_pull_server(head):
     cluster_name = get_runtime_cluster_name()
     address_type = get_runtime_node_address_type()
 
-    cmd = ["cloudtik", "node", "pull", pull_identifier, "start"]
-    cmd += ["--pull-class=cloudtik.runtime.prometheus.discovery.DiscoverLocalTargets"]
-    cmd += ["--interval={}".format(
-        PROMETHEUS_PULL_LOCAL_TARGETS_INTERVAL)]
+    cmd = ["cloudtik", "node", "service", service_identifier, "start"]
+    cmd += ["--service-class=cloudtik.runtime.prometheus.discovery.DiscoverLocalTargets"]
     cmd += ["--logs-dir={}".format(quote(logs_dir))]
 
     # job parameters
+    cmd += ["interval={}".format(
+        PROMETHEUS_PULL_LOCAL_TARGETS_INTERVAL)]
     if pull_services:
         pull_services_str = _get_pull_services_str(pull_services)
         cmd += ["services={}".format(pull_services_str)]
@@ -226,8 +226,8 @@ def start_pull_server(head):
     exec_with_output(cmd_str)
 
 
-def stop_pull_server():
-    pull_identifier = _get_pull_identifier()
-    cmd = ["cloudtik", "node", "pull", pull_identifier, "stop"]
+def stop_pull_service():
+    service_identifier = _get_service_identifier()
+    cmd = ["cloudtik", "node", "service", service_identifier, "stop"]
     cmd_str = " ".join(cmd)
     exec_with_output(cmd_str)

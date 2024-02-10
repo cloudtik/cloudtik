@@ -6,7 +6,7 @@ from cloudtik.core._private.util.runtime_utils import get_runtime_value, get_run
     get_runtime_cluster_name
 from cloudtik.core._private.service_discovery.utils import \
     exclude_runtime_of_cluster, serialize_service_selector, get_service_selector_copy
-from cloudtik.runtime.common.utils import stop_pull_server_by_identifier
+from cloudtik.runtime.common.utils import stop_pull_service_by_identifier
 from cloudtik.runtime.kong.utils import _get_config, KONG_ADMIN_PORT_DEFAULT, _get_backend_config, _get_config_mode, \
     KONG_BACKEND_SELECTOR_CONFIG_KEY, _get_logs_dir
 
@@ -18,7 +18,7 @@ KONG_DISCOVER_BACKEND_SERVERS_INTERVAL = 15
 #######################################
 
 
-def _get_pull_identifier():
+def _get_service_identifier():
     return "{}-discovery".format(BUILT_IN_RUNTIME_KONG)
 
 
@@ -27,7 +27,7 @@ def _get_admin_api_endpoint(node_ip, admin_port):
         node_ip, admin_port)
 
 
-def start_pull_server(head):
+def start_pull_service(head):
     runtime_config = get_runtime_config_from_node(head)
     kong_config = _get_config(runtime_config)
     admin_endpoint = _get_admin_api_endpoint(
@@ -41,16 +41,16 @@ def start_pull_server(head):
     service_selector = exclude_runtime_of_cluster(
         service_selector, BUILT_IN_RUNTIME_KONG, cluster_name)
     service_selector_str = serialize_service_selector(service_selector)
-    pull_identifier = _get_pull_identifier()
+    service_identifier = _get_service_identifier()
     logs_dir = _get_logs_dir()
 
-    cmd = ["cloudtik", "node", "pull", pull_identifier, "start"]
-    cmd += ["--pull-class=cloudtik.runtime.kong.discovery.DiscoverBackendServers"]
-    cmd += ["--interval={}".format(
-        KONG_DISCOVER_BACKEND_SERVERS_INTERVAL)]
+    cmd = ["cloudtik", "node", "service", service_identifier, "start"]
+    cmd += ["--service-class=cloudtik.runtime.kong.discovery.DiscoverBackendServers"]
     cmd += ["--logs-dir={}".format(quote(logs_dir))]
 
     # job parameters
+    cmd += ["interval={}".format(
+        KONG_DISCOVER_BACKEND_SERVERS_INTERVAL)]
     cmd += ["admin_endpoint={}".format(quote(admin_endpoint))]
     if service_selector_str:
         cmd += ["service_selector={}".format(service_selector_str)]
@@ -64,6 +64,6 @@ def start_pull_server(head):
     exec_with_output(cmd_str)
 
 
-def stop_pull_server():
-    pull_identifier = _get_pull_identifier()
-    stop_pull_server_by_identifier(pull_identifier)
+def stop_pull_service():
+    service_identifier = _get_service_identifier()
+    stop_pull_service_by_identifier(service_identifier)

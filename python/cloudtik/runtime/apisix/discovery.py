@@ -2,7 +2,7 @@ import logging
 
 from cloudtik.core._private.util.core_utils import get_json_object_hash, get_address_string
 from cloudtik.core._private.service_discovery.utils import deserialize_service_selector
-from cloudtik.core._private.util.pull.pull_job import PullJob
+from cloudtik.core._private.util.service.pull_job import PullJob
 from cloudtik.core._private.util.rest_api import REST_API_AUTH_TYPE, REST_API_AUTH_API_KEY
 from cloudtik.core._private.utils import decrypt_string
 from cloudtik.runtime.common.service_discovery.consul \
@@ -44,7 +44,9 @@ def _get_delete_backends(backends, existing_backends):
 class DiscoverJob(PullJob):
     def __init__(
             self,
+            interval=None,
             service_selector=None,):
+        super().__init__(interval)
         self.service_selector = deserialize_service_selector(
             service_selector)
         self.last_config_hash = None
@@ -59,12 +61,13 @@ class DiscoverBackendServers(DiscoverJob):
 
     def __init__(
             self,
+            interval=None,
             service_selector=None,
             config_mode=None,
             balance_method=None,
             admin_endpoint=None,
             admin_key=None,):
-        super().__init__(service_selector)
+        super().__init__(interval, service_selector)
         self.config_mode = config_mode
         self.balance_method = balance_method
         self.admin_endpoint = admin_endpoint
