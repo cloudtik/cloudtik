@@ -56,6 +56,7 @@ BUILT_IN_RUNTIME_ELASTICSEARCH = "elasticsearch"
 BUILT_IN_RUNTIME_PGPOOL = "pgpool"
 BUILT_IN_RUNTIME_XINETD = "xinetd"
 BUILT_IN_RUNTIME_PGBOUNCER = "pgbouncer"
+BUILT_IN_RUNTIME_LOAD_BALANCER = "loadbalancer"
 
 DEFAULT_RUNTIMES = [BUILT_IN_RUNTIME_NODEX, BUILT_IN_RUNTIME_PROMETHEUS, BUILT_IN_RUNTIME_SPARK]
 
@@ -235,6 +236,11 @@ def _import_pgbouncer():
     return PgBouncerRuntime
 
 
+def _import_loadbalancer():
+    from cloudtik.runtime.loadbalancer.runtime import LoadBalancerRuntime
+    return LoadBalancerRuntime
+
+
 _RUNTIMES = {
     BUILT_IN_RUNTIME_AI: _import_ai,
     BUILT_IN_RUNTIME_SPARK: _import_spark,
@@ -271,6 +277,7 @@ _RUNTIMES = {
     BUILT_IN_RUNTIME_PGPOOL: _import_pgpool,
     BUILT_IN_RUNTIME_XINETD: _import_xinetd,
     BUILT_IN_RUNTIME_PGBOUNCER: _import_pgbouncer,
+    BUILT_IN_RUNTIME_LOAD_BALANCER: _import_loadbalancer,
 }
 
 

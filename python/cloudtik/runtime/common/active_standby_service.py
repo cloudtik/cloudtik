@@ -55,7 +55,7 @@ class ActiveStandbyService(ServiceRunner):
                     self._step_down()
                 # backoff and try election
                 self._backoff_elect_delay()
-                break
+                continue
 
             if self.leader:
                 # elected as leader: will do the updates
@@ -63,11 +63,13 @@ class ActiveStandbyService(ServiceRunner):
                 # we can watch the key for changes, only after there is a change
                 self._start_watch_leader_change(self.current_leader)
                 self._start_leader_heartbeat(self.current_leader)
+                logger.info("Become leader. Run as active.")
                 while True:
                     if self._is_stop():
                         break
                     leader, current_leader = self._am_i_leader()
                     if not leader:
+                        logger.info("Lost leader. Step down.")
                         self._stop_leader_heartbeat()
                         # I think I am the leader, but seems the world is changing
                         self._step_down()
@@ -81,6 +83,7 @@ class ActiveStandbyService(ServiceRunner):
                     self._run()
             else:
                 # Other one is a leader: wait for a change and try a new election
+                logger.debug("There is a leader. Waiting for change.")
                 self._start_watch_leader_change(self.current_leader)
                 self._wait_leader_change()
             # backoff and try election

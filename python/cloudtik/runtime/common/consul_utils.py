@@ -6,6 +6,7 @@ from cloudtik.core._private.util.rest_api import rest_api_get_json, rest_api_put
 CONSUL_CLIENT_ADDRESS = "127.0.0.1"
 CONSUL_HTTP_PORT = 8500
 CONSUL_REQUEST_TIMEOUT = 5
+CONSUL_BLOCKING_QUERY_TIMEOUT = 10 * 60
 
 REST_ENDPOINT_URL_FORMAT = "http://{}:{}{}"
 
@@ -18,7 +19,8 @@ REST_ENDPOINT_KV = "/v1/kv"
 
 
 def consul_api_get(
-        endpoint: str, address: Optional[Tuple[str, int]] = None):
+        endpoint: str, address: Optional[Tuple[str, int]] = None,
+        timeout=CONSUL_REQUEST_TIMEOUT):
     if address:
         host, _ = address
         endpoint_url = REST_ENDPOINT_URL_FORMAT.format(
@@ -26,7 +28,7 @@ def consul_api_get(
     else:
         endpoint_url = REST_ENDPOINT_URL_FORMAT.format(
             CONSUL_CLIENT_ADDRESS, CONSUL_HTTP_PORT, endpoint)
-    return rest_api_get_json(endpoint_url, timeout=CONSUL_REQUEST_TIMEOUT)
+    return rest_api_get_json(endpoint_url, timeout=timeout)
 
 
 def consul_api_put(
@@ -127,9 +129,12 @@ def get_key_meta(key):
 
 def query_key_blocking(key, index):
     try:
-        endpoint_url = "{}/{}?index=".format(
+        # wait parameter specifying a maximum duration for the blocking request.
+        # This is limited to 10 minutes. If not set, the wait time defaults to 5 minutes.
+        endpoint_url = "{}/{}?index={}&wait=10m".format(
             REST_ENDPOINT_KV, key, index)
-        return consul_api_get(endpoint_url)
+        return consul_api_get(
+            endpoint_url, timeout=CONSUL_BLOCKING_QUERY_TIMEOUT)
     except urllib.error.HTTPError as e:
         if e.code == 404:
             return None
