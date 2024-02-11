@@ -47,13 +47,15 @@ class Lock(object):
         :return: True if the lock was successfully acquired,
             false if it was not (unreachable if failing hard)
         """
-        raise RuntimeError("An lock implementation needs to override this.")
+        raise RuntimeError(
+            "A lock implementation needs to override this.")
 
     def release(self):
         """
         Release the lock immediately. Does nothing if never locked.
         """
-        raise RuntimeError("An lock implementation needs to override this.")
+        raise RuntimeError(
+            "A lock implementation needs to override this.")
 
     @contextlib.contextmanager
     def hold(self):
