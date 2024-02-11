@@ -9,29 +9,12 @@ from cloudtik.core._private.service_discovery.utils import SERVICE_SELECTOR_SERV
     SERVICE_DISCOVERY_LABEL_RUNTIME, SERVICE_SELECTOR_SERVICE_TYPES, SERVICE_DISCOVERY_LABEL_SERVICE, \
     SERVICE_DISCOVERY_LABEL_SEQ
 from cloudtik.core._private.util.core_utils import get_intersect_labels
-from cloudtik.core._private.util.rest_api import rest_api_get_json
+from cloudtik.runtime.common.consul_utils import consul_api_get
 from cloudtik.runtime.common.service_discovery.utils import ServiceInstance
 
-REST_ENDPOINT_URL_FORMAT = "http://{}:{}{}"
 REST_ENDPOINT_CATALOG = "/v1/catalog"
 REST_ENDPOINT_CATALOG_SERVICES = REST_ENDPOINT_CATALOG + "/services"
 REST_ENDPOINT_CATALOG_SERVICE = REST_ENDPOINT_CATALOG + "/service"
-
-CONSUL_CLIENT_ADDRESS = "127.0.0.1"
-CONSUL_HTTP_PORT = 8500
-CONSUL_REQUEST_TIMEOUT = 5
-
-
-def consul_api_get(
-        endpoint: str, address: Optional[Tuple[str, int]] = None):
-    if address:
-        host, _ = address
-        endpoint_url = REST_ENDPOINT_URL_FORMAT.format(
-            host, CONSUL_HTTP_PORT, endpoint)
-    else:
-        endpoint_url = REST_ENDPOINT_URL_FORMAT.format(
-            CONSUL_CLIENT_ADDRESS, CONSUL_HTTP_PORT, endpoint)
-    return rest_api_get_json(endpoint_url, timeout=CONSUL_REQUEST_TIMEOUT)
 
 
 def get_expressions_of_service_selector(service_selector):
