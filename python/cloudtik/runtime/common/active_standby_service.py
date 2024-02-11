@@ -39,6 +39,7 @@ class ActiveStandbyService(ServiceRunner):
 
     def run(self):
         self._run_watch_thread()
+        self._run_heartbeat_thread()
         while True:
             if self._is_stop():
                 break

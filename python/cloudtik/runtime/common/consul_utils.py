@@ -16,6 +16,7 @@ REST_ENDPOINT_SESSION_RENEW = REST_ENDPOINT_SESSION + "/renew"
 
 REST_ENDPOINT_KV = "/v1/kv"
 
+
 def consul_api_get(
         endpoint: str, address: Optional[Tuple[str, int]] = None):
     if address:
