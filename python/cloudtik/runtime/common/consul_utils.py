@@ -8,14 +8,14 @@ CONSUL_HTTP_PORT = 8500
 CONSUL_REQUEST_TIMEOUT = 5
 CONSUL_BLOCKING_QUERY_TIMEOUT = 10 * 60
 
-REST_ENDPOINT_URL_FORMAT = "http://{}:{}{}"
+CONSUL_REST_ENDPOINT_URL_FORMAT = "http://{}:{}{}"
 
-REST_ENDPOINT_SESSION = "/v1/session"
-REST_ENDPOINT_SESSION_CREATE = REST_ENDPOINT_SESSION + "/create"
-REST_ENDPOINT_SESSION_DESTROY = REST_ENDPOINT_SESSION + "/destroy"
-REST_ENDPOINT_SESSION_RENEW = REST_ENDPOINT_SESSION + "/renew"
+CONSUL_REST_ENDPOINT_SESSION = "/v1/session"
+CONSUL_REST_ENDPOINT_SESSION_CREATE = CONSUL_REST_ENDPOINT_SESSION + "/create"
+CONSUL_REST_ENDPOINT_SESSION_DESTROY = CONSUL_REST_ENDPOINT_SESSION + "/destroy"
+CONSUL_REST_ENDPOINT_SESSION_RENEW = CONSUL_REST_ENDPOINT_SESSION + "/renew"
 
-REST_ENDPOINT_KV = "/v1/kv"
+CONSUL_REST_ENDPOINT_KV = "/v1/kv"
 
 
 def consul_api_get(
@@ -23,10 +23,10 @@ def consul_api_get(
         timeout=CONSUL_REQUEST_TIMEOUT):
     if address:
         host, _ = address
-        endpoint_url = REST_ENDPOINT_URL_FORMAT.format(
+        endpoint_url = CONSUL_REST_ENDPOINT_URL_FORMAT.format(
             host, CONSUL_HTTP_PORT, endpoint)
     else:
-        endpoint_url = REST_ENDPOINT_URL_FORMAT.format(
+        endpoint_url = CONSUL_REST_ENDPOINT_URL_FORMAT.format(
             CONSUL_CLIENT_ADDRESS, CONSUL_HTTP_PORT, endpoint)
     return rest_api_get_json(endpoint_url, timeout=timeout)
 
@@ -35,10 +35,10 @@ def consul_api_put(
         endpoint: str, body, address: Optional[Tuple[str, int]] = None):
     if address:
         host, _ = address
-        endpoint_url = REST_ENDPOINT_URL_FORMAT.format(
+        endpoint_url = CONSUL_REST_ENDPOINT_URL_FORMAT.format(
             host, CONSUL_HTTP_PORT, endpoint)
     else:
-        endpoint_url = REST_ENDPOINT_URL_FORMAT.format(
+        endpoint_url = CONSUL_REST_ENDPOINT_URL_FORMAT.format(
             CONSUL_CLIENT_ADDRESS, CONSUL_HTTP_PORT, endpoint)
     return rest_api_put_json(
         endpoint_url, body, timeout=CONSUL_REQUEST_TIMEOUT)
@@ -65,7 +65,7 @@ are automatically deleted by Consul.
 
 
 def create_session(lock_delay, ttl, behavior="release"):
-    endpoint_url = REST_ENDPOINT_SESSION_CREATE
+    endpoint_url = CONSUL_REST_ENDPOINT_SESSION_CREATE
     data = {
         "LockDelay": f"{lock_delay}s",
         "Behavior": behavior,
@@ -77,13 +77,13 @@ def create_session(lock_delay, ttl, behavior="release"):
 
 def destroy_session(session_id):
     endpoint_url = "{}/{}".format(
-        REST_ENDPOINT_SESSION_DESTROY, session_id)
+        CONSUL_REST_ENDPOINT_SESSION_DESTROY, session_id)
     return consul_api_put(endpoint_url, body=None)
 
 
 def renew_session(session_id):
     endpoint_url = "{}/{}".format(
-        REST_ENDPOINT_SESSION_RENEW, session_id)
+        CONSUL_REST_ENDPOINT_SESSION_RENEW, session_id)
     return consul_api_put(endpoint_url, body=None)
 
 
@@ -95,7 +95,7 @@ The acquire operation acts like a Check-And-Set operation except
 
 def acquire_key(session_id, key, data):
     endpoint_url = "{}/{}?acquire={}".format(
-        REST_ENDPOINT_KV, key, session_id)
+        CONSUL_REST_ENDPOINT_KV, key, session_id)
     return consul_api_put(endpoint_url, body=data)
 
 
@@ -111,14 +111,14 @@ if necessary.
 
 def release_key(session_id, key):
     endpoint_url = "{}/{}?release={}".format(
-        REST_ENDPOINT_KV, key, session_id)
+        CONSUL_REST_ENDPOINT_KV, key, session_id)
     return consul_api_put(endpoint_url, body=None)
 
 
-def get_key_meta(key):
+def get_key(key):
     try:
         endpoint_url = "{}/{}".format(
-            REST_ENDPOINT_KV, key)
+            CONSUL_REST_ENDPOINT_KV, key)
         return consul_api_get(endpoint_url)
     except urllib.error.HTTPError as e:
         if e.code == 404:
@@ -132,7 +132,7 @@ def query_key_blocking(key, index):
         # wait parameter specifying a maximum duration for the blocking request.
         # This is limited to 10 minutes. If not set, the wait time defaults to 5 minutes.
         endpoint_url = "{}/{}?index={}&wait=10m".format(
-            REST_ENDPOINT_KV, key, index)
+            CONSUL_REST_ENDPOINT_KV, key, index)
         return consul_api_get(
             endpoint_url, timeout=CONSUL_BLOCKING_QUERY_TIMEOUT)
     except urllib.error.HTTPError as e:

@@ -2,7 +2,7 @@ from datetime import datetime
 
 from cloudtik.runtime.common.consul_utils import \
     create_session, acquire_key, destroy_session, renew_session, \
-    get_key_meta, query_key_blocking
+    get_key, query_key_blocking
 from cloudtik.runtime.common.leader_election.leader_election_base import LeaderElection
 
 # the key will always be substituted into this pattern
@@ -62,11 +62,11 @@ class ConsulLeaderElection(LeaderElection):
         """
         Query the key for current leader
         """
-        key_metas = get_key_meta(self.full_key)
-        if not key_metas:
+        keys = get_key(self.full_key)
+        if not keys:
             # no leader
             return None
-        key_meta = key_metas[0]
+        key_meta = keys[0]
         session_id = self._get_session_id(key_meta)
         if not session_id:
             return None
@@ -94,10 +94,10 @@ class ConsulLeaderElection(LeaderElection):
         if not current_leader:
             return None
         index = self._get_modify_index(current_leader)
-        key_metas = query_key_blocking(self.full_key, index)
-        if not key_metas:
+        keys = query_key_blocking(self.full_key, index)
+        if not keys:
             return None
-        key_meta = key_metas[0]
+        key_meta = keys[0]
         modify_index = self._get_modify_index(key_meta)
         if modify_index < index:
             # While indexes in general are monotonically increasing,
