@@ -4,8 +4,8 @@ import logging
 import urllib
 import urllib.error
 import urllib.parse
-import urllib.request
 
+from cloudtik.core._private.util.core_utils import url_read
 from cloudtik.core._private.workspace.workspace_operator import (
     create_workspace, delete_workspace, show_status, show_workspace_info,
     show_managed_cloud_storage, show_managed_cloud_storage_uri, update_workspace,
@@ -55,8 +55,7 @@ def create(
     if urllib.parse.urlparse(
             workspace_config_file).scheme in ("http", "https"):
         try:
-            response = urllib.request.urlopen(workspace_config_file, timeout=5)
-            content = response.read()
+            content = url_read(workspace_config_file, timeout=5)
             file_name = workspace_config_file.split("/")[-1]
             with open(file_name, "wb") as f:
                 f.write(content)

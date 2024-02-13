@@ -2,12 +2,11 @@ import json
 import logging
 from typing import Any, Dict, Optional
 import time
-import urllib.request
 import urllib.error
 
 from cloudtik.core._private import constants
 from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_YARN
-from cloudtik.core._private.util.core_utils import address_to_ip
+from cloudtik.core._private.util.core_utils import address_to_ip, url_read
 from cloudtik.core._private.state.state_utils import NODE_STATE_NODE_ID, NODE_STATE_NODE_IP, NODE_STATE_TIME
 from cloudtik.core._private.utils import make_node_id, \
     convert_nodes_to_cpus, convert_nodes_to_memory, get_runtime_config, \
@@ -200,8 +199,7 @@ class YARNScalingPolicy(ScalingPolicy):
         cluster_metrics_url = YARN_REST_ENDPOINT_CLUSTER_METRICS.format(
             self.head_host, self.rest_port)
         try:
-            response = urllib.request.urlopen(cluster_metrics_url, timeout=10)
-            content = response.read()
+            content = url_read(cluster_metrics_url, timeout=10)
         except urllib.error.URLError as e:
             logger.error(
                 "Failed to retrieve the cluster metrics: {}".format(str(e)))
@@ -301,8 +299,7 @@ class YARNScalingPolicy(ScalingPolicy):
         cluster_nodes_url = YARN_REST_ENDPOINT_CLUSTER_NODES.format(
             self.head_host, self.rest_port)
         try:
-            response = urllib.request.urlopen(cluster_nodes_url, timeout=10)
-            content = response.read()
+            content = url_read(cluster_nodes_url, timeout=10)
         except urllib.error.URLError as e:
             logger.error("Failed to retrieve the cluster nodes metrics: {}".format(str(e)))
             return None, None

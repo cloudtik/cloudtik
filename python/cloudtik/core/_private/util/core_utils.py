@@ -1,6 +1,7 @@
 import base64
 import binascii
 import collections
+import contextlib
 import copy
 import errno
 import hashlib
@@ -17,6 +18,8 @@ import sys
 import tempfile
 import threading
 import time
+import urllib
+import urllib.request
 from contextlib import closing, contextmanager
 from functools import partial
 from typing import Optional, List, Dict
@@ -1282,3 +1285,14 @@ def get_intersect_labels(labels1, labels2, value: bool = True):
         return {key: labels1[key] for key in labels if labels2[key] == labels2[key]}
     else:
         return {key: labels1[key] for key in labels}
+
+
+def url_read(url_or_req, timeout=None):
+    if timeout is not None:
+        response = urllib.request.urlopen(
+            url_or_req, timeout=timeout)
+    else:
+        response = urllib.request.urlopen(
+            url_or_req)
+    with contextlib.closing(response):
+        return response.read()

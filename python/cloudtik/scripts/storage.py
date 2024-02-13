@@ -4,11 +4,11 @@ import logging
 import urllib
 import urllib.error
 import urllib.parse
-import urllib.request
 
 from cloudtik.core._private.storage.storage_operator import (
     create_storage, delete_storage, show_storage_info)
 from cloudtik.core._private.cli_logger import (add_click_logging_options, cli_logger)
+from cloudtik.core._private.util.core_utils import url_read
 from cloudtik.scripts.utils import NaturalOrderGroup
 
 logger = logging.getLogger(__name__)
@@ -46,8 +46,7 @@ def create(
     """Create a storage on cloud using the storage configuration file."""
     if urllib.parse.urlparse(storage_config_file).scheme in ("http", "https"):
         try:
-            response = urllib.request.urlopen(storage_config_file, timeout=5)
-            content = response.read()
+            content = url_read(storage_config_file, timeout=5)
             file_name = storage_config_file.split("/")[-1]
             with open(file_name, "wb") as f:
                 f.write(content)
