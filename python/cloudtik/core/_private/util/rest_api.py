@@ -166,28 +166,28 @@ def rest_api_post_json(
 
 
 def rest_api_put_json(
-        endpoint_url, body,
-        auth=None, timeout=None, with_headers=False):
+        endpoint_url, body, auth=None, timeout=None,
+        with_headers=False):
     data = json.dumps(body)
     response = rest_api_put(
-        endpoint_url, data, "json",
-        auth=auth, timeout=timeout, with_headers=with_headers)
+        endpoint_url, data, "json", auth=auth, timeout=timeout,
+        with_headers=with_headers)
     return _load_json(response, with_headers=with_headers)
 
 
 def rest_api_method_json(
-        endpoint_url, body,
-        method=None, auth=None, timeout=None, with_headers=False):
+        endpoint_url, body, method=None, auth=None, timeout=None,
+        with_headers=False):
     data = json.dumps(body)
     response = rest_api_method(
-        endpoint_url, data, "json",
-        method=method, auth=auth, timeout=timeout, with_headers=with_headers)
+        endpoint_url, data, "json", method=method, auth=auth,
+        timeout=timeout, with_headers=with_headers)
     return _load_json(response, with_headers=with_headers)
 
 
 def rest_api_delete_json(
         endpoint_url, auth=None, timeout=None, with_headers=False):
     response = rest_api_delete(
-        endpoint_url,
-        auth=auth, timeout=timeout, with_headers=with_headers)
+        endpoint_url, auth=auth, timeout=timeout,
+        with_headers=with_headers)
     return _load_json(response, with_headers=with_headers)
