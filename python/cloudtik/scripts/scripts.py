@@ -6,7 +6,6 @@ import shlex
 import urllib
 import urllib.error
 import urllib.parse
-import urllib.request
 from typing import Optional
 
 import click
@@ -24,6 +23,7 @@ from cloudtik.core._private.cluster.cluster_operator import (
     cluster_health_check, cluster_process_status, attach_worker, scale_cluster,
     exec_on_nodes, submit_and_exec, _wait_for_ready, _rsync, cli_call_context, cluster_resource_metrics,
     show_info, _run_script, cluster_logs, get_worker_node_hosts, get_head_node_host)
+from cloudtik.core._private.util.core_utils import url_read
 from cloudtik.core._private.utils import parse_bundles_json, parse_resources
 from cloudtik.scripts.head_scripts import head
 from cloudtik.scripts.node_scripts import node
@@ -154,8 +154,7 @@ def start(
 
     if urllib.parse.urlparse(cluster_config_file).scheme in ("http", "https"):
         try:
-            response = urllib.request.urlopen(cluster_config_file, timeout=5)
-            content = response.read()
+            content = url_read(cluster_config_file, timeout=5)
             file_name = cluster_config_file.split("/")[-1]
             with open(file_name, "wb") as f:
                 f.write(content)

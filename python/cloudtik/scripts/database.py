@@ -4,11 +4,11 @@ import logging
 import urllib
 import urllib.error
 import urllib.parse
-import urllib.request
 
 from cloudtik.core._private.database.database_operator import (
     create_database, delete_database, show_database_info)
 from cloudtik.core._private.cli_logger import (add_click_logging_options, cli_logger)
+from cloudtik.core._private.util.core_utils import url_read
 from cloudtik.scripts.utils import NaturalOrderGroup
 
 logger = logging.getLogger(__name__)
@@ -46,8 +46,7 @@ def create(
     """Create a database on cloud using the database configuration file."""
     if urllib.parse.urlparse(database_config_file).scheme in ("http", "https"):
         try:
-            response = urllib.request.urlopen(database_config_file, timeout=5)
-            content = response.read()
+            content = url_read(database_config_file, timeout=5)
             file_name = database_config_file.split("/")[-1]
             with open(file_name, "wb") as f:
                 f.write(content)

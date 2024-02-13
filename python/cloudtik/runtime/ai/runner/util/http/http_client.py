@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # =============================================================================
+import contextlib
 from urllib.error import HTTPError, URLError
 from urllib.request import Request
 from urllib.request import urlopen
@@ -25,11 +26,13 @@ def read_data_from_kvstore(addr, port, scope, key):
             addr=addr, port=str(port), scope=scope, key=key
         )
         req = Request(url)
-        resp = urlopen(req)
-        # TODO: remove base64 encoding because base64 is not efficient
-        return codec.loads_base64(resp.read())
+        with contextlib.closing(
+                urlopen(req)) as response:
+            # TODO: remove base64 encoding because base64 is not efficient
+            return codec.loads_base64(response.read())
     except (HTTPError, URLError) as e:
-        raise RuntimeError("Read data from KVStore server failed.", e)
+        raise RuntimeError(
+            "Read data from KVStore server failed.", e)
 
 
 def put_data_into_kvstore(addr, port, scope, key, value):
@@ -39,6 +42,8 @@ def put_data_into_kvstore(addr, port, scope, key, value):
         )
         req = Request(url, data=codec.dumps_base64(value, to_ascii=False))
         req.get_method = lambda: "PUT"  # for urllib2 compatibility
-        urlopen(req)
+        with contextlib.closing(urlopen(req)):
+            pass
     except (HTTPError, URLError) as e:
-        raise RuntimeError("Put data input KVStore server failed.", e)
+        raise RuntimeError(
+            "Put data input KVStore server failed.", e)

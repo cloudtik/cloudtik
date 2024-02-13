@@ -1,13 +1,13 @@
 import json
 import urllib
 import urllib.parse
-import urllib.request
 import urllib.error
 from typing import Any, Dict
 
 import botocore
 
 from cloudtik.core._private.cli_logger import cli_logger
+from cloudtik.core._private.util.core_utils import url_read
 from cloudtik.core._private.utils import _is_use_managed_cloud_storage, _is_managed_cloud_storage, \
     _is_managed_cloud_database, _is_use_managed_cloud_database, get_provider_config, get_workspace_name
 from cloudtik.core.workspace_provider import Existence
@@ -404,8 +404,8 @@ def _get_oidc_provider_server_name_and_port(oidc_provider_url):
     # Retrieve a json from oidc_provider_url + "/.well-known/openid-configuration"
     openid_config_url = oidc_provider_url + "/.well-known/openid-configuration"
     try:
-        response = urllib.request.urlopen(openid_config_url, timeout=10)
-        content = response.read()
+        content = url_read(
+            openid_config_url, timeout=10)
     except urllib.error.HTTPError as e:
         cli_logger.error(
             "Failed to retrieve open id configuration. {}", str(e))

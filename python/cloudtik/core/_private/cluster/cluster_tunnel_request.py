@@ -8,6 +8,7 @@ import urllib.error
 from paramiko import ProxyCommand
 
 from cloudtik.core._private.cluster.cluster_config import _load_cluster_config
+from cloudtik.core._private.util.core_utils import url_read
 from cloudtik.core._private.utils import get_cluster_head_ip, is_use_internal_ip
 
 REST_ENDPOINT_URL_FORMAT = "http://{}:{}/{}"
@@ -74,9 +75,8 @@ def request_rest_direct(rest_api_ip: str, rest_api_port: int, endpoint: str):
     proxy_support = urllib.request.ProxyHandler({"no": "127.0.0.1"})
     opener = urllib.request.build_opener(proxy_support)
     urllib.request.install_opener(opener)
-
-    response = urllib.request.urlopen(endpoint_url, timeout=REST_REQUEST_TIMEOUT)
-    return response.read()
+    return url_read(
+        endpoint_url, timeout=REST_REQUEST_TIMEOUT)
 
 
 def request_tunnel_to_server(

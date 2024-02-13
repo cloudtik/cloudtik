@@ -1,4 +1,5 @@
 import base64
+import contextlib
 import json
 import urllib
 import urllib.request
@@ -18,9 +19,23 @@ REST_API_AUTH_API_KEY = "api-key"
 def rest_api_open(url_or_req, timeout=None):
     if timeout is None:
         timeout = REST_API_REQUEST_TIMEOUT
-    response = urllib.request.urlopen(
+    return urllib.request.urlopen(
         url_or_req, timeout=timeout)
-    return response.read()
+
+
+def rest_api_read(
+        url_or_req, timeout=None, with_headers=False):
+    if timeout is None:
+        timeout = REST_API_REQUEST_TIMEOUT
+    with contextlib.closing(
+            urllib.request.urlopen(
+                url_or_req, timeout=timeout)) as response:
+        if with_headers:
+            body = response.read()
+            headers = response.info()
+            return body, headers
+        else:
+            return response.read()
 
 
 def _add_auth_header(req, auth):
@@ -57,12 +72,13 @@ def _add_api_key_auth_header(req, api_key):
 
 def _add_content_type_header(req, data_format):
     if data_format:
-        req.add_header('Content-Type', 'application/{}; charset=utf-8'.format(
-            data_format))
+        req.add_header(
+            'Content-Type', 'application/{}; charset=utf-8'.format(
+                data_format))
 
 
 def rest_api_get(
-        endpoint_url, auth=None, timeout=None):
+        endpoint_url, auth=None, timeout=None, with_headers=False):
     # disable all proxy on 127.0.0.1
     proxy_support = urllib.request.ProxyHandler({"no": "127.0.0.1"})
     opener = urllib.request.build_opener(proxy_support)
@@ -70,10 +86,24 @@ def rest_api_get(
 
     req = urllib.request.Request(endpoint_url)
     _add_auth_header(req, auth)
-    return rest_api_open(req, timeout=timeout)
+    return rest_api_read(
+        req, timeout=timeout, with_headers=with_headers)
 
 
 def rest_api_method(
+        endpoint_url, data, data_format=None,
+        method=None, auth=None, timeout=None, with_headers=False):
+    data_in_bytes = data.encode(
+        'utf-8') if data is not None else None  # needs to be bytes
+    req = urllib.request.Request(
+        endpoint_url, data=data_in_bytes, method=method)
+    _add_content_type_header(req, data_format)
+    _add_auth_header(req, auth)
+    return rest_api_read(
+        req, timeout=timeout, with_headers=with_headers)
+
+
+def rest_api_method_open(
         endpoint_url, data, data_format=None,
         method=None, auth=None, timeout=None):
     data_in_bytes = data.encode(
@@ -82,65 +112,82 @@ def rest_api_method(
         endpoint_url, data=data_in_bytes, method=method)
     _add_content_type_header(req, data_format)
     _add_auth_header(req, auth)
-    return rest_api_open(req, timeout=timeout)
+    return rest_api_open(
+        req, timeout=timeout)
 
 
 def rest_api_post(
         endpoint_url, data, data_format=None,
-        auth=None, timeout=None):
+        auth=None, timeout=None, with_headers=False):
     return rest_api_method(
         endpoint_url, data, data_format,
-        auth=auth, timeout=timeout)
+        auth=auth, timeout=timeout, with_headers=with_headers)
 
 
 def rest_api_put(
         endpoint_url, data, data_format=None,
-        auth=None, timeout=None):
+        auth=None, timeout=None, with_headers=False):
     return rest_api_method(
         endpoint_url, data, data_format,
-        method="PUT", auth=auth, timeout=timeout)
+        method="PUT", auth=auth, timeout=timeout, with_headers=with_headers)
 
 
 def rest_api_delete(
-        endpoint_url, auth=None, timeout=None):
+        endpoint_url, auth=None, timeout=None, with_headers=False):
     req = urllib.request.Request(url=endpoint_url, method="DELETE")
     _add_auth_header(req, auth)
-    return rest_api_open(req, timeout=timeout)
+    return rest_api_read(
+        req, timeout=timeout, with_headers=with_headers)
+
+
+def _load_json(response, with_headers=False):
+    if with_headers:
+        body, headers = response
+        return json.loads(body), headers
+    else:
+        return json.loads(response)
 
 
 def rest_api_get_json(
-        endpoint_url, auth=None, timeout=None):
+        endpoint_url, auth=None, timeout=None, with_headers=False):
     response = rest_api_get(
-        endpoint_url, auth=auth, timeout=timeout)
-    return json.loads(response)
+        endpoint_url,
+        auth=auth, timeout=timeout, with_headers=with_headers)
+    return _load_json(response, with_headers=with_headers)
 
 
 def rest_api_post_json(
-        endpoint_url, body, auth=None, timeout=None):
+        endpoint_url, body, auth=None, timeout=None, with_headers=False):
     data = json.dumps(body)
     response = rest_api_post(
-        endpoint_url, data, "json", auth=auth, timeout=timeout)
-    return json.loads(response)
+        endpoint_url, data, "json",
+        auth=auth, timeout=timeout, with_headers=with_headers)
+    return _load_json(response, with_headers=with_headers)
 
 
 def rest_api_put_json(
-        endpoint_url, body, auth=None, timeout=None):
+        endpoint_url, body,
+        auth=None, timeout=None, with_headers=False):
     data = json.dumps(body)
     response = rest_api_put(
-        endpoint_url, data, "json", auth=auth, timeout=timeout)
-    return json.loads(response)
+        endpoint_url, data, "json",
+        auth=auth, timeout=timeout, with_headers=with_headers)
+    return _load_json(response, with_headers=with_headers)
 
 
 def rest_api_method_json(
-        endpoint_url, body, method=None, auth=None, timeout=None):
+        endpoint_url, body,
+        method=None, auth=None, timeout=None, with_headers=False):
     data = json.dumps(body)
     response = rest_api_method(
-        endpoint_url, data, "json", method=method, auth=auth, timeout=timeout)
-    return json.loads(response)
+        endpoint_url, data, "json",
+        method=method, auth=auth, timeout=timeout, with_headers=with_headers)
+    return _load_json(response, with_headers=with_headers)
 
 
 def rest_api_delete_json(
-        endpoint_url, auth=None, timeout=None):
+        endpoint_url, auth=None, timeout=None, with_headers=False):
     response = rest_api_delete(
-        endpoint_url, auth=auth, timeout=timeout)
-    return json.loads(response)
+        endpoint_url,
+        auth=auth, timeout=timeout, with_headers=with_headers)
+    return _load_json(response, with_headers=with_headers)

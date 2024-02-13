@@ -8,7 +8,6 @@ import tempfile
 import threading
 import time
 import unittest
-import urllib
 from collections import defaultdict
 from types import ModuleType
 
@@ -37,6 +36,7 @@ from cloudtik.core._private.node.node_updater import NodeUpdater
 from cloudtik.core._private.prometheus_metrics import ClusterPrometheusMetrics
 from cloudtik.core._private.state.control_state import ControlState
 from cloudtik.core._private.state.scaling_state import ScalingStateClient
+from cloudtik.core._private.util.core_utils import url_read
 from cloudtik.core._private.utils import prepare_config, validate_config, fill_with_defaults, \
     set_node_type_min_max_workers, DOCKER_CONFIG_KEY, RUNTIME_CONFIG_KEY, get_cluster_uri, hash_launch_conf, \
     hash_runtime_conf, is_docker_enabled, get_commands_to_run, cluster_booting_completed, merge_cluster_config, \
@@ -1154,8 +1154,7 @@ class CloudTikTest(unittest.TestCase):
     def testValidateNetworkConfig(self):
         web_yaml = ("https://raw.githubusercontent.com/cloudtik/cloudtik/main/"
                     "python/cloudtik/templates/aws/small.yaml")
-        response = urllib.request.urlopen(web_yaml, timeout=5)
-        content = response.read()
+        content = url_read(web_yaml, timeout=5)
         with tempfile.TemporaryFile() as f:
             f.write(content)
             f.seek(0)
