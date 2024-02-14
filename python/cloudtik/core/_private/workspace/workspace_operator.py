@@ -17,8 +17,8 @@ from cloudtik.core._private.utils import \
     is_managed_cloud_database, is_managed_cloud_storage, print_dict_info, \
     NODE_INFO_NODE_IP, handle_cli_override, load_yaml_config, save_config_cache, load_config_from_cache, \
     merge_config_hierarchy, get_workspace_provider_of, get_workspace_name
-from cloudtik.core._private.provider_factory import _get_workspace_provider_cls, \
-    _WORKSPACE_PROVIDERS, _PROVIDER_PRETTY_NAMES, _get_node_provider_cls
+from cloudtik.core._private.provider_factory import _PROVIDER_PRETTY_NAMES, _get_node_provider_cls
+from cloudtik.core._private.workspace_provider_factory import _WORKSPACE_PROVIDERS, _get_workspace_provider_cls
 from cloudtik.core._private.cli_logger import cli_logger, cf
 
 logger = logging.getLogger(__name__)

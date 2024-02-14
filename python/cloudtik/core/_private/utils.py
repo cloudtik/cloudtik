@@ -43,8 +43,10 @@ from cloudtik.core._private.util.schema_utils import CLUSTER_SCHEMA_NAME, CLUSTE
     validate_schema_by_name
 from cloudtik.core.node_provider import NodeProvider
 from cloudtik.core._private.provider_factory import _get_default_config, _get_node_provider, \
-    _get_provider_config_object, _get_node_provider_cls, _get_workspace_provider, _get_database_provider, \
-    _get_storage_provider
+    _get_provider_config_object, _get_node_provider_cls
+from cloudtik.core._private.workspace_provider_factory import _get_workspace_provider
+from cloudtik.core._private.storage_provider_factory import _get_storage_provider
+from cloudtik.core._private.database_provider_factory import _get_database_provider
 from cloudtik.core._private.docker import validate_docker_config
 from cloudtik.core.scaling_policy import ScalingState
 from cloudtik.core.tags import CLOUDTIK_TAG_USER_NODE_TYPE, CLOUDTIK_TAG_NODE_STATUS, STATUS_UP_TO_DATE, \
