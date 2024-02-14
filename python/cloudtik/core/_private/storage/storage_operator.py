@@ -8,8 +8,8 @@ from cloudtik.core._private.util.schema_utils import STORAGE_SCHEMA_NAME, STORAG
 from cloudtik.core._private.utils import print_dict_info, \
     load_yaml_config, handle_cli_override, save_config_cache, load_config_from_cache, merge_config_hierarchy, \
     get_storage_provider_of
-from cloudtik.core._private.provider_factory import _get_storage_provider_cls, \
-    _STORAGE_PROVIDERS, _PROVIDER_PRETTY_NAMES
+from cloudtik.core._private.provider_factory import _PROVIDER_PRETTY_NAMES
+from cloudtik.core._private.storage_provider_factory import _STORAGE_PROVIDERS, _get_storage_provider_cls
 from cloudtik.core._private.cli_logger import cli_logger, cf
 
 
