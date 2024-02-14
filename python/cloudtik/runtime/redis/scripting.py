@@ -13,7 +13,7 @@ from cloudtik.core._private.util.runtime_utils import get_first_data_disk_dir, g
     get_runtime_config_from_node, get_runtime_value, run_func_with_retry, get_runtime_head_host, \
     get_runtime_node_host, get_runtime_node_ip, get_runtime_workspace_name, \
     get_runtime_cluster_name, get_runtime_node_type
-from cloudtik.runtime.common.lock.runtime_lock import get_runtime_lock
+from cloudtik.runtime.common.lock.runtime_lock import get_runtime_lock, get_runtime_lock_url
 from cloudtik.runtime.redis.utils import _get_home_dir, _get_master_size, _get_config, _get_reshard_delay, \
     _get_sharding_config, _get_master_node_type
 
@@ -232,7 +232,8 @@ def _get_task_lock(runtime_config, task_name):
     workspace_name = get_runtime_workspace_name()
     cluster_name = get_runtime_cluster_name()
     lock_name = f"{workspace_name}.{cluster_name}.redis.{task_name}"
-    return get_runtime_lock(runtime_config, lock_name)
+    url = get_runtime_lock_url(runtime_config, BUILT_IN_RUNTIME_REDIS)
+    return get_runtime_lock(url, lock_name)
 
 
 def _assign_cluster_role_with_lock(

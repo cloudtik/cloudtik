@@ -28,12 +28,11 @@ class LoadBalancerController(ActiveStandbyService):
 
     def __init__(
             self,
+            coordinator_url: str = None,
             interval=None,
-            service_selector=None,
-            runtime_types: str = None):
-        runtime_types = split_list(runtime_types) if runtime_types else None
+            service_selector=None):
         super().__init__(
-            runtime_types,
+            coordinator_url,
             LOAD_BALANCER_CONTROLLER_SERVICE_NAME,
             leader_ttl=DEFAULT_LOAD_BALANCER_LEADER_TTL,
             leader_elect_delay=DEFAULT_LOAD_BALANCER_LEADER_ELECT_DELAY)
