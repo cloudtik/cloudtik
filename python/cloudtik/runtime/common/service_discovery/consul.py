@@ -1,4 +1,4 @@
-from typing import Optional, Tuple
+from typing import Optional
 from urllib.parse import quote
 
 from cloudtik.core._private.service_discovery.naming import get_cluster_node_fqdn, get_cluster_node_sqdn
@@ -9,7 +9,8 @@ from cloudtik.core._private.service_discovery.utils import SERVICE_SELECTOR_SERV
     SERVICE_DISCOVERY_LABEL_RUNTIME, SERVICE_SELECTOR_SERVICE_TYPES, SERVICE_DISCOVERY_LABEL_SERVICE, \
     SERVICE_DISCOVERY_LABEL_SEQ
 from cloudtik.core._private.util.core_utils import get_intersect_labels
-from cloudtik.runtime.common.consul_utils import consul_api_get
+from cloudtik.core._private.util.rest_api import EndPointAddress
+from cloudtik.runtime.common.consul_utils import consul_api_get, ConsulClient
 from cloudtik.runtime.common.service_discovery.utils import ServiceInstance
 
 REST_ENDPOINT_CATALOG = "/v1/catalog"
@@ -130,25 +131,27 @@ def _get_endpoint_with_service_selector(base_endpoint, service_selector):
 
 
 def query_services(
-        service_selector, address: Optional[Tuple[str, int]] = None):
+        service_selector, address: Optional[EndPointAddress] = None):
     # query all the services with a service selector
     query_endpoint = _get_endpoint_with_service_selector(
         REST_ENDPOINT_CATALOG_SERVICES, service_selector)
 
+    client = ConsulClient(address)
     # The response is a dictionary of services with the value is the list of tags
-    return consul_api_get(query_endpoint, address=address)
+    return consul_api_get(client, query_endpoint)
 
 
 def query_service_nodes(
         service_name, service_selector,
-        address: Optional[Tuple[str, int]] = None):
+        address: Optional[EndPointAddress] = None):
     service_endpoint = "{}/{}".format(
             REST_ENDPOINT_CATALOG_SERVICE, service_name)
     query_endpoint = _get_endpoint_with_service_selector(
         service_endpoint, service_selector)
 
+    client = ConsulClient(address)
     # The response is a list of server nodes of this service
-    return consul_api_get(query_endpoint, address=address)
+    return consul_api_get(client, query_endpoint)
 
 
 def get_service_name_of_node(service_node):
@@ -356,7 +359,7 @@ def get_addresses_of_service_nodes(
 def query_service(
         service_name, service_selector,
         address_type: ServiceAddressType = ServiceAddressType.NODE_IP,
-        address: Optional[Tuple[str, int]] = None):
+        address: Optional[EndPointAddress] = None):
     service_nodes = query_service_nodes(
         service_name, service_selector, address=address)
     if not service_nodes:
@@ -398,7 +401,7 @@ def query_service(
 def query_services_from_consul(
         service_selector,
         address_type: ServiceAddressType = ServiceAddressType.NODE_IP,
-        address: Optional[Tuple[str, int]] = None,
+        address: Optional[EndPointAddress] = None,
         first: bool = False):
     services = query_services(service_selector, address=address)
     if not services:
@@ -426,7 +429,7 @@ def query_services_from_consul(
 
 def query_services_with_nodes(
         service_selector,
-        address: Optional[Tuple[str, int]] = None,
+        address: Optional[EndPointAddress] = None,
         first: bool = False):
     services_with_nodes = {}
     services = query_services(service_selector, address=address)
@@ -452,7 +455,7 @@ def query_services_with_nodes(
 def query_services_with_addresses(
         service_selector,
         address_type: ServiceAddressType = ServiceAddressType.NODE_IP,
-        address: Optional[Tuple[str, int]] = None,
+        address: Optional[EndPointAddress] = None,
         first: bool = False):
     services_with_addresses = {}
     services = query_services(service_selector, address=address)

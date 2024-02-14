@@ -1,7 +1,7 @@
 import time
 from datetime import datetime
 
-from cloudtik.runtime.common.consul_utils import destroy_session, acquire_key, create_session
+from cloudtik.runtime.common.consul_utils import destroy_session, acquire_key, create_session, ConsulClient
 from cloudtik.runtime.common.lock.lock_base import Lock, LOCK_MAX_ATTEMPTS, LockAcquisitionException
 
 # the key will always be substituted into this pattern before locking,
@@ -14,7 +14,8 @@ class ConsulLock(Lock):
             self,
             key,
             lock_timeout_seconds=None,
-            acquire_timeout_ms=None):
+            acquire_timeout_ms=None,
+            endpoints=None):
         """
         Args:
         key: the unique key to lock
@@ -22,8 +23,10 @@ class ConsulLock(Lock):
         lock_timeout_seconds: how long the lock will stay alive if it is never released,
             this is controlled by Consul's Session TTL and may stay alive a bit longer according
             to their docs. As of the current version of Consul, this must be between 10s and 86400s
+        endpoints: The endpoints for the Consul cluster. None for connecting with local.
         """
         super().__init__(key, acquire_timeout_ms, lock_timeout_seconds)
+        self.client = ConsulClient(endpoints)
         self.full_key = FULL_KEY_PATTERN % key
         self.session_id = None
         self._started_acquiring = False
@@ -93,6 +96,7 @@ class ConsulLock(Lock):
         session_invalidate_behavior = 'delete'
 
         session = create_session(
+            self.client,
             lock_delay=session_lock_delay,
             ttl=session_ttl,
             behavior=session_invalidate_behavior
@@ -101,16 +105,17 @@ class ConsulLock(Lock):
 
     def _destroy_session(self):
         assert self.session_id, 'Must have a session id to destroy'
-        return destroy_session(session_id=self.session_id)
+        return destroy_session(
+            self.client, session_id=self.session_id)
 
     def _acquire_key(self):
         assert self.session_id, 'Must have a session id to acquire key'
         data = dict(locked_at=str(datetime.now()))
         return acquire_key(
+            self.client,
             session_id=self.session_id,
             key=self.full_key,
-            data=data,
-        )
+            data=data)
 
     def _release_key(self):
         # destroying the session will is the safest way to release the lock. we'd like to delete the
