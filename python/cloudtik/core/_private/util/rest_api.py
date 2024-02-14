@@ -1,6 +1,5 @@
 import base64
 import contextlib
-import copy
 import json
 import threading
 import urllib
@@ -220,15 +219,23 @@ def get_rest_endpoint_url(
     return endpoint_url
 
 
+EndPointAddress = Union[str, List[str], Tuple[str, int], List[Tuple[str, int]]]
+
+
 class MultiEndpointClient:
     def __init__(
             self,
-            endpoints: Union[str, List[str]], default_port=None):
+            endpoints: EndPointAddress, default_port=None):
         # endpoints is a list or str
         if isinstance(endpoints, str):
             self.endpoints = split_list(endpoints)
+        elif isinstance(endpoints, tuple):
+            # single host and port tuple
+            self.endpoints = [endpoints]
         else:
+            # list string or tuple
             self.endpoints = endpoints
+        self.num_endpoints = len(self.endpoints)
         self.default_port = default_port
 
         # make a shallow copy of the origin endpoints
@@ -238,6 +245,14 @@ class MultiEndpointClient:
 
     def request(self, endpoint, func):
         # This method must be thread safe
+        if self.num_endpoints == 1:
+            endpoint_address = self.endpoints[0]
+            endpoint_url = self._get_endpoint_url(endpoint, endpoint_address)
+            return func(endpoint_url)
+        else:
+            return self._request_retry(endpoint, func)
+
+    def _request_retry(self, endpoint, func):
         health_endpoints = self._get_health_endpoints()
         # iterate the health endpoints
         failed_endpoints = set()
@@ -276,6 +291,6 @@ class MultiEndpointClient:
     def _get_endpoint_url(
             self,
             endpoint: str,
-            address: str = None):
+            address: Union[str, Tuple[str, int]] = None):
         return get_rest_endpoint_url(
             endpoint, address, self.default_port)

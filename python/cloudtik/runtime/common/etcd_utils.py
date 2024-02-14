@@ -1,11 +1,10 @@
 import contextlib
 import json
-from typing import Union, List
 import urllib.error
 
 from cloudtik.core._private.util.core_utils import base64_encode_string
 from cloudtik.core._private.util.rest_api import rest_api_get_json, rest_api_post_json, rest_api_method_open, \
-    MultiEndpointClient
+    MultiEndpointClient, EndPointAddress
 
 ETCD_HTTP_PORT = 2379
 ETCD_REQUEST_TIMEOUT = 5
@@ -28,7 +27,7 @@ ETCD_REST_ENDPOINT_WATCH = "/v3/watch"
 class EtcdClient(MultiEndpointClient):
     def __init__(
             self,
-            endpoints: Union[str, List[str]]):
+            endpoints: EndPointAddress):
         super().__init__(endpoints, default_port=ETCD_HTTP_PORT)
 
 

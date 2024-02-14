@@ -99,11 +99,10 @@ def query_services_from_discovery(
         # the address will be None
         addresses = get_consul_server_addresses(runtime_config)
         if addresses is not None:
-            # TODO: we can retry other addresses if failed
             services = query_services_from_consul(
                 service_selector,
                 address_type=address_type,
-                address=addresses[0],
+                address=addresses,
                 first=first)
             if services:
                 return services

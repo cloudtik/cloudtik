@@ -2,7 +2,7 @@ from datetime import datetime
 
 from cloudtik.runtime.common.consul_utils import \
     create_session, acquire_key, destroy_session, renew_session, \
-    get_key, query_key_blocking
+    get_key, query_key_blocking, ConsulClient
 from cloudtik.runtime.common.leader_election.leader_election_base import LeaderElection
 
 # the key will always be substituted into this pattern
@@ -15,15 +15,18 @@ class ConsulLeaderElection(LeaderElection):
             self,
             key,
             leader_ttl=None,
-            leader_elect_delay=None):
+            leader_elect_delay=None,
+            endpoints=None):
         """
         Args:
         key: the unique key to lock
         leader_ttl: how long the lock will stay alive if it is never released,
             this is controlled by Consul's Session TTL and may stay alive a bit longer according
             to their docs. As of the current version of Consul, this must be between 10s and 86400s
+        endpoints: The endpoints for the Consul cluster. None for connecting with local.
         """
         super().__init__(key, leader_ttl, leader_elect_delay)
+        self.client = ConsulClient(endpoints)
         self.full_key = FULL_KEY_PATTERN % key
         self.session_id = None
         self.leader = False
@@ -62,7 +65,7 @@ class ConsulLeaderElection(LeaderElection):
         """
         Query the key for current leader
         """
-        keys = get_key(self.full_key)
+        keys = get_key(self.client, self.full_key)
         if not keys:
             # no leader
             return None
@@ -94,7 +97,7 @@ class ConsulLeaderElection(LeaderElection):
         if not current_leader:
             return None
         index = self._get_modify_index(current_leader)
-        keys = query_key_blocking(self.full_key, index)
+        keys = query_key_blocking(self.client, self.full_key, index)
         if not keys:
             return None
         key_meta = keys[0]
@@ -115,7 +118,7 @@ class ConsulLeaderElection(LeaderElection):
         if not current_leader:
             return
         session_id = self._get_session_id(current_leader)
-        renew_session(session_id)
+        renew_session(self.client, session_id)
 
     def _create_session(self):
         # Consul prevents any of the previously held locks from being re-acquired
@@ -134,16 +137,17 @@ class ConsulLeaderElection(LeaderElection):
         session_invalidate_behavior = 'delete'
 
         session = create_session(
+            self.client,
             lock_delay=session_lock_delay,
             ttl=session_ttl,
-            behavior=session_invalidate_behavior
-        )
+            behavior=session_invalidate_behavior)
         return session
 
     def _destroy_session(self):
         if not self.session_id:
             return False
-        result = destroy_session(session_id=self.session_id)
+        result = destroy_session(
+            self.client, session_id=self.session_id)
         if result:
             self.session_id = None
             self.leader = False
@@ -153,10 +157,10 @@ class ConsulLeaderElection(LeaderElection):
         assert self.session_id, 'Must have a session id to acquire key'
         data = dict(locked_at=str(datetime.now()))
         return acquire_key(
+            self.client,
             session_id=self.session_id,
             key=self.full_key,
-            data=data,
-        )
+            data=data)
 
     def _release_key(self):
         # destroying the session will is the safest way to release the lock. we'd like to delete the
