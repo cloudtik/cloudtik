@@ -1,7 +1,7 @@
 import time
 from datetime import datetime
 
-from cloudtik.runtime.common.etcd_utils import destroy_session, acquire_key, create_session
+from cloudtik.runtime.common.etcd_utils import destroy_session, acquire_key, create_session, EtcdClient
 from cloudtik.runtime.common.lock.lock_base import Lock, LOCK_MAX_ATTEMPTS, LockAcquisitionException
 
 # the key will always be substituted into this pattern before locking,
@@ -18,11 +18,13 @@ Once a lease’s TTL elapses, the lease expires and all attached keys are delete
 class EtcdLock(Lock):
     def __init__(
             self,
+            endpoints,
             key,
             lock_timeout_seconds=None,
             acquire_timeout_ms=None):
         """
         Args:
+        endpoints: The endpoints for the Etcd cluster
         key: the unique key to lock
         acquire_timeout_ms: how long the caller is willing to wait to acquire the lock
         lock_timeout_seconds: how long the lock will stay alive if it is never released,
@@ -30,6 +32,7 @@ class EtcdLock(Lock):
             to their docs.
         """
         super().__init__(key, acquire_timeout_ms, lock_timeout_seconds)
+        self.client = EtcdClient(endpoints)
         self.full_key = FULL_KEY_PATTERN % key
         self.session_id = None
         self._started_acquiring = False
@@ -89,18 +92,20 @@ class EtcdLock(Lock):
         # we are using this to time out the individual lock
         session_ttl = self.lock_timeout_seconds
         session = create_session(
-            ttl=session_ttl
-        )
+            self.client,
+            ttl=session_ttl)
         return session
 
     def _destroy_session(self):
         assert self.session_id, 'Must have a session id to destroy'
-        return destroy_session(session_id=self.session_id)
+        return destroy_session(
+            self.client, session_id=self.session_id)
 
     def _acquire_key(self):
         assert self.session_id, 'Must have a session id to acquire key'
         data = str(datetime.now())
         return acquire_key(
+            self.client,
             session_id=self.session_id,
             key=self.full_key,
             value=data,

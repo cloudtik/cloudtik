@@ -18,13 +18,13 @@ class ActiveStandbyService(ServiceRunner):
 
     def __init__(
             self,
-            runtime_types: List[str],
+            coordinator_url: str,
             service_name: str,
             leader_ttl: int = None,
             leader_elect_delay: int = None):
         super().__init__()
         self.leader_election = get_runtime_leader_election(
-            runtime_types, service_name,
+            coordinator_url, service_name,
             leader_ttl=leader_ttl,
             leader_elect_delay=leader_elect_delay)
         self.leader_ttl = self.leader_election.leader_ttl

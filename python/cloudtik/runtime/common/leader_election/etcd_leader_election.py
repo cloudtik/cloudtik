@@ -2,7 +2,7 @@ from datetime import datetime
 
 from cloudtik.runtime.common.etcd_utils import \
     create_session, acquire_key, destroy_session, renew_session, \
-    get_key, query_key_blocking
+    get_key, query_key_blocking, EtcdClient
 from cloudtik.runtime.common.leader_election.leader_election_base import LeaderElection
 
 # the key will always be substituted into this pattern
@@ -13,17 +13,20 @@ FULL_KEY_PATTERN = 'cloudtik/leader/%s'
 class EtcdLeaderElection(LeaderElection):
     def __init__(
             self,
+            endpoints,
             key,
             leader_ttl=None,
             leader_elect_delay=None):
         """
         Args:
+        endpoints: The endpoints for the Etcd cluster
         key: the unique key to lock
         leader_ttl: how long the lock will stay alive if it is never released,
             this is controlled by Etcd lease TTL and may stay alive a bit longer according
             to their docs.
         """
         super().__init__(key, leader_ttl, leader_elect_delay)
+        self.client = EtcdClient(endpoints)
         self.full_key = FULL_KEY_PATTERN % key
         self.session_id = None
         self.leader = False
@@ -57,7 +60,7 @@ class EtcdLeaderElection(LeaderElection):
         """
         Query the key for current leader
         """
-        resp = get_key(self.full_key)
+        resp = get_key(self.client, self.full_key)
         if not resp:
             # no leader
             return None
@@ -94,7 +97,7 @@ class EtcdLeaderElection(LeaderElection):
             return
         # watch use global revision for watch if exists
         revision = self._get_key_revision(current_leader)
-        query_key_blocking(self.full_key, revision)
+        query_key_blocking(self.client, self.full_key, revision)
 
     def heartbeat(self, current_leader):
         """
@@ -104,21 +107,22 @@ class EtcdLeaderElection(LeaderElection):
         if not current_leader:
             return
         session_id = self._get_session_id(current_leader)
-        renew_session(session_id)
+        renew_session(self.client, session_id)
 
     def _create_session(self):
         # how long to keep the session alive without a renew (heartbeat/keepalive) sent.
         # we are using this to time out the individual lock
         session_ttl = self.leader_ttl
         session = create_session(
-            ttl=session_ttl
-        )
+            self.client,
+            ttl=session_ttl)
         return session
 
     def _destroy_session(self):
         if not self.session_id:
             return False
-        result = destroy_session(session_id=self.session_id)
+        result = destroy_session(
+            self.client, session_id=self.session_id)
         self.session_id = None
         self.leader = False
         return result
@@ -127,10 +131,10 @@ class EtcdLeaderElection(LeaderElection):
         assert self.session_id, 'Must have a session id to acquire key'
         data = str(datetime.now())
         return acquire_key(
+            self.client,
             session_id=self.session_id,
             key=self.full_key,
-            value=data,
-        )
+            value=data)
 
     def _release_key(self):
         # destroying the session will is the safest way to release the lock. we'd like to delete the

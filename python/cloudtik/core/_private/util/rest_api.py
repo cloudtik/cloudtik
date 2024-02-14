@@ -1,9 +1,15 @@
 import base64
 import contextlib
+import copy
 import json
+import threading
 import urllib
 import urllib.request
 import urllib.error
+from typing import Union, List, Tuple
+
+from cloudtik.core._private.util.core_utils import split_list, http_address_string, \
+    service_address_from_string
 
 REST_API_REQUEST_TIMEOUT = 10
 
@@ -14,6 +20,8 @@ REST_API_AUTH_BASIC_PASSWORD = "password"
 REST_API_AUTH_BEARER = "bearer"
 REST_API_AUTH_BEARER_TOKEN = "token"
 REST_API_AUTH_API_KEY = "api-key"
+
+REST_ENDPOINT_URL_FORMAT = "{}{}"
 
 
 def rest_api_open(url_or_req, timeout=None):
@@ -191,3 +199,83 @@ def rest_api_delete_json(
         endpoint_url, auth=auth, timeout=timeout,
         with_headers=with_headers)
     return _load_json(response, with_headers=with_headers)
+
+
+def get_rest_endpoint_url(
+        endpoint: str,
+        address: Union[str, Tuple[str, int]] = None,
+        default_port=None):
+    if address:
+        if isinstance(address, str):
+            host, port = service_address_from_string(
+                address, default_port=default_port)
+        else:
+            host, port = address
+        http_address = http_address_string(host, port)
+    else:
+        http_address = http_address_string(
+            "127.0.0.1", default_port)
+    endpoint_url = REST_ENDPOINT_URL_FORMAT.format(
+        http_address, endpoint)
+    return endpoint_url
+
+
+class MultiEndpointClient:
+    def __init__(
+            self,
+            endpoints: Union[str, List[str]], default_port=None):
+        # endpoints is a list or str
+        if isinstance(endpoints, str):
+            self.endpoints = split_list(endpoints)
+        else:
+            self.endpoints = endpoints
+        self.default_port = default_port
+
+        # make a shallow copy of the origin endpoints
+        self.health_endpoints = self.endpoints.copy()
+        self.failed_endpoints = set()
+        self._lock = threading.Lock()
+
+    def request(self, endpoint, func):
+        # This method must be thread safe
+        health_endpoints = self._get_health_endpoints()
+        # iterate the health endpoints
+        failed_endpoints = set()
+        for endpoint_address in health_endpoints:
+            endpoint_url = self._get_endpoint_url(endpoint, endpoint_address)
+            try:
+                return func(endpoint_url)
+            except urllib.error.URLError:
+                # the endpoint is not reachable
+                failed_endpoints.add(endpoint_address)
+                continue
+
+        if failed_endpoints:
+            self._update_health_endpoints(failed_endpoints)
+
+        raise RuntimeError(
+            "Connection failed with all the endpoints: {}.".format(
+                self.endpoints))
+
+    def _get_health_endpoints(self):
+        with self._lock:
+            return self.health_endpoints.copy()
+
+    def _update_health_endpoints(self, failed_endpoints):
+        with self._lock:
+            health_endpoints = [
+                endpoint_address for endpoint_address in self.health_endpoints
+                if endpoint_address not in failed_endpoints]
+            if not health_endpoints:
+                # all endpoints failed, reset the list
+                self.health_endpoints = self.endpoints.copy()
+            else:
+                self.health_endpoints = health_endpoints
+            self.failed_endpoints.update(failed_endpoints)
+
+    def _get_endpoint_url(
+            self,
+            endpoint: str,
+            address: str = None):
+        return get_rest_endpoint_url(
+            endpoint, address, self.default_port)

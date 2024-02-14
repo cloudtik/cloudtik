@@ -1,10 +1,11 @@
 from shlex import quote
 
+from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_LOAD_BALANCER
 from cloudtik.core._private.service_discovery.utils import serialize_service_selector
 from cloudtik.core._private.util.core_utils import exec_with_output, JSONSerializableObject
 from cloudtik.core._private.util.runtime_utils import \
     get_runtime_config_from_node, get_runtime_cluster_name
-from cloudtik.core._private.utils import get_runtime_types
+from cloudtik.runtime.common.leader_election.runtime_leader_election import get_runtime_leader_election_url
 from cloudtik.runtime.common.utils import stop_pull_service_by_identifier
 from cloudtik.runtime.loadbalancer.utils import _get_config, _get_backend_config, \
     _get_logs_dir, _get_backend_service_selector, _get_service_identifier
@@ -42,16 +43,16 @@ def start_controller(head):
     cmd += ["--logs-dir={}".format(quote(logs_dir))]
 
     # job parameters
+    coordinator_url = get_runtime_leader_election_url(
+        runtime_config, BUILT_IN_RUNTIME_LOAD_BALANCER)
+    if coordinator_url:
+        cmd += ["coordinator_url={}".format(
+            quote(coordinator_url))]
     cmd += ["interval={}".format(
         LOAD_BALANCER_DISCOVER_BACKEND_SERVERS_INTERVAL)]
     if service_selector_str:
         cmd += ["service_selector={}".format(service_selector_str)]
 
-    runtime_types = get_runtime_types(runtime_config)
-    if runtime_types:
-        runtime_types_str = ",".join(runtime_types)
-        cmd += ["runtime_types={}".format(
-            quote(runtime_types_str))]
     cmd_str = " ".join(cmd)
     exec_with_output(cmd_str)
 

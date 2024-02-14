@@ -1,17 +1,15 @@
 import contextlib
 import json
-from typing import Optional, Tuple
+from typing import Union, List
 import urllib.error
 
 from cloudtik.core._private.util.core_utils import base64_encode_string
-from cloudtik.core._private.util.rest_api import rest_api_get_json, rest_api_post_json, rest_api_method_open
+from cloudtik.core._private.util.rest_api import rest_api_get_json, rest_api_post_json, rest_api_method_open, \
+    MultiEndpointClient
 
-ETCD_CLIENT_ADDRESS = "127.0.0.1"
 ETCD_HTTP_PORT = 2379
 ETCD_REQUEST_TIMEOUT = 5
 ETCD_BLOCKING_QUERY_TIMEOUT = 60 * 60 * 24
-
-ETCD_REST_ENDPOINT_URL_FORMAT = "http://{}:{}{}"
 
 ETCD_REST_ENDPOINT_SESSION = "/v3/lease"
 ETCD_REST_ENDPOINT_SESSION_CREATE = ETCD_REST_ENDPOINT_SESSION + "/grant"
@@ -27,40 +25,42 @@ ETCD_REST_ENDPOINT_KV_TXN = ETCD_REST_ENDPOINT_KV + "/txn"
 ETCD_REST_ENDPOINT_WATCH = "/v3/watch"
 
 
-def _get_endpoint_url(
-        endpoint: str,
-        address: Optional[Tuple[str, int]] = None):
-    if address:
-        host, _ = address
-        endpoint_url = ETCD_REST_ENDPOINT_URL_FORMAT.format(
-            host, ETCD_HTTP_PORT, endpoint)
-    else:
-        endpoint_url = ETCD_REST_ENDPOINT_URL_FORMAT.format(
-            ETCD_CLIENT_ADDRESS, ETCD_HTTP_PORT, endpoint)
-    return endpoint_url
+class EtcdClient(MultiEndpointClient):
+    def __init__(
+            self,
+            endpoints: Union[str, List[str]]):
+        super().__init__(endpoints, default_port=ETCD_HTTP_PORT)
 
 
 def etcd_api_get(
-        endpoint: str,
-        address: Optional[Tuple[str, int]] = None,
+        client, endpoint: str,
         timeout=ETCD_REQUEST_TIMEOUT):
-    endpoint_url = _get_endpoint_url(endpoint, address)
-    return rest_api_get_json(endpoint_url, timeout=timeout)
+    def func(endpoint_url):
+        return rest_api_get_json(endpoint_url, timeout=timeout)
+
+    return client.request(endpoint, func)
 
 
 def etcd_api_post(
-        endpoint: str, body,
-        address: Optional[Tuple[str, int]] = None):
-    endpoint_url = _get_endpoint_url(endpoint, address)
-    return rest_api_post_json(
-        endpoint_url, body, timeout=ETCD_REQUEST_TIMEOUT)
+        client, endpoint: str, body):
+    def func(endpoint_url):
+        return rest_api_post_json(
+            endpoint_url, body, timeout=ETCD_REQUEST_TIMEOUT)
+
+    return client.request(endpoint, func)
 
 
 def etcd_api_watch(
-        endpoint: str, body, key, revision,
-        address: Optional[Tuple[str, int]] = None):
-    endpoint_url = _get_endpoint_url(endpoint, address)
+        client, endpoint: str, body, key, revision):
     data = json.dumps(body)
+
+    def func(endpoint_url):
+        return etcd_watch(endpoint_url, data, key, revision)
+
+    return client.request(endpoint, func)
+
+
+def etcd_watch(endpoint_url, data, key, revision):
     response = rest_api_method_open(
         endpoint_url, data, "json",
         timeout=ETCD_BLOCKING_QUERY_TIMEOUT)
@@ -120,21 +120,21 @@ def _key_changed(result, key, revision):
     return False
 
 
-def create_session(ttl):
+def create_session(client, ttl):
     endpoint_url = ETCD_REST_ENDPOINT_SESSION_CREATE
     data = {
         "TTL": f"{ttl}",
     }
-    return etcd_api_post(endpoint_url, data)
+    return etcd_api_post(client, endpoint_url, data)
 
 
-def destroy_session(session_id):
+def destroy_session(client, session_id):
     endpoint_url = ETCD_REST_ENDPOINT_SESSION_DESTROY
     data = {
         "ID": f"{session_id}",
     }
     try:
-        return etcd_api_post(endpoint_url, data)
+        return etcd_api_post(client, endpoint_url, data)
     except urllib.error.HTTPError as e:
         if e.code == 404:
             return False
@@ -142,12 +142,12 @@ def destroy_session(session_id):
             raise e
 
 
-def renew_session(session_id):
+def renew_session(client, session_id):
     endpoint_url = ETCD_REST_ENDPOINT_SESSION_RENEW
     data = {
         "ID": f"{session_id}",
     }
-    return etcd_api_post(endpoint_url, data)
+    return etcd_api_post(client, endpoint_url, data)
 
 
 """
@@ -156,7 +156,7 @@ it can only succeed if I am the first one create the key with revision = 0
 """
 
 
-def acquire_key(session_id, key, value):
+def acquire_key(client, session_id, key, value):
     endpoint_url = ETCD_REST_ENDPOINT_KV_TXN
     base64_key = base64_encode_string(key)
     base64_value = base64_encode_string(value)
@@ -171,7 +171,7 @@ def acquire_key(session_id, key, value):
             {"requestRange": {"key": base64_key}}
         ]
     }
-    resp = etcd_api_post(endpoint_url, body=req)
+    resp = etcd_api_post(client, endpoint_url, body=req)
     if not resp:
         raise RuntimeError(
             "Error happened in requesting.")
@@ -181,7 +181,7 @@ def acquire_key(session_id, key, value):
     return False
 
 
-def release_key(session_id, key):
+def release_key(client, session_id, key):
     endpoint_url = ETCD_REST_ENDPOINT_KV_TXN
     final_key = "{}{}".format(key, session_id)
     base64_key = base64_encode_string(final_key)
@@ -196,7 +196,7 @@ def release_key(session_id, key):
         "failure": [
         ]
     }
-    resp = etcd_api_post(endpoint_url, body=req)
+    resp = etcd_api_post(client, endpoint_url, body=req)
     if not resp:
         raise RuntimeError(
             "Error happened in requesting.")
@@ -206,16 +206,16 @@ def release_key(session_id, key):
     return False
 
 
-def get_key(key):
+def get_key(client, key):
     endpoint_url = ETCD_REST_ENDPOINT_KV_GET
     base64_key = base64_encode_string(key)
     data = {
         "key": base64_key,
     }
-    return etcd_api_post(endpoint_url, body=data)
+    return etcd_api_post(client, endpoint_url, body=data)
 
 
-def query_key_blocking(key, revision):
+def query_key_blocking(client, key, revision):
     endpoint_url = ETCD_REST_ENDPOINT_WATCH
     base64_key = base64_encode_string(key)
     start_revision = int(revision) + 1
@@ -226,4 +226,4 @@ def query_key_blocking(key, revision):
         }
     }
     etcd_api_watch(
-        endpoint_url, data, base64_key, start_revision)
+        client, endpoint_url, data, base64_key, start_revision)

@@ -1,14 +1,11 @@
 from typing import Optional, Tuple
 import urllib.error
 
-from cloudtik.core._private.util.rest_api import rest_api_get_json, rest_api_put_json
+from cloudtik.core._private.util.rest_api import rest_api_get_json, rest_api_put_json, get_rest_endpoint_url
 
-CONSUL_CLIENT_ADDRESS = "127.0.0.1"
 CONSUL_HTTP_PORT = 8500
 CONSUL_REQUEST_TIMEOUT = 5
 CONSUL_BLOCKING_QUERY_TIMEOUT = 10 * 60
-
-CONSUL_REST_ENDPOINT_URL_FORMAT = "http://{}:{}{}"
 
 CONSUL_REST_ENDPOINT_SESSION = "/v1/session"
 CONSUL_REST_ENDPOINT_SESSION_CREATE = CONSUL_REST_ENDPOINT_SESSION + "/create"
@@ -21,25 +18,15 @@ CONSUL_REST_ENDPOINT_KV = "/v1/kv"
 def consul_api_get(
         endpoint: str, address: Optional[Tuple[str, int]] = None,
         timeout=CONSUL_REQUEST_TIMEOUT):
-    if address:
-        host, _ = address
-        endpoint_url = CONSUL_REST_ENDPOINT_URL_FORMAT.format(
-            host, CONSUL_HTTP_PORT, endpoint)
-    else:
-        endpoint_url = CONSUL_REST_ENDPOINT_URL_FORMAT.format(
-            CONSUL_CLIENT_ADDRESS, CONSUL_HTTP_PORT, endpoint)
+    endpoint_url = get_rest_endpoint_url(
+        endpoint, address, default_port=CONSUL_HTTP_PORT)
     return rest_api_get_json(endpoint_url, timeout=timeout)
 
 
 def consul_api_put(
         endpoint: str, body, address: Optional[Tuple[str, int]] = None):
-    if address:
-        host, _ = address
-        endpoint_url = CONSUL_REST_ENDPOINT_URL_FORMAT.format(
-            host, CONSUL_HTTP_PORT, endpoint)
-    else:
-        endpoint_url = CONSUL_REST_ENDPOINT_URL_FORMAT.format(
-            CONSUL_CLIENT_ADDRESS, CONSUL_HTTP_PORT, endpoint)
+    endpoint_url = get_rest_endpoint_url(
+        endpoint, address, default_port=CONSUL_HTTP_PORT)
     return rest_api_put_json(
         endpoint_url, body, timeout=CONSUL_REQUEST_TIMEOUT)
 
