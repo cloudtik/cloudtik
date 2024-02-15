@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 
 AWS_LOAD_BALANCER_NAME_MIN_LEN = 1
-AWS_LOAD_BALANCER_NAME_MAX_LEN = 63
+AWS_LOAD_BALANCER_NAME_MAX_LEN = 32
 
 
 def check_load_balancer_name_format(workspace_name):

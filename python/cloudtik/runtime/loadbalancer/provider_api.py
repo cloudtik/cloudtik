@@ -6,6 +6,7 @@ from cloudtik.core.load_balancer_provider import LOAD_BALANCER_PROTOCOL_TCP
 from cloudtik.runtime.common.service_discovery.load_balancer import LOAD_BALANCER_SERVICE_DISCOVERY_NAME_LABEL
 
 LOAD_BALANCER_AUTO_CREATED_TAG = "cloudtik-auto-create"
+LOAD_BALANCER_DEFAULT = "{}"
 
 
 class LoadBalancerBackendService(JSONSerializableObject):
@@ -28,8 +29,8 @@ class LoadBalancerBackendService(JSONSerializableObject):
         self.labels = labels
 
 
-def get_load_balancer_manager(provider_config):
-    return LoadBalancerManager(provider_config)
+def get_load_balancer_manager(provider_config, workspace_name):
+    return LoadBalancerManager(provider_config, workspace_name)
 
 
 def bootstrap_provider_config(cluster_config, provider_config):
@@ -45,9 +46,9 @@ class LoadBalancerManager:
     and call into load balancer provider API to create a load balancer,
     to create a listener, or update the targets of a listener.
     """
-    def __init__(self, provider_config):
+    def __init__(self, provider_config, workspace_name):
         self.provider_config = provider_config
-        self.workspace_name = ""
+        self.workspace_name = workspace_name
         self.load_balancer_provider = _get_load_balancer_provider(
             self.provider_config, self.workspace_name)
         self.load_balancer_last_hash = {}
@@ -102,6 +103,9 @@ class LoadBalancerManager:
     def _is_delete_auto_empty(self):
         return self.provider_config.get("delete_auto_empty", True)
 
+    def _is_anonymous_prefer_default(self):
+        return self.provider_config.get("anonymous_prefer_default", True)
+
     def _get_load_balancer_backends(self, backends):
         # based on whether the provider supports multi-listener
         # TODO: check the different services with the same frontend port
@@ -130,15 +134,25 @@ class LoadBalancerManager:
                     load_balancer_backend, load_balancer_backend_service)
         return load_balancer_backends
 
-    def _get_load_balancer_name(
-            self, service_name, load_balancer_backend_service):
+    def _get_load_balancer_name_label(
+            self, load_balancer_backend_service):
         labels = load_balancer_backend_service.labels
         if not labels:
-            return service_name
+            return None
         load_balancer_name = labels.get(LOAD_BALANCER_SERVICE_DISCOVERY_NAME_LABEL)
-        if not load_balancer_name:
-            return service_name
         return load_balancer_name
+
+    def _get_load_balancer_name(
+            self, service_name, load_balancer_backend_service):
+        load_balancer_name = self._get_load_balancer_name_label(
+            load_balancer_backend_service)
+        if load_balancer_name:
+            return load_balancer_name
+
+        if self._is_anonymous_prefer_default():
+            return LOAD_BALANCER_DEFAULT.format(self.workspace_name)
+        else:
+            return service_name
 
     def _add_load_balancer_listener(
             self, load_balancer_backend, load_balancer_backend_service):

@@ -970,12 +970,12 @@ def _create_or_update_instance_profile(
                 attach_policy_arns = [
                     "arn:aws:iam::aws:policy/AmazonEC2FullAccess",
                     "arn:aws:iam::aws:policy/AmazonS3FullAccess",
-                    "arn:aws:iam::aws:policy/IAMFullAccess"
+                    "arn:aws:iam::aws:policy/IAMFullAccess",
                     "arn:aws:iam::aws:policy/ElasticLoadBalancingFullAccess"
                 ]
             else:
                 attach_policy_arns = [
-                    "arn:aws:iam::aws:policy/AmazonS3FullAccess"
+                    "arn:aws:iam::aws:policy/AmazonS3FullAccess",
                     "arn:aws:iam::aws:policy/ElasticLoadBalancingFullAccess"
                 ]
 
@@ -1060,6 +1060,8 @@ def _delete_internet_gateway(workspace_name, ec2, vpc_id):
                 "Detaching and deleting Internet Gateway: {}...".format(igw.id))
             igw.detach_from_vpc(VpcId=vpc_id)
             igw.delete()
+            cli_logger.print(
+                "Successfully deleted Internet Gateway: {}.".format(igw.id))
         except boto3.exceptions.Boto3Error as e:
             cli_logger.error(
                 "Failed to detach or delete Internet Gateway. {}", str(e))
@@ -3603,7 +3605,7 @@ def _configure_security_group_from_workspace(config):
     # map from node type key -> source of SecurityGroupIds field
     security_group_info_src = {}
     _set_config_info(security_group_src=security_group_info_src)
-    sg = get_workspace_security_group(config,  vpc_id, workspace_name)
+    sg = get_workspace_security_group(config, vpc_id, workspace_name)
 
     for node_type_key in config["available_node_types"].keys():
         node_config = config["available_node_types"][node_type_key][
