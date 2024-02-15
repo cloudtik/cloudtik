@@ -2,14 +2,14 @@ import logging
 import time
 
 from cloudtik.core._private.service_discovery.utils import deserialize_service_selector
-from cloudtik.core._private.util.core_utils import split_list
+from cloudtik.core._private.util.core_utils import deserialize_config, get_json_object_hash
 from cloudtik.runtime.common.active_standby_service import ActiveStandbyService
 from cloudtik.runtime.common.service_discovery.consul import \
     get_service_address_of_node, get_common_label_of_service_nodes
 from cloudtik.runtime.common.service_discovery.discovery import query_services_with_nodes
-from cloudtik.runtime.common.service_discovery.load_balancer import LOAD_BALANCER_SERVICE_DISCOVERY_LABEL_FRONTEND_PORT
-from cloudtik.runtime.loadbalancer.scripting import update_backend_configuration, \
-    LoadBalancerBackendService
+from cloudtik.runtime.common.service_discovery.load_balancer import LOAD_BALANCER_SERVICE_DISCOVERY_LABEL_PORT, \
+    LOAD_BALANCER_SERVICE_DISCOVERY_LABEL_PROTOCOL
+from cloudtik.runtime.loadbalancer.provider_api import get_load_balancer_manager, LoadBalancerBackendService
 
 logger = logging.getLogger(__name__)
 
@@ -30,7 +30,8 @@ class LoadBalancerController(ActiveStandbyService):
             self,
             coordinator_url: str = None,
             interval=None,
-            service_selector=None):
+            service_selector=None,
+            provider_config=None):
         super().__init__(
             coordinator_url,
             LOAD_BALANCER_CONTROLLER_SERVICE_NAME,
@@ -41,9 +42,14 @@ class LoadBalancerController(ActiveStandbyService):
         self.interval = interval
         self.service_selector = deserialize_service_selector(
             service_selector)
+        self.provider_config = deserialize_config(
+            provider_config) if provider_config else {}
+        self.load_balancer_manager = get_load_balancer_manager(
+            self.provider_config)
         self.log_repeat_errors = LOG_ERROR_REPEAT_SECONDS // interval
         self.last_error_str = None
         self.last_error_num = 0
+        self.last_backend_config_hash = None
 
     def _run(self):
         self.update()
@@ -82,7 +88,11 @@ class LoadBalancerController(ActiveStandbyService):
             backends[backend_name] = backend_service
 
         # Finally, rebuild the LoadBalancer configuration
-        update_backend_configuration(backends)
+        backend_config_hash = get_json_object_hash(backends)
+        if backend_config_hash != self.last_backend_config_hash:
+            # save config file and reload only when data changed
+            self.load_balancer_manager.update(backends)
+            self.last_backend_config_hash = backend_config_hash
 
     def _query_services(self):
         return query_services_with_nodes(self.service_selector)
@@ -94,9 +104,12 @@ class LoadBalancerController(ActiveStandbyService):
             server_address = get_service_address_of_node(service_node)
             backend_servers.append(server_address)
 
-        frontend_port = get_common_label_of_service_nodes(
-            service_nodes, LOAD_BALANCER_SERVICE_DISCOVERY_LABEL_FRONTEND_PORT,
+        port = get_common_label_of_service_nodes(
+            service_nodes, LOAD_BALANCER_SERVICE_DISCOVERY_LABEL_PORT,
+            error_if_not_same=True)
+        protocol = get_common_label_of_service_nodes(
+            service_nodes, LOAD_BALANCER_SERVICE_DISCOVERY_LABEL_PROTOCOL,
             error_if_not_same=True)
 
         return LoadBalancerBackendService(
-            service_name, backend_servers, frontend_port)
+            service_name, backend_servers, protocol=protocol, port=port)

@@ -4191,3 +4191,12 @@ def _get_volumes_of_node(
         },
     ]
     return _get_filtered_volumes(ec2, filters)
+
+
+def _get_response_object(response, name):
+    if not response:
+        return None
+    objects = response.get(name)
+    if not objects:
+        return None
+    return objects[0]

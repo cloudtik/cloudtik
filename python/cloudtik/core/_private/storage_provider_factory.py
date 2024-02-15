@@ -103,7 +103,7 @@ def _get_storage_provider(
         return load_storage_provider(
             provider_config, workspace_name, storage_name)
 
-    provider_key = (json.dumps(provider_config, sort_keys=True), storage_name)
+    provider_key = (json.dumps(provider_config, sort_keys=True), workspace_name, storage_name)
     return _storage_provider_instances.get(
         provider_key, load_storage_provider,
         provider_config=provider_config,

@@ -1,5 +1,5 @@
 # A unique identifier for the cluster.
-cluster_name: redis1
+cluster_name: redis
 
 # The workspace name
 workspace_name: lab

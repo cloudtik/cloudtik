@@ -90,7 +90,7 @@ def _get_database_provider(
         return load_database_provider(
             provider_config, workspace_name, database_name)
 
-    provider_key = (json.dumps(provider_config, sort_keys=True), database_name)
+    provider_key = (json.dumps(provider_config, sort_keys=True), workspace_name, database_name)
     return _database_provider_instances.get(
         provider_key, load_database_provider,
         provider_config=provider_config,

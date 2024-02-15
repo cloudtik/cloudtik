@@ -143,7 +143,7 @@ def handle_boto_error(exc, msg, *args, **kwargs):
 
 def boto_exception_handler(msg, *args, **kwargs):
     # todo: implement timer
-    class ExceptionHandlerContextManager():
+    class ExceptionHandlerContextManager:
         def __enter__(self):
             pass
 
@@ -304,8 +304,9 @@ def client_cache(name, region, max_retries=BOTO_MAX_RETRIES, **kwargs):
         return resource_cache(name, region, max_retries, **kwargs).meta.client
     except ResourceNotExistsError:
         # fall back for clients without an associated resource
-        cli_logger.verbose("Creating AWS client `{}` in `{}`", cf.bold(name),
-                           cf.bold(region))
+        cli_logger.verbose(
+            "Creating AWS client `{}` in `{}`", cf.bold(name),
+            cf.bold(region))
         kwargs.setdefault(
             "config",
             Config(retries={"max_attempts": max_retries}),

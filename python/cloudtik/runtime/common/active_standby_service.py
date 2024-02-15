@@ -2,7 +2,6 @@ import logging
 import queue
 import threading
 import time
-from typing import List
 
 from cloudtik.core._private.util.service.service_runner import ServiceRunner
 from cloudtik.runtime.common.leader_election.runtime_leader_election import get_runtime_leader_election
