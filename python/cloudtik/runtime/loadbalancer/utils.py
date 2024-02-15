@@ -5,11 +5,14 @@ from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_LOAD_BALANCE
 from cloudtik.core._private.service_discovery.runtime_services import get_service_discovery_runtime
 from cloudtik.core._private.service_discovery.utils import exclude_runtime_of_cluster, \
     get_service_selector_copy
-from cloudtik.core._private.util.core_utils import export_environment_variables
+from cloudtik.core._private.util.core_utils import export_environment_variables, get_config_copy, get_config_for_update
 from cloudtik.core._private.util.service.service_daemon import get_service_daemon_process_file
-from cloudtik.core._private.utils import get_runtime_config
+from cloudtik.core._private.utils import get_runtime_config, get_runtime_config_for_update
+from cloudtik.runtime.loadbalancer.provider_api import bootstrap_provider_config
 
 LOAD_BALANCER_HIGH_AVAILABILITY_CONFIG_KEY = "high_availability"
+
+LOAD_BALANCER_PROVIDER_CONFIG_KEY = "provider"
 
 LOAD_BALANCER_BACKEND_CONFIG_KEY = "backend"
 LOAD_BALANCER_BACKEND_CONFIG_MODE_CONFIG_KEY = "config_mode"
@@ -43,9 +46,19 @@ def _get_config(runtime_config: Dict[str, Any]):
     return runtime_config.get(BUILT_IN_RUNTIME_LOAD_BALANCER, {})
 
 
+def _get_config_for_update(cluster_config):
+    runtime_config = get_runtime_config_for_update(cluster_config)
+    return get_config_for_update(runtime_config, BUILT_IN_RUNTIME_LOAD_BALANCER)
+
+
 def _is_high_availability(load_balancer_config: Dict[str, Any]):
     return load_balancer_config.get(
         LOAD_BALANCER_HIGH_AVAILABILITY_CONFIG_KEY, False)
+
+
+def _get_provider_config(load_balancer_config: Dict[str, Any]):
+    return load_balancer_config.get(
+        LOAD_BALANCER_PROVIDER_CONFIG_KEY, {})
 
 
 def _get_backend_config(load_balancer_config: Dict[str, Any]):
@@ -104,6 +117,22 @@ def _get_backend_service_selector(
     service_selector = exclude_runtime_of_cluster(
         service_selector, BUILT_IN_RUNTIME_LOAD_BALANCER, cluster_name)
     return service_selector
+
+
+def _bootstrap_runtime_config(
+        runtime_config: Dict[str, Any],
+        cluster_config: Dict[str, Any]) -> Dict[str, Any]:
+    # bootstrap provider config for backend controller
+    load_balancer_config = _get_config(runtime_config)
+    provider_config = get_config_copy(
+        load_balancer_config, LOAD_BALANCER_PROVIDER_CONFIG_KEY)
+    provider_config = bootstrap_provider_config(
+        cluster_config, provider_config)
+
+    # update the provider config to cluster config
+    load_balancer_config = _get_config_for_update(cluster_config)
+    load_balancer_config[LOAD_BALANCER_PROVIDER_CONFIG_KEY] = provider_config
+    return cluster_config
 
 
 def _prepare_config_on_head(

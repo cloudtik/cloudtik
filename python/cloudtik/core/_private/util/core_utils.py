@@ -1296,3 +1296,9 @@ def url_read(url_or_req, timeout=None):
             url_or_req)
     with contextlib.closing(response):
         return response.read()
+
+
+def batch_list(items, batch=1):
+    n = len(items)
+    for ndx in range(0, n, batch):
+        yield items[ndx:min(ndx + batch, n)]

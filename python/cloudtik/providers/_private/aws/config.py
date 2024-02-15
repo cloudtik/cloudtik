@@ -965,15 +965,18 @@ def _create_or_update_instance_profile(
                     },
                 ]
             }
+            # TODO: permissions in more granular
             if is_head:
                 attach_policy_arns = [
                     "arn:aws:iam::aws:policy/AmazonEC2FullAccess",
                     "arn:aws:iam::aws:policy/AmazonS3FullAccess",
                     "arn:aws:iam::aws:policy/IAMFullAccess"
+                    "arn:aws:iam::aws:policy/ElasticLoadBalancingFullAccess"
                 ]
             else:
                 attach_policy_arns = [
                     "arn:aws:iam::aws:policy/AmazonS3FullAccess"
+                    "arn:aws:iam::aws:policy/ElasticLoadBalancingFullAccess"
                 ]
 
             iam.create_role(
@@ -4191,3 +4194,12 @@ def _get_volumes_of_node(
         },
     ]
     return _get_filtered_volumes(ec2, filters)
+
+
+def _get_response_object(response, name):
+    if not response:
+        return None
+    objects = response.get(name)
+    if not objects:
+        return None
+    return objects[0]
