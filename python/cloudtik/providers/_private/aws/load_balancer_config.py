@@ -4,7 +4,7 @@ from cloudtik.core._private.util.core_utils import batch_list, get_json_object_h
 from cloudtik.core._private.utils import get_provider_config
 from cloudtik.core.tags import CLOUDTIK_TAG_WORKSPACE_NAME
 from cloudtik.providers._private.aws.config import _is_workspace_tagged, _get_response_object, \
-    get_workspace_private_subnets
+    get_workspace_private_subnets, _get_workspace_security_group
 from cloudtik.providers._private.aws.utils import tags_list_to_dict, _make_resource
 
 
@@ -143,12 +143,20 @@ def _get_load_balancer_subnet_ids(
     return subnet_ids
 
 
+def get_load_balancer_security_group_id(provider_config, vpc_id, workspace_name):
+    security_group = _get_workspace_security_group(
+        provider_config, vpc_id, workspace_name)
+    return security_group.id
+
+
 def _create_load_balancer(
         elb_client, provider_config,
         workspace_name, load_balancer_config,
         vpc_id, context):
     subnet_ids = _get_load_balancer_subnet_ids(
         provider_config, workspace_name, vpc_id)
+    security_group_id = get_load_balancer_security_group_id(
+        provider_config, vpc_id, workspace_name)
 
     tags = load_balancer_config.get("tags", {})
     tag_pairs = [
@@ -169,6 +177,7 @@ def _create_load_balancer(
         Tags=tag_pairs,
         Scheme=schema,
         Subnets=subnet_ids,
+        SecurityGroups=[security_group_id]
     )
     load_balancer = _get_response_object(response, "LoadBalancers")
     if not load_balancer:
@@ -296,13 +305,12 @@ def _create_load_balancer_target_group(
 
 
 def _get_load_balancer_target_group(
-        elb_client, load_balancer_name, load_balancer_id, listener):
+        elb_client, load_balancer_name, listener):
     protocol = listener["protocol"]
     port = listener["port"]
     target_group_name = _get_load_balancer_target_group_name(
         load_balancer_name, protocol, port)
     response = elb_client.describe_target_groups(
-        LoadBalancerArn=load_balancer_id,
         Names=[
             target_group_name,
         ])
@@ -349,8 +357,7 @@ def _update_load_balancer_listeners(
     for listener in listeners_to_update:
         if _is_listener_updated(context, listener):
             _update_load_balancer_listener(
-                elb_client, load_balancer_name, load_balancer_id,
-                listener)
+                elb_client, load_balancer_name, listener)
             _update_listener_last_hash(context, listener)
 
     for load_balancer_listener in listeners_to_delete:
@@ -406,10 +413,9 @@ def _delete_load_balancer_listener(
 
 
 def _update_load_balancer_listener(
-        elb_client, load_balancer_name, load_balancer_id,
-        listener):
+        elb_client, load_balancer_name, listener):
     target_group = _get_load_balancer_target_group(
-        elb_client, load_balancer_name, load_balancer_id, listener)
+        elb_client, load_balancer_name, listener)
     if not target_group:
         raise RuntimeError(
             "Target group for listener doesn't exist.")

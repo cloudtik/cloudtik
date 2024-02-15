@@ -4,7 +4,7 @@ from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_LOAD_BALANCE
 from cloudtik.core._private.service_discovery.utils import serialize_service_selector
 from cloudtik.core._private.util.core_utils import exec_with_output, serialize_config
 from cloudtik.core._private.util.runtime_utils import \
-    get_runtime_config_from_node, get_runtime_cluster_name
+    get_runtime_config_from_node, get_runtime_cluster_name, get_runtime_workspace_name
 from cloudtik.runtime.common.leader_election.runtime_leader_election import get_runtime_leader_election_url
 from cloudtik.runtime.common.utils import stop_pull_service_by_identifier
 from cloudtik.runtime.loadbalancer.provider_api import get_load_balancer_manager
@@ -27,8 +27,9 @@ def configure_backend(head):
     # TODO: build backends based on static configuration
     backends = {}
 
+    workspace_name = get_runtime_workspace_name()
     load_balancer_manager = get_load_balancer_manager(
-        provider_config)
+        provider_config, workspace_name)
     load_balancer_manager.update(backends)
 
 
@@ -38,6 +39,7 @@ def start_controller(head):
 
     backend_config = _get_backend_config(load_balancer_config)
     cluster_name = get_runtime_cluster_name()
+    workspace_name = get_runtime_workspace_name()
     service_selector = _get_backend_service_selector(
         backend_config, cluster_name)
     service_selector_str = serialize_service_selector(service_selector)
@@ -64,6 +66,8 @@ def start_controller(head):
     provider_config_str = serialize_config(provider_config) if provider_config else None
     if provider_config_str:
         cmd += ["provider_config={}".format(provider_config_str)]
+    if workspace_name:
+        cmd += ["workspace_name={}".format(workspace_name)]
 
     cmd_str = " ".join(cmd)
     exec_with_output(cmd_str)

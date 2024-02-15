@@ -31,7 +31,8 @@ class LoadBalancerController(ActiveStandbyService):
             coordinator_url: str = None,
             interval=None,
             service_selector=None,
-            provider_config=None):
+            provider_config=None,
+            workspace_name=None):
         super().__init__(
             coordinator_url,
             LOAD_BALANCER_CONTROLLER_SERVICE_NAME,
@@ -45,7 +46,7 @@ class LoadBalancerController(ActiveStandbyService):
         self.provider_config = deserialize_config(
             provider_config) if provider_config else {}
         self.load_balancer_manager = get_load_balancer_manager(
-            self.provider_config)
+            self.provider_config, workspace_name)
         self.log_repeat_errors = LOG_ERROR_REPEAT_SECONDS // interval
         self.last_error_str = None
         self.last_error_num = 0
