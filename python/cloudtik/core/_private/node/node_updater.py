@@ -25,7 +25,7 @@ from cloudtik.core._private.constants import CLOUDTIK_RESOURCES_ENV, CLOUDTIK_RU
     CLOUDTIK_RUNTIME_ENV_NODE_TYPE, CLOUDTIK_RUNTIME_ENV_PROVIDER_TYPE, CLOUDTIK_RUNTIME_ENV_PYTHON_VERSION, \
     CLOUDTIK_NODE_START_WAIT_S, CLOUDTIK_RUNTIME_ENV_QUORUM_JOIN, \
     CLOUDTIK_RUNTIME_ENV_CLUSTER, CLOUDTIK_RUNTIME_ENV_NODE_ID, CLOUDTIK_RUNTIME_ENV_WORKSPACE, \
-    CLOUDTIK_RUNTIME_ENV_NODE_IP, CLOUDTIK_BOOTSTRAP_CONFIG_FILE, CLOUDTIK_BOOTSTRAP_KEY_FILE
+    CLOUDTIK_RUNTIME_ENV_NODE_IP, CLOUDTIK_BOOTSTRAP_CONFIG_FILE, CLOUDTIK_BOOTSTRAP_KEY_FILE, CLOUDTIK_RUNTIME_NAME
 from cloudtik.core._private.event_system import (CreateClusterEvent, global_event_system)
 
 logger = logging.getLogger(__name__)
@@ -558,19 +558,17 @@ class NodeUpdater:
         return get_cmd_to_print(cmd, verbose)
 
     def rsync_up(self, source, target, docker_mount_if_possible=False):
-        options = {}
-        options["docker_mount_if_possible"] = docker_mount_if_possible
-        options["rsync_exclude"] = self.rsync_options.get("rsync_exclude")
-        options["rsync_filter"] = self.rsync_options.get("rsync_filter")
+        options = {"docker_mount_if_possible": docker_mount_if_possible,
+                   "rsync_exclude": self.rsync_options.get("rsync_exclude"),
+                   "rsync_filter": self.rsync_options.get("rsync_filter")}
         self.cmd_executor.run_rsync_up(source, target, options=options)
         self.cli_logger.verbose(
             "`rsync`ed {} (local) to {} (remote)", cf.bold(source), cf.bold(target))
 
     def rsync_down(self, source, target, docker_mount_if_possible=False):
-        options = {}
-        options["docker_mount_if_possible"] = docker_mount_if_possible
-        options["rsync_exclude"] = self.rsync_options.get("rsync_exclude")
-        options["rsync_filter"] = self.rsync_options.get("rsync_filter")
+        options = {"docker_mount_if_possible": docker_mount_if_possible,
+                   "rsync_exclude": self.rsync_options.get("rsync_exclude"),
+                   "rsync_filter": self.rsync_options.get("rsync_filter")}
         self.cmd_executor.run_rsync_down(source, target, options=options)
         self.cli_logger.verbose(
             "`rsync`ed {} (remote) to {} (local)", cf.bold(source), cf.bold(target))
@@ -637,18 +635,25 @@ class NodeUpdater:
                         command_group_name,
                         _numbered=("()", i + 1, total)):
                     commands = command_group.get("commands", [])
+                    if command_group_name == CLOUDTIK_RUNTIME_NAME:
+                        # Use a single install message for all commands
+                        cmd_to_print = "{} runtime install".format(command_group_name)
+                        self.cli_logger.print(
+                            cf.bold("- " + self._prefix_message("{}")), cmd_to_print)
                     for cmd in commands:
-                        self._exec_setup_command(cmd, runtime_envs)
+                        self._exec_setup_command(
+                            command_group_name, cmd, runtime_envs)
 
-    def _exec_setup_command(self, cmd, runtime_envs):
+    def _exec_setup_command(self, command_group_name, cmd, runtime_envs):
         global_event_system.execute_callback(
             self.cluster_uri,
             CreateClusterEvent.run_setup_cmd,
             {"node_id": self.node_id, "command": cmd})
 
         cmd_to_print = self.get_cmd_to_print(cmd)
-        self.cli_logger.print(
-            cf.bold("- " + self._prefix_message("{}")), cmd_to_print)
+        if command_group_name != CLOUDTIK_RUNTIME_NAME:
+            self.cli_logger.print(
+                cf.bold("- " + self._prefix_message("{}")), cmd_to_print)
 
         try:
             # Runs in the container if docker is in use
@@ -664,7 +669,11 @@ class NodeUpdater:
                 self.cmd_executor.run(cmd, environment_variables=runtime_envs, run_env="auto")
         except ProcessRunnerError as e:
             if e.msg_type == "ssh_command_failed":
-                self.cli_logger.error("Failed.")
+                if command_group_name != CLOUDTIK_RUNTIME_NAME:
+                    self.cli_logger.error("Failed.")
+                else:
+                    # since we don't print individual command, we print it when error
+                    self.cli_logger.error("Failed: {}", cmd_to_print)
                 self.cli_logger.error(
                     "See above for stderr.")
 

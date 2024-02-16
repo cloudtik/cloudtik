@@ -71,11 +71,12 @@ def validate_docker_config(config: Dict[str, Any]) -> None:
     assert cname and image_present, "Must provide a container & image name"
 
 
-def with_docker_exec(cmds,
-                     container_name,
-                     docker_cmd,
-                     env_vars=None,
-                     with_interactive=False):
+def with_docker_exec(
+        cmds,
+        container_name,
+        docker_cmd,
+        env_vars=None,
+        with_interactive=False):
     assert docker_cmd, "Must provide docker command"
     env_str = ""
     if env_vars:
@@ -123,10 +124,11 @@ def check_docker_image(cname, docker_cmd):
     return _check_helper(cname, ".Config.Image", docker_cmd)
 
 
-def docker_start_cmds(user, image, mount_dict, data_disks, container_name, user_options,
-                      cluster_name, home_directory, docker_cmd,
-                      network=None, cpus=None, memory=None, labels=None,
-                      port_mappings=None, mounts_mapping=False, ipc_mode=None):
+def docker_start_cmds(
+        user, image, mount_dict, data_disks, container_name, user_options,
+        cluster_name, home_directory, docker_cmd,
+        network=None, cpus=None, memory=None, labels=None,
+        port_mappings=None, mounts_mapping=False, ipc_mode=None):
     mounts = mount_dict
     if mounts_mapping:
         mounts = {}
@@ -143,10 +145,11 @@ def docker_start_cmds(user, image, mount_dict, data_disks, container_name, user_
     )
 
 
-def _docker_start_cmds(user, image, mounts, data_disks, container_name,
-                       user_options, home_directory, docker_cmd,
-                       network=None, cpus=None, memory=None, labels=None,
-                       port_mappings=None, ipc_mode=None):
+def _docker_start_cmds(
+        user, image, mounts, data_disks, container_name,
+        user_options, home_directory, docker_cmd,
+        network=None, cpus=None, memory=None, labels=None,
+        port_mappings=None, ipc_mode=None):
     # mounts mapping: target -> source
     file_mounts = [
         "-v {src}:{dest}".format(
