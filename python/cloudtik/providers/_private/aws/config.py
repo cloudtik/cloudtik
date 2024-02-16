@@ -721,7 +721,7 @@ def _delete_db_subnet_group(provider_config, workspace_name):
             DBSubnetGroupName=db_subnet_group_name
         )
         cli_logger.print(
-            "Successfully deleted DB subnet group: {}.".format(db_subnet_group_name))
+            "Successfully deleted DB subnet group.")
     except boto3.exceptions.Boto3Error as e:
         cli_logger.error(
             "Failed to delete DB subnet group. {}", str(e))
@@ -756,7 +756,7 @@ def _delete_database_instance(provider_config, db_instance):
         )
         wait_db_instance_deletion(rds_client, db_instance_name)
         cli_logger.print(
-            "Successfully deleted database instance: {}.".format(db_instance_name))
+            "Successfully deleted database instance.")
     except boto3.exceptions.Boto3Error as e:
         cli_logger.error(
             "Failed to delete database instance. {}", str(e))
@@ -808,7 +808,7 @@ def _delete_managed_cloud_storage(
         bucket.objects.all().delete()
         bucket.delete()
         cli_logger.print(
-            "Successfully deleted S3 bucket: {}.".format(bucket.name))
+            "Successfully deleted S3 bucket.")
     except boto3.exceptions.Boto3Error as e:
         cli_logger.error(
             "Failed to delete S3 bucket. {}", str(e))
@@ -1081,7 +1081,7 @@ def _delete_workspace_internet_gateway(workspace_name, ec2, vpc_id):
                 _delete_internet_gateway(igw)
         else:
             cli_logger.print(
-                "No Internet Gateways for workspace were found.")
+                "No Internet Gateway for workspace is found.")
 
 
 def _detach_and_delete_internet_gateway(igw, vpc_id):
@@ -1090,7 +1090,7 @@ def _detach_and_delete_internet_gateway(igw, vpc_id):
             "Detaching Internet Gateway: {} from {}...".format(igw.id, vpc_id))
         igw.detach_from_vpc(VpcId=vpc_id)
         cli_logger.print(
-            "Successfully detached Internet Gateway: {}.".format(igw.id))
+            "Successfully detached Internet Gateway.")
     except boto3.exceptions.Boto3Error as e:
         cli_logger.error(
             "Failed to detach Internet Gateway. {}", str(e))
@@ -1105,7 +1105,7 @@ def _delete_internet_gateway(igw):
             "Deleting Internet Gateway: {}...".format(igw.id))
         igw.delete()
         cli_logger.print(
-            "Successfully deleted Internet Gateway: {}.".format(igw.id))
+            "Successfully deleted Internet Gateway.")
     except boto3.exceptions.Boto3Error as e:
         cli_logger.error(
             "Failed to delete Internet Gateway. {}", str(e))
@@ -1127,7 +1127,7 @@ def _delete_private_subnets(workspace_name, ec2, vpc_id):
                 "Deleting private subnet: {}...".format(subnet.id))
             subnet.delete()
             cli_logger.print(
-                "Successfully deleted private subnet: {}.".format(subnet.id))
+                "Successfully deleted private subnet.")
     except boto3.exceptions.Boto3Error as e:
         cli_logger.error(
             "Failed to delete private subnet. {}", str(e))
@@ -1148,7 +1148,7 @@ def _delete_public_subnets(workspace_name, ec2, vpc_id):
                 "Deleting public subnet: {}...".format(subnet.id))
             subnet.delete()
             cli_logger.print(
-                "Successfully deleted public subnet: {}.".format(subnet.id))
+                "Successfully deleted public subnet.")
     except boto3.exceptions.Boto3Error as e:
         cli_logger.error(
             "Failed to delete public subnet. {}", str(e))
@@ -1170,7 +1170,7 @@ def _delete_route_table(workspace_name, ec2, vpc_id):
             table = ec2.RouteTable(rtb.id)
             table.delete()
             cli_logger.print(
-                "Successfully deleted route table: {}.".format(rtb.id))
+                "Successfully deleted route table.")
     except boto3.exceptions.Boto3Error as e:
         cli_logger.error(
             "Failed to delete route table. {}", str(e))
@@ -1217,7 +1217,7 @@ def _delete_nat_gateway_resource(nat, ec2_client):
             "Deleting NAT Gateway: {}...".format(nat["NatGatewayId"]))
         ec2_client.delete_nat_gateway(NatGatewayId=nat["NatGatewayId"])
         cli_logger.print(
-            "Successfully deleted NAT Gateway: {}.".format(nat["NatGatewayId"]))
+            "Successfully deleted NAT Gateway.")
     except boto3.exceptions.Boto3Error as e:
         cli_logger.error(
             "Failed to delete NAT Gateway. {}", str(e))
@@ -1273,7 +1273,7 @@ def _delete_security_group(provider_config, vpc_id, security_group_name):
             "Deleting security group: {}...".format(sg.id))
         sg.delete()
         cli_logger.print(
-            "Successfully deleted security group: {}.".format(sg.id))
+            "Successfully deleted security group.")
     except boto3.exceptions.Boto3Error as e:
         cli_logger.error(
             "Failed to delete security group. {}", str(e))
@@ -1301,7 +1301,7 @@ def _delete_vpc(ec2, ec2_client, vpc_id):
             "Deleting VPC: {}...".format(vpc.id))
         vpc.delete()
         cli_logger.print(
-            "Successfully deleted VPC: {}.".format(vpc.id))
+            "Successfully deleted VPC.")
     except Exception as e:
         cli_logger.error(
             "Failed to delete VPC. {}", str(e))
@@ -1326,7 +1326,7 @@ def _delete_vpc_tags(ec2, ec2_client, vpc_id, workspace_name):
             ]
         )
         cli_logger.print(
-            "Successfully deleted VPC tags: {}.".format(vpc.id))
+            "Successfully deleted VPC tags.")
     except Exception as e:
         cli_logger.error(
             "Failed to delete VPC tags. {}", str(e))
@@ -1347,7 +1347,7 @@ def _delete_vpc_endpoint_for_s3(ec2_client, vpc_id, workspace_name):
         ec2_client.delete_vpc_endpoints(
             VpcEndpointIds=endpoint_ids)
         cli_logger.print(
-            "Successfully deleted VPC endpoint for S3: {}.".format(endpoint_ids))
+            "Successfully deleted VPC endpoint for S3.")
     except Exception as e:
         cli_logger.error(
             "Failed to delete VPC endpoint for S3. {}", str(e))
@@ -1440,14 +1440,14 @@ def _delete_workspace_vpc_peering_connection(config, ec2_client):
     vpc_peering_connection_id = vpc_peering_connection['VpcPeeringConnectionId']
     try:
         cli_logger.print(
-            "Deleting VPC peering connection for : {}...", vpc_peering_connection_id)
+            "Deleting VPC peering connection for: {}...", vpc_peering_connection_id)
         ec2_client.delete_vpc_peering_connection(
             VpcPeeringConnectionId=vpc_peering_connection_id
         )
         waiter = ec2_client.get_waiter('vpc_peering_connection_deleted')
         waiter.wait(VpcPeeringConnectionIds=[vpc_peering_connection_id])
         cli_logger.print(
-            "Successfully deleted VPC peering connection for: {}.", vpc_peering_connection_id)
+            "Successfully deleted VPC peering connection.")
     except Exception as e:
         cli_logger.error(
             "Failed to delete VPC peering connection. {}", str(e))
