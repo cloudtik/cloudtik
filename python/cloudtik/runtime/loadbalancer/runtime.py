@@ -5,7 +5,8 @@ from cloudtik.core.node_provider import NodeProvider
 from cloudtik.runtime.common.runtime_base import RuntimeBase
 from cloudtik.runtime.loadbalancer.utils import _get_runtime_processes, \
     _with_runtime_environment_variables, \
-    _validate_config, _get_runtime_logs, _prepare_config_on_head, _node_configure, _bootstrap_runtime_config
+    _validate_config, _get_runtime_logs, _prepare_config_on_head, _node_configure, _bootstrap_runtime_config, \
+    _prepare_config
 
 logger = logging.getLogger(__name__)
 
@@ -14,11 +15,20 @@ class LoadBalancerRuntime(RuntimeBase):
     """Implementation for LoadBalancer Runtime for controlling the cloud Load Balancer
     creating and targets updating.
     This is not the real load balancer service but the controller of a cloud load balancer.
+    The Load Balancer runtime will create real Cloud Balancer based on service configurations.
+    Usually we use Cloud Load Balancer as the public available user entry to services.
+    For load balancer for internal services which is not available to public, you can use
+    the runtime such as HAProxy or NGINX which is more for your control.
+    Of course, you can still use this to create internal load balancer for internal services.
 
     """
 
     def __init__(self, runtime_config: Dict[str, Any]) -> None:
         super().__init__(runtime_config)
+
+    def prepare_config(
+            self, cluster_config: Dict[str, Any]) -> Dict[str, Any]:
+        return _prepare_config(self.runtime_config, cluster_config)
 
     def bootstrap_config(self, cluster_config: Dict[str, Any]) -> Dict[str, Any]:
         """Final chance to update the config with runtime specific configurations

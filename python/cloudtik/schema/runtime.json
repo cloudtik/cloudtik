@@ -1669,6 +1669,83 @@
                     }
                 }
             }
+        },
+        "loadbalancer": {
+            "type": "object",
+            "description": "Load Balancer runtime configurations",
+            "additionalProperties": true,
+            "properties": {
+                "high_availability": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Whether to run on each node for high availability."
+                },
+                "provider": {
+                    "type": "object",
+                    "description": "Load balancer provider configurations.",
+                    "additionalProperties": true,
+                    "properties": {
+                        "delete_auto_empty": {
+                            "type": "boolean",
+                            "default": true,
+                            "description": "Whether to delete load balancer if there is no services."
+                        },
+                        "anonymous_prefer_default": {
+                            "type": "boolean",
+                            "default": true,
+                            "description": "Whether to use the default load balancer if service doesn't explicitly specify load balancer name."
+                        },
+                        "default_load_balancer_name": {
+                            "type": "string",
+                            "description": "The default load balancer name. If not specified, workspace name will be used."
+                        }
+                    }
+                },
+                "backend": {
+                    "type": "object",
+                    "description": "Backend configurations",
+                    "properties": {
+                        "config_mode": {
+                            "type": "string",
+                            "default": "dynamic",
+                            "description": "How the backend is configured: static, dynamic"
+                        },
+                        "services": {
+                            "type": "object",
+                            "description": "Map from service to static service information.",
+                            "additionalProperties": false,
+                            "patternProperties": {
+                                ".*": {
+                                    "type": "object",
+                                    "description": "Service information.",
+                                    "properties": {
+                                        "protocol": {
+                                            "type": "string",
+                                            "description": "The protocol of the service: TCP, TLS, UDP."
+                                        },
+                                        "port": {
+                                            "type": "integer",
+                                            "description": "The port of the service"
+                                        },
+                                        "load_balancer_name": {
+                                            "type": "string",
+                                            "description": "The load balancer name of the service. It is possible multiple services share the same load balancer."
+                                        },
+                                        "servers": {
+                                            "type": "array",
+                                            "description": "Array of static servers for the service.",
+                                            "items": {
+                                                "type": "string",
+                                                "description": "Server entry in format: host:port."
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 }
