@@ -279,20 +279,41 @@ def _get_workspace_security_group(provider_config, vpc_id, workspace_name):
 
 
 def get_workspace_internet_gateways(workspace_name, ec2, vpc_id):
-    igws = [igw for igw in get_vpc_internet_gateways(ec2, vpc_id) if igw.tags]
-
-    workspace_igws = [
-        igw for igw in igws
-        for tag in igw.tags
-        if tag['Key'] == 'Name' and tag['Value'] == "cloudtik-{}-internet-gateway".format(
-            workspace_name)]
-
-    return workspace_igws
+    internet_gateways = get_vpc_internet_gateways(ec2, vpc_id)
+    workspace_internet_gateways = [
+        igw for igw in internet_gateways if _is_workspace_tagged(
+            igw.tags, workspace_name)
+    ]
+    return workspace_internet_gateways
 
 
 def get_vpc_internet_gateways(ec2, vpc_id):
     vpc = ec2.Vpc(vpc_id)
     return list(vpc.internet_gateways.all())
+
+
+def _is_internet_gateways_attached(internet_gateway, vpc_id):
+    attachments = internet_gateway.attachments
+    if not attachments:
+        return False
+    for attachment in attachments:
+        if attachment.get("VpcId") == vpc_id:
+            return True
+    return False
+
+
+def _get_workspace_internet_gateways_detached(workspace_name, ec2, vpc_id):
+    filters = [
+        {
+            "Name": "tag:{}".format(CLOUDTIK_TAG_WORKSPACE_NAME),
+            "Values": [workspace_name],
+        }
+    ]
+    internet_gateways = ec2.internet_gateways.filter(Filters=filters)
+    return [
+        internet_gateway for internet_gateway in internet_gateways
+        if not _is_internet_gateways_attached(internet_gateway, vpc_id)
+    ]
 
 
 def get_vpc_endpoint_for_s3(ec2_client, vpc_id, workspace_name):
@@ -700,7 +721,7 @@ def _delete_db_subnet_group(provider_config, workspace_name):
             DBSubnetGroupName=db_subnet_group_name
         )
         cli_logger.print(
-            "Successfully deleted DB subnet group: {}.".format(db_subnet_group_name))
+            "Successfully deleted DB subnet group.")
     except boto3.exceptions.Boto3Error as e:
         cli_logger.error(
             "Failed to delete DB subnet group. {}", str(e))
@@ -735,7 +756,7 @@ def _delete_database_instance(provider_config, db_instance):
         )
         wait_db_instance_deletion(rds_client, db_instance_name)
         cli_logger.print(
-            "Successfully deleted database instance: {}.".format(db_instance_name))
+            "Successfully deleted database instance.")
     except boto3.exceptions.Boto3Error as e:
         cli_logger.error(
             "Failed to delete database instance. {}", str(e))
@@ -787,7 +808,7 @@ def _delete_managed_cloud_storage(
         bucket.objects.all().delete()
         bucket.delete()
         cli_logger.print(
-            "Successfully deleted S3 bucket: {}.".format(bucket.name))
+            "Successfully deleted S3 bucket.")
     except boto3.exceptions.Boto3Error as e:
         cli_logger.error(
             "Failed to delete S3 bucket. {}", str(e))
@@ -856,7 +877,7 @@ def _delete_network_resources(
             "Deleting Internet gateway",
             _numbered=("[]", current_step, total_steps)):
         current_step += 1
-        _delete_internet_gateway(workspace_name, ec2, vpc_id)
+        _delete_workspace_internet_gateway(workspace_name, ec2, vpc_id)
 
     # delete security group
     with cli_logger.group(
@@ -1045,27 +1066,50 @@ def _delete_iam_role(cloud_provider, role_name):
     role.delete()
 
 
-def _delete_internet_gateway(workspace_name, ec2, vpc_id):
+def _delete_workspace_internet_gateway(workspace_name, ec2, vpc_id):
     """ Detach and delete the internet-gateway """
-    igws = get_workspace_internet_gateways(workspace_name, ec2, vpc_id)
+    internet_gateways = get_workspace_internet_gateways(workspace_name, ec2, vpc_id)
+    if internet_gateways:
+        for igw in internet_gateways:
+            _detach_and_delete_internet_gateway(igw, vpc_id)
+    else:
+        # no attached internet gateways, check detached
+        detached_internet_gateways = _get_workspace_internet_gateways_detached(
+            workspace_name, ec2, vpc_id)
+        if detached_internet_gateways:
+            for igw in detached_internet_gateways:
+                _delete_internet_gateway(igw)
+        else:
+            cli_logger.print(
+                "No Internet Gateway for workspace is found.")
 
-    if len(igws) == 0:
+
+def _detach_and_delete_internet_gateway(igw, vpc_id):
+    try:
         cli_logger.print(
-            "No Internet Gateways for workspace were found under this VPC: {}...".format(
-                vpc_id))
-        return
-    for igw in igws:
-        try:
-            cli_logger.print(
-                "Detaching and deleting Internet Gateway: {}...".format(igw.id))
-            igw.detach_from_vpc(VpcId=vpc_id)
-            igw.delete()
-            cli_logger.print(
-                "Successfully deleted Internet Gateway: {}.".format(igw.id))
-        except boto3.exceptions.Boto3Error as e:
-            cli_logger.error(
-                "Failed to detach or delete Internet Gateway. {}", str(e))
-            raise e
+            "Detaching Internet Gateway: {} from {}...".format(igw.id, vpc_id))
+        igw.detach_from_vpc(VpcId=vpc_id)
+        cli_logger.print(
+            "Successfully detached Internet Gateway.")
+    except boto3.exceptions.Boto3Error as e:
+        cli_logger.error(
+            "Failed to detach Internet Gateway. {}", str(e))
+        raise e
+
+    _delete_internet_gateway(igw)
+
+
+def _delete_internet_gateway(igw):
+    try:
+        cli_logger.print(
+            "Deleting Internet Gateway: {}...".format(igw.id))
+        igw.delete()
+        cli_logger.print(
+            "Successfully deleted Internet Gateway.")
+    except boto3.exceptions.Boto3Error as e:
+        cli_logger.error(
+            "Failed to delete Internet Gateway. {}", str(e))
+        raise e
 
 
 def _delete_private_subnets(workspace_name, ec2, vpc_id):
@@ -1083,7 +1127,7 @@ def _delete_private_subnets(workspace_name, ec2, vpc_id):
                 "Deleting private subnet: {}...".format(subnet.id))
             subnet.delete()
             cli_logger.print(
-                "Successfully deleted private subnet: {}.".format(subnet.id))
+                "Successfully deleted private subnet.")
     except boto3.exceptions.Boto3Error as e:
         cli_logger.error(
             "Failed to delete private subnet. {}", str(e))
@@ -1104,7 +1148,7 @@ def _delete_public_subnets(workspace_name, ec2, vpc_id):
                 "Deleting public subnet: {}...".format(subnet.id))
             subnet.delete()
             cli_logger.print(
-                "Successfully deleted public subnet: {}.".format(subnet.id))
+                "Successfully deleted public subnet.")
     except boto3.exceptions.Boto3Error as e:
         cli_logger.error(
             "Failed to delete public subnet. {}", str(e))
@@ -1126,7 +1170,7 @@ def _delete_route_table(workspace_name, ec2, vpc_id):
             table = ec2.RouteTable(rtb.id)
             table.delete()
             cli_logger.print(
-                "Successfully deleted route table: {}.".format(rtb.id))
+                "Successfully deleted route table.")
     except boto3.exceptions.Boto3Error as e:
         cli_logger.error(
             "Failed to delete route table. {}", str(e))
@@ -1173,7 +1217,7 @@ def _delete_nat_gateway_resource(nat, ec2_client):
             "Deleting NAT Gateway: {}...".format(nat["NatGatewayId"]))
         ec2_client.delete_nat_gateway(NatGatewayId=nat["NatGatewayId"])
         cli_logger.print(
-            "Successfully deleted NAT Gateway: {}.".format(nat["NatGatewayId"]))
+            "Successfully deleted NAT Gateway.")
     except boto3.exceptions.Boto3Error as e:
         cli_logger.error(
             "Failed to delete NAT Gateway. {}", str(e))
@@ -1229,7 +1273,7 @@ def _delete_security_group(provider_config, vpc_id, security_group_name):
             "Deleting security group: {}...".format(sg.id))
         sg.delete()
         cli_logger.print(
-            "Successfully deleted security group: {}.".format(sg.id))
+            "Successfully deleted security group.")
     except boto3.exceptions.Boto3Error as e:
         cli_logger.error(
             "Failed to delete security group. {}", str(e))
@@ -1257,7 +1301,7 @@ def _delete_vpc(ec2, ec2_client, vpc_id):
             "Deleting VPC: {}...".format(vpc.id))
         vpc.delete()
         cli_logger.print(
-            "Successfully deleted VPC: {}.".format(vpc.id))
+            "Successfully deleted VPC.")
     except Exception as e:
         cli_logger.error(
             "Failed to delete VPC. {}", str(e))
@@ -1282,7 +1326,7 @@ def _delete_vpc_tags(ec2, ec2_client, vpc_id, workspace_name):
             ]
         )
         cli_logger.print(
-            "Successfully deleted VPC tags: {}.".format(vpc.id))
+            "Successfully deleted VPC tags.")
     except Exception as e:
         cli_logger.error(
             "Failed to delete VPC tags. {}", str(e))
@@ -1303,7 +1347,7 @@ def _delete_vpc_endpoint_for_s3(ec2_client, vpc_id, workspace_name):
         ec2_client.delete_vpc_endpoints(
             VpcEndpointIds=endpoint_ids)
         cli_logger.print(
-            "Successfully deleted VPC endpoint for S3: {}.".format(endpoint_ids))
+            "Successfully deleted VPC endpoint for S3.")
     except Exception as e:
         cli_logger.error(
             "Failed to delete VPC endpoint for S3. {}", str(e))
@@ -1396,14 +1440,14 @@ def _delete_workspace_vpc_peering_connection(config, ec2_client):
     vpc_peering_connection_id = vpc_peering_connection['VpcPeeringConnectionId']
     try:
         cli_logger.print(
-            "Deleting VPC peering connection for : {}...", vpc_peering_connection_id)
+            "Deleting VPC peering connection for: {}...", vpc_peering_connection_id)
         ec2_client.delete_vpc_peering_connection(
             VpcPeeringConnectionId=vpc_peering_connection_id
         )
         waiter = ec2_client.get_waiter('vpc_peering_connection_deleted')
         waiter.wait(VpcPeeringConnectionIds=[vpc_peering_connection_id])
         cli_logger.print(
-            "Successfully deleted VPC peering connection for: {}.", vpc_peering_connection_id)
+            "Successfully deleted VPC peering connection.")
     except Exception as e:
         cli_logger.error(
             "Failed to delete VPC peering connection. {}", str(e))
@@ -1618,9 +1662,60 @@ def _create_private_subnet(workspace_name, vpc, cidr_block, availability_zone):
     return subnet
 
 
-def _create_internet_gateway(config, ec2, ec2_client, vpc):
+def _create_workspace_internet_gateway(config, ec2, ec2_client, vpc):
+    workspace_name = get_workspace_name(config)
+    # check whether there is attached workspace gateway
+    internet_gateways = get_workspace_internet_gateways(
+        workspace_name, ec2, vpc.id)
+    if internet_gateways:
+        cli_logger.print(
+            "Found existing Internet Gateway. Skip creation.")
+        return internet_gateways[0]
+
+    try:
+        igw = _create_internet_gateway(config, ec2, ec2_client)
+
+        cli_logger.print(
+            "Attaching Internet Gateway to VPC: {}...".format(vpc.id))
+        igw.attach_to_vpc(VpcId=vpc.id)
+        cli_logger.print(
+            "Successfully attached Internet Gateway.")
+        return igw
+    except Exception as e:
+        # try two steps
+        # first try to find a detached workspace gateway and attach
+        try:
+            cli_logger.print(
+                "Try to find the detached workspace Internet Gateway...")
+            detached_internet_gateways = _get_workspace_internet_gateways_detached(
+                workspace_name, ec2, vpc.id)
+            if detached_internet_gateways:
+                cli_logger.print(
+                    "Found existing detached Internet Gateway. Will attach.")
+                igw = detached_internet_gateways[0]
+                igw.attach_to_vpc(VpcId=vpc.id)
+                return igw
+        except Exception as ex:
+            cli_logger.error(
+                "Failed to attach Internet Gateway: {}.", str(ex))
+            pass
+
+        # second try existing attached gateway already in the VPC
+        cli_logger.print(
+            "Try to find the existing Internet Gateway in VPC...")
+        vpc_internet_gateways = get_vpc_internet_gateways(ec2, vpc.id)
+        if vpc_internet_gateways:
+            cli_logger.print(
+                "Found existing Internet Gateway in VPC. Will reuse.")
+            return vpc_internet_gateways[0]
+        else:
+            raise e
+
+
+def _create_internet_gateway(config, ec2, ec2_client):
+    workspace_name = get_workspace_name(config)
     cli_logger.print(
-        "Creating Internet Gateway for the VPC: {}...".format(vpc.id))
+        "Creating Internet Gateway for workspace: {}...".format(workspace_name))
     try:
         igw = ec2.create_internet_gateway(
             TagSpecifications=[
@@ -1629,9 +1724,9 @@ def _create_internet_gateway(config, ec2, ec2_client, vpc):
                     'Tags': [
                         {
                             'Key': 'Name',
-                            'Value': 'cloudtik-{}-internet-gateway'.format(
-                                config["workspace_name"])
+                            'Value': 'cloudtik-{}-internet-gateway'.format(workspace_name)
                         },
+                        {'Key': CLOUDTIK_TAG_WORKSPACE_NAME, 'Value': workspace_name}
                     ]
                 },
             ]
@@ -1639,27 +1734,13 @@ def _create_internet_gateway(config, ec2, ec2_client, vpc):
 
         waiter = ec2_client.get_waiter('internet_gateway_exists')
         waiter.wait(InternetGatewayIds=[igw.id])
-
-        igw.attach_to_vpc(VpcId=vpc.id)
         cli_logger.print(
             "Successfully created Internet Gateway: cloudtik-{}-internet-gateway.",
-            config["workspace_name"])
+            workspace_name)
     except Exception as e:
         cli_logger.error(
             "Failed to create Internet Gateway. {}", str(e))
-        try:
-            cli_logger.print(
-                "Try to find the existing Internet Gateway...")
-            igws = [igw for igw in vpc.internet_gateways.all()]
-        except Exception:
-            raise e
-
-        if len(igws) > 0:
-            igw = igws[0]
-            cli_logger.print(
-                "Existing internet gateway found. Will use this one.")
-        else:
-            raise e
+        raise e
 
     return igw
 
@@ -2467,7 +2548,7 @@ def _create_network_resources(config, ec2, ec2_client,
             "Creating Internet gateway",
             _numbered=("[]", current_step, total_steps)):
         current_step += 1
-        internet_gateway = _create_internet_gateway(
+        internet_gateway = _create_workspace_internet_gateway(
             config, ec2, ec2_client, vpc)
 
     # add internet_gateway into public route table

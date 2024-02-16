@@ -67,7 +67,8 @@ class AWSLoadBalancerProvider(LoadBalancerProvider):
         """Delete a load balancer in the workspace based on the config.
         """
         _delete_load_balancer_by_name(
-            self.elb_client, load_balancer_name)
+            self.elb_client, load_balancer_name,
+            self.context)
 
     def validate_config(self, provider_config: Dict[str, Any]):
         """Check the configuration validation.

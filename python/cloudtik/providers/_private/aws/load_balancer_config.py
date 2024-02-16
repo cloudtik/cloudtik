@@ -107,11 +107,24 @@ def _get_load_balancer_info(elb_client, load_balancer_name):
     return load_balancer_info
 
 
-def _delete_load_balancer_by_name(elb_client, load_balancer_name):
+def _delete_load_balancer_by_name(elb_client, load_balancer_name, context):
     load_balancer = _get_load_balancer(elb_client, load_balancer_name)
     if not load_balancer:
         return False
     load_balancer_id = load_balancer["LoadBalancerArn"]
+    load_balancer_context = _get_load_balancer_context(
+        context, load_balancer_name)
+
+    # delete all the listeners and the corresponding target groups
+    listeners_to_delete = _get_load_balancer_listeners(
+        elb_client, load_balancer_id)
+    for load_balancer_listener in listeners_to_delete:
+        _delete_load_balancer_listener(
+            elb_client, load_balancer_listener)
+        listener_key = _get_load_balancer_listener_key(load_balancer_listener)
+        _clear_listener_last_hash(load_balancer_context, listener_key)
+
+    # finally delete the load balancer
     _delete_load_balancer(elb_client, load_balancer_id)
     return True
 
@@ -128,7 +141,7 @@ def wait_load_balancer_deleted(elb_client, load_balancer_id):
     waiter.wait(
         LoadBalancerArns=[load_balancer_id],
         WaiterConfig={
-            'Delay': 1,
+            'Delay': 3,
             'MaxAttempts': 120
         }
     )
@@ -211,15 +224,15 @@ def _get_load_balancer_listener_key(load_balancer_listener):
     return load_balancer_listener["Protocol"], load_balancer_listener["Port"]
 
 
-def _update_listener_last_hash(context, listener):
+def _update_listener_last_hash(load_balancer_context, listener):
     listener_key = _get_listener_key(listener)
     listener_hash = get_json_object_hash(listener)
-    context[listener_key] = listener_hash
+    load_balancer_context[listener_key] = listener_hash
 
 
-def _is_listener_updated(context, listener):
+def _is_listener_updated(load_balancer_context, listener):
     listener_key = _get_listener_key(listener)
-    old_listener_hash = context.get(listener_key)
+    old_listener_hash = load_balancer_context.get(listener_key)
     if not old_listener_hash:
         return True
     listener_hash = get_json_object_hash(listener)
@@ -228,8 +241,8 @@ def _is_listener_updated(context, listener):
     return False
 
 
-def _clear_listener_last_hash(context, listener_key):
-    context.pop(listener_key, None)
+def _clear_listener_last_hash(load_balancer_context, listener_key):
+    load_balancer_context.pop(listener_key, None)
 
 
 def _get_load_balancer_listeners(elb_client, load_balancer_id):
@@ -237,17 +250,25 @@ def _get_load_balancer_listeners(elb_client, load_balancer_id):
         LoadBalancerArn=load_balancer_id).get("Listeners", [])
 
 
+def _get_load_balancer_context(context, load_balancer_name):
+    if load_balancer_name not in context:
+        context[load_balancer_name] = {}
+    return context[load_balancer_name]
+
+
 def _create_load_balancer_listeners(
         elb_client, load_balancer_id, load_balancer_config,
         vpc_id, context):
     load_balancer_name = load_balancer_config["name"]
     listeners = load_balancer_config.get("listeners", [])
+    load_balancer_context = _get_load_balancer_context(
+        context, load_balancer_name)
 
     for listener in listeners:
         _create_load_balancer_listener(
             elb_client, load_balancer_name, load_balancer_id,
             listener, vpc_id)
-        _update_listener_last_hash(context, listener)
+        _update_listener_last_hash(load_balancer_context, listener)
 
 
 def _create_load_balancer_listener(
@@ -347,24 +368,26 @@ def _update_load_balancer_listeners(
      listeners_to_update,
      listeners_to_delete) = _get_listeners_for_action(
         listeners, existing_listeners)
+    load_balancer_context = _get_load_balancer_context(
+        context, load_balancer_name)
 
     for listener in listeners_to_create:
         _create_load_balancer_listener(
             elb_client, load_balancer_name, load_balancer_id,
             listener, vpc_id)
-        _update_listener_last_hash(context, listener)
+        _update_listener_last_hash(load_balancer_context, listener)
 
     for listener in listeners_to_update:
-        if _is_listener_updated(context, listener):
+        if _is_listener_updated(load_balancer_context, listener):
             _update_load_balancer_listener(
                 elb_client, load_balancer_name, listener)
-            _update_listener_last_hash(context, listener)
+            _update_listener_last_hash(load_balancer_context, listener)
 
     for load_balancer_listener in listeners_to_delete:
         _delete_load_balancer_listener(
             elb_client, load_balancer_listener)
         listener_key = _get_load_balancer_listener_key(load_balancer_listener)
-        _clear_listener_last_hash(context, listener_key)
+        _clear_listener_last_hash(load_balancer_context, listener_key)
 
 
 def _get_listeners_for_action(listeners, existing_listeners):

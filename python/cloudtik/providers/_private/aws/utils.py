@@ -284,8 +284,9 @@ def get_current_account_id(cloud_provider):
 
 @lru_cache()
 def resource_cache(name, region, max_retries=BOTO_MAX_RETRIES, **kwargs):
-    cli_logger.verbose("Creating AWS resource `{}` in `{}`", cf.bold(name),
-                       cf.bold(region))
+    cli_logger.verbose(
+        "Creating AWS resource `{}` in `{}`", cf.bold(name),
+        cf.bold(region))
     kwargs.setdefault(
         "config",
         Config(retries={"max_attempts": max_retries}),
