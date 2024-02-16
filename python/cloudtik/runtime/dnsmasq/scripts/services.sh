@@ -24,14 +24,22 @@ start)
     wait_for_port "${DNSMASQ_SERVICE_PORT}"
 
     if [ "${DNSMASQ_DEFAULT_RESOLVER}" == "true" ]; then
-        # update the /etc/resolv.conf
-        update_resolv_conf ${DNSMASQ_BACKUP_RESOLV_CONF} "127.0.0.1"
+        if is_systemd_resolved_active; then
+            update_systemd_resolved "dnsmasq" "127.0.0.1"
+        else
+            # update the /etc/resolv.conf
+            update_resolv_conf ${DNSMASQ_BACKUP_RESOLV_CONF} "127.0.0.1"
+        fi
     fi
     ;;
 stop)
     if [ "${DNSMASQ_DEFAULT_RESOLVER}" == "true" ]; then
-        # restore the /etc/resolv.conf
-        restore_resolv_conf ${DNSMASQ_BACKUP_RESOLV_CONF}
+        if is_systemd_resolved_active; then
+            restore_systemd_resolved "dnsmasq"
+        else
+            # restore the /etc/resolv.conf
+            restore_resolv_conf ${DNSMASQ_BACKUP_RESOLV_CONF}
+        fi
     fi
 
     sudo service dnsmasq stop
