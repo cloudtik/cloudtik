@@ -1046,14 +1046,21 @@ def address_from_string(address):
 
 
 def service_address_from_string(
-        address, default_port: int):
+        address, default_port: int = None):
     segments = address.split(':')
     n = len(segments)
     if n < 1 or n > 2:
         raise ValueError(
             "Invalid service address. Correct format: service-host:service-port")
     host = segments[0]
-    port = str(segments[1]) if n > 1 else default_port
+    if n > 1:
+        port = str(segments[1])
+    else:
+        if default_port is None:
+            raise ValueError(
+                "Port must be specified for service address.")
+        else:
+            port = default_port
     return host, port
 
 

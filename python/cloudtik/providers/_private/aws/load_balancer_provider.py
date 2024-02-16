@@ -13,6 +13,9 @@ from cloudtik.providers._private.aws.utils import _make_client
 logger = logging.getLogger(__name__)
 
 
+# AWS load balancer name can have a maximum of 32 characters,
+# and contain only alphanumeric characters and hyphens. It must
+# not begin or end with a hyphen, or with internal-.
 AWS_LOAD_BALANCER_NAME_MIN_LEN = 1
 AWS_LOAD_BALANCER_NAME_MAX_LEN = 32
 

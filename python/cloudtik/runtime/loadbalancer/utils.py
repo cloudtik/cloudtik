@@ -16,12 +16,13 @@ LOAD_BALANCER_PROVIDER_CONFIG_KEY = "provider"
 
 LOAD_BALANCER_BACKEND_CONFIG_KEY = "backend"
 LOAD_BALANCER_BACKEND_CONFIG_MODE_CONFIG_KEY = "config_mode"
-
-LOAD_BALANCER_BACKEND_SERVICE_NAME_CONFIG_KEY = "service_name"
-LOAD_BALANCER_BACKEND_SERVICE_TAG_CONFIG_KEY = "service_tag"
-LOAD_BALANCER_BACKEND_SERVICE_CLUSTER_CONFIG_KEY = "service_cluster"
-LOAD_BALANCER_BACKEND_SERVERS_CONFIG_KEY = "servers"
 LOAD_BALANCER_BACKEND_SELECTOR_CONFIG_KEY = "selector"
+LOAD_BALANCER_BACKEND_SERVICES_CONFIG_KEY = "services"
+
+LOAD_BALANCER_BACKEND_SERVICE_PROTOCOL_CONFIG_KEY = "protocol"
+LOAD_BALANCER_BACKEND_SERVICE_PORT_CONFIG_KEY = "port"
+LOAD_BALANCER_BACKEND_SERVICE_LOAD_BALANCER_NAME_CONFIG_KEY = "load_balancer_name"
+LOAD_BALANCER_BACKEND_SERVICE_SERVERS_CONFIG_KEY = "servers"
 
 LOAD_BALANCER_HTTP_CHECK_ENABLED_CONFIG_KEY = "http_check_enabled"
 LOAD_BALANCER_HTTP_CHECK_PORT_CONFIG_KEY = "http_check_port"
@@ -53,7 +54,7 @@ def _get_config_for_update(cluster_config):
 
 def _is_high_availability(load_balancer_config: Dict[str, Any]):
     return load_balancer_config.get(
-        LOAD_BALANCER_HIGH_AVAILABILITY_CONFIG_KEY, False)
+        LOAD_BALANCER_HIGH_AVAILABILITY_CONFIG_KEY, True)
 
 
 def _get_provider_config(load_balancer_config: Dict[str, Any]):
@@ -68,6 +69,10 @@ def _get_backend_config(load_balancer_config: Dict[str, Any]):
 
 def _get_backend_config_mode(backend_config: Dict[str, Any]):
     return backend_config.get(LOAD_BALANCER_BACKEND_CONFIG_MODE_CONFIG_KEY)
+
+
+def _get_backend_services(backend_config: Dict[str, Any]):
+    return backend_config.get(LOAD_BALANCER_BACKEND_SERVICES_CONFIG_KEY)
 
 
 def _is_backend_http_check_enabled(backend_config: Dict[str, Any]):
@@ -119,6 +124,24 @@ def _get_backend_service_selector(
     return service_selector
 
 
+def _prepare_config(
+        runtime_config: Dict[str, Any],
+        cluster_config: Dict[str, Any]) -> Dict[str, Any]:
+    load_balancer_config = _get_config(runtime_config)
+    backend_config = _get_backend_config(load_balancer_config)
+    config_mode = _get_backend_config_mode(backend_config)
+    if not config_mode:
+        # do update
+        load_balancer_config = _get_config_for_update(cluster_config)
+        backend_config = get_config_for_update(
+            load_balancer_config, LOAD_BALANCER_BACKEND_CONFIG_KEY)
+        config_mode = _get_checked_config_mode(
+            cluster_config, backend_config)
+        backend_config[LOAD_BALANCER_BACKEND_CONFIG_MODE_CONFIG_KEY] = config_mode
+
+    return cluster_config
+
+
 def _bootstrap_runtime_config(
         runtime_config: Dict[str, Any],
         cluster_config: Dict[str, Any]) -> Dict[str, Any]:
@@ -165,9 +188,9 @@ def _validate_config(config: Dict[str, Any]):
     config_mode = _get_checked_config_mode(config, backend_config)
     if config_mode == LOAD_BALANCER_CONFIG_MODE_STATIC:
         if not backend_config.get(
-                LOAD_BALANCER_BACKEND_SERVERS_CONFIG_KEY):
+                LOAD_BALANCER_BACKEND_SERVICES_CONFIG_KEY):
             raise ValueError(
-                "Static servers must be provided with config mode: static.")
+                "Services must be provided with config mode: static.")
 
 
 def _with_runtime_environment_variables(
@@ -195,8 +218,8 @@ def _with_runtime_environment_variables(
 def _get_default_load_balancer_config_mode(config, backend_config):
     cluster_runtime_config = get_runtime_config(config)
     if backend_config.get(
-            LOAD_BALANCER_BACKEND_SERVERS_CONFIG_KEY):
-        # if there are static servers configured
+            LOAD_BALANCER_BACKEND_SERVICES_CONFIG_KEY):
+        # if there are static services configured
         config_mode = LOAD_BALANCER_CONFIG_MODE_STATIC
     elif get_service_discovery_runtime(cluster_runtime_config):
         # if there is service selector defined

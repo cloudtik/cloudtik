@@ -2,14 +2,17 @@ from shlex import quote
 
 from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_LOAD_BALANCER
 from cloudtik.core._private.service_discovery.utils import serialize_service_selector
-from cloudtik.core._private.util.core_utils import exec_with_output, serialize_config
+from cloudtik.core._private.util.core_utils import exec_with_output, serialize_config, service_address_from_string
 from cloudtik.core._private.util.runtime_utils import \
     get_runtime_config_from_node, get_runtime_cluster_name, get_runtime_workspace_name
 from cloudtik.runtime.common.leader_election.runtime_leader_election import get_runtime_leader_election_url
 from cloudtik.runtime.common.utils import stop_pull_service_by_identifier
-from cloudtik.runtime.loadbalancer.provider_api import get_load_balancer_manager
+from cloudtik.runtime.loadbalancer.provider_api import get_load_balancer_manager, LoadBalancerBackendService
 from cloudtik.runtime.loadbalancer.utils import _get_config, _get_backend_config, \
-    _get_logs_dir, _get_backend_service_selector, _get_service_identifier, _get_provider_config
+    _get_logs_dir, _get_backend_service_selector, _get_service_identifier, _get_provider_config, \
+    _get_backend_config_mode, LOAD_BALANCER_CONFIG_MODE_STATIC, _get_backend_services, \
+    LOAD_BALANCER_BACKEND_SERVICE_PORT_CONFIG_KEY, LOAD_BALANCER_BACKEND_SERVICE_PROTOCOL_CONFIG_KEY, \
+    LOAD_BALANCER_BACKEND_SERVICE_LOAD_BALANCER_NAME_CONFIG_KEY, LOAD_BALANCER_BACKEND_SERVICE_SERVERS_CONFIG_KEY
 
 LOAD_BALANCER_DISCOVER_BACKEND_SERVERS_INTERVAL = 15
 
@@ -22,15 +25,53 @@ LOAD_BALANCER_DISCOVER_BACKEND_SERVERS_INTERVAL = 15
 def configure_backend(head):
     runtime_config = get_runtime_config_from_node(head)
     load_balancer_config = _get_config(runtime_config)
-    provider_config = _get_provider_config(load_balancer_config)
 
-    # TODO: build backends based on static configuration
+    backend_config = _get_backend_config(load_balancer_config)
+    config_mode = _get_backend_config_mode(backend_config)
+    if config_mode == LOAD_BALANCER_CONFIG_MODE_STATIC:
+        provider_config = _get_provider_config(load_balancer_config)
+
+        # build backends based on static configuration
+        backends = _get_backends_from_config(backend_config)
+
+        workspace_name = get_runtime_workspace_name()
+        load_balancer_manager = get_load_balancer_manager(
+            provider_config, workspace_name)
+        load_balancer_manager.update(backends)
+
+
+def _get_backends_from_config(backend_config):
     backends = {}
+    backend_services = _get_backend_services(backend_config)
+    if not backend_services:
+        return backends
 
-    workspace_name = get_runtime_workspace_name()
-    load_balancer_manager = get_load_balancer_manager(
-        provider_config, workspace_name)
-    load_balancer_manager.update(backends)
+    for service_name, backend_service_config in backend_services.items():
+        backend_service = _get_backend_service_from_config(
+            service_name, backend_service_config)
+        if backend_service is not None:
+            backends[service_name] = backend_service
+    return backends
+
+
+def _get_backend_service_from_config(service_name, backend_service_config):
+    protocol = backend_service_config.get(
+        LOAD_BALANCER_BACKEND_SERVICE_PROTOCOL_CONFIG_KEY)
+    port = backend_service_config.get(
+        LOAD_BALANCER_BACKEND_SERVICE_PORT_CONFIG_KEY)
+    load_balancer_name = backend_service_config.get(
+        LOAD_BALANCER_BACKEND_SERVICE_LOAD_BALANCER_NAME_CONFIG_KEY)
+    servers = backend_service_config.get(
+        LOAD_BALANCER_BACKEND_SERVICE_SERVERS_CONFIG_KEY)
+    if not servers:
+        return None
+    backend_servers = [service_address_from_string(server, None) for server in servers]
+    if not backend_servers:
+        return None
+    return LoadBalancerBackendService(
+        service_name, backend_servers,
+        protocol=protocol, port=port,
+        load_balancer_name=load_balancer_name)
 
 
 def start_controller(head):
