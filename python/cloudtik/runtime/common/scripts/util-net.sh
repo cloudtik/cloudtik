@@ -127,3 +127,39 @@ wait_for_port() {
     [[ -n "$timeout" ]] && args+=("--timeout" "$timeout")
     cloudtik node wait-for-port $port "${args[@]}"
 }
+
+########################
+# Checks system is managed by systemd
+# arguments:
+#   None
+# returns:
+#   boolean
+#########################
+is_init_systemd() {
+    local -r init_program="$(ps --no-headers -o comm 1)"
+    if [[ "${init_program}" == "systemd" ]]; then
+        true
+    else
+        false
+    fi
+}
+
+########################
+# Checks whether systemd-resolved is active
+# arguments:
+#   None
+# returns:
+#   boolean
+#########################
+is_systemd_resolved_active() {
+    if ! is_init_systemd; then
+        false
+    else
+        local -r resolved_status="$(systemctl is-active systemd-resolved)"
+        if [[ "${resolved_status}" == "active" ]]; then
+            true
+        else
+            false
+        fi
+    fi
+}

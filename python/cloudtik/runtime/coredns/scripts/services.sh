@@ -29,14 +29,22 @@ start)
     wait_for_port "${COREDNS_SERVICE_PORT}"
 
     if [ "${COREDNS_DEFAULT_RESOLVER}" == "true" ]; then
-        # update the /etc/resolv.conf
-        update_resolv_conf ${COREDNS_BACKUP_RESOLV_CONF} "127.0.0.1"
+        if is_systemd_resolved_active; then
+            update_systemd_resolved "coredns" "127.0.0.1"
+        else
+            # update the /etc/resolv.conf
+            update_resolv_conf ${COREDNS_BACKUP_RESOLV_CONF} "127.0.0.1"
+        fi
     fi
     ;;
 stop)
     if [ "${COREDNS_DEFAULT_RESOLVER}" == "true" ]; then
-        # restore the /etc/resolv.conf
-        restore_resolv_conf ${COREDNS_BACKUP_RESOLV_CONF}
+        if is_systemd_resolved_active; then
+            restore_systemd_resolved "coredns"
+        else
+            # restore the /etc/resolv.conf
+            restore_resolv_conf ${COREDNS_BACKUP_RESOLV_CONF}
+        fi
     fi
     stop_process_by_pid_file "${COREDNS_PID_FILE}"
     ;;

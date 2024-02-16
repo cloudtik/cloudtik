@@ -24,16 +24,44 @@ clean_apt() {
 }
 
 update_resolv_conf() {
-    local BACKUP_RESOLV_CONF=$1
-    cp /etc/resolv.conf ${BACKUP_RESOLV_CONF}
+    local -r backup_resolv_conf="${1:?backup resolv conf file is missing}"
+    cp /etc/resolv.conf ${backup_resolv_conf}
     shift
-    SCRIPTS_DIR=$(dirname ${BASH_SOURCE[0]})
-    sudo env PATH=$PATH python ${SCRIPTS_DIR}/resolv-conf.py "$@"
+    local script_dir=$(dirname ${BASH_SOURCE[0]})
+    sudo env PATH=$PATH python ${script_dir}/resolv-conf.py "$@"
 }
 
 restore_resolv_conf() {
-    local BACKUP_RESOLV_CONF=$1
-    if [ -f "${BACKUP_RESOLV_CONF}" ]; then
-        sudo cp ${BACKUP_RESOLV_CONF} /etc/resolv.conf
+    local -r backup_resolv_conf="${1:?backup resolv conf file is missing}"
+    if [ -f "${backup_resolv_conf}" ]; then
+        sudo cp ${backup_resolv_conf} /etc/resolv.conf
+    fi
+}
+
+update_systemd_resolved() {
+    local -r resolved_conf_name="${1:?resolved conf name is missing}"
+    local -r dns_address="${2:?DNS address is missing}"
+    local -r resolved_conf_dir="/etc/systemd/resolved.conf.d"
+    local -r resolved_conf="${resolved_conf_dir}/${resolved_conf_name}.conf"
+    # write the following contents to our resolved conf
+    sudo mkdir -p "${resolved_conf_dir}"
+    # [Resolve]
+    # DNS=dns_address
+    # DNSSEC=false
+    # Domains=~cloudtik
+    printf '[Resolve]\nDNS=%s\nDNSSEC=false\nDomains=~cloudtik\n' \
+      "${dns_address}" | sudo tee "${resolved_conf}" >/dev/null
+    if [ -f "${resolved_conf}" ]; then
+        sudo systemctl restart systemd-resolved
+    fi
+}
+
+restore_systemd_resolved() {
+    local -r resolved_conf_name="${1:?resolved conf name is missing}"
+    local -r resolved_conf_dir="/etc/systemd/resolved.conf.d"
+    local -r resolved_conf="${resolved_conf_dir}/${resolved_conf_name}.conf"
+    if [ -f "${resolved_conf}" ]; then
+        sudo rm -f "${resolved_conf}"
+        sudo systemctl restart systemd-resolved
     fi
 }
