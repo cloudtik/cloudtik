@@ -45,7 +45,7 @@ MEMORY_UNIT_GB = 1024 * 1024 * 1024
 
 try:
     SIGNAL_KILL = signal.SIGKILL
-except:
+except Exception:
     SIGNAL_KILL = signal.SIGTERM
 
 

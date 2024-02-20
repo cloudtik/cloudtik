@@ -301,7 +301,7 @@ def _update_load_balancer(
 def _delete_load_balancer_by_name(elb_client, load_balancer_name, context):
     load_balancer = _get_load_balancer(elb_client, load_balancer_name)
     if not load_balancer:
-        return False
+        return
     load_balancer_id = _get_load_balancer_id(load_balancer)
     _clear_load_balancer_context(context, load_balancer_name)
 
@@ -310,7 +310,6 @@ def _delete_load_balancer_by_name(elb_client, load_balancer_name, context):
 
     # delete load balancer targets
     _delete_load_balancer_target_groups(elb_client, load_balancer_name)
-    return True
 
 
 def _delete_load_balancer(elb_client, load_balancer_id):
