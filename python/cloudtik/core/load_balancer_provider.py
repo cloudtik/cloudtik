@@ -5,9 +5,22 @@ from cloudtik.core._private.annotations import DeveloperAPI
 
 logger = logging.getLogger(__name__)
 
+# Load balancer type
+LOAD_BALANCER_TYPE_NETWORK = "network"
+LOAD_BALANCER_TYPE_APPLICATION = "application"
+
+# Network load balancer
 LOAD_BALANCER_PROTOCOL_TCP = "TCP"
 LOAD_BALANCER_PROTOCOL_TLS = "TLS"
 LOAD_BALANCER_PROTOCOL_UDP = "UDP"
+
+# Application load balancer
+LOAD_BALANCER_PROTOCOL_HTTP = "HTTP"
+LOAD_BALANCER_PROTOCOL_HTTPS = "HTTPS"
+
+# The schema of the load balancer
+LOAD_BALANCER_SCHEMA_INTERNET_FACING = "internet-facing"
+LOAD_BALANCER_SCHEMA_INTERNAL = "internal"
 
 
 @DeveloperAPI
@@ -36,7 +49,9 @@ class LoadBalancerProvider:
         The return is a map from load balancer name to its properties.
         {
             "load-balancer-1": {
-                "id": "12345678",
+                "name": "load-balancer-1",
+                "type": "network",
+                "schema": "internet-facing",
                 tags: {...}
             }
         }
@@ -46,7 +61,9 @@ class LoadBalancerProvider:
     def get(self, load_balancer_name: str):
         """Return more detailed information for a load balancer including listeners
         {
-            "name": "load-balancer-1"
+            "name": "load-balancer-1",
+            "type": "network",
+            "schema": "internet-facing",
             "listeners": [
                 {
                     "protocol": "TCP",
@@ -64,23 +81,32 @@ class LoadBalancerProvider:
         The load_balancer_config contains a common concept view of what is needed
 
         {
-            "name": "load-balancer-1"
+            "name": "load-balancer-1",
+            "type": "network",
+            "schema": "internet-facing",
             "listeners": [
                 {
                     "protocol": "TCP",
-                    "port": 80
-                    "targets": [
+                    "port": 80,
+                    "services": [
                         {
-                            "ip": "172.18.0.1",
-                            "port": 1234,
-                        },
-                        {
-                            "ip": "172.18.0.2",
-                            "port": 1234,
-                        },
+                            "name": "abc"
+                            "protocol": "TCP",
+                            "port": 8080,
+                            "targets": [
+                                {
+                                    "ip": "172.18.0.1",
+                                    "port": 1234,
+                                },
+                                {
+                                    "ip": "172.18.0.2",
+                                    "port": 1234,
+                                },
+                            ]
+                        }
                     ]
                 }
-            ]
+            ],
             tags: {...}
         }
 

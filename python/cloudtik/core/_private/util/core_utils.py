@@ -43,6 +43,11 @@ logger = logging.getLogger(__name__)
 
 MEMORY_UNIT_GB = 1024 * 1024 * 1024
 
+try:
+    SIGNAL_KILL = signal.SIGKILL
+except Exception:
+    SIGNAL_KILL = signal.SIGTERM
+
 
 class ConcurrentCounter:
     def __init__(self):
@@ -367,7 +372,7 @@ def check_process_exists(pid):
 
 def kill_process_by_pid(pid):
     try:
-        os.kill(pid, signal.SIGKILL)
+        os.kill(pid, SIGNAL_KILL)
         logger.debug(
             "The process with PID {} has been killed.".format(pid))
     except OSError as e:
@@ -439,7 +444,7 @@ def get_process_of_pid_file(pid_file: str):
         return None
 
 
-def kill_process_by_pid_file(pid_file, sig=signal.SIGKILL):
+def kill_process_by_pid_file(pid_file, sig=SIGNAL_KILL):
     try:
         pid = read_pid_from_pid_file(pid_file)
         if pid is None:

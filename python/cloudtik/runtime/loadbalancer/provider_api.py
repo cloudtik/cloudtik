@@ -1,11 +1,19 @@
+import logging
+
 from cloudtik.core._private.load_balancer_provider_factory import _get_load_balancer_provider, \
     _get_load_balancer_provider_cls
 from cloudtik.core._private.util.core_utils import JSONSerializableObject, get_list_for_update, get_json_object_hash
 from cloudtik.core._private.utils import get_provider_config
-from cloudtik.core.load_balancer_provider import LOAD_BALANCER_PROTOCOL_TCP
+from cloudtik.core.load_balancer_provider import LOAD_BALANCER_PROTOCOL_TCP, LOAD_BALANCER_TYPE_NETWORK, \
+    LOAD_BALANCER_SCHEMA_INTERNET_FACING, LOAD_BALANCER_PROTOCOL_HTTP, LOAD_BALANCER_PROTOCOL_HTTPS, \
+    LOAD_BALANCER_TYPE_APPLICATION
+
+logger = logging.getLogger(__name__)
+
 
 LOAD_BALANCER_AUTO_CREATED_TAG = "cloudtik-auto-create"
-LOAD_BALANCER_DEFAULT = "{}"
+LOAD_BALANCER_NETWORK_DEFAULT = "{}-net"
+LOAD_BALANCER_APPLICATION_DEFAULT = "{}"
 
 
 class LoadBalancerBackendService(JSONSerializableObject):
@@ -13,19 +21,39 @@ class LoadBalancerBackendService(JSONSerializableObject):
             self,
             service_name, backend_servers,
             protocol, port,
-            load_balancer_name=None):
+            load_balancer_name=None,
+            load_balancer_protocol=None, load_balancer_port=None,
+            route_path=None, service_path=None):
         if not protocol:
             protocol = LOAD_BALANCER_PROTOCOL_TCP
         if not port:
             # default to the same port of the backend servers
             backend_server = backend_servers[0]
             port = backend_server[1]
+        if not load_balancer_protocol:
+            load_balancer_protocol = protocol
+        if not load_balancer_port:
+            load_balancer_port = port
 
         self.service_name = service_name
         self.backend_servers = backend_servers
         self.protocol = protocol
         self.port = port
+
         self.load_balancer_name = load_balancer_name
+        self.load_balancer_protocol = load_balancer_protocol
+        self.load_balancer_port = load_balancer_port
+
+        self.route_path = route_path
+        self.service_path = service_path
+
+    def get_route_path(self):
+        route_path = self.route_path or "/" + self.service_name
+        return route_path
+
+    def get_service_path(self):
+        service_path = self.service_path
+        return service_path.rstrip('/') if service_path else None
 
 
 def get_load_balancer_manager(provider_config, workspace_name):
@@ -41,7 +69,7 @@ def bootstrap_provider_config(cluster_config, provider_config):
 
 class LoadBalancerManager:
     """
-    LoadBalancerManager takes control of managing each backends cases
+    LoadBalancerManager takes control of managing each backend services cases
     and call into load balancer provider API to create a load balancer,
     to create a listener, or update the targets of a listener.
     """
@@ -51,19 +79,21 @@ class LoadBalancerManager:
         self.load_balancer_provider = _get_load_balancer_provider(
             self.provider_config, self.workspace_name)
         self.load_balancer_last_hash = {}
+        self.default_network_load_balancer = self._get_default_network_load_balancer_name()
+        self.default_application_load_balancer = self._get_default_application_load_balancer_name()
 
-    def update(self, backends):
-        load_balancer_backends = self._get_load_balancer_backends(backends)
+    def update(self, backend_services):
+        load_balancers = self._get_load_balancers(backend_services)
         existing_load_balancers = self.load_balancer_provider.list()
         (load_balancers_to_create,
          load_balancers_to_update,
          load_balancers_to_delete) = self._get_load_balancer_for_action(
-            load_balancer_backends, existing_load_balancers)
-        for load_balancer_name, load_balancer_backend in load_balancers_to_create.items():
-            self._create_load_balancer(load_balancer_name, load_balancer_backend)
+            load_balancers, existing_load_balancers)
+        for load_balancer_name, load_balancer in load_balancers_to_create.items():
+            self._create_load_balancer(load_balancer_name, load_balancer)
 
-        for load_balancer_name, load_balancer_backend in load_balancers_to_update.items():
-            self._update_load_balancer(load_balancer_name, load_balancer_backend)
+        for load_balancer_name, load_balancer in load_balancers_to_update.items():
+            self._update_load_balancer(load_balancer_name, load_balancer)
 
         for load_balancer_name in load_balancers_to_delete:
             if self._is_delete_auto_empty():
@@ -74,18 +104,18 @@ class LoadBalancerManager:
                 self._clear_load_balancer(load_balancer_name)
 
     def _create_load_balancer(
-            self, load_balancer_name, load_balancer_backend):
-        self.load_balancer_provider.create(load_balancer_backend)
+            self, load_balancer_name, load_balancer):
+        self.load_balancer_provider.create(load_balancer)
         self._update_listener_last_hash(
-            load_balancer_name, load_balancer_backend)
+            load_balancer_name, load_balancer)
 
     def _update_load_balancer(
-            self, load_balancer_name, load_balancer_backend):
+            self, load_balancer_name, load_balancer):
         if self._is_load_balancer_updated(
-                load_balancer_name, load_balancer_backend):
-            self.load_balancer_provider.update(load_balancer_backend)
+                load_balancer_name, load_balancer):
+            self.load_balancer_provider.update(load_balancer)
             self._update_listener_last_hash(
-                load_balancer_name, load_balancer_backend)
+                load_balancer_name, load_balancer)
 
     def _delete_load_balancer(
             self, load_balancer_name):
@@ -94,10 +124,10 @@ class LoadBalancerManager:
 
     def _clear_load_balancer(
             self, load_balancer_name):
-        load_balancer_backend = {
+        load_balancer = {
             "name": load_balancer_name
         }
-        self._update_load_balancer(load_balancer_name, load_balancer_backend)
+        self._update_load_balancer(load_balancer_name, load_balancer)
 
     def _is_delete_auto_empty(self):
         return self.provider_config.get("delete_auto_empty", True)
@@ -105,88 +135,261 @@ class LoadBalancerManager:
     def _is_anonymous_prefer_default(self):
         return self.provider_config.get("anonymous_prefer_default", True)
 
-    def _get_default_load_balancer_name(self):
-        default_load_balancer_name = self.provider_config.get("default_load_balancer_name")
+    def _get_default_network_load_balancer_name(self):
+        default_load_balancer_name = self.provider_config.get(
+            "default_network_load_balancer_name")
         if default_load_balancer_name:
             return default_load_balancer_name
-        return LOAD_BALANCER_DEFAULT.format(self.workspace_name)
+        return LOAD_BALANCER_NETWORK_DEFAULT.format(self.workspace_name)
 
-    def _get_load_balancer_backends(self, backends):
-        # based on whether the provider supports multi-listener
-        # TODO: check the different services with the same frontend port
-        load_balancer_backends = {}
-        is_multi_listener = self.load_balancer_provider.is_multi_listener()
-        # decide with load balancer name tag
-        for service_name, load_balancer_backend_service in backends.items():
-            if is_multi_listener:
-                load_balancer_name = self._get_load_balancer_name(
-                    service_name, load_balancer_backend_service)
-            else:
-                load_balancer_name = service_name
-            load_balancer_backend = load_balancer_backends.get(load_balancer_name)
-            if load_balancer_backend is None:
-                load_balancer_backend = {
-                    "name": load_balancer_name,
-                    "tags": {
-                        LOAD_BALANCER_AUTO_CREATED_TAG: "true"
-                    }
+    def _get_default_application_load_balancer_name(self):
+        default_load_balancer_name = self.provider_config.get(
+            "default_application_load_balancer_name")
+        if default_load_balancer_name:
+            return default_load_balancer_name
+        return LOAD_BALANCER_APPLICATION_DEFAULT.format(self.workspace_name)
+
+    def _get_load_balancers(self, backend_services):
+        load_balancer_plan = self._plan_load_balancers(backend_services)
+        load_balancers = {}
+        for load_balancer_name, load_balancer_listeners in load_balancer_plan.items():
+            listener_key = next(iter(load_balancer_listeners))
+            load_balancer_protocol = listener_key[0]
+            load_balancer_type = self._get_load_balancer_type(load_balancer_protocol)
+            # TODO: decide the schema
+            load_balancer_schema = LOAD_BALANCER_SCHEMA_INTERNET_FACING
+
+            load_balancer = {
+                "name": load_balancer_name,
+                "type": load_balancer_type,
+                "schema": load_balancer_schema,
+                "tags": {
+                    LOAD_BALANCER_AUTO_CREATED_TAG: "true"
                 }
-                self._add_load_balancer_listener(
-                    load_balancer_backend, load_balancer_backend_service)
-                load_balancer_backends[load_balancer_name] = load_balancer_backend
+            }
+            self._add_load_balancer_listeners(
+                load_balancer, load_balancer_type, load_balancer_listeners)
+            load_balancers[load_balancer_name] = load_balancer
+
+        return load_balancers
+
+    def _plan_load_balancers(self, backend_services):
+        # Note for the planning:
+        # First pass: consider the load balancers that was specifically named by the user
+        load_balancers_plan_naming = self._get_explicit_naming_plan(
+            backend_services)
+
+        # Second pass considering the multi-listener support of the provider
+        load_balancers_plan_listeners = self._get_load_balancer_listener_plan(
+            load_balancers_plan_naming)
+        return load_balancers_plan_listeners
+
+    def _get_explicit_naming_plan(self, backend_services):
+        load_balancers_plan_naming = {}
+        for service_name, backend_service in backend_services.items():
+            load_balancer_name = self._get_explicit_load_balancer_name(
+                backend_service)
+            if not load_balancer_name:
+                # use empty name to mark the services which have no explicit name
+                load_balancer_name = ""
+            load_balancer_backend_services = get_list_for_update(
+                load_balancers_plan_naming, load_balancer_name)
+            load_balancer_backend_services.append(backend_service)
+        return load_balancers_plan_naming
+
+    def _get_load_balancer_listener_plan(self, load_balancers_plan_naming):
+        load_balancers_plan_listeners = {}
+        for load_balancer_name, load_balancer_backend_services in load_balancers_plan_naming.items():
+            if load_balancer_name:
+                # For services that explicitly named
+                try:
+                    self._plan_named_load_balancer(
+                        load_balancers_plan_listeners,
+                        load_balancer_name, load_balancer_backend_services)
+                except Exception as e:
+                    logger.debug(
+                        "Configuration conflicts for load balancer{}: {}.".format(
+                            load_balancer_name, str(e)))
             else:
-                self._add_load_balancer_listener(
-                    load_balancer_backend, load_balancer_backend_service)
-        return load_balancer_backends
+                # no name, we make plan for naming (which should be stable)
+                self._plan_unnamed_load_balancer(
+                    load_balancers_plan_listeners, load_balancer_backend_services)
+        return load_balancers_plan_listeners
+
+    def _get_load_balancer_type_of_services(self, load_balancer_backend_services):
+        backend_service = load_balancer_backend_services[0]
+        load_balancer_type = self._get_load_balancer_type(
+            backend_service.load_balancer_protocol)
+        for backend_service in load_balancer_backend_services[1:]:
+            if load_balancer_type != self._get_load_balancer_type(
+                    backend_service.load_balancer_protocol):
+                raise ValueError(
+                    "Load balancer protocol conflicts.")
+        return load_balancer_type
+
+    def _get_load_balancer_type(self, load_balancer_protocol):
+        type_application = self._is_application_load_balancer(
+            load_balancer_protocol)
+        if type_application:
+            return LOAD_BALANCER_TYPE_APPLICATION
+        else:
+            return LOAD_BALANCER_TYPE_NETWORK
+
+    def _get_listeners(self, load_balancer_backend_services):
+        listeners = {}
+        for backend_service in load_balancer_backend_services:
+            listener_key = (
+                backend_service.load_balancer_protocol,
+                backend_service.load_balancer_port)
+            listener_backend_services = get_list_for_update(listeners, listener_key)
+            listener_backend_services.append(backend_service)
+        return listeners
+
+    def _plan_named_load_balancer(
+            self, load_balancers_plan_listeners,
+            load_balancer_name, load_balancer_backend_services):
+        # A named load balancer is either Network load balancer or a
+        # Application load balancer.
+        # Network load balancer uses TCP, TLS or UDP load balancer protocol.
+        # Application load balancer uses HTTP or HTTPS load balancer protocol.
+
+        # For load balancer,
+        # Can only have a single listener if multi listener is not supported
+
+        # For network load balancer,
+        # Not allow different backend services to use the same load balancer listener.
+        load_balancer_type = self._get_load_balancer_type_of_services(
+            load_balancer_backend_services)
+        is_multi_listener = self.load_balancer_provider.is_multi_listener()
+        listeners = self._get_listeners(load_balancer_backend_services)
+        if not is_multi_listener and len(listeners) > 1:
+            raise ValueError(
+                "Provider doesn't support load balancer with multiple listeners.")
+
+        if load_balancer_type == LOAD_BALANCER_TYPE_NETWORK:
+            for _, listener_backend_services in listeners.items():
+                if len(listener_backend_services) > 1:
+                    raise ValueError(
+                        "Network load balancer doesn't allow multiple backend services.")
+        load_balancers_plan_listeners[load_balancer_name] = listeners
+
+    def _plan_unnamed_load_balancer(
+            self, load_balancers_plan_listeners, load_balancer_backend_services):
+        # We decide its load balancer type based on load balancer protocol:
+        # Network load balancer uses TCP, TLS or UDP load balancer protocol.
+        # Application load balancer uses HTTP or HTTPS load balancer protocol.
+        application_backend_services = []
+        network_load_balancers = []
+        for backend_service in load_balancer_backend_services:
+            type_application = self._is_application_load_balancer(
+                backend_service.load_balancer_protocol)
+            if type_application:
+                application_backend_services.append(backend_service)
+            else:
+                network_load_balancers.append(backend_service)
+
+        if network_load_balancers:
+            self._plan_unnamed_network_load_balancer(
+                load_balancers_plan_listeners, network_load_balancers)
+        if application_backend_services:
+            self._plan_unnamed_application_load_balancer(
+                load_balancers_plan_listeners, application_backend_services)
+
+    def _plan_unnamed_network_load_balancer(
+            self, load_balancers_plan_listeners, network_load_balancers):
+        is_multi_listener = self.load_balancer_provider.is_multi_listener()
+        listeners = self._get_listeners(network_load_balancers)
+        if not is_multi_listener or not self._is_anonymous_prefer_default():
+            for listener_key, listener_backend_services in listeners.items():
+                # expand further if one listener has multiple backend services
+                for backend_service in listener_backend_services:
+                    load_balancer_name = backend_service.service_name
+                    load_balancers_plan_listeners[load_balancer_name] = {
+                        listener_key: [backend_service]
+                    }
+        else:
+            # TODO: check any listener with multiple backend services
+            load_balancers_plan_listeners[self.default_network_load_balancer] = listeners
+
+    def _plan_unnamed_application_load_balancer(
+            self, load_balancers_plan_listeners, application_backend_services):
+        is_multi_listener = self.load_balancer_provider.is_multi_listener()
+        listeners = self._get_listeners(application_backend_services)
+        if not is_multi_listener or not self._is_anonymous_prefer_default():
+            for listener_key, listener_backend_services in listeners.items():
+                # each listener will be a load balancer
+                # named it by workspace_name-protocol-port
+                load_balancer_name = "{}-{}-{}".format(
+                    self.workspace_name, listener_key[0], listener_key[1])
+                load_balancers_plan_listeners[load_balancer_name] = {
+                    listener_key: listener_backend_services
+                }
+        else:
+            load_balancers_plan_listeners[self.default_application_load_balancer] = listeners
 
     def _get_explicit_load_balancer_name(
-            self, load_balancer_backend_service):
-        return load_balancer_backend_service.load_balancer_name
+            self, backend_service):
+        return backend_service.load_balancer_name
 
-    def _get_load_balancer_name(
-            self, service_name, load_balancer_backend_service):
-        load_balancer_name = self._get_explicit_load_balancer_name(
-            load_balancer_backend_service)
-        if load_balancer_name:
-            return load_balancer_name
+    def _is_application_load_balancer(self, load_balancer_protocol):
+        if (load_balancer_protocol == LOAD_BALANCER_PROTOCOL_HTTP
+                or load_balancer_protocol == LOAD_BALANCER_PROTOCOL_HTTPS):
+            return True
+        return False
 
-        if self._is_anonymous_prefer_default():
-            return self._get_default_load_balancer_name()
-        else:
-            return service_name
+    def _add_load_balancer_listeners(
+            self, load_balancer, load_balancer_type, load_balancer_listeners):
+        listeners = get_list_for_update(load_balancer, "listeners")
+        for listener_key, listener_backend_services in load_balancer_listeners.items():
+            protocol = listener_key[0]
+            port = listener_key[1]
+            listener = {
+                "protocol": protocol,
+                "port": port,
+            }
+            self._add_listener_services(
+                load_balancer_type, listener, listener_backend_services)
+            listeners.append(listener)
 
-    def _add_load_balancer_listener(
-            self, load_balancer_backend, load_balancer_backend_service):
-        listeners = get_list_for_update(load_balancer_backend, "listeners")
+    def _add_listener_services(
+            self, load_balancer_type, listener, backend_services):
+        services = get_list_for_update(listener, "services")
+        for backend_service in backend_services:
+            backend_targets = [
+                {"ip": backend_server[0], "port": backend_server[1]}
+                for backend_server in backend_service.backend_servers
+            ]
+            service = {
+                "name": backend_service.service_name,
+                "protocol": backend_service.protocol,
+                "port": backend_service.port,
+                "targets": backend_targets
+            }
+            if load_balancer_type:
+                route_path = backend_service.get_route_path()
+                if route_path:
+                    service["route_path"] = route_path
+                service_path = backend_service.get_service_path()
+                if service_path:
+                    service["service_path"] = service_path
 
-        backend_targets = [
-            {"ip": backend_server[0], "port": backend_server[1]}
-            for backend_server in load_balancer_backend_service.backend_servers
-        ]
-        backend_service_listener = {
-            "protocol": load_balancer_backend_service.protocol,
-            "port": load_balancer_backend_service.port,
-            "targets": backend_targets
-        }
-
-        # TODO: convert to the format acceptable for provider API
-        listeners.append(backend_service_listener)
+            services.append(service)
 
     def _get_load_balancer_for_action(
-            self, load_balancer_backends, existing_load_balancers):
+            self, load_balancers, existing_load_balancers):
         load_balancer_to_create = {}
         load_balancer_to_update = {}
         load_balancer_to_delete = {}
-        for load_balancer_name, load_balancer_backend in load_balancer_backends.items():
+        for load_balancer_name, load_balancer in load_balancers.items():
             if load_balancer_name not in existing_load_balancers:
-                load_balancer_to_create[load_balancer_name] = load_balancer_backend
+                load_balancer_to_create[load_balancer_name] = load_balancer
             else:
-                load_balancer_to_update[load_balancer_name] = load_balancer_backend
+                load_balancer_to_update[load_balancer_name] = load_balancer
 
         for load_balancer_name, load_balancer in existing_load_balancers.items():
             if not self._is_auto_created(load_balancer):
                 continue
-            if load_balancer_name not in load_balancer_backends:
+            if load_balancer_name not in load_balancers:
                 load_balancer_to_delete[load_balancer_name] = load_balancer
         return load_balancer_to_create, load_balancer_to_update, load_balancer_to_delete
 
@@ -195,16 +398,16 @@ class LoadBalancerManager:
         return tags.get(LOAD_BALANCER_AUTO_CREATED_TAG, False)
 
     def _update_listener_last_hash(
-            self, load_balancer_name, load_balancer_backend):
-        load_balancer_hash = get_json_object_hash(load_balancer_backend)
+            self, load_balancer_name, load_balancer):
+        load_balancer_hash = get_json_object_hash(load_balancer)
         self.load_balancer_last_hash[load_balancer_name] = load_balancer_hash
 
     def _is_load_balancer_updated(
-            self, load_balancer_name, load_balancer_backend):
+            self, load_balancer_name, load_balancer):
         old_load_balancer_hash = self.load_balancer_last_hash.get(load_balancer_name)
         if not old_load_balancer_hash:
             return True
-        load_balancer_hash = get_json_object_hash(load_balancer_backend)
+        load_balancer_hash = get_json_object_hash(load_balancer)
         if load_balancer_hash != old_load_balancer_hash:
             return True
         return False

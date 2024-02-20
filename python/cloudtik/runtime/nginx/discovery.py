@@ -7,7 +7,8 @@ from cloudtik.runtime.common.service_discovery.consul import \
     get_service_address_of_node, get_tags_of_service_nodes, get_service_fqdn_address, \
     get_common_label_of_service_nodes
 from cloudtik.runtime.common.service_discovery.discovery import query_services_with_nodes
-from cloudtik.runtime.common.service_discovery.utils import API_GATEWAY_SERVICE_DISCOVERY_LABEL_ROUTE_PATH
+from cloudtik.runtime.common.service_discovery.utils import API_GATEWAY_SERVICE_DISCOVERY_LABEL_ROUTE_PATH, \
+    API_GATEWAY_SERVICE_DISCOVERY_LABEL_SERVICE_PATH
 from cloudtik.runtime.nginx.scripting import update_load_balancer_configuration, \
     update_api_gateway_dynamic_backends, APIGatewayBackendService, update_api_gateway_dns_backends, \
     APIGatewayDNSBackendService
@@ -155,6 +156,10 @@ class DiscoverAPIGatewayBackends(DiscoverJob):
             service_nodes, API_GATEWAY_SERVICE_DISCOVERY_LABEL_ROUTE_PATH,
             error_if_not_same=True)
 
+        service_path = get_common_label_of_service_nodes(
+            service_nodes, API_GATEWAY_SERVICE_DISCOVERY_LABEL_SERVICE_PATH,
+            error_if_not_same=True)
+
         return APIGatewayDNSBackendService(
             service_name, service_port, service_dns_name,
-            route_path=route_path)
+            route_path=route_path, service_path=service_path)
