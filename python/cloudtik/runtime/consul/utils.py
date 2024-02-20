@@ -11,7 +11,7 @@ from cloudtik.core._private.service_discovery.utils import SERVICE_DISCOVERY_TAG
     SERVICE_DISCOVERY_LABEL_CLUSTER, \
     SERVICE_DISCOVERY_TAG_CLUSTER_PREFIX, ServiceRegisterException, \
     get_runtime_service_features, SERVICE_DISCOVERY_TAG_FEATURE_PREFIX, SERVICE_DISCOVERY_SERVICE_TYPE, \
-    SERVICE_DISCOVERY_LABEL_SERVICE
+    SERVICE_DISCOVERY_LABEL_SERVICE, SERVICE_DISCOVERY_LABEL_PROTOCOL, SERVICE_DISCOVERY_PROTOCOL
 from cloudtik.core._private.util.core_utils import get_list_for_update, get_config_for_update, http_address_string, \
     address_string
 from cloudtik.core._private.util.runtime_utils import RUNTIME_NODE_IP, sort_nodes_by_seq_id
@@ -149,10 +149,13 @@ def _generate_service_config(cluster_name, runtime_type, runtime_service):
             feature_tag = _get_feature_tag(feature)
             tags.append(feature_tag)
 
-    # TODO: protocol as tag
-
     labels = get_config_for_update(
         service_config, SERVICE_DISCOVERY_LABELS)
+
+    # protocol as label
+    protocol = service_config.get(SERVICE_DISCOVERY_PROTOCOL)
+    if protocol:
+        labels[SERVICE_DISCOVERY_LABEL_PROTOCOL] = protocol
 
     labels[SERVICE_DISCOVERY_LABEL_CLUSTER] = cluster_name
     labels[SERVICE_DISCOVERY_LABEL_RUNTIME] = runtime_type

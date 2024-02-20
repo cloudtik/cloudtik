@@ -1695,9 +1695,13 @@
                             "default": true,
                             "description": "Whether to use the default load balancer if service doesn't explicitly specify load balancer name."
                         },
-                        "default_load_balancer_name": {
+                        "default_network_load_balancer_name": {
                             "type": "string",
-                            "description": "The default load balancer name. If not specified, workspace name will be used."
+                            "description": "The default load balancer name for network type. If not specified, workspace name will be used."
+                        },
+                        "default_application_load_balancer_name": {
+                            "type": "string",
+                            "description": "The default load balancer name for application type. If not specified, workspace name will be used."
                         }
                     }
                 },
@@ -1721,15 +1725,31 @@
                                     "properties": {
                                         "protocol": {
                                             "type": "string",
-                                            "description": "The protocol of the service: TCP, TLS, UDP."
+                                            "description": "The protocol of the backend service: TCP, TLS, UDP."
                                         },
                                         "port": {
                                             "type": "integer",
-                                            "description": "The port of the service"
+                                            "description": "The port of the backend service"
                                         },
                                         "load_balancer_name": {
                                             "type": "string",
                                             "description": "The load balancer name of the service. It is possible multiple services share the same load balancer."
+                                        },
+                                        "load_balancer_protocol": {
+                                            "type": "string",
+                                            "description": "The load balancer protocol of the service."
+                                        },
+                                        "load_balancer_port": {
+                                            "type": "string",
+                                            "description": "The load balancer port of the service. For application load balancer, it is possible that multiple services with the same protocol share the same load balancer port."
+                                        },
+                                        "route_path": {
+                                            "type": "string",
+                                            "description": "The path to match for routing to backend service for application load balancer. Default to the service name."
+                                        },
+                                        "service_path": {
+                                            "type": "string",
+                                            "description": "The path prefix to request backend service for application load balancer."
                                         },
                                         "servers": {
                                             "type": "array",

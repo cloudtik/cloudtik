@@ -1,7 +1,8 @@
 import logging
 import time
 
-from cloudtik.core._private.service_discovery.utils import deserialize_service_selector
+from cloudtik.core._private.service_discovery.utils import deserialize_service_selector, \
+    SERVICE_DISCOVERY_LABEL_PROTOCOL
 from cloudtik.core._private.util.core_utils import deserialize_config, get_json_object_hash
 from cloudtik.runtime.common.active_standby_service import ActiveStandbyService
 from cloudtik.runtime.common.service_discovery.consul import \
@@ -9,6 +10,8 @@ from cloudtik.runtime.common.service_discovery.consul import \
 from cloudtik.runtime.common.service_discovery.discovery import query_services_with_nodes
 from cloudtik.runtime.common.service_discovery.load_balancer import LOAD_BALANCER_SERVICE_DISCOVERY_LABEL_PORT, \
     LOAD_BALANCER_SERVICE_DISCOVERY_LABEL_PROTOCOL, LOAD_BALANCER_SERVICE_DISCOVERY_NAME_LABEL
+from cloudtik.runtime.common.service_discovery.utils import API_GATEWAY_SERVICE_DISCOVERY_LABEL_ROUTE_PATH, \
+    API_GATEWAY_SERVICE_DISCOVERY_LABEL_SERVICE_PATH
 from cloudtik.runtime.loadbalancer.provider_api import get_load_balancer_manager, LoadBalancerBackendService
 
 logger = logging.getLogger(__name__)
@@ -81,18 +84,18 @@ class LoadBalancerController(ActiveStandbyService):
 
     def _update(self):
         selected_services = self._query_services()
-        backends = {}
+        backend_services = {}
         for service_name, service_nodes in selected_services.items():
             backend_service = self.get_backend_service(
                 service_name, service_nodes)
             backend_name = service_name
-            backends[backend_name] = backend_service
+            backend_services[backend_name] = backend_service
 
         # Finally, rebuild the LoadBalancer configuration
-        backend_config_hash = get_json_object_hash(backends)
+        backend_config_hash = get_json_object_hash(backend_services)
         if backend_config_hash != self.last_backend_config_hash:
             # save config file and reload only when data changed
-            self.load_balancer_manager.update(backends)
+            self.load_balancer_manager.update(backend_services)
             self.last_backend_config_hash = backend_config_hash
 
     def _query_services(self):
@@ -106,10 +109,24 @@ class LoadBalancerController(ActiveStandbyService):
             backend_servers.append(server_address)
 
         labels = get_labels_of_service_nodes(service_nodes)
-        protocol = labels.get(LOAD_BALANCER_SERVICE_DISCOVERY_LABEL_PROTOCOL)
-        port = labels.get(LOAD_BALANCER_SERVICE_DISCOVERY_LABEL_PORT)
+
+        protocol = labels.get(SERVICE_DISCOVERY_LABEL_PROTOCOL)
+        # same as the backend servers
+        port = None
+
+        # This is the frontend/listener protocol and port
+        load_balancer_protocol = labels.get(LOAD_BALANCER_SERVICE_DISCOVERY_LABEL_PROTOCOL)
+        load_balancer_port = labels.get(LOAD_BALANCER_SERVICE_DISCOVERY_LABEL_PORT)
         load_balancer_name = labels.get(LOAD_BALANCER_SERVICE_DISCOVERY_NAME_LABEL)
+
+        # Route path and service path are for application load balancer only (HTTP)
+        route_path = labels.get(API_GATEWAY_SERVICE_DISCOVERY_LABEL_ROUTE_PATH)
+        service_path = labels.get(API_GATEWAY_SERVICE_DISCOVERY_LABEL_SERVICE_PATH)
+
         return LoadBalancerBackendService(
             service_name, backend_servers,
             protocol=protocol, port=port,
-            load_balancer_name=load_balancer_name)
+            load_balancer_name=load_balancer_name,
+            load_balancer_protocol=load_balancer_protocol,
+            load_balancer_port=load_balancer_port,
+            route_path=route_path, service_path=service_path)

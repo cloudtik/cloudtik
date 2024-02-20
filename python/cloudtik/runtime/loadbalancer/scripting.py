@@ -12,7 +12,10 @@ from cloudtik.runtime.loadbalancer.utils import _get_config, _get_backend_config
     _get_logs_dir, _get_backend_service_selector, _get_service_identifier, _get_provider_config, \
     _get_backend_config_mode, LOAD_BALANCER_CONFIG_MODE_STATIC, _get_backend_services, \
     LOAD_BALANCER_BACKEND_SERVICE_PORT_CONFIG_KEY, LOAD_BALANCER_BACKEND_SERVICE_PROTOCOL_CONFIG_KEY, \
-    LOAD_BALANCER_BACKEND_SERVICE_LOAD_BALANCER_NAME_CONFIG_KEY, LOAD_BALANCER_BACKEND_SERVICE_SERVERS_CONFIG_KEY
+    LOAD_BALANCER_BACKEND_SERVICE_LOAD_BALANCER_NAME_CONFIG_KEY, LOAD_BALANCER_BACKEND_SERVICE_SERVERS_CONFIG_KEY, \
+    LOAD_BALANCER_BACKEND_SERVICE_LOAD_BALANCER_PROTOCOL_CONFIG_KEY, \
+    LOAD_BALANCER_BACKEND_SERVICE_LOAD_BALANCER_PORT_CONFIG_KEY, LOAD_BALANCER_BACKEND_SERVICE_ROUTE_PATH_CONFIG_KEY, \
+    LOAD_BALANCER_BACKEND_SERVICE_SERVICE_PATH_CONFIG_KEY
 
 LOAD_BALANCER_DISCOVER_BACKEND_SERVERS_INTERVAL = 15
 
@@ -31,36 +34,30 @@ def configure_backend(head):
     if config_mode == LOAD_BALANCER_CONFIG_MODE_STATIC:
         provider_config = _get_provider_config(load_balancer_config)
 
-        # build backends based on static configuration
-        backends = _get_backends_from_config(backend_config)
+        # build backend services based on static configuration
+        backend_services = _get_backend_services_from_config(backend_config)
 
         workspace_name = get_runtime_workspace_name()
         load_balancer_manager = get_load_balancer_manager(
             provider_config, workspace_name)
-        load_balancer_manager.update(backends)
+        load_balancer_manager.update(backend_services)
 
 
-def _get_backends_from_config(backend_config):
-    backends = {}
-    backend_services = _get_backend_services(backend_config)
-    if not backend_services:
-        return backends
+def _get_backend_services_from_config(backend_config):
+    backend_services = {}
+    backend_services_config = _get_backend_services(backend_config)
+    if not backend_services_config:
+        return backend_services
 
-    for service_name, backend_service_config in backend_services.items():
+    for service_name, backend_service_config in backend_services_config.items():
         backend_service = _get_backend_service_from_config(
             service_name, backend_service_config)
         if backend_service is not None:
-            backends[service_name] = backend_service
-    return backends
+            backend_services[service_name] = backend_service
+    return backend_services
 
 
 def _get_backend_service_from_config(service_name, backend_service_config):
-    protocol = backend_service_config.get(
-        LOAD_BALANCER_BACKEND_SERVICE_PROTOCOL_CONFIG_KEY)
-    port = backend_service_config.get(
-        LOAD_BALANCER_BACKEND_SERVICE_PORT_CONFIG_KEY)
-    load_balancer_name = backend_service_config.get(
-        LOAD_BALANCER_BACKEND_SERVICE_LOAD_BALANCER_NAME_CONFIG_KEY)
     servers = backend_service_config.get(
         LOAD_BALANCER_BACKEND_SERVICE_SERVERS_CONFIG_KEY)
     if not servers:
@@ -68,10 +65,29 @@ def _get_backend_service_from_config(service_name, backend_service_config):
     backend_servers = [service_address_from_string(server, None) for server in servers]
     if not backend_servers:
         return None
+
+    protocol = backend_service_config.get(
+        LOAD_BALANCER_BACKEND_SERVICE_PROTOCOL_CONFIG_KEY)
+    port = backend_service_config.get(
+        LOAD_BALANCER_BACKEND_SERVICE_PORT_CONFIG_KEY)
+    load_balancer_name = backend_service_config.get(
+        LOAD_BALANCER_BACKEND_SERVICE_LOAD_BALANCER_NAME_CONFIG_KEY)
+    load_balancer_protocol = backend_service_config.get(
+        LOAD_BALANCER_BACKEND_SERVICE_LOAD_BALANCER_PROTOCOL_CONFIG_KEY)
+    load_balancer_port = backend_service_config.get(
+        LOAD_BALANCER_BACKEND_SERVICE_LOAD_BALANCER_PORT_CONFIG_KEY)
+    route_path = backend_service_config.get(
+        LOAD_BALANCER_BACKEND_SERVICE_ROUTE_PATH_CONFIG_KEY)
+    service_path = backend_service_config.get(
+        LOAD_BALANCER_BACKEND_SERVICE_SERVICE_PATH_CONFIG_KEY)
+
     return LoadBalancerBackendService(
         service_name, backend_servers,
         protocol=protocol, port=port,
-        load_balancer_name=load_balancer_name)
+        load_balancer_name=load_balancer_name,
+        load_balancer_protocol=load_balancer_protocol,
+        load_balancer_port=load_balancer_port,
+        route_path=route_path, service_path=service_path)
 
 
 def start_controller(head):
