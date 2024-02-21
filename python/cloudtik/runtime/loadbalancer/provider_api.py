@@ -7,6 +7,7 @@ from cloudtik.core._private.utils import get_provider_config
 from cloudtik.core.load_balancer_provider import LOAD_BALANCER_PROTOCOL_TCP, LOAD_BALANCER_TYPE_NETWORK, \
     LOAD_BALANCER_SCHEMA_INTERNET_FACING, LOAD_BALANCER_PROTOCOL_HTTP, LOAD_BALANCER_PROTOCOL_HTTPS, \
     LOAD_BALANCER_TYPE_APPLICATION
+from cloudtik.runtime.common.service_discovery.load_balancer import get_checked_port
 
 logger = logging.getLogger(__name__)
 
@@ -23,7 +24,7 @@ class LoadBalancerBackendService(JSONSerializableObject):
             protocol, port,
             load_balancer_name=None,
             load_balancer_protocol=None, load_balancer_port=None,
-            route_path=None, service_path=None):
+            route_path=None, service_path=None, default_service=False):
         if not protocol:
             protocol = LOAD_BALANCER_PROTOCOL_TCP
         if not port:
@@ -38,14 +39,15 @@ class LoadBalancerBackendService(JSONSerializableObject):
         self.service_name = service_name
         self.backend_servers = backend_servers
         self.protocol = protocol
-        self.port = port
+        self.port = get_checked_port(port)
 
         self.load_balancer_name = load_balancer_name
         self.load_balancer_protocol = load_balancer_protocol
-        self.load_balancer_port = load_balancer_port
+        self.load_balancer_port = get_checked_port(load_balancer_port)
 
         self.route_path = route_path
         self.service_path = service_path
+        self.default_service = default_service
 
     def get_route_path(self):
         route_path = self.route_path or "/" + self.service_name
@@ -391,13 +393,16 @@ class LoadBalancerManager:
                 "port": backend_service.port,
                 "targets": backend_targets
             }
-            if load_balancer_type:
+            if load_balancer_type == LOAD_BALANCER_TYPE_APPLICATION:
                 route_path = backend_service.get_route_path()
                 if route_path:
                     service["route_path"] = route_path
                 service_path = backend_service.get_service_path()
                 if service_path:
                     service["service_path"] = service_path
+                default_service = backend_service.default_service
+                if default_service:
+                    service["default"] = default_service
 
             services.append(service)
 
