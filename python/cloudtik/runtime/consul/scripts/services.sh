@@ -32,7 +32,7 @@ start)
     nohup consul agent \
         -config-dir=${CONSUL_CONFIG_DIR} \
         -log-file=${CONSUL_LOG_FILE} \
-        -pid-file=${CONSUL_PID_FILE} >/dev/null 2>&1 &
+        -pid-file=${CONSUL_PID_FILE} >${CONSUL_HOME}/logs/consul-agent-start.log 2>&1 &
     wait_for_port "${CONSUL_CLIENT_PORT}"
     ;;
 stop)
