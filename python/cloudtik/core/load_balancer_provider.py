@@ -86,15 +86,17 @@ class LoadBalancerProvider:
                 {
                     "listeners": [
                         {
-                            "protocol": "TCP",
+                            "protocol": "HTTP",
                             "port": 80,
                         }
                     ],
                     "services": [
                         {
                             "name": "abc"
-                            "protocol": "TCP",
+                            "protocol": "HTTP",
                             "port": 8080,
+                            "route_path": "/abc",
+                            "default": False,
                             "targets": [
                                 {
                                     "ip": "172.18.0.1",

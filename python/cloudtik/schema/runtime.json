@@ -1751,6 +1751,11 @@
                                             "type": "string",
                                             "description": "The path prefix to request backend service for application load balancer."
                                         },
+                                        "default_service": {
+                                            "type": "boolean",
+                                            "default": false,
+                                            "description": "Whether to this service is the default service to forward if no other services match. For application load balancer only."
+                                        },
                                         "servers": {
                                             "type": "array",
                                             "description": "Array of static servers for the service.",
