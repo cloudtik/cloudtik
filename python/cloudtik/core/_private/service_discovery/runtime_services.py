@@ -3,7 +3,8 @@ from typing import Dict, Any
 from cloudtik.core._private.constants import CLOUDTIK_DEFAULT_PORT, CLOUDTIK_METRIC_PORT, CLOUDTIK_RUNTIME_NAME
 from cloudtik.core._private.runtime_factory import _get_runtime, BUILT_IN_RUNTIME_CONSUL
 from cloudtik.core._private.service_discovery.utils import match_service_node, get_canonical_service_name, \
-    define_runtime_service_on_head, get_service_discovery_config, SERVICE_DISCOVERY_FEATURE_METRICS
+    define_runtime_service_on_head, get_service_discovery_config, SERVICE_DISCOVERY_FEATURE_METRICS, \
+    SERVICE_DISCOVERY_PROTOCOL_HTTP
 from cloudtik.core._private.utils import _get_node_type_specific_runtime_config, \
     is_runtime_enabled, get_cluster_name, get_available_node_types, get_head_node_type, \
     get_runtime_config, get_runtime_types
@@ -85,6 +86,7 @@ def _get_built_in_services(config: Dict[str, Any], cluster_name):
         service_name: define_runtime_service_on_head(
             CLOUDTIK_CLUSTER_CONTROLLER_METRICS_SERVICE_TYPE,
             service_discovery_config, CLOUDTIK_CLUSTER_CONTROLLER_METRICS_PORT,
+            protocol=SERVICE_DISCOVERY_PROTOCOL_HTTP,
             features=[SERVICE_DISCOVERY_FEATURE_METRICS]),
         redis_service_name: define_runtime_service_on_head(
             CLOUDTIK_REDIS_SERVICE_TYPE,
