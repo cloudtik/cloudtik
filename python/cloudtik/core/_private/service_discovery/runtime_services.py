@@ -20,6 +20,12 @@ SERVICE_DISCOVERY_RUNTIMES = [BUILT_IN_RUNTIME_CONSUL]
 CONSUL_CONFIG_JOIN_LIST = "join_list"
 CONSUL_CONFIG_RPC_PORT = "rpc_port"
 
+CONSUL_CONFIG_HTTP_PORT = "http_port"
+CONSUL_CONFIG_DNS_PORT = "dns_port"
+
+CONSUL_HTTP_PORT_DEFAULT = 8500
+CONSUL_DNS_PORT_DEFAULT = 8600
+
 
 def get_runtime_services_by_node_type(config: Dict[str, Any]):
     # for all the runtimes, query its services per node type
@@ -114,3 +120,13 @@ def get_consul_server_addresses(runtime_config: Dict[str, Any]):
     hosts = join_list.split(',')
     port = consul_config.get(CONSUL_CONFIG_RPC_PORT)
     return [(host, port) for host in hosts]
+
+
+def get_consul_local_client_port(runtime_config):
+    consul_config = runtime_config.get(BUILT_IN_RUNTIME_CONSUL, {})
+    return consul_config.get(CONSUL_CONFIG_HTTP_PORT, CONSUL_HTTP_PORT_DEFAULT)
+
+
+def get_local_dns_server_port(runtime_config):
+    consul_config = runtime_config.get(BUILT_IN_RUNTIME_CONSUL, {})
+    return consul_config.get(CONSUL_CONFIG_DNS_PORT, CONSUL_DNS_PORT_DEFAULT)

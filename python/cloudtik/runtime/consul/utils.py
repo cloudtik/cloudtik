@@ -5,7 +5,8 @@ from typing import Any, Dict
 
 from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_CONSUL
 from cloudtik.core._private.service_discovery.naming import CONSUL_CONFIG_DISABLE_CLUSTER_NODE_NAME
-from cloudtik.core._private.service_discovery.runtime_services import get_runtime_services_by_node_type
+from cloudtik.core._private.service_discovery.runtime_services import get_runtime_services_by_node_type, \
+    CONSUL_HTTP_PORT_DEFAULT, CONSUL_DNS_PORT_DEFAULT
 from cloudtik.core._private.service_discovery.utils import SERVICE_DISCOVERY_TAGS, SERVICE_DISCOVERY_LABELS, \
     SERVICE_DISCOVERY_LABEL_RUNTIME, \
     SERVICE_DISCOVERY_LABEL_CLUSTER, \
@@ -42,8 +43,8 @@ CONFIG_KEY_DATA_CENTER = "data_center"
 CONSUL_SERVER_SERVICE_SELECTOR_KEY = "server_service_selector"
 
 CONSUL_SERVER_RPC_PORT = 8300
-CONSUL_SERVER_HTTP_PORT = 8500
-CONSUL_SERVER_DNS_PORT = 8600
+CONSUL_SERVER_HTTP_PORT = CONSUL_HTTP_PORT_DEFAULT
+CONSUL_SERVER_DNS_PORT = CONSUL_DNS_PORT_DEFAULT
 
 CONSUL_TAG_CLUSTER_FORMAT = SERVICE_DISCOVERY_TAG_CLUSTER_PREFIX + "{}"
 CONSUL_TAG_FEATURE_FORMAT = SERVICE_DISCOVERY_TAG_FEATURE_PREFIX + "{}"

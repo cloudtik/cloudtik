@@ -1,6 +1,8 @@
 import os
 from shlex import quote
 
+from cloudtik.core._private.service_discovery.runtime_services import get_local_dns_server_port, \
+    get_consul_local_client_port
 from cloudtik.core._private.util.core_utils import get_config_for_update, get_list_for_update, \
     exec_with_output, http_address_string, address_string
 from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_APISIX
@@ -47,16 +49,18 @@ def update_configurations(head):
             discovery = get_config_for_update(config_object, "discovery")
             dsn = get_config_for_update(discovery, "dns")
             servers = get_list_for_update(dsn, "servers")
-            # TODO: get the address based on configuration
+            # get the address based on configuration
+            dns_server_port = get_local_dns_server_port(runtime_config)
             servers.append(
-                address_string("127.0.0.1", 8600))
+                address_string("127.0.0.1", dns_server_port))
         elif config_mode == APISIX_CONFIG_MODE_CONSUL:
             discovery = get_config_for_update(config_object, "discovery")
             consul = get_config_for_update(discovery, "consul")
             servers = get_list_for_update(consul, "servers")
-            # TODO: get the address based on configuration
+            # get the address based on configuration
+            consul_client_port = get_consul_local_client_port(runtime_config)
             servers.append(
-                http_address_string("127.0.0.1", 8500))
+                http_address_string("127.0.0.1", consul_client_port))
 
     _update_configurations(update_callback)
 
