@@ -39,7 +39,7 @@ update_consul_data_dir() {
     fi
 
     mkdir -p ${consul_data_dir}
-    sed -i "s!{%data.dir%}!${consul_data_dir}!g" ${CONSUL_OUTPUT_DIR}/consul.json
+    update_in_file ${CONSUL_OUTPUT_DIR}/consul.json "{%data.dir%}" "${consul_data_dir}"
 }
 
 update_ui_config() {
@@ -48,12 +48,13 @@ update_ui_config() {
     else
         UI_ENABLED=false
     fi
-    sed -i "s!{%ui.enabled%}!${UI_ENABLED}!g" ${CONSUL_OUTPUT_DIR}/server.json
+    update_in_file ${CONSUL_OUTPUT_DIR}/server.json "{%ui.enabled%}" "${UI_ENABLED}"
 }
 
 configure_consul() {
     prepare_base_conf
     CONSUL_OUTPUT_DIR=${OUTPUT_DIR}/consul
+    CONFIG_TEMPLATE_FILE=${CONSUL_OUTPUT_DIR}/consul.json
 
     mkdir -p ${CONSUL_HOME}/logs
 
@@ -62,8 +63,8 @@ configure_consul() {
     if [ ! -z "${CONSUL_DATA_CENTER}" ]; then
         DATA_CENTER=${CONSUL_DATA_CENTER}
     fi
-    sed -i "s!{%data.center%}!${DATA_CENTER}!g" ${CONSUL_OUTPUT_DIR}/consul.json
-    sed -i "s!{%bind.address%}!${NODE_IP_ADDRESS}!g" ${CONSUL_OUTPUT_DIR}/consul.json
+    update_in_file ${CONFIG_TEMPLATE_FILE} "{%data.center%}" "${DATA_CENTER}"
+    update_in_file ${CONFIG_TEMPLATE_FILE} "{%bind.address%}" "${NODE_IP_ADDRESS}"
 
     if [ "${CONSUL_SERVER}" == "true" ]; then
         # client address bind to both node ip and local host
@@ -72,23 +73,26 @@ configure_consul() {
         # bind to local host for client
         CLIENT_ADDRESS="127.0.0.1"
     fi
-    sed -i "s!{%client.address%}!${CLIENT_ADDRESS}!g" ${CONSUL_OUTPUT_DIR}/consul.json
+    update_in_file ${CONFIG_TEMPLATE_FILE} "{%client.address%}" "${CLIENT_ADDRESS}"
+    update_in_file ${CONFIG_TEMPLATE_FILE} "{%rpc.port%}" "${CONSUL_SERVICE_PORT}"
+    update_in_file ${CONFIG_TEMPLATE_FILE} "{%client.port%}" "${CONSUL_CLIENT_PORT}"
+    update_in_file ${CONFIG_TEMPLATE_FILE} "{%dns.port%}" "${CONSUL_DNS_PORT}"
 
     update_consul_data_dir
 
     if [ "${CONSUL_SERVER}" == "true" ]; then
         # Server agent configuration
-        sed -i "s!{%number.servers%}!${CONSUL_NUM_SERVERS}!g" ${CONSUL_OUTPUT_DIR}/server.json
+        update_in_file ${CONFIG_TEMPLATE_FILE} "{%number.servers%}" "${CONSUL_NUM_SERVERS}"
         update_ui_config
     fi
 
     CONSUL_CONFIG_DIR=${CONSUL_HOME}/consul.d
     mkdir -p ${CONSUL_CONFIG_DIR}
-    cp -r ${CONSUL_OUTPUT_DIR}/consul.json ${CONSUL_CONFIG_DIR}/consul.json
+    cp ${CONFIG_TEMPLATE_FILE} ${CONSUL_CONFIG_DIR}/consul.json
     chmod 640 ${CONSUL_CONFIG_DIR}/consul.json
 
     if [ "${CONSUL_SERVER}" == "true" ]; then
-        cp -r ${CONSUL_OUTPUT_DIR}/server.json ${CONSUL_CONFIG_DIR}/server.json
+        cp ${CONSUL_OUTPUT_DIR}/server.json ${CONSUL_CONFIG_DIR}/server.json
         chmod 640 ${CONSUL_CONFIG_DIR}/server.json
     fi
 }

@@ -636,6 +636,11 @@
                     "type": "boolean",
                     "default": false,
                     "description": "Whether to disable setting node name to cluster name combining seq id."
+                },
+                "rpc_port": {
+                    "type": "integer",
+                    "default": 8300,
+                    "description": "The RPC port."
                 }
             }
         },
