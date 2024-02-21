@@ -39,7 +39,7 @@ update_consul_data_dir() {
     fi
 
     mkdir -p ${consul_data_dir}
-    update_in_file ${CONSUL_OUTPUT_DIR}/consul.json "{%data.dir%}" "${consul_data_dir}"
+    update_in_file ${CONFIG_TEMPLATE_FILE} "{%data.dir%}" "${consul_data_dir}"
 }
 
 update_ui_config() {
@@ -48,13 +48,14 @@ update_ui_config() {
     else
         UI_ENABLED=false
     fi
-    update_in_file ${CONSUL_OUTPUT_DIR}/server.json "{%ui.enabled%}" "${UI_ENABLED}"
+    update_in_file ${CONFIG_SERVER_TEMPLATE_FILE} "{%ui.enabled%}" "${UI_ENABLED}"
 }
 
 configure_consul() {
     prepare_base_conf
     CONSUL_OUTPUT_DIR=${OUTPUT_DIR}/consul
     CONFIG_TEMPLATE_FILE=${CONSUL_OUTPUT_DIR}/consul.json
+    CONFIG_SERVER_TEMPLATE_FILE=${CONSUL_OUTPUT_DIR}/server.json
 
     mkdir -p ${CONSUL_HOME}/logs
 
@@ -82,7 +83,7 @@ configure_consul() {
 
     if [ "${CONSUL_SERVER}" == "true" ]; then
         # Server agent configuration
-        update_in_file ${CONFIG_TEMPLATE_FILE} "{%number.servers%}" "${CONSUL_NUM_SERVERS}"
+        update_in_file ${CONFIG_SERVER_TEMPLATE_FILE} "{%number.servers%}" "${CONSUL_NUM_SERVERS}"
         update_ui_config
     fi
 
@@ -92,7 +93,7 @@ configure_consul() {
     chmod 640 ${CONSUL_CONFIG_DIR}/consul.json
 
     if [ "${CONSUL_SERVER}" == "true" ]; then
-        cp ${CONSUL_OUTPUT_DIR}/server.json ${CONSUL_CONFIG_DIR}/server.json
+        cp ${CONFIG_SERVER_TEMPLATE_FILE} ${CONSUL_CONFIG_DIR}/server.json
         chmod 640 ${CONSUL_CONFIG_DIR}/server.json
     fi
 }
