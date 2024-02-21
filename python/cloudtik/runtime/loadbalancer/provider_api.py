@@ -95,38 +95,56 @@ class LoadBalancerManager:
         for load_balancer_name, load_balancer in load_balancers_to_update.items():
             self._update_load_balancer(load_balancer_name, load_balancer)
 
-        for load_balancer_name in load_balancers_to_delete:
+        for load_balancer_name, existing_load_balancer in load_balancers_to_delete.items():
             if self._is_delete_auto_empty():
                 # delete auto created load balancer if no targets
                 self.load_balancer_provider.delete(load_balancer_name)
             else:
                 # the load balancer has no targets, clear it
-                self._clear_load_balancer(load_balancer_name)
+                self._clear_load_balancer(load_balancer_name, existing_load_balancer)
 
     def _create_load_balancer(
             self, load_balancer_name, load_balancer):
-        self.load_balancer_provider.create(load_balancer)
-        self._update_load_balancer_last_hash(
-            load_balancer_name, load_balancer)
+        try:
+            self.load_balancer_provider.create(load_balancer)
+            self._update_load_balancer_last_hash(
+                load_balancer_name, load_balancer)
+        except Exception as e:
+            logger.error(
+                "Error happened when creating load balancer {}: {}".format(
+                    load_balancer_name, str(e)))
 
     def _update_load_balancer(
             self, load_balancer_name, load_balancer):
         if self._is_load_balancer_updated(
                 load_balancer_name, load_balancer):
-            self.load_balancer_provider.update(load_balancer)
-            self._update_load_balancer_last_hash(
-                load_balancer_name, load_balancer)
+            try:
+                self.load_balancer_provider.update(load_balancer)
+                self._update_load_balancer_last_hash(
+                    load_balancer_name, load_balancer)
+            except Exception as e:
+                logger.error(
+                    "Error happened when updating load balancer {}: {}".format(
+                        load_balancer_name, str(e)))
 
     def _delete_load_balancer(
             self, load_balancer_name):
-        self.load_balancer_provider.delete(load_balancer_name)
-        self._clear_load_balancer_last_hash(load_balancer_name)
+        try:
+            self.load_balancer_provider.delete(load_balancer_name)
+            self._clear_load_balancer_last_hash(load_balancer_name)
+        except Exception as e:
+            logger.error(
+                "Error happened when deleting load balancer {}: {}".format(
+                    load_balancer_name, str(e)))
 
     def _clear_load_balancer(
-            self, load_balancer_name):
+            self, load_balancer_name, existing_load_balancer):
         load_balancer = {
-            "name": load_balancer_name
+            "name": load_balancer_name,
+            "type": existing_load_balancer["type"],
         }
+        if "schema" in existing_load_balancer:
+            load_balancer["schema"] = existing_load_balancer["schema"]
         self._update_load_balancer(load_balancer_name, load_balancer)
 
     def _is_delete_auto_empty(self):

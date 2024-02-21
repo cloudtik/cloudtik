@@ -110,7 +110,9 @@ class LoadBalancerController(ActiveStandbyService):
 
         labels = get_labels_of_service_nodes(service_nodes)
 
-        protocol = labels.get(SERVICE_DISCOVERY_LABEL_PROTOCOL)
+        service_protocol = labels.get(SERVICE_DISCOVERY_LABEL_PROTOCOL)
+        # Convert lower case service protocol to upper case
+        protocol = service_protocol.upper() if service_protocol else None
         # same as the backend servers
         port = None
 

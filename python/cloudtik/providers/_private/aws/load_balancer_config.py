@@ -1096,7 +1096,7 @@ def _update_listener_rules(
         listener_context):
     services = _get_services_for_rules(listener)
     existing_listener_rules = _get_listener_rules(
-        elb_client, listener)
+        elb_client, load_balancer_listener)
 
     (rules_to_create,
      rules_to_update,
@@ -1179,8 +1179,14 @@ def _delete_rule(elb_client, listener_rule):
 
 def _get_listener_rules(elb_client, load_balancer_listener):
     listener_id = _get_listener_id(load_balancer_listener)
-    listener_rules = elb_client.describe_rules(
+    all_listener_rules = elb_client.describe_rules(
         ListenerArn=listener_id).get("Rules", [])
+    # it will return all the rules include the default rule
+    # exclude the default rules
+    listener_rules = [
+        listener_rule for listener_rule in all_listener_rules
+        if not listener_rule.get("IsDefault", False)
+    ]
     _get_resource_tags(elb_client, listener_rules, "RuleArn")
     return listener_rules
 
