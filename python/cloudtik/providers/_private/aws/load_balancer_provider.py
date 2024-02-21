@@ -36,8 +36,8 @@ class AWSLoadBalancerProvider(LoadBalancerProvider):
         self.vpc_id = get_workspace_vpc_id(provider_config, workspace_name)
         self.context = {}
 
-    def is_multi_listener(self):
-        """Returns whether the load balancer provider support multi listener
+    def support_multi_service_group(self):
+        """Returns whether the load balancer provider support multi service groups
         for a single load balancer"""
         return True
 

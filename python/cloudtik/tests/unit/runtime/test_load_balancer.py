@@ -16,17 +16,17 @@ class MockLoadBalancerProvider(LoadBalancerProvider):
             self,
             provider_config: Dict[str, Any],
             workspace_name: str,
-            multi_listener: bool = True) -> None:
+            multi_service_group: bool = True) -> None:
         super().__init__(provider_config, workspace_name)
-        self.multi_listener = multi_listener
+        self.multi_service_group = multi_service_group
         self.load_balancer_create = {}
         self.load_balancer_update = {}
         self.load_balancer_delete = set()
 
-    def is_multi_listener(self):
-        """Returns whether the load balancer provider support multi listener
+    def support_multi_service_group(self):
+        """Returns whether the load balancer provider support multi service groups
         for a single load balancer"""
-        return self.multi_listener
+        return self.multi_service_group
 
     def list(self):
         """List the load balancer in the workspace"""
@@ -56,11 +56,11 @@ class MockLoadBalancerProvider(LoadBalancerProvider):
 class MockLoadBalancerManager(LoadBalancerManager):
     def __init__(
             self, provider_config, workspace_name,
-            multi_listener=True):
+            multi_service_group=True):
         self.provider_config = provider_config
         self.workspace_name = workspace_name
         self.load_balancer_provider = MockLoadBalancerProvider(
-            provider_config, workspace_name, multi_listener)
+            provider_config, workspace_name, multi_service_group)
         self.load_balancer_last_hash = {}
         self.default_network_load_balancer = self._get_default_network_load_balancer_name()
         self.default_application_load_balancer = self._get_default_application_load_balancer_name()
@@ -157,7 +157,7 @@ BACKEND_CONFIG = {
 
 
 class TestLoadBalancer(unittest.TestCase):
-    def test_load_balancer_multi_listener(self):
+    def test_load_balancer_multi_service_group(self):
         provider_config = {}
         backend_services = _get_backend_services_from_config(BACKEND_CONFIG)
         workspace_name = "abc"
@@ -170,38 +170,38 @@ class TestLoadBalancer(unittest.TestCase):
         lb = load_balancer_create.get("lb-a")
         assert lb is not None
         assert lb["type"] == LOAD_BALANCER_TYPE_NETWORK
-        lb_listeners = lb["listeners"]
-        assert len(lb_listeners) == 2
-        for lb_listener in lb_listeners:
-            assert len(lb_listener["services"]) == 1
+        lb_service_groups = lb["service_groups"]
+        assert len(lb_service_groups) == 2
+        for lb_service_group in lb_service_groups:
+            assert len(lb_service_group["services"]) == 1
 
         lb = load_balancer_create.get("lb-b")
         assert lb is not None
         assert lb["type"] == LOAD_BALANCER_TYPE_APPLICATION
-        lb_listeners = lb["listeners"]
-        assert len(lb_listeners) == 2
-        for lb_listener in lb_listeners:
-            assert len(lb_listener["services"]) == 2
+        lb_service_groups = lb["service_groups"]
+        assert len(lb_service_groups) == 2
+        for lb_service_group in lb_service_groups:
+            assert len(lb_service_group["services"]) == 2
 
         lb = load_balancer_create.get(
             LOAD_BALANCER_NETWORK_DEFAULT.format(workspace_name))
         assert lb is not None
         assert lb["type"] == LOAD_BALANCER_TYPE_NETWORK
-        lb_listeners = lb["listeners"]
-        assert len(lb_listeners) == 2
-        for lb_listener in lb_listeners:
-            assert len(lb_listener["services"]) == 1
+        lb_service_groups = lb["service_groups"]
+        assert len(lb_service_groups) == 2
+        for lb_service_group in lb_service_groups:
+            assert len(lb_service_group["services"]) == 1
 
         lb = load_balancer_create.get(
             LOAD_BALANCER_APPLICATION_DEFAULT.format(workspace_name))
         assert lb is not None
         assert lb["type"] == LOAD_BALANCER_TYPE_APPLICATION
-        lb_listeners = lb["listeners"]
-        assert len(lb_listeners) == 2
-        for lb_listener in lb_listeners:
-            assert len(lb_listener["services"]) == 2
+        lb_service_groups = lb["service_groups"]
+        assert len(lb_service_groups) == 2
+        for lb_service_group in lb_service_groups:
+            assert len(lb_service_group["services"]) == 2
 
-    def test_load_balancer_single_listener(self):
+    def test_load_balancer_single_service_group(self):
         provider_config = {}
         backend_config = copy.deepcopy(BACKEND_CONFIG)
         services_config = backend_config["services"]
@@ -213,59 +213,59 @@ class TestLoadBalancer(unittest.TestCase):
         workspace_name = "abc"
 
         load_balancer_manager = MockLoadBalancerManager(
-            provider_config, workspace_name, multi_listener=False)
+            provider_config, workspace_name, multi_service_group=False)
         load_balancer_manager.update(backend_services)
         load_balancer_create = load_balancer_manager.load_balancer_provider.load_balancer_create
 
         lb = load_balancer_create.get("lb-a")
         assert lb is not None
         assert lb["type"] == LOAD_BALANCER_TYPE_NETWORK
-        lb_listeners = lb["listeners"]
-        assert len(lb_listeners) == 1
-        for lb_listener in lb_listeners:
-            assert len(lb_listener["services"]) == 1
+        lb_service_groups = lb["service_groups"]
+        assert len(lb_service_groups) == 1
+        for lb_service_group in lb_service_groups:
+            assert len(lb_service_group["services"]) == 1
 
         lb = load_balancer_create.get("lb-b")
         assert lb is not None
         assert lb["type"] == LOAD_BALANCER_TYPE_APPLICATION
-        lb_listeners = lb["listeners"]
-        assert len(lb_listeners) == 1
-        for lb_listener in lb_listeners:
-            assert len(lb_listener["services"]) == 2
+        lb_service_groups = lb["service_groups"]
+        assert len(lb_service_groups) == 1
+        for lb_service_group in lb_service_groups:
+            assert len(lb_service_group["services"]) == 2
 
         lb = load_balancer_create.get("c-1")
         assert lb is not None
         assert lb["type"] == LOAD_BALANCER_TYPE_NETWORK
-        lb_listeners = lb["listeners"]
-        assert len(lb_listeners) == 1
-        for lb_listener in lb_listeners:
-            assert len(lb_listener["services"]) == 1
+        lb_service_groups = lb["service_groups"]
+        assert len(lb_service_groups) == 1
+        for lb_service_group in lb_service_groups:
+            assert len(lb_service_group["services"]) == 1
 
         lb = load_balancer_create.get("c-2")
         assert lb is not None
         assert lb["type"] == LOAD_BALANCER_TYPE_NETWORK
-        lb_listeners = lb["listeners"]
-        assert len(lb_listeners) == 1
-        for lb_listener in lb_listeners:
-            assert len(lb_listener["services"]) == 1
+        lb_service_groups = lb["service_groups"]
+        assert len(lb_service_groups) == 1
+        for lb_service_group in lb_service_groups:
+            assert len(lb_service_group["services"]) == 1
 
         lb = load_balancer_create.get("{}-{}-{}".format(
             workspace_name, LOAD_BALANCER_PROTOCOL_HTTP, 80))
         assert lb is not None
         assert lb["type"] == LOAD_BALANCER_TYPE_APPLICATION
-        lb_listeners = lb["listeners"]
-        assert len(lb_listeners) == 1
-        for lb_listener in lb_listeners:
-            assert len(lb_listener["services"]) == 2
+        lb_service_groups = lb["service_groups"]
+        assert len(lb_service_groups) == 1
+        for lb_service_group in lb_service_groups:
+            assert len(lb_service_group["services"]) == 2
 
         lb = load_balancer_create.get("{}-{}-{}".format(
             workspace_name, LOAD_BALANCER_PROTOCOL_HTTP, 81))
         assert lb is not None
         assert lb["type"] == LOAD_BALANCER_TYPE_APPLICATION
-        lb_listeners = lb["listeners"]
-        assert len(lb_listeners) == 1
-        for lb_listener in lb_listeners:
-            assert len(lb_listener["services"]) == 2
+        lb_service_groups = lb["service_groups"]
+        assert len(lb_service_groups) == 1
+        for lb_service_group in lb_service_groups:
+            assert len(lb_service_group["services"]) == 2
 
 
 if __name__ == "__main__":

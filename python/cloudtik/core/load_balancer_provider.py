@@ -39,8 +39,8 @@ class LoadBalancerProvider:
         self.provider_config = provider_config
         self.workspace_name = workspace_name
 
-    def is_multi_listener(self):
-        """Returns whether the load balancer provider support multi listener
+    def support_multi_service_group(self):
+        """Returns whether the load balancer provider support multi service groups
         for a single load balancer"""
         return True
 
@@ -59,17 +59,11 @@ class LoadBalancerProvider:
         pass
 
     def get(self, load_balancer_name: str):
-        """Return more detailed information for a load balancer including listeners
+        """Return detailed information for a load balancer
         {
             "name": "load-balancer-1",
             "type": "network",
             "schema": "internet-facing",
-            "listeners": [
-                {
-                    "protocol": "TCP",
-                    "port": 80
-                }
-            ]
             tags: {...}
         }
         """
@@ -79,15 +73,23 @@ class LoadBalancerProvider:
         """Create the load balancer in the workspace based on the config.
 
         The load_balancer_config contains a common concept view of what is needed
+        A load balancer contains one or more service groups (if support multi-service groups)
+        Each service group has one or more listeners.
+        For network load balancer, only one service per service group is allowed.
+        For application load balancer, one or more services is allowed for each service group.
 
         {
             "name": "load-balancer-1",
             "type": "network",
             "schema": "internet-facing",
-            "listeners": [
+            "service_groups": [
                 {
-                    "protocol": "TCP",
-                    "port": 80,
+                    "listeners": [
+                        {
+                            "protocol": "TCP",
+                            "port": 80,
+                        }
+                    ],
                     "services": [
                         {
                             "name": "abc"

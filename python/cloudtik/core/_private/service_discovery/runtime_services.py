@@ -9,7 +9,7 @@ from cloudtik.core._private.utils import _get_node_type_specific_runtime_config,
     get_runtime_config, get_runtime_types
 
 CLOUDTIK_REDIS_SERVICE_TYPE = "cloudtik-redis"
-CLOUDTIK_CLUSTER_CONTROLLER_METRICS_SERVICE_TYPE = "cloudtik-controller-metrics"
+CLOUDTIK_CLUSTER_CONTROLLER_METRICS_SERVICE_TYPE = "cloudtik-metrics"
 
 CLOUDTIK_CLUSTER_CONTROLLER_METRICS_PORT = CLOUDTIK_METRIC_PORT
 CLOUDTIK_REDIS_SERVICE_PORT = CLOUDTIK_DEFAULT_PORT

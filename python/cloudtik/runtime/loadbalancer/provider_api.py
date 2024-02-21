@@ -12,8 +12,8 @@ logger = logging.getLogger(__name__)
 
 
 LOAD_BALANCER_AUTO_CREATED_TAG = "cloudtik-auto-create"
-LOAD_BALANCER_NETWORK_DEFAULT = "{}-net"
-LOAD_BALANCER_APPLICATION_DEFAULT = "{}"
+LOAD_BALANCER_NETWORK_DEFAULT = "{}-n"
+LOAD_BALANCER_APPLICATION_DEFAULT = "{}-a"
 
 
 class LoadBalancerBackendService(JSONSerializableObject):
@@ -71,7 +71,7 @@ class LoadBalancerManager:
     """
     LoadBalancerManager takes control of managing each backend services cases
     and call into load balancer provider API to create a load balancer,
-    to create a listener, or update the targets of a listener.
+    to create service groups, or update the targets of services.
     """
     def __init__(self, provider_config, workspace_name):
         self.provider_config = provider_config
@@ -106,7 +106,7 @@ class LoadBalancerManager:
     def _create_load_balancer(
             self, load_balancer_name, load_balancer):
         self.load_balancer_provider.create(load_balancer)
-        self._update_listener_last_hash(
+        self._update_load_balancer_last_hash(
             load_balancer_name, load_balancer)
 
     def _update_load_balancer(
@@ -114,7 +114,7 @@ class LoadBalancerManager:
         if self._is_load_balancer_updated(
                 load_balancer_name, load_balancer):
             self.load_balancer_provider.update(load_balancer)
-            self._update_listener_last_hash(
+            self._update_load_balancer_last_hash(
                 load_balancer_name, load_balancer)
 
     def _delete_load_balancer(
@@ -152,9 +152,11 @@ class LoadBalancerManager:
     def _get_load_balancers(self, backend_services):
         load_balancer_plan = self._plan_load_balancers(backend_services)
         load_balancers = {}
-        for load_balancer_name, load_balancer_listeners in load_balancer_plan.items():
-            listener_key = next(iter(load_balancer_listeners))
-            load_balancer_protocol = listener_key[0]
+        for load_balancer_name, load_balancer_service_groups in load_balancer_plan.items():
+            # currently the service group key is a (protocol, port) tuple
+            # logically, a service group can have more than one listener
+            service_group_key = next(iter(load_balancer_service_groups))
+            load_balancer_protocol = service_group_key[0]
             load_balancer_type = self._get_load_balancer_type(load_balancer_protocol)
             # TODO: decide the schema
             load_balancer_schema = LOAD_BALANCER_SCHEMA_INTERNET_FACING
@@ -167,8 +169,8 @@ class LoadBalancerManager:
                     LOAD_BALANCER_AUTO_CREATED_TAG: "true"
                 }
             }
-            self._add_load_balancer_listeners(
-                load_balancer, load_balancer_type, load_balancer_listeners)
+            self._add_load_balancer_service_groups(
+                load_balancer, load_balancer_type, load_balancer_service_groups)
             load_balancers[load_balancer_name] = load_balancer
 
         return load_balancers
@@ -179,10 +181,10 @@ class LoadBalancerManager:
         load_balancers_plan_naming = self._get_explicit_naming_plan(
             backend_services)
 
-        # Second pass considering the multi-listener support of the provider
-        load_balancers_plan_listeners = self._get_load_balancer_listener_plan(
+        # Second pass considering the multiple service group support of the provider
+        load_balancers_plan_service_groups = self._get_load_balancer_service_group_plan(
             load_balancers_plan_naming)
-        return load_balancers_plan_listeners
+        return load_balancers_plan_service_groups
 
     def _get_explicit_naming_plan(self, backend_services):
         load_balancers_plan_naming = {}
@@ -197,24 +199,24 @@ class LoadBalancerManager:
             load_balancer_backend_services.append(backend_service)
         return load_balancers_plan_naming
 
-    def _get_load_balancer_listener_plan(self, load_balancers_plan_naming):
-        load_balancers_plan_listeners = {}
+    def _get_load_balancer_service_group_plan(self, load_balancers_plan_naming):
+        load_balancers_plan_service_groups = {}
         for load_balancer_name, load_balancer_backend_services in load_balancers_plan_naming.items():
             if load_balancer_name:
                 # For services that explicitly named
                 try:
                     self._plan_named_load_balancer(
-                        load_balancers_plan_listeners,
+                        load_balancers_plan_service_groups,
                         load_balancer_name, load_balancer_backend_services)
                 except Exception as e:
                     logger.debug(
-                        "Configuration conflicts for load balancer{}: {}.".format(
+                        "Configuration conflicts for load balancer {}: {}.".format(
                             load_balancer_name, str(e)))
             else:
                 # no name, we make plan for naming (which should be stable)
                 self._plan_unnamed_load_balancer(
-                    load_balancers_plan_listeners, load_balancer_backend_services)
-        return load_balancers_plan_listeners
+                    load_balancers_plan_service_groups, load_balancer_backend_services)
+        return load_balancers_plan_service_groups
 
     def _get_load_balancer_type_of_services(self, load_balancer_backend_services):
         backend_service = load_balancer_backend_services[0]
@@ -235,18 +237,20 @@ class LoadBalancerManager:
         else:
             return LOAD_BALANCER_TYPE_NETWORK
 
-    def _get_listeners(self, load_balancer_backend_services):
-        listeners = {}
+    def _get_service_groups(self, load_balancer_backend_services):
+        service_groups = {}
         for backend_service in load_balancer_backend_services:
-            listener_key = (
+            # Currently, we use (protocol, port) as service group key.
+            # Logically, it can be more than one (protocol, port) tuples.
+            service_group_key = (
                 backend_service.load_balancer_protocol,
                 backend_service.load_balancer_port)
-            listener_backend_services = get_list_for_update(listeners, listener_key)
-            listener_backend_services.append(backend_service)
-        return listeners
+            service_group_backend_services = get_list_for_update(service_groups, service_group_key)
+            service_group_backend_services.append(backend_service)
+        return service_groups
 
     def _plan_named_load_balancer(
-            self, load_balancers_plan_listeners,
+            self, load_balancers_plan_service_groups,
             load_balancer_name, load_balancer_backend_services):
         # A named load balancer is either Network load balancer or a
         # Application load balancer.
@@ -254,27 +258,27 @@ class LoadBalancerManager:
         # Application load balancer uses HTTP or HTTPS load balancer protocol.
 
         # For load balancer,
-        # Can only have a single listener if multi listener is not supported
+        # Can only have a single service group if multiple service groups is not supported
 
         # For network load balancer,
-        # Not allow different backend services to use the same load balancer listener.
+        # Not allow different backend services to use the same load balancer service group.
         load_balancer_type = self._get_load_balancer_type_of_services(
             load_balancer_backend_services)
-        is_multi_listener = self.load_balancer_provider.is_multi_listener()
-        listeners = self._get_listeners(load_balancer_backend_services)
-        if not is_multi_listener and len(listeners) > 1:
+        support_multi_service_group = self.load_balancer_provider.support_multi_service_group()
+        service_groups = self._get_service_groups(load_balancer_backend_services)
+        if not support_multi_service_group and len(service_groups) > 1:
             raise ValueError(
-                "Provider doesn't support load balancer with multiple listeners.")
+                "Provider doesn't support load balancer with multiple service groups.")
 
         if load_balancer_type == LOAD_BALANCER_TYPE_NETWORK:
-            for _, listener_backend_services in listeners.items():
-                if len(listener_backend_services) > 1:
+            for _, service_group_backend_services in service_groups.items():
+                if len(service_group_backend_services) > 1:
                     raise ValueError(
                         "Network load balancer doesn't allow multiple backend services.")
-        load_balancers_plan_listeners[load_balancer_name] = listeners
+        load_balancers_plan_service_groups[load_balancer_name] = service_groups
 
     def _plan_unnamed_load_balancer(
-            self, load_balancers_plan_listeners, load_balancer_backend_services):
+            self, load_balancers_plan_service_groups, load_balancer_backend_services):
         # We decide its load balancer type based on load balancer protocol:
         # Network load balancer uses TCP, TLS or UDP load balancer protocol.
         # Application load balancer uses HTTP or HTTPS load balancer protocol.
@@ -290,42 +294,42 @@ class LoadBalancerManager:
 
         if network_load_balancers:
             self._plan_unnamed_network_load_balancer(
-                load_balancers_plan_listeners, network_load_balancers)
+                load_balancers_plan_service_groups, network_load_balancers)
         if application_backend_services:
             self._plan_unnamed_application_load_balancer(
-                load_balancers_plan_listeners, application_backend_services)
+                load_balancers_plan_service_groups, application_backend_services)
 
     def _plan_unnamed_network_load_balancer(
-            self, load_balancers_plan_listeners, network_load_balancers):
-        is_multi_listener = self.load_balancer_provider.is_multi_listener()
-        listeners = self._get_listeners(network_load_balancers)
-        if not is_multi_listener or not self._is_anonymous_prefer_default():
-            for listener_key, listener_backend_services in listeners.items():
-                # expand further if one listener has multiple backend services
-                for backend_service in listener_backend_services:
+            self, load_balancers_plan_service_groups, network_load_balancers):
+        support_multi_service_group = self.load_balancer_provider.support_multi_service_group()
+        service_groups = self._get_service_groups(network_load_balancers)
+        if not support_multi_service_group or not self._is_anonymous_prefer_default():
+            for service_group_key, service_group_backend_services in service_groups.items():
+                # expand further to a load balancer if one service group has multiple backend services
+                for backend_service in service_group_backend_services:
                     load_balancer_name = backend_service.service_name
-                    load_balancers_plan_listeners[load_balancer_name] = {
-                        listener_key: [backend_service]
+                    load_balancers_plan_service_groups[load_balancer_name] = {
+                        service_group_key: [backend_service]
                     }
         else:
-            # TODO: check any listener with multiple backend services
-            load_balancers_plan_listeners[self.default_network_load_balancer] = listeners
+            # TODO: check any service group with multiple backend services
+            load_balancers_plan_service_groups[self.default_network_load_balancer] = service_groups
 
     def _plan_unnamed_application_load_balancer(
-            self, load_balancers_plan_listeners, application_backend_services):
-        is_multi_listener = self.load_balancer_provider.is_multi_listener()
-        listeners = self._get_listeners(application_backend_services)
-        if not is_multi_listener or not self._is_anonymous_prefer_default():
-            for listener_key, listener_backend_services in listeners.items():
-                # each listener will be a load balancer
+            self, load_balancers_plan_service_groups, application_backend_services):
+        support_multi_service_group = self.load_balancer_provider.support_multi_service_group()
+        service_groups = self._get_service_groups(application_backend_services)
+        if not support_multi_service_group or not self._is_anonymous_prefer_default():
+            for service_group_key, service_group_backend_services in service_groups.items():
+                # each service group will be a load balancer
                 # named it by workspace_name-protocol-port
                 load_balancer_name = "{}-{}-{}".format(
-                    self.workspace_name, listener_key[0], listener_key[1])
-                load_balancers_plan_listeners[load_balancer_name] = {
-                    listener_key: listener_backend_services
+                    self.workspace_name, service_group_key[0], service_group_key[1])
+                load_balancers_plan_service_groups[load_balancer_name] = {
+                    service_group_key: service_group_backend_services
                 }
         else:
-            load_balancers_plan_listeners[self.default_application_load_balancer] = listeners
+            load_balancers_plan_service_groups[self.default_application_load_balancer] = service_groups
 
     def _get_explicit_load_balancer_name(
             self, backend_service):
@@ -337,23 +341,27 @@ class LoadBalancerManager:
             return True
         return False
 
-    def _add_load_balancer_listeners(
-            self, load_balancer, load_balancer_type, load_balancer_listeners):
-        listeners = get_list_for_update(load_balancer, "listeners")
-        for listener_key, listener_backend_services in load_balancer_listeners.items():
-            protocol = listener_key[0]
-            port = listener_key[1]
+    def _add_load_balancer_service_groups(
+            self, load_balancer, load_balancer_type, load_balancer_service_groups):
+        service_groups = get_list_for_update(load_balancer, "service_groups")
+        for service_group_key, service_group_backend_services in load_balancer_service_groups.items():
+            # currently, each service group has one listener. logically, it can have more than one
+            protocol = service_group_key[0]
+            port = service_group_key[1]
             listener = {
                 "protocol": protocol,
                 "port": port,
             }
-            self._add_listener_services(
-                load_balancer_type, listener, listener_backend_services)
-            listeners.append(listener)
+            service_group = {
+                "listeners": [listener],
+            }
+            self._add_service_group_services(
+                load_balancer_type, service_group, service_group_backend_services)
+            service_groups.append(service_group)
 
-    def _add_listener_services(
-            self, load_balancer_type, listener, backend_services):
-        services = get_list_for_update(listener, "services")
+    def _add_service_group_services(
+            self, load_balancer_type, service_group, backend_services):
+        services = get_list_for_update(service_group, "services")
         for backend_service in backend_services:
             backend_targets = [
                 {"ip": backend_server[0], "port": backend_server[1]}
@@ -397,7 +405,7 @@ class LoadBalancerManager:
         tags = load_balancer.get("tags",  {})
         return tags.get(LOAD_BALANCER_AUTO_CREATED_TAG, False)
 
-    def _update_listener_last_hash(
+    def _update_load_balancer_last_hash(
             self, load_balancer_name, load_balancer):
         load_balancer_hash = get_json_object_hash(load_balancer)
         self.load_balancer_last_hash[load_balancer_name] = load_balancer_hash

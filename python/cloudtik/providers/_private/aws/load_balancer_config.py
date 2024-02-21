@@ -168,17 +168,7 @@ def _get_load_balancer_info(elb_client, load_balancer_name):
     if not load_balancer:
         return None
     _get_resource_tags(elb_client, [load_balancer], "LoadBalancerArn")
-    load_balancer_id = _get_load_balancer_id(load_balancer)
-    load_balancer_listeners = _get_load_balancer_listeners(
-        elb_client, load_balancer_id)
-
-    load_balancer_info = _get_load_balancer_info_of(load_balancer)
-    if load_balancer_listeners:
-        listeners_info = _get_load_balancer_listener_info(
-            load_balancer_listeners)
-        load_balancer_info["listeners"] = listeners_info
-
-    return load_balancer_info
+    return _get_load_balancer_info_of(load_balancer)
 
 
 def _get_load_balancer_subnet_ids(
@@ -252,7 +242,7 @@ def _create_load_balancer(
 
     # create listeners
     _create_load_balancer_listeners(
-        elb_client, load_balancer_id, load_balancer_config,
+        elb_client, load_balancer, load_balancer_config,
         load_balancer_context)
 
 
@@ -280,7 +270,6 @@ def _update_load_balancer(
             "Load balancer with name {} doesn't exist.".format(
                 load_balancer_name))
 
-    load_balancer_id = _get_load_balancer_id(load_balancer)
     load_balancer_context = _get_load_balancer_context(
         context, load_balancer_name)
 
@@ -290,7 +279,7 @@ def _update_load_balancer(
         load_balancer_context, vpc_id)
 
     _update_load_balancer_listeners(
-        elb_client, load_balancer_id, load_balancer_config,
+        elb_client, load_balancer, load_balancer_config,
         load_balancer_context)
 
     # delete the target groups that is not needed
@@ -330,11 +319,15 @@ def wait_load_balancer_deleted(elb_client, load_balancer_id):
     )
 
 
+def _get_service_group_services(service_group):
+    return service_group.get("services", [])
+
+
 def _get_load_balancer_services(load_balancer_config):
-    listeners = load_balancer_config.get("listeners", [])
+    service_groups = load_balancer_config.get("service_groups", [])
     load_balancer_services = {}
-    for listener in listeners:
-        services = _get_listener_services(listener)
+    for service_group in service_groups:
+        services = _get_service_group_services(service_group)
         load_balancer_services.update(
             {service["name"]: service for service in services})
     return load_balancer_services
@@ -468,17 +461,21 @@ def _get_listener_id(load_balancer_listener):
 
 
 def _get_listeners_config(load_balancer_config):
-    listeners = load_balancer_config.get("listeners", [])
+    service_groups = load_balancer_config.get("service_groups", [])
     listeners_config = []
-    for listener in listeners:
-        listener_config = _get_listener_config(listener)
-        listeners_config.append(listener_config)
+    for service_group in service_groups:
+        # The listeners of the service group cannot overlap
+        listeners = service_group.get("listeners", [])
+        for listener in listeners:
+            listener_config = _get_service_group_listener_config(
+                service_group, listener)
+            listeners_config.append(listener_config)
     return listeners_config
 
 
-def _get_listener_config(listener):
+def _get_service_group_listener_config(service_group, listener):
     # this will remove unrelated attributes for listener
-    services = _get_listener_services(listener)
+    services = _get_service_group_services(service_group)
     services_config = []
     for service in services:
         service_config = {
@@ -497,9 +494,10 @@ def _get_listener_config(listener):
 
 
 def _create_load_balancer_listeners(
-        elb_client, load_balancer_id, load_balancer_config,
+        elb_client, load_balancer, load_balancer_config,
         load_balancer_context):
-    load_balancer_name = load_balancer_config["name"]
+    load_balancer_id = _get_load_balancer_id(load_balancer)
+    load_balancer_name = _get_load_balancer_name(load_balancer)
     load_balancer_type = load_balancer_config["type"]
     listeners = _get_listeners_config(load_balancer_config)
     listeners_hash_context = _get_listeners_hash_context(load_balancer_context)
@@ -619,9 +617,10 @@ def _get_listener_default_target_group(
 
 
 def _update_load_balancer_listeners(
-        elb_client, load_balancer_id, load_balancer_config,
+        elb_client, load_balancer, load_balancer_config,
         load_balancer_context):
-    load_balancer_name = load_balancer_config["name"]
+    load_balancer_id = _get_load_balancer_id(load_balancer)
+    load_balancer_name = _get_load_balancer_name(load_balancer)
     load_balancer_type = load_balancer_config["type"]
     listeners = _get_listeners_config(load_balancer_config)
     existing_listeners = _get_load_balancer_listeners(
