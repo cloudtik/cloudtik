@@ -119,7 +119,8 @@ def get_consul_server_addresses(runtime_config: Dict[str, Any]):
     if not join_list:
         return None
     hosts = join_list.split(',')
-    port = consul_config.get(CONSUL_CONFIG_RPC_PORT)
+    port = consul_config.get(
+        CONSUL_CONFIG_RPC_PORT, CONSUL_RPC_PORT_DEFAULT)
     return [(host, port) for host in hosts]
 
 

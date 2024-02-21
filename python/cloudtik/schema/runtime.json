@@ -640,7 +640,17 @@
                 "rpc_port": {
                     "type": "integer",
                     "default": 8300,
-                    "description": "The RPC port."
+                    "description": "The server RPC port."
+                },
+                "http_port": {
+                    "type": "integer",
+                    "default": 8500,
+                    "description": "The HTTP client port."
+                },
+                "dns_port": {
+                    "type": "integer",
+                    "default": 8600,
+                    "description": "The DNS server port."
                 }
             }
         },
