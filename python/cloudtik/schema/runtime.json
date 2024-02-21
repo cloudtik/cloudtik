@@ -636,6 +636,21 @@
                     "type": "boolean",
                     "default": false,
                     "description": "Whether to disable setting node name to cluster name combining seq id."
+                },
+                "rpc_port": {
+                    "type": "integer",
+                    "default": 8300,
+                    "description": "The server RPC port."
+                },
+                "http_port": {
+                    "type": "integer",
+                    "default": 8500,
+                    "description": "The HTTP client port."
+                },
+                "dns_port": {
+                    "type": "integer",
+                    "default": 8600,
+                    "description": "The DNS server port."
                 }
             }
         },

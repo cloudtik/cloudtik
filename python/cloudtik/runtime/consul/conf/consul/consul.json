@@ -6,5 +6,10 @@
     "client_addr": "{%client.address%}",
     "dns_config": {
         "enable_truncate": true
+    },
+    "ports": {
+        "server": {%rpc.port%},
+        "http": {%client.port%},
+        "dns": {%dns.port%}
     }
 }

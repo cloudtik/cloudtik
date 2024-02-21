@@ -5,7 +5,9 @@ from typing import Any, Dict
 
 from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_CONSUL
 from cloudtik.core._private.service_discovery.naming import CONSUL_CONFIG_DISABLE_CLUSTER_NODE_NAME
-from cloudtik.core._private.service_discovery.runtime_services import get_runtime_services_by_node_type
+from cloudtik.core._private.service_discovery.runtime_services import get_runtime_services_by_node_type, \
+    CONSUL_HTTP_PORT_DEFAULT, CONSUL_DNS_PORT_DEFAULT, CONSUL_CONFIG_HTTP_PORT, CONSUL_CONFIG_DNS_PORT, \
+    CONSUL_CONFIG_RPC_PORT, CONSUL_RPC_PORT_DEFAULT
 from cloudtik.core._private.service_discovery.utils import SERVICE_DISCOVERY_TAGS, SERVICE_DISCOVERY_LABELS, \
     SERVICE_DISCOVERY_LABEL_RUNTIME, \
     SERVICE_DISCOVERY_LABEL_CLUSTER, \
@@ -41,9 +43,9 @@ CONFIG_KEY_DATA_CENTER = "data_center"
 
 CONSUL_SERVER_SERVICE_SELECTOR_KEY = "server_service_selector"
 
-CONSUL_SERVER_RPC_PORT = 8300
-CONSUL_SERVER_HTTP_PORT = 8500
-CONSUL_SERVER_DNS_PORT = 8600
+CONSUL_SERVER_RPC_PORT = CONSUL_RPC_PORT_DEFAULT
+CONSUL_SERVER_HTTP_PORT = CONSUL_HTTP_PORT_DEFAULT
+CONSUL_SERVER_DNS_PORT = CONSUL_DNS_PORT_DEFAULT
 
 CONSUL_TAG_CLUSTER_FORMAT = SERVICE_DISCOVERY_TAG_CLUSTER_PREFIX + "{}"
 CONSUL_TAG_FEATURE_FORMAT = SERVICE_DISCOVERY_TAG_FEATURE_PREFIX + "{}"
@@ -51,6 +53,21 @@ CONSUL_TAG_FEATURE_FORMAT = SERVICE_DISCOVERY_TAG_FEATURE_PREFIX + "{}"
 
 def _get_config(runtime_config: Dict[str, Any]):
     return runtime_config.get(BUILT_IN_RUNTIME_CONSUL, {})
+
+
+def _get_service_port(consul_config: Dict[str, Any]):
+    return consul_config.get(
+        CONSUL_CONFIG_RPC_PORT, CONSUL_SERVER_RPC_PORT)
+
+
+def _get_client_port(consul_config: Dict[str, Any]):
+    return consul_config.get(
+        CONSUL_CONFIG_HTTP_PORT, CONSUL_SERVER_HTTP_PORT)
+
+
+def _get_dns_port(consul_config: Dict[str, Any]):
+    return consul_config.get(
+        CONSUL_CONFIG_DNS_PORT, CONSUL_SERVER_DNS_PORT)
 
 
 def _get_runtime_processes():
@@ -189,8 +206,9 @@ def _with_runtime_environment_variables(
                 "Invalid join list. No running consul server cluster is detected.")
         runtime_envs["CONSUL_JOIN_LIST"] = join_list
 
-    runtime_envs["CONSUL_SERVICE_PORT"] = CONSUL_SERVER_RPC_PORT
-    runtime_envs["CONSUL_CLIENT_PORT"] = CONSUL_SERVER_HTTP_PORT
+    runtime_envs["CONSUL_SERVICE_PORT"] = _get_service_port(consul_config)
+    runtime_envs["CONSUL_CLIENT_PORT"] = _get_client_port(consul_config)
+    runtime_envs["CONSUL_DNS_PORT"] = _get_dns_port(consul_config)
     return runtime_envs
 
 
@@ -206,21 +224,26 @@ def _get_runtime_logs():
 
 
 def _get_runtime_endpoints(
-        server_mode, cluster_config, cluster_head_ip):
+        server_mode, runtime_config: Dict[str, Any],
+        cluster_config, cluster_head_ip):
+    consul_config = _get_config(runtime_config)
     endpoints = {
         "consul": {
             "name": "Consul",
-            "url": address_string(cluster_head_ip, CONSUL_SERVER_RPC_PORT)
+            "url": address_string(
+                cluster_head_ip, _get_service_port(consul_config))
         },
     }
     if server_mode:
         endpoints["consul_http"] = {
             "name": "Consul HTTP",
-            "url": http_address_string(cluster_head_ip, CONSUL_SERVER_HTTP_PORT)
+            "url": http_address_string(
+                cluster_head_ip, _get_client_port(consul_config))
         }
         endpoints["consul_dns"] = {
             "name": "Consul DNS",
-            "url": address_string(cluster_head_ip, CONSUL_SERVER_DNS_PORT)
+            "url": address_string(
+                cluster_head_ip, _get_dns_port(consul_config))
         }
 
     return endpoints
@@ -228,21 +251,22 @@ def _get_runtime_endpoints(
 
 def _get_head_service_ports(
         server_mode, runtime_config: Dict[str, Any]) -> Dict[str, Any]:
+    consul_config = _get_config(runtime_config)
     service_ports = {
         "consul": {
             "protocol": "TCP",
-            "port": CONSUL_SERVER_RPC_PORT,
+            "port": _get_service_port(consul_config),
         },
     }
 
     if server_mode:
         service_ports["consul-http"] = {
             "protocol": "TCP",
-            "port": CONSUL_SERVER_HTTP_PORT,
+            "port": _get_client_port(consul_config),
         }
         service_ports["consul-dns"] = {
             "protocol": "TCP",
-            "port": CONSUL_SERVER_DNS_PORT,
+            "port": _get_dns_port(consul_config),
         }
     return service_ports
 
@@ -251,9 +275,11 @@ def _handle_node_constraints_reached(
         runtime_config: Dict[str, Any], cluster_config: Dict[str, Any],
         node_type: str, head_info: Dict[str, Any], nodes_info: Dict[str, Any]):
     # We know this is called in the cluster scaler context
+    consul_config = _get_config(runtime_config)
+    rpc_port = _get_service_port(consul_config)
     server_ensemble = sort_nodes_by_seq_id(nodes_info)
-    endpoints = [(head_info[RUNTIME_NODE_IP], CONSUL_SERVER_RPC_PORT)]
-    worker_nodes = [(node_info[RUNTIME_NODE_IP], CONSUL_SERVER_RPC_PORT
+    endpoints = [(head_info[RUNTIME_NODE_IP], rpc_port)]
+    worker_nodes = [(node_info[RUNTIME_NODE_IP], rpc_port
                      ) for node_info in server_ensemble]
     endpoints += worker_nodes
 

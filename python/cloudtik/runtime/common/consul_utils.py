@@ -1,11 +1,12 @@
 import urllib.error
 from typing import Optional
 
+from cloudtik.core._private.service_discovery.runtime_services import CONSUL_HTTP_PORT_DEFAULT
 from cloudtik.core._private.util.rest_api import rest_api_get_json, rest_api_put_json, MultiEndpointClient, \
     EndPointAddress
 
 CONSUL_ENDPOINT_LOCAL = "127.0.0.1"
-CONSUL_HTTP_PORT = 8500
+CONSUL_HTTP_PORT = CONSUL_HTTP_PORT_DEFAULT
 CONSUL_REQUEST_TIMEOUT = 5
 CONSUL_BLOCKING_QUERY_TIMEOUT = 10 * 60
 
