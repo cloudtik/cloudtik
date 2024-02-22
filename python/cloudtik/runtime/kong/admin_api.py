@@ -23,10 +23,17 @@ class BackendService(JSONSerializableObject):
         self.service_path = service_path
 
     def get_route_path(self):
+        # Note: route path should be in the form of /abc, /abc/ or /
+        # /abc will match /abc or /abc/*
+        # /abc/ will match only /abc/*
+        # / will match every path but because it is the shortest route,
+        # it will be the last priority to be matched.
         route_path = self.route_path or "/" + self.service_name
         return route_path
 
     def get_service_path(self):
+        # Note: The final service path should be in the form of /abc
+        # if it is in the form of / or /abc/, it will be stripped to empty or /abc
         service_path = self.service_path
         return service_path.rstrip('/') if service_path else None
 
@@ -202,13 +209,20 @@ def add_route(
     endpoint_url = "{}{}".format(
             admin_endpoint, REST_API_ENDPOINT_ROUTES)
     # IMPORTANT NOTE:
-    # ~/abc$ will do an exact match of /abc
-    # /abc/ will match and path prefixed with /abc/
     # The matched route path will be stripped based on strip_path flag
+    if route_path.endswith('/'):
+        # if the route path ends with /, we don't need two uris to match
+        # /abc/ will use /abc/ to match (it will not match /abc)
+        # / will use / to match
+        paths = [route_path]
+    else:
+        # ~/abc$ will do an exact match of /abc
+        # /abc/ will match and path prefixed with /abc/
+        paths = ["~" + route_path + "$", route_path + "/"]
     body = {
         "name": route_name,
         "protocols": ["http", "https"],
-        "paths": ["~" + route_path + "$", route_path + "/"],
+        "paths": paths,
         "strip_path": True,
         "service": {"name": service_name}
     }

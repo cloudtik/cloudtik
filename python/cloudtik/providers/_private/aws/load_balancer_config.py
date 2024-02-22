@@ -1234,6 +1234,14 @@ def _create_rule(
     # for the path-based routing rule.
     # So we create two matching string one for exact match to /service-path. And one
     # for match to /service-path/*.
+    if route_path.endswith('/'):
+        # if the route path ends with /, we don't need two uris to match
+        # /abc/ will use /abc/* to match (it will not match /abc)
+        # / will use /* to match
+        patterns = [route_path + '*']
+    else:
+        patterns = [route_path, route_path + '/*']
+
     response = elb_client.create_rule(
         ListenerArn=listener_id,
         Actions=[
@@ -1246,9 +1254,7 @@ def _create_rule(
             {
                 'Field': 'path-pattern',
                 'PathPatternConfig': {
-                    'Values': [
-                        route_path, route_path + '/*',
-                    ]
+                    'Values': patterns
                 }
             },
         ],

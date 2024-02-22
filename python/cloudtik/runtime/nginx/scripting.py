@@ -164,22 +164,36 @@ def update_load_balancer_configuration(
     exec_with_call("sudo service nginx reload")
 
 
-class APIGatewayBackendService(JSONSerializableObject):
+class APIGatewayBackendBase(JSONSerializableObject):
     def __init__(
-            self, service_name, backend_servers,
+            self, service_name,
             route_path=None, service_path=None):
         self.service_name = service_name
-        self.backend_servers = backend_servers
         self.route_path = route_path
         self.service_path = service_path
 
     def get_route_path(self):
+        # Note: route path should be in the form of /abc, /abc/ or /
+        # /abc will match /abc or /abc/*
+        # /abc/ will match only /abc/*
+        # / will match every path but because it is the shortest route,
+        # it will be the last priority to be matched.
         route_path = self.route_path or "/" + self.service_name
         return route_path
 
     def get_service_path(self):
+        # Note: The final service path should be in the form of /abc
+        # if it is in the form of / or /abc/, it will be stripped to empty or /abc
         service_path = self.service_path
         return service_path.rstrip('/') if service_path else None
+
+
+class APIGatewayBackendService(APIGatewayBackendBase):
+    def __init__(
+            self, service_name, backend_servers,
+            route_path=None, service_path=None):
+        super().__init__(service_name, route_path, service_path)
+        self.backend_servers = backend_servers
 
 
 def update_api_gateway_dynamic_backends(
@@ -232,39 +246,36 @@ def _update_api_gateway_dynamic_routers(
 def _save_api_gateway_router_config(
         router_file, route_path, backend_name, service_path=None):
     with open(router_file, "w") as f:
-        # IMPORTANT NOTE: for each backend, we generate two location blocks
-        # one for exact match /abc and redirect to /abc/
-        # and one for prefix match with /abc/ and mapping to the target path
+        # IMPORTANT NOTE:
         # the trailing slash (uri) in proxy_pass http://backend/ is key
         # for striping and replace with the uri
         target_path = "/"
         if service_path:
             target_path = service_path + target_path
-        f.write("location = " + route_path + " {\n")
-        f.write("    return 302 " + route_path + "/;\n")
-        f.write("}\n")
-        f.write("location " + route_path + "/ {\n")
+        if route_path.endswith('/'):
+            # if the route path ends with /, we don't need two location blocks
+            # /abc/ will use /abc/ to match (it will not match /abc)
+            # / will use / to match
+            f.write("location " + route_path + " {\n")
+        else:
+            # we generate two location blocks
+            # one for exact match /abc and redirect to /abc/
+            # and one for prefix match with /abc/ and mapping to the target path
+            f.write("location = " + route_path + " {\n")
+            f.write("    return 302 " + route_path + "/;\n")
+            f.write("}\n")
+            f.write("location " + route_path + "/ {\n")
         f.write(f"    proxy_pass http://{backend_name}{target_path};\n")
         f.write("}\n")
 
 
-class APIGatewayDNSBackendService(JSONSerializableObject):
+class APIGatewayDNSBackendService(APIGatewayBackendBase):
     def __init__(
             self, service_name, service_port,
             service_dns_name, route_path=None, service_path=None):
-        self.service_name = service_name
+        super().__init__(service_name, route_path, service_path)
         self.service_port = service_port
         self.service_dns_name = service_dns_name
-        self.route_path = route_path
-        self.service_path = service_path
-
-    def get_route_path(self):
-        route_path = self.route_path or "/" + self.service_name
-        return route_path
-
-    def get_service_path(self):
-        service_path = self.service_path
-        return service_path.rstrip('/') if service_path else None
 
 
 def update_api_gateway_dns_backends(
@@ -297,18 +308,28 @@ def _save_api_gateway_dns_router_config(
         service_dns_name, service_port, service_path=None):
     variable_name = backend_name.replace('-', '_')
     with open(router_file, "w") as f:
-        # IMPORTANT NOTE: for each backend, we generate two location blocks
-        # one for exact match /abc and redirect to /abc/
-        # and one for prefix match with /abc/xyz using regex and set the target uri
+        # IMPORTANT NOTE:
         # When the variable is used in proxy pass, it handled specially
         # see nginx.org/r/proxy_pass
+        # In some cases, the part of a request URI to be replaced cannot be determined:
+        # When variables are used in proxy_pass: In this case, if URI is specified in
+        # the directive, it is passed to the server as is, replacing the original request URI.
         target_path = "/$1"
         if service_path:
             target_path = service_path + target_path
-        f.write("location = " + route_path + " {\n")
-        f.write("    return 302 " + route_path + "/;\n")
-        f.write("}\n")
-        f.write("location ~ ^" + route_path + "/(.*)$ {\n")
+        if route_path.endswith('/'):
+            # if the route path ends with /, we don't need two location blocks
+            # /abc/ will use /abc/ to match (it will not match /abc)
+            # / will use / to match
+            f.write("location ~ ^" + route_path + "(.*)$ {\n")
+        else:
+            # we generate two location blocks
+            # one for exact match /abc and redirect to /abc/
+            # and one for prefix match with /abc/xyz using regex and set the target uri
+            f.write("location = " + route_path + " {\n")
+            f.write("    return 302 " + route_path + "/;\n")
+            f.write("}\n")
+            f.write("location ~ ^" + route_path + "/(.*)$ {\n")
         f.write(f"    set ${variable_name}_servers {service_dns_name};\n")
         f.write(f"    proxy_pass http://${variable_name}_servers:{service_port}{target_path};\n")
         f.write("}\n")

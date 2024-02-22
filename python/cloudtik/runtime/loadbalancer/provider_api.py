@@ -50,10 +50,15 @@ class LoadBalancerBackendService(JSONSerializableObject):
         self.default_service = default_service
 
     def get_route_path(self):
+        # Note: route path should be in the form of /abc, /abc/ or /
+        # /abc will match /abc or /abc/*
+        # /abc/ will match only /abc/*
         route_path = self.route_path or "/" + self.service_name
         return route_path
 
     def get_service_path(self):
+        # Note: The final service path should be in the form of /abc
+        # if it is in the form of / or /abc/, it will be stripped to empty or /abc
         service_path = self.service_path
         return service_path.rstrip('/') if service_path else None
 

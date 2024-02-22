@@ -30,10 +30,17 @@ class BackendService(JSONSerializableObject):
         self.service_path = service_path
 
     def get_route_path(self):
+        # Note: route path should be in the form of /abc, /abc/ or /
+        # /abc will match /abc or /abc/*
+        # /abc/ will match only /abc/*
+        # / will match every path but because it is the shortest route,
+        # it will be the last priority to be matched.
         route_path = self.route_path or "/" + self.service_name
         return route_path
 
     def get_service_path(self):
+        # Note: The final service path should be in the form of /abc
+        # if it is in the form of / or /abc/, it will be stripped to empty or /abc
         service_path = self.service_path
         return service_path.rstrip('/') if service_path else None
 
@@ -160,6 +167,13 @@ def add_service(
         "upstream_id": upstream_name
     }
 
+    # Note that right / is by default handled
+    # because strip /abc/ from /abc/xyz is equivalent with stripping /abc from it.
+    # you cannot make a http request without / in the front of the path.
+    if strip_path:
+        # this makes /abc/ to /abc or / to empty string (which means no strip)
+        strip_path = strip_path.rstrip('/')
+
     if service_path or strip_path:
         plugins = get_config_for_update(body, "plugins")
         proxy_rewrite = get_config_for_update(plugins, "proxy-rewrite")
@@ -225,8 +239,16 @@ def add_route(
     # /abc will do an exact match
     # /abc/* will match the prefix
     # The route will not strip the path by the default, we need proxy-rewrite to do this.
+    if route_path.endswith('/'):
+        # if the route path ends with /, we don't need two uris to match
+        # /abc/ will use /abc/* to match
+        # / will use /* to match
+        uris = [route_path + "*"]
+    else:
+        uris = [route_path, route_path + "/*"]
+
     body = {
-        "uris": [route_path, route_path + "/*"],
+        "uris": uris,
         "service_id": service_name
     }
     route = rest_api_put_json(
