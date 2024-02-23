@@ -3,10 +3,10 @@
 # There should be only one default service within a service group
 from cloudtik.core._private.util.core_utils import JSONSerializableObject
 from cloudtik.runtime.common.service_discovery.consul import get_common_label_of_service_nodes
-from cloudtik.runtime.common.service_discovery.utils import API_GATEWAY_SERVICE_DISCOVERY_LABEL_SERVICE_PATH, \
-    API_GATEWAY_SERVICE_DISCOVERY_LABEL_ROUTE_PATH
 
-LOAD_BALANCER_SERVICE_DISCOVERY_LABEL_DEFAULT_SERVICE = "load-balancer-default-service"
+LOAD_BALANCER_SERVICE_DISCOVERY_LABEL_ROUTE_PATH = "route-path"
+LOAD_BALANCER_SERVICE_DISCOVERY_LABEL_SERVICE_PATH = "service-path"
+LOAD_BALANCER_SERVICE_DISCOVERY_LABEL_DEFAULT_SERVICE = "default-service"
 
 LOAD_BALANCER_SERVICE_DISCOVERY_LABEL_PROTOCOL = "load-balancer-protocol"
 LOAD_BALANCER_SERVICE_DISCOVERY_LABEL_PORT = "load-balancer-port"
@@ -57,24 +57,17 @@ def get_checked_port(port):
     return port
 
 
-def is_default_service_by_label(labels):
-    if not labels:
-        return False
-    default_service_label = labels.get(
-        LOAD_BALANCER_SERVICE_DISCOVERY_LABEL_DEFAULT_SERVICE)
-    return True if default_service_label is not None else False
-
-
 def get_application_route_from_service_nodes(service_nodes):
     route_path = get_common_label_of_service_nodes(
-        service_nodes, API_GATEWAY_SERVICE_DISCOVERY_LABEL_ROUTE_PATH,
+        service_nodes, LOAD_BALANCER_SERVICE_DISCOVERY_LABEL_ROUTE_PATH,
         error_if_not_same=True)
     service_path = get_common_label_of_service_nodes(
-        service_nodes, API_GATEWAY_SERVICE_DISCOVERY_LABEL_SERVICE_PATH,
+        service_nodes, LOAD_BALANCER_SERVICE_DISCOVERY_LABEL_SERVICE_PATH,
         error_if_not_same=True)
 
     # Warning: for a group of services, there should be only one default service
-    default_service = get_common_label_of_service_nodes(
+    default_service_label = get_common_label_of_service_nodes(
         service_nodes, LOAD_BALANCER_SERVICE_DISCOVERY_LABEL_DEFAULT_SERVICE,
         error_if_not_same=True)
+    default_service = True if default_service_label is not None else False
     return route_path, service_path, default_service
