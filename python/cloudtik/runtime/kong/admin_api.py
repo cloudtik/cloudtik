@@ -1,8 +1,9 @@
 import urllib.error
 
-from cloudtik.core._private.util.core_utils import get_address_string, JSONSerializableObject
+from cloudtik.core._private.util.core_utils import get_address_string
 from cloudtik.core._private.util.rest_api import rest_api_get_json, rest_api_post_json, rest_api_delete, \
     rest_api_method_json
+from cloudtik.runtime.common.service_discovery.load_balancer import ApplicationBackendService
 
 REST_API_ENDPOINT_UPSTREAMS = "/upstreams"
 REST_API_ENDPOINT_TARGETS = REST_API_ENDPOINT_UPSTREAMS + "/{}/targets"
@@ -10,32 +11,17 @@ REST_API_ENDPOINT_SERVICES = "/services"
 REST_API_ENDPOINT_ROUTES = "/routes"
 
 
-class BackendService(JSONSerializableObject):
+class BackendService(ApplicationBackendService):
     def __init__(
             self, service_name, servers=None,
             service_dns_name=None, service_port=None,
-            route_path=None, service_path=None):
-        self.service_name = service_name
+            route_path=None, service_path=None,
+            default_service=False):
+        super().__init__(
+            service_name, route_path, service_path, default_service)
         self.servers = servers
         self.service_dns_name = service_dns_name
         self.service_port = service_port
-        self.route_path = route_path
-        self.service_path = service_path
-
-    def get_route_path(self):
-        # Note: route path should be in the form of /abc, /abc/ or /
-        # /abc will match /abc or /abc/*
-        # /abc/ will match only /abc/*
-        # / will match every path but because it is the shortest route,
-        # it will be the last priority to be matched.
-        route_path = self.route_path or "/" + self.service_name
-        return route_path
-
-    def get_service_path(self):
-        # Note: The final service path should be in the form of /abc
-        # if it is in the form of / or /abc/, it will be stripped to empty or /abc
-        service_path = self.service_path
-        return service_path.rstrip('/') if service_path else None
 
 
 def list_entities(admin_endpoint, entities_url):

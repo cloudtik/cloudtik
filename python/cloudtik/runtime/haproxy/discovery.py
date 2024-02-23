@@ -3,10 +3,9 @@ import logging
 from cloudtik.core._private.service_discovery.utils import deserialize_service_selector
 from cloudtik.core._private.util.service.pull_job import PullJob
 from cloudtik.runtime.common.service_discovery.consul import \
-    get_service_address_of_node, get_common_label_of_service_nodes
+    get_service_address_of_node
 from cloudtik.runtime.common.service_discovery.discovery import query_services_with_addresses, query_services_with_nodes
-from cloudtik.runtime.common.service_discovery.utils import API_GATEWAY_SERVICE_DISCOVERY_LABEL_ROUTE_PATH, \
-    API_GATEWAY_SERVICE_DISCOVERY_LABEL_SERVICE_PATH
+from cloudtik.runtime.common.service_discovery.load_balancer import get_application_route_from_service_nodes
 from cloudtik.runtime.haproxy.admin_api import list_backend_servers, enable_backend_slot, disable_backend_slot, \
     add_backend_slot, get_backend_server_address, delete_backend_slot, list_backends
 from cloudtik.runtime.haproxy.scripting import update_configuration, update_api_gateway_configuration, \
@@ -85,7 +84,7 @@ def _update_backend(backend_name, backend_servers):
                         break
 
 
-class DiscoverBackendServers(PullJob):
+class DiscoverBackendService(PullJob):
     """Pulling job for discovering backend targets and update HAProxy using Runtime API"""
 
     def __init__(
@@ -174,13 +173,12 @@ class DiscoverAPIGatewayBackendServers(PullJob):
             server_address = get_service_address_of_node(service_node)
             backend_servers.append(server_address)
 
-        route_path = get_common_label_of_service_nodes(
-            service_nodes, API_GATEWAY_SERVICE_DISCOVERY_LABEL_ROUTE_PATH,
-            error_if_not_same=True)
-        service_path = get_common_label_of_service_nodes(
-            service_nodes, API_GATEWAY_SERVICE_DISCOVERY_LABEL_SERVICE_PATH,
-            error_if_not_same=True)
+        (route_path,
+         service_path,
+         default_service) = get_application_route_from_service_nodes(
+            service_nodes)
 
         return APIGatewayBackendService(
             service_name, backend_servers,
-            route_path=route_path, service_path=service_path)
+            route_path=route_path, service_path=service_path,
+            default_service=default_service)

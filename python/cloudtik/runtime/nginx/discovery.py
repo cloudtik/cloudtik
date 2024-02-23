@@ -1,14 +1,13 @@
 import logging
 
-from cloudtik.core._private.util.core_utils import get_json_object_hash, get_address_string
 from cloudtik.core._private.service_discovery.utils import deserialize_service_selector
+from cloudtik.core._private.util.core_utils import get_json_object_hash, get_address_string
 from cloudtik.core._private.util.service.pull_job import PullJob
 from cloudtik.runtime.common.service_discovery.consul import \
-    get_service_address_of_node, get_tags_of_service_nodes, get_service_fqdn_address, \
-    get_common_label_of_service_nodes
+    get_service_address_of_node, get_tags_of_service_nodes, get_service_fqdn_address
 from cloudtik.runtime.common.service_discovery.discovery import query_services_with_nodes
-from cloudtik.runtime.common.service_discovery.utils import API_GATEWAY_SERVICE_DISCOVERY_LABEL_ROUTE_PATH, \
-    API_GATEWAY_SERVICE_DISCOVERY_LABEL_SERVICE_PATH
+from cloudtik.runtime.common.service_discovery.load_balancer import \
+    get_application_route_from_service_nodes
 from cloudtik.runtime.nginx.scripting import update_load_balancer_configuration, \
     update_api_gateway_dynamic_backends, APIGatewayBackendService, update_api_gateway_dns_backends, \
     APIGatewayDNSBackendService
@@ -32,7 +31,7 @@ class DiscoverJob(PullJob):
         return query_services_with_nodes(self.service_selector)
 
 
-class DiscoverBackendServers(DiscoverJob):
+class DiscoverBackendService(DiscoverJob):
     """Pulling job for discovering backend targets and
     update the config if there are new or deleted servers with reload.
     """
@@ -65,7 +64,7 @@ class DiscoverBackendServers(DiscoverJob):
             self.last_config_hash = servers_hash
 
 
-class DiscoverAPIGatewayBackendServers(DiscoverJob):
+class DiscoverAPIGatewayBackendService(DiscoverJob):
     """Pulling job for discovering backend targets for API gateway backends
     and update the config if there are new or deleted backends.
     The selectors are used to select the list of services (include a service tag or service cluster)
@@ -105,16 +104,18 @@ class DiscoverAPIGatewayBackendServers(DiscoverJob):
             server_key = get_address_string(server_address[0], server_address[1])
             backend_servers[server_key] = server_address
 
-        route_path = get_common_label_of_service_nodes(
-            service_nodes, API_GATEWAY_SERVICE_DISCOVERY_LABEL_ROUTE_PATH,
-            error_if_not_same=True)
+        (route_path,
+         service_path,
+         default_service) = get_application_route_from_service_nodes(
+            service_nodes)
 
         return APIGatewayBackendService(
             service_name, backend_servers,
-            route_path=route_path)
+            route_path=route_path, service_path=service_path,
+            default_service=default_service)
 
 
-class DiscoverAPIGatewayBackends(DiscoverJob):
+class DiscoverAPIGatewayDNSBackendService(DiscoverJob):
     def __init__(
             self,
             interval=None,
@@ -152,14 +153,12 @@ class DiscoverAPIGatewayBackends(DiscoverJob):
         service_dns_name = get_service_fqdn_address(
             service_name, tags)
 
-        route_path = get_common_label_of_service_nodes(
-            service_nodes, API_GATEWAY_SERVICE_DISCOVERY_LABEL_ROUTE_PATH,
-            error_if_not_same=True)
-
-        service_path = get_common_label_of_service_nodes(
-            service_nodes, API_GATEWAY_SERVICE_DISCOVERY_LABEL_SERVICE_PATH,
-            error_if_not_same=True)
+        (route_path,
+         service_path,
+         default_service) = get_application_route_from_service_nodes(
+            service_nodes)
 
         return APIGatewayDNSBackendService(
             service_name, service_port, service_dns_name,
-            route_path=route_path, service_path=service_path)
+            route_path=route_path, service_path=service_path,
+            default_service=default_service)

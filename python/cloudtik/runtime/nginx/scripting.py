@@ -1,13 +1,13 @@
 import os
 from shlex import quote
 
-from cloudtik.core._private.util.core_utils import exec_with_call, exec_with_output, remove_files, get_address_string, \
-    JSONSerializableObject
+from cloudtik.core._private.util.core_utils import exec_with_call, exec_with_output, remove_files, get_address_string
 from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_NGINX
 from cloudtik.core._private.util.runtime_utils import get_runtime_value, get_runtime_config_from_node, \
     get_runtime_cluster_name
 from cloudtik.core._private.service_discovery.utils import exclude_runtime_of_cluster, \
     serialize_service_selector, get_service_selector_copy
+from cloudtik.runtime.common.service_discovery.load_balancer import ApplicationBackendService
 from cloudtik.runtime.common.utils import stop_pull_service_by_identifier
 from cloudtik.runtime.nginx.utils import _get_config, NGINX_APP_MODE_LOAD_BALANCER, NGINX_CONFIG_MODE_STATIC, \
     _get_home_dir, _get_backend_config, NGINX_BACKEND_SERVERS_CONFIG_KEY, NGINX_LOAD_BALANCER_UPSTREAM_NAME, \
@@ -105,13 +105,13 @@ def start_pull_service(head):
 
     app_mode = get_runtime_value("NGINX_APP_MODE")
     if app_mode == NGINX_APP_MODE_LOAD_BALANCER:
-        discovery_class = "DiscoverBackendServers"
+        discovery_class = "DiscoverBackendService"
     else:
         config_mode = get_runtime_value("NGINX_CONFIG_MODE")
         if config_mode == NGINX_CONFIG_MODE_DNS:
-            discovery_class = "DiscoverAPIGatewayBackends"
+            discovery_class = "DiscoverAPIGatewayDNSBackendService"
         else:
-            discovery_class = "DiscoverAPIGatewayBackendServers"
+            discovery_class = "DiscoverAPIGatewayBackendService"
 
     backend_config = _get_backend_config(nginx_config)
     service_selector = get_service_selector_copy(
@@ -164,35 +164,12 @@ def update_load_balancer_configuration(
     exec_with_call("sudo service nginx reload")
 
 
-class APIGatewayBackendBase(JSONSerializableObject):
-    def __init__(
-            self, service_name,
-            route_path=None, service_path=None):
-        self.service_name = service_name
-        self.route_path = route_path
-        self.service_path = service_path
-
-    def get_route_path(self):
-        # Note: route path should be in the form of /abc, /abc/ or /
-        # /abc will match /abc or /abc/*
-        # /abc/ will match only /abc/*
-        # / will match every path but because it is the shortest route,
-        # it will be the last priority to be matched.
-        route_path = self.route_path or "/" + self.service_name
-        return route_path
-
-    def get_service_path(self):
-        # Note: The final service path should be in the form of /abc
-        # if it is in the form of / or /abc/, it will be stripped to empty or /abc
-        service_path = self.service_path
-        return service_path.rstrip('/') if service_path else None
-
-
-class APIGatewayBackendService(APIGatewayBackendBase):
+class APIGatewayBackendService(ApplicationBackendService):
     def __init__(
             self, service_name, backend_servers,
-            route_path=None, service_path=None):
-        super().__init__(service_name, route_path, service_path)
+            route_path=None, service_path=None, default_service=False):
+        super().__init__(
+            service_name, route_path, service_path, default_service)
         self.backend_servers = backend_servers
 
 
@@ -269,11 +246,12 @@ def _save_api_gateway_router_config(
         f.write("}\n")
 
 
-class APIGatewayDNSBackendService(APIGatewayBackendBase):
+class APIGatewayDNSBackendService(ApplicationBackendService):
     def __init__(
-            self, service_name, service_port,
-            service_dns_name, route_path=None, service_path=None):
-        super().__init__(service_name, route_path, service_path)
+            self, service_name, service_port, service_dns_name,
+            route_path=None, service_path=None, default_service=False):
+        super().__init__(
+            service_name, route_path, service_path, default_service)
         self.service_port = service_port
         self.service_dns_name = service_dns_name
 

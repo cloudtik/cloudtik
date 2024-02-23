@@ -275,7 +275,7 @@ def start_pull_service(head):
     address_type = get_runtime_node_address_type()
 
     cmd = ["cloudtik", "node", "service", service_identifier, "start"]
-    cmd += ["--service-class=cloudtik.runtime.pgbouncer.discovery.DiscoverBackendServers"]
+    cmd += ["--service-class=cloudtik.runtime.pgbouncer.discovery.DiscoverBackendService"]
     cmd += ["--logs-dir={}".format(quote(logs_dir))]
 
     # job parameters

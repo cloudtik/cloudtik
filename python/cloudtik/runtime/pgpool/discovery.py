@@ -9,7 +9,7 @@ from cloudtik.runtime.pgpool.scripting import update_configuration, do_node_chec
 logger = logging.getLogger(__name__)
 
 
-class DiscoverBackendServers(PullJob):
+class DiscoverBackendService(PullJob):
     """Pulling job for discovering backend targets and update Pgpool conf and reload"""
 
     def __init__(
