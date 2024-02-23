@@ -9,7 +9,7 @@ from cloudtik.runtime.pgbouncer.scripting import update_configuration
 logger = logging.getLogger(__name__)
 
 
-class DiscoverBackendServers(PullJob):
+class DiscoverBackendService(PullJob):
     """Pulling job for discovering backend targets and update PgBouncer conf and reload"""
 
     def __init__(

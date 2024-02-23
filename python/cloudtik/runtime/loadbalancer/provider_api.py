@@ -2,12 +2,12 @@ import logging
 
 from cloudtik.core._private.load_balancer_provider_factory import _get_load_balancer_provider, \
     _get_load_balancer_provider_cls
-from cloudtik.core._private.util.core_utils import JSONSerializableObject, get_list_for_update, get_json_object_hash
+from cloudtik.core._private.util.core_utils import get_list_for_update, get_json_object_hash
 from cloudtik.core._private.utils import get_provider_config
 from cloudtik.core.load_balancer_provider import LOAD_BALANCER_PROTOCOL_TCP, LOAD_BALANCER_TYPE_NETWORK, \
     LOAD_BALANCER_SCHEMA_INTERNET_FACING, LOAD_BALANCER_PROTOCOL_HTTP, LOAD_BALANCER_PROTOCOL_HTTPS, \
     LOAD_BALANCER_TYPE_APPLICATION
-from cloudtik.runtime.common.service_discovery.load_balancer import get_checked_port
+from cloudtik.runtime.common.service_discovery.load_balancer import get_checked_port, ApplicationBackendService
 
 logger = logging.getLogger(__name__)
 
@@ -17,7 +17,7 @@ LOAD_BALANCER_NETWORK_DEFAULT = "{}-n"
 LOAD_BALANCER_APPLICATION_DEFAULT = "{}-a"
 
 
-class LoadBalancerBackendService(JSONSerializableObject):
+class LoadBalancerBackendService(ApplicationBackendService):
     def __init__(
             self,
             service_name, backend_servers,
@@ -25,6 +25,9 @@ class LoadBalancerBackendService(JSONSerializableObject):
             load_balancer_name=None,
             load_balancer_protocol=None, load_balancer_port=None,
             route_path=None, service_path=None, default_service=False):
+        super().__init__(
+            service_name, route_path, service_path, default_service)
+
         if not protocol:
             protocol = LOAD_BALANCER_PROTOCOL_TCP
         if not port:
@@ -36,7 +39,6 @@ class LoadBalancerBackendService(JSONSerializableObject):
         if not load_balancer_port:
             load_balancer_port = port
 
-        self.service_name = service_name
         self.backend_servers = backend_servers
         self.protocol = protocol
         self.port = get_checked_port(port)
@@ -44,23 +46,6 @@ class LoadBalancerBackendService(JSONSerializableObject):
         self.load_balancer_name = load_balancer_name
         self.load_balancer_protocol = load_balancer_protocol
         self.load_balancer_port = get_checked_port(load_balancer_port)
-
-        self.route_path = route_path
-        self.service_path = service_path
-        self.default_service = default_service
-
-    def get_route_path(self):
-        # Note: route path should be in the form of /abc, /abc/ or /
-        # /abc will match /abc or /abc/*
-        # /abc/ will match only /abc/*
-        route_path = self.route_path or "/" + self.service_name
-        return route_path
-
-    def get_service_path(self):
-        # Note: The final service path should be in the form of /abc
-        # if it is in the form of / or /abc/, it will be stripped to empty or /abc
-        service_path = self.service_path
-        return service_path.rstrip('/') if service_path else None
 
 
 def get_load_balancer_manager(provider_config, workspace_name):

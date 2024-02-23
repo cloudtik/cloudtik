@@ -105,7 +105,7 @@ def start_pull_service(head):
     logs_dir = _get_logs_dir()
 
     cmd = ["cloudtik", "node", "service", service_identifier, "start"]
-    cmd += ["--service-class=cloudtik.runtime.apisix.discovery.DiscoverBackendServers"]
+    cmd += ["--service-class=cloudtik.runtime.apisix.discovery.DiscoverBackendService"]
     cmd += ["--logs-dir={}".format(quote(logs_dir))]
 
     # job parameters

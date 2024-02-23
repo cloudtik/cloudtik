@@ -10,9 +10,7 @@ from cloudtik.runtime.common.service_discovery.consul import \
 from cloudtik.runtime.common.service_discovery.discovery import query_services_with_nodes
 from cloudtik.runtime.common.service_discovery.load_balancer import LOAD_BALANCER_SERVICE_DISCOVERY_LABEL_PORT, \
     LOAD_BALANCER_SERVICE_DISCOVERY_LABEL_PROTOCOL, LOAD_BALANCER_SERVICE_DISCOVERY_NAME_LABEL, \
-    is_default_service_by_label
-from cloudtik.runtime.common.service_discovery.utils import API_GATEWAY_SERVICE_DISCOVERY_LABEL_ROUTE_PATH, \
-    API_GATEWAY_SERVICE_DISCOVERY_LABEL_SERVICE_PATH
+    get_application_route_from_service_nodes
 from cloudtik.runtime.loadbalancer.provider_api import get_load_balancer_manager, LoadBalancerBackendService
 
 logger = logging.getLogger(__name__)
@@ -122,10 +120,10 @@ class LoadBalancerController(ActiveStandbyService):
         load_balancer_port = labels.get(LOAD_BALANCER_SERVICE_DISCOVERY_LABEL_PORT)
         load_balancer_name = labels.get(LOAD_BALANCER_SERVICE_DISCOVERY_NAME_LABEL)
 
-        # Route path and service path are for application load balancer only (HTTP)
-        route_path = labels.get(API_GATEWAY_SERVICE_DISCOVERY_LABEL_ROUTE_PATH)
-        service_path = labels.get(API_GATEWAY_SERVICE_DISCOVERY_LABEL_SERVICE_PATH)
-        default_service = is_default_service_by_label(labels)
+        (route_path,
+         service_path,
+         default_service) = get_application_route_from_service_nodes(
+            service_nodes)
 
         return LoadBalancerBackendService(
             service_name, backend_servers,

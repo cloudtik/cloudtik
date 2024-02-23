@@ -2,12 +2,13 @@ import os
 import shutil
 from shlex import quote
 
-from cloudtik.core._private.util.core_utils import exec_with_output, exec_with_call, JSONSerializableObject
+from cloudtik.core._private.util.core_utils import exec_with_output, exec_with_call
 from cloudtik.core._private.runtime_factory import BUILT_IN_RUNTIME_HAPROXY
 from cloudtik.core._private.util.runtime_utils import \
     get_runtime_config_from_node, get_runtime_value, get_runtime_node_ip, \
     get_runtime_cluster_name
 from cloudtik.core._private.service_discovery.utils import serialize_service_selector
+from cloudtik.runtime.common.service_discovery.load_balancer import ApplicationBackendService
 from cloudtik.runtime.common.utils import stop_pull_service_by_identifier
 from cloudtik.runtime.haproxy.utils import _get_config, HAPROXY_APP_MODE_LOAD_BALANCER, HAPROXY_CONFIG_MODE_STATIC, \
     HAPROXY_BACKEND_SERVERS_CONFIG_KEY, _get_home_dir, _get_backend_config, get_default_server_name, \
@@ -58,7 +59,7 @@ def start_pull_service(head):
 
     app_mode = get_runtime_value("HAPROXY_APP_MODE")
     if app_mode == HAPROXY_APP_MODE_LOAD_BALANCER:
-        discovery_class = "DiscoverBackendServers"
+        discovery_class = "DiscoverBackendService"
     else:
         discovery_class = "DiscoverAPIGatewayBackendServers"
 
@@ -139,22 +140,25 @@ def update_configuration(backend_servers):
     shutil.move(working_file, config_file)
 
 
-class APIGatewayBackendService(JSONSerializableObject):
+class APIGatewayBackendService(ApplicationBackendService):
     def __init__(
             self, service_name, backend_servers,
-            route_path=None, service_path=None):
+            route_path=None, service_path=None, default_service=False):
+        super().__init__(
+            service_name, route_path, service_path, default_service)
         self.service_name = service_name
         self.backend_servers = backend_servers
-        self.route_path = route_path
-        self.service_path = service_path
 
-    def get_route_path(self):
-        route_path = self.route_path or "/" + self.service_name
-        return route_path
 
-    def get_service_path(self):
-        service_path = self.service_path
-        return service_path.rstrip('/') if service_path else None
+def _get_sorted_api_gateway_backends(api_gateway_backends):
+    def sort_by_route_and_name(api_gateway_backend):
+        backend_name, backend_service = api_gateway_backend
+        route_path = backend_service.get_route_path()
+        return [route_path, backend_name]
+
+    api_gateway_backends_list = api_gateway_backends.items()
+    return api_gateway_backends_list.sort(
+        reverse=True, key=sort_by_route_and_name)
 
 
 def update_api_gateway_configuration(
@@ -170,8 +174,11 @@ def update_api_gateway_configuration(
         conf_dir, "haproxy-working.cfg")
     shutil.copyfile(template_file, working_file)
 
-    # sort to make the order to the backends are always the same
-    sorted_api_gateway_backends = sorted(api_gateway_backends.items())
+    # The backends should be reverse sorted by the route paths
+    # reversed to make sure the shortest route with the same prefix showing after
+    # this make route / to match any path showing at the last as the default backend.
+    sorted_api_gateway_backends = _get_sorted_api_gateway_backends(
+        api_gateway_backends)
 
     with open(working_file, "a") as f:
         f.write("frontend api_gateway\n")
@@ -181,16 +188,27 @@ def update_api_gateway_configuration(
             f.write(f"    bind :{bind_port}\n")
         f.write(f"    mode {service_protocol}\n")
         f.write(f"    option {service_protocol}log\n")
-        # IMPORTANT NOTE: match two cases
-        # path /abc match exactly the /abc
-        # path_beg /abc/ match paths that prefixed by /abc/
-        # route to a backend based on path's prefix
+        # IMPORTANT NOTE:
+        # There may be as many "use_backend" rules as desired. All of these rules are
+        # evaluated in their declaration order, and the first one which matches will
+        # assign the backend.
         for backend_name, backend_service in sorted_api_gateway_backends:
             route_path = backend_service.get_route_path()
-            f.write("    use_backend " + backend_name +
-                    " if { path " + route_path +
-                    " } || { path_beg " + route_path +
-                    "/ }\n")
+            if route_path.endswith('/'):
+                # if the route path ends with /, we don't need two conditions
+                # /abc/ will use path_beg /abc/ to match (it will not match /abc)
+                f.write("    use_backend " + backend_name +
+                        " if { path_beg " + route_path +
+                        " }\n")
+            else:
+                # match two cases
+                # path /abc match exactly the /abc
+                # path_beg /abc/ match paths that prefixed by /abc/
+                # route to a backend based on path's prefix
+                f.write("    use_backend " + backend_name +
+                        " if { path " + route_path +
+                        " } || { path_beg " + route_path +
+                        "/ }\n")
 
         f.write("\n")
         # write each backend

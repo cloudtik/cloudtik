@@ -1,19 +1,18 @@
 import logging
 
-from cloudtik.core._private.util.core_utils import get_json_object_hash, get_address_string
 from cloudtik.core._private.service_discovery.utils import deserialize_service_selector
-from cloudtik.core._private.util.service.pull_job import PullJob
+from cloudtik.core._private.util.core_utils import get_json_object_hash, get_address_string
 from cloudtik.core._private.util.rest_api import REST_API_AUTH_TYPE, REST_API_AUTH_API_KEY
+from cloudtik.core._private.util.service.pull_job import PullJob
 from cloudtik.core._private.utils import decrypt_string
-from cloudtik.runtime.common.service_discovery.consul \
-    import get_service_address_of_node, get_common_label_of_service_nodes, \
-    get_service_fqdn_address, get_tags_of_service_nodes
-from cloudtik.runtime.common.service_discovery.discovery import query_services_with_nodes
-from cloudtik.runtime.common.service_discovery.utils import API_GATEWAY_SERVICE_DISCOVERY_LABEL_ROUTE_PATH, \
-    API_GATEWAY_SERVICE_DISCOVERY_LABEL_SERVICE_PATH
 from cloudtik.runtime.apisix.admin_api import add_or_update_backend, \
     delete_backend, BackendService, list_services
 from cloudtik.runtime.apisix.utils import APISIX_CONFIG_MODE_DNS, APISIX_CONFIG_MODE_CONSUL
+from cloudtik.runtime.common.service_discovery.consul \
+    import get_service_address_of_node, get_service_fqdn_address, get_tags_of_service_nodes
+from cloudtik.runtime.common.service_discovery.discovery import query_services_with_nodes
+from cloudtik.runtime.common.service_discovery.load_balancer import \
+    get_application_route_from_service_nodes
 
 logger = logging.getLogger(__name__)
 
@@ -55,7 +54,7 @@ class DiscoverJob(PullJob):
         return query_services_with_nodes(self.service_selector)
 
 
-class DiscoverBackendServers(DiscoverJob):
+class DiscoverBackendService(DiscoverJob):
     """Pulling job for discovering backend targets for API gateway
     """
 
@@ -98,12 +97,10 @@ class DiscoverBackendServers(DiscoverJob):
 
     def get_backend_service(
             self, service_name, service_nodes):
-        route_path = get_common_label_of_service_nodes(
-            service_nodes, API_GATEWAY_SERVICE_DISCOVERY_LABEL_ROUTE_PATH,
-            error_if_not_same=True)
-        service_path = get_common_label_of_service_nodes(
-            service_nodes, API_GATEWAY_SERVICE_DISCOVERY_LABEL_SERVICE_PATH,
-            error_if_not_same=True)
+        (route_path,
+         service_path,
+         default_service) = get_application_route_from_service_nodes(
+            service_nodes)
 
         service_node = service_nodes[0]
         server_address = get_service_address_of_node(service_node)
@@ -120,13 +117,15 @@ class DiscoverBackendServers(DiscoverJob):
             return BackendService(
                 service_name, service_dns_name=service_dns_name,
                 service_port=service_port,
-                route_path=route_path, service_path=service_path)
+                route_path=route_path, service_path=service_path,
+                default_service=default_service)
         elif self.config_mode == APISIX_CONFIG_MODE_CONSUL:
             # service name with port in service
             return BackendService(
                 service_name,
                 service_port=service_port,
-                route_path=route_path, service_path=service_path)
+                route_path=route_path, service_path=service_path,
+                default_service=default_service)
         else:
             backend_servers = {}
             for service_node in service_nodes:
@@ -136,7 +135,8 @@ class DiscoverBackendServers(DiscoverJob):
             return BackendService(
                 service_name, servers=backend_servers,
                 service_port=service_port,
-                route_path=route_path, service_path=service_path)
+                route_path=route_path, service_path=service_path,
+                default_service=default_service)
 
     def _configure_backends(self, backends):
         # 1. delete data sources was added but now exists
