@@ -90,7 +90,7 @@ class LoadBalancerManager:
         for load_balancer_name, existing_load_balancer in load_balancers_to_delete.items():
             if self._is_delete_auto_empty():
                 # delete auto created load balancer if no targets
-                self.load_balancer_provider.delete(load_balancer_name)
+                self._delete_load_balancer(load_balancer_name, existing_load_balancer)
             else:
                 # the load balancer has no targets, clear it
                 self._clear_load_balancer(load_balancer_name, existing_load_balancer)
@@ -120,9 +120,10 @@ class LoadBalancerManager:
                         load_balancer_name, str(e)))
 
     def _delete_load_balancer(
-            self, load_balancer_name):
+            self, load_balancer_name, existing_load_balancer):
         try:
-            self.load_balancer_provider.delete(load_balancer_name)
+            self.load_balancer_provider.delete(
+                existing_load_balancer)
             self._clear_load_balancer_last_hash(load_balancer_name)
         except Exception as e:
             logger.error(

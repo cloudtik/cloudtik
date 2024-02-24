@@ -58,7 +58,7 @@ class LoadBalancerProvider:
         """
         pass
 
-    def get(self, load_balancer_name: str):
+    def get(self, load_balancer_name: str, load_balancer_type: str):
         """Return detailed information for a load balancer
         {
             "name": "load-balancer-1",
@@ -122,8 +122,9 @@ class LoadBalancerProvider:
         """
         pass
 
-    def delete(self, load_balancer_name: str):
-        """Delete a load balancer in the workspace based on the config.
+    def delete(self, load_balancer: Dict[str, Any]):
+        """Delete a load balancer in the workspace.
+        The passed parameter has the same properties returned to list or get.
         """
         pass
 

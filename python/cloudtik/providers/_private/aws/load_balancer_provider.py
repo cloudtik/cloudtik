@@ -5,8 +5,8 @@ from typing import Any, Dict
 from cloudtik.core.load_balancer_provider import LoadBalancerProvider
 from cloudtik.providers._private.aws.config import \
     get_workspace_vpc_id
-from cloudtik.providers._private.aws.load_balancer_config import _get_workspace_load_balancer_info, \
-    _delete_load_balancer_by_name, _create_load_balancer, _update_load_balancer, _get_load_balancer_info, \
+from cloudtik.providers._private.aws.load_balancer_config import _list_load_balancers, \
+    _delete_load_balancer, _create_load_balancer, _update_load_balancer, _get_load_balancer, \
     _bootstrap_load_balancer_config
 from cloudtik.providers._private.aws.utils import _make_client
 
@@ -43,12 +43,12 @@ class AWSLoadBalancerProvider(LoadBalancerProvider):
 
     def list(self):
         """List the load balancer in the workspace"""
-        return _get_workspace_load_balancer_info(
+        return _list_load_balancers(
             self.elb_client, self.workspace_name)
 
-    def get(self, load_balancer_name: str):
+    def get(self, load_balancer_name: str, load_balancer_type: str):
         """Check whether a load balancer exists"""
-        return _get_load_balancer_info(
+        return _get_load_balancer(
             self.elb_client, load_balancer_name)
 
     def create(self, load_balancer_config: Dict[str, Any]):
@@ -66,11 +66,11 @@ class AWSLoadBalancerProvider(LoadBalancerProvider):
             self.workspace_name, load_balancer_config,
             self.vpc_id, self.context)
 
-    def delete(self, load_balancer_name: str):
-        """Delete a load balancer in the workspace based on the config.
+    def delete(self, load_balancer: Dict[str, Any]):
+        """Delete a load balancer in the workspace.
         """
-        _delete_load_balancer_by_name(
-            self.elb_client, load_balancer_name,
+        _delete_load_balancer(
+            self.elb_client, load_balancer,
             self.context)
 
     def validate_config(self, provider_config: Dict[str, Any]):
