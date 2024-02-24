@@ -1314,3 +1314,8 @@ def batch_list(items, batch=1):
     n = len(items)
     for ndx in range(0, n, batch):
         yield items[ndx:min(ndx + batch, n)]
+
+
+def copy_config_key(from_config, to_config, key):
+    if key in from_config:
+        to_config[key] = from_config[key]

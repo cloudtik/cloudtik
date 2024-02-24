@@ -32,7 +32,7 @@ class MockLoadBalancerProvider(LoadBalancerProvider):
         """List the load balancer in the workspace"""
         return {}
 
-    def get(self, load_balancer_name: str):
+    def get(self, load_balancer_name: str, load_balancer_type: str):
         """Check whether a load balancer exists"""
         return None
 
@@ -47,10 +47,10 @@ class MockLoadBalancerProvider(LoadBalancerProvider):
         self.load_balancer_update[
             load_balancer_config["name"]] = load_balancer_config
 
-    def delete(self, load_balancer_name: str):
+    def delete(self, load_balancer: Dict[str, Any]):
         """Delete a load balancer in the workspace based on the config.
         """
-        self.load_balancer_delete.add(load_balancer_name)
+        self.load_balancer_delete.add(load_balancer["name"])
 
 
 class MockLoadBalancerManager(LoadBalancerManager):

@@ -99,10 +99,6 @@ def _get_resource_tags_batch(elb_client, resource_objects, resource_id_name):
             resource_object["Tags"] = tags
 
 
-def _list_load_balancers(elb_client):
-    return elb_client.describe_load_balancers().get("LoadBalancers", [])
-
-
 def _get_load_balancer_id(load_balancer):
     return load_balancer["LoadBalancerArn"]
 
@@ -112,14 +108,14 @@ def _get_load_balancer_name(load_balancer):
 
 
 def _list_workspace_load_balancers(elb_client, workspace_name):
-    load_balancers = _list_load_balancers(elb_client)
+    load_balancers = elb_client.describe_load_balancers().get("LoadBalancers", [])
     _get_resource_tags(elb_client, load_balancers, "LoadBalancerArn")
     return [
         load_balancer for load_balancer in load_balancers
         if _is_workspace_tagged(load_balancer.get("Tags"), workspace_name)]
 
 
-def _get_workspace_load_balancer_info(elb_client, workspace_name):
+def _list_load_balancers(elb_client, workspace_name):
     load_balancers = _list_workspace_load_balancers(
         elb_client, workspace_name)
     load_balancer_map = {}
@@ -130,7 +126,7 @@ def _get_workspace_load_balancer_info(elb_client, workspace_name):
     return load_balancer_map
 
 
-def _get_load_balancer(elb_client, load_balancer_name):
+def _get_load_balancer_by_name(elb_client, load_balancer_name):
     response = elb_client.describe_load_balancers(
         Names=[load_balancer_name])
     return _get_response_object(response, "LoadBalancers")
@@ -163,8 +159,8 @@ def _get_load_balancer_listener_info(load_balancer_listeners):
     ]
 
 
-def _get_load_balancer_info(elb_client, load_balancer_name):
-    load_balancer = _get_load_balancer(elb_client, load_balancer_name)
+def _get_load_balancer(elb_client, load_balancer_name):
+    load_balancer = _get_load_balancer_by_name(elb_client, load_balancer_name)
     if not load_balancer:
         return None
     _get_resource_tags(elb_client, [load_balancer], "LoadBalancerArn")
@@ -264,7 +260,7 @@ def _update_load_balancer(
     # The load balancer exists
     # we track the last settings we updated in context
     load_balancer_name = load_balancer_config["name"]
-    load_balancer = _get_load_balancer(elb_client, load_balancer_name)
+    load_balancer = _get_load_balancer_by_name(elb_client, load_balancer_name)
     if not load_balancer:
         raise RuntimeError(
             "Load balancer with name {} doesn't exist.".format(
@@ -287,21 +283,23 @@ def _update_load_balancer(
         elb_client, load_balancer, load_balancer_context)
 
 
-def _delete_load_balancer_by_name(elb_client, load_balancer_name, context):
-    load_balancer = _get_load_balancer(elb_client, load_balancer_name)
+def _delete_load_balancer(
+        elb_client, load_balancer: Dict[str, Any], context):
+    load_balancer_name = load_balancer["name"]
+    load_balancer = _get_load_balancer_by_name(elb_client, load_balancer_name)
     if not load_balancer:
         return
     load_balancer_id = _get_load_balancer_id(load_balancer)
     _clear_load_balancer_context(context, load_balancer_name)
 
     # when the load balancer is deleted, all listener and its rules are deleted
-    _delete_load_balancer(elb_client, load_balancer_id)
+    _delete_load_balancer_by_id(elb_client, load_balancer_id)
 
     # delete load balancer targets
     _delete_load_balancer_target_groups(elb_client, load_balancer_name)
 
 
-def _delete_load_balancer(elb_client, load_balancer_id):
+def _delete_load_balancer_by_id(elb_client, load_balancer_id):
     elb_client.delete_load_balancer(
         LoadBalancerArn=load_balancer_id
     )
