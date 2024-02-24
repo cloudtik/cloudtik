@@ -51,7 +51,8 @@ from cloudtik.providers._private._azure.utils import _get_node_info, get_credent
     _construct_manage_server_identity_client, _construct_authorization_client, AZURE_DATABASE_ENDPOINT, \
     get_azure_database_config_for_update, _construct_rdbms_client, get_azure_database_config, \
     export_azure_cloud_database_config, _construct_network_client, _construct_private_dns_client, \
-    get_azure_database_engine, get_azure_database_default_port, get_azure_sdk_function
+    get_azure_database_engine, get_azure_database_default_port, get_azure_sdk_function, get_virtual_network_resource_id, \
+    get_network_resource_id
 from cloudtik.providers._private.utils import StorageTestingError
 
 AZURE_RESOURCE_NAME_PREFIX = "cloudtik"
@@ -2462,12 +2463,12 @@ def _create_managed_database_instance(
     cli_logger.print(
         "Creating database instance for the workspace: {}...".format(workspace_name))
     try:
-        delegated_subnet_resource_id = \
-            "/subscriptions/{}/resourceGroups/{}/providers/Microsoft.Network/virtualNetworks/{}/subnets/{}".format(
-                subscription_id, resource_group_name, virtual_network_name, subnet_name)
-        private_dns_zone_resource_id = \
-            "/subscriptions/{}/resourceGroups/{}/providers/Microsoft.Network/privateDnsZones/{}".format(
-                subscription_id, resource_group_name, private_dns_zone_name)
+        delegated_subnet_resource_id = get_virtual_network_resource_id(
+            subscription_id, resource_group_name, virtual_network_name) + "/subnets/{}".format(
+            subnet_name)
+        private_dns_zone_resource_id = get_network_resource_id(
+            subscription_id, resource_group_name,
+            "privateDnsZones", private_dns_zone_name)
 
         if engine == DATABASE_ENGINE_MYSQL:
             _create_mysql_instance(
@@ -3034,8 +3035,8 @@ def _create_vnet_peering_connection(
                 "allow_gateway_transit": False,
                 "use_remote_gateways": False,
                 "remote_virtual_network": {
-                    "id": "/subscriptions/{}/resourceGroups/{}/providers/Microsoft.Network/virtualNetworks/{}"
-                    .format(subscription_id, remote_resource_group_name, remote_virtual_network_name)
+                    "id": get_virtual_network_resource_id(
+                        subscription_id, remote_resource_group_name, remote_virtual_network_name)
                 }
             }
         ).result()
@@ -3097,20 +3098,23 @@ def _create_and_configure_subnets(
         subnet_parameters = {
             "address_prefix": cidr_block,
             "nat_gateway": {
-                "id": "/subscriptions/{}/resourceGroups/{}/providers/Microsoft.Network/natGateways/{}"
-                .format(subscription_id, resource_group_name, nat_gateway_name)
+                "id": get_network_resource_id(
+                    subscription_id, resource_group_name,
+                    "natGateways", nat_gateway_name)
             },
             "network_security_group": {
-                "id": "/subscriptions/{}/resourceGroups/{}/providers/Microsoft.Network/networkSecurityGroups/{}"
-                .format(subscription_id, resource_group_name, network_security_group_name)
+                "id": get_network_resource_id(
+                    subscription_id, resource_group_name,
+                    "networkSecurityGroups", network_security_group_name)
             }
         }
     else:
         subnet_parameters = {
             "address_prefix": cidr_block,
             "network_security_group": {
-                "id": "/subscriptions/{}/resourceGroups/{}/providers/Microsoft.Network/networkSecurityGroups/{}"
-                .format(subscription_id, resource_group_name, network_security_group_name)
+                "id": get_network_resource_id(
+                    subscription_id, resource_group_name,
+                    "networkSecurityGroups", network_security_group_name)
             }
         }
 
@@ -3152,8 +3156,9 @@ def _create_nat(
                 },
                 "public_ip_addresses": [
                     {
-                        "id": "/subscriptions/{}/resourceGroups/{}/providers/Microsoft.Network/publicIPAddresses/{}"
-                        .format(subscription_id, resource_group_name, public_ip_address_name)
+                        "id": get_network_resource_id(
+                            subscription_id, resource_group_name,
+                            "publicIPAddresses", public_ip_address_name)
                     }
                 ],
             }

@@ -344,3 +344,21 @@ def _get_node_info(node):
     node_info.update(node["tags"])
 
     return node_info
+
+
+def get_resource_group_id(subscription_id, resource_group_name):
+    return "/subscriptions/{}/resourceGroups/{}".format(
+        subscription_id, resource_group_name)
+
+
+def get_network_resource_id(
+        subscription_id, resource_group_name, resource_type, resource_id):
+    return get_resource_group_id(
+        subscription_id, resource_group_name) + "/providers/Microsoft.Network/{}/{}".format(
+        resource_type, resource_id)
+
+
+def get_virtual_network_resource_id(
+        subscription_id, resource_group_name, virtual_network_name):
+    return get_network_resource_id(
+        subscription_id, resource_group_name, "virtualNetworks", virtual_network_name)
