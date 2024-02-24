@@ -6,6 +6,7 @@ from cloudtik.core.load_balancer_provider import LOAD_BALANCER_TYPE_NETWORK, LOA
     LOAD_BALANCER_PROTOCOL_TCP, LOAD_BALANCER_PROTOCOL_UDP, LOAD_BALANCER_PROTOCOL_TLS, LOAD_BALANCER_PROTOCOL_HTTP, \
     LOAD_BALANCER_PROTOCOL_HTTPS
 from cloudtik.providers._private._azure.config import get_virtual_network_name, get_workspace_subnet_name
+from cloudtik.providers._private._azure.utils import get_virtual_network_resource_id, get_network_resource_id
 
 BACKEND_POOLS_HASH_CONTEXT = "backend_pools_hash"
 
@@ -290,7 +291,7 @@ def _get_load_balancer_frontend_ip_configurations(
 def _get_virtual_network_resource_id(provider_config, virtual_network):
     subscription_id = provider_config["subscription_id"]
     resource_group_name = provider_config["resource_group"]
-    return "/subscriptions/{}/resourceGroups/{}/providers/Microsoft.Network/virtualNetworks/{}".format(
+    return get_virtual_network_resource_id(
         subscription_id, resource_group_name, virtual_network)
 
 
@@ -386,8 +387,8 @@ def _get_load_balancer_load_balancing_rules(
 def _get_load_balancer_resource_id(provider_config, load_balancer_name):
     subscription_id = provider_config["subscription_id"]
     resource_group_name = provider_config["resource_group"]
-    return "/subscriptions/{}/resourceGroups/{}/providers/Microsoft.Network/loadBalancers/{}".format(
-        subscription_id, resource_group_name, load_balancer_name)
+    return get_network_resource_id(
+        subscription_id, resource_group_name, "loadBalancers", load_balancer_name)
 
 
 def _get_load_balancing_rule_name(frontend_ip_name, listener, service):
