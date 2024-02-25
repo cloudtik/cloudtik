@@ -18,8 +18,15 @@ def _import_aws_load_balancer(provider_config):
     return AWSLoadBalancerProvider
 
 
+def _import_azure_load_balancer(provider_config):
+    from cloudtik.providers._private._azure.load_balancer_provider import AzureLoadBalancerProvider
+    return AzureLoadBalancerProvider
+
+
+
 _LOAD_BALANCER_PROVIDERS = {
     "aws": _import_aws_load_balancer,
+    "azure": _import_azure_load_balancer,
     "external": _import_external  # Import an external module
 }
 
