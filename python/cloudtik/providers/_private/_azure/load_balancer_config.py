@@ -1093,15 +1093,29 @@ def _get_application_gateway_url_path_map(
     return url_path_map
 
 
+def _get_sorted_services(services):
+    def sort_by_route_and_name(service):
+        service_name = service["name"]
+        route_path = service["route_path"]
+        return [route_path, service_name]
+
+    # make a shallow copy
+    sorted_services = services.copy()
+    sorted_services.sort(
+        reverse=True, key=sort_by_route_and_name)
+    return sorted_services
+
+
 def _get_application_gateway_path_rules(
         provider_config, application_gateway_name, service_group):
     # Path rules are processed in order, based on how they're listed.
     # The least specific path (with wildcards) should be at the end of the list,
     # so that it will be processed last.
-    # TODO: We should sort the services by the route path in reverse order
+    # We should sort the services by the route path in reverse order
     path_rules = []
     services = _get_service_group_services(service_group)
-    for service in services:
+    sorted_services = _get_sorted_services(services)
+    for service in sorted_services:
         path_rule = _get_application_gateway_path_rule(
             provider_config, application_gateway_name, service)
         path_rules.append(path_rule)
