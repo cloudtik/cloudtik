@@ -167,22 +167,22 @@ def add_service(
         # match /abc/xyz and strip /abc and replace with /xyz or /service_path/xyz
         # match /abc exactly and strip /abc and replace with / or /service_path
         if strip_path:
-            path_regex = "^" + strip_path + "/(.*)"
+            path_regex_prefix = "^" + strip_path + "/(.*)"
         else:
-            path_regex = "^/(.*)"
+            path_regex_prefix = "^/(.*)"
         if service_path:
-            path_uri = service_path + "/$1"
+            path_uri_prefix = service_path + "/$1"
         else:
-            path_uri = "/$1"
+            path_uri_prefix = "/$1"
         if strip_path:
-            path_regex_empty = "^" + strip_path + "$"
+            path_regex_exact = "^" + strip_path + "$"
         else:
-            path_regex_empty = "^$"
+            path_regex_exact = "^/$"
         if service_path:
-            path_uri_empty = service_path
+            path_uri_exact = service_path
         else:
-            path_uri_empty = "/"
-        proxy_rewrite["regex_uri"] = [path_regex, path_uri, path_regex_empty, path_uri_empty]
+            path_uri_exact = "/"
+        proxy_rewrite["regex_uri"] = [path_regex_prefix, path_uri_prefix, path_regex_exact, path_uri_exact]
 
     service = rest_api_put_json(
         endpoint_url, body, auth=auth)
