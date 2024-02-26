@@ -1,9 +1,11 @@
 import logging
 import time
 
+import ipaddr
+
 from cloudtik.core._private.service_discovery.utils import deserialize_service_selector, \
     SERVICE_DISCOVERY_LABEL_PROTOCOL
-from cloudtik.core._private.util.core_utils import deserialize_config, get_json_object_hash
+from cloudtik.core._private.util.core_utils import deserialize_config, get_json_object_hash, _sort_service_address
 from cloudtik.runtime.common.active_standby_service import ActiveStandbyService
 from cloudtik.runtime.common.service_discovery.consul import \
     get_service_address_of_node, get_labels_of_service_nodes
@@ -106,6 +108,9 @@ class LoadBalancerController(ActiveStandbyService):
         for service_node in service_nodes:
             server_address = get_service_address_of_node(service_node)
             backend_servers.append(server_address)
+
+        # sort the address for stable hash
+        _sort_service_address(backend_servers, ip_address=True)
 
         labels = get_labels_of_service_nodes(service_nodes)
 

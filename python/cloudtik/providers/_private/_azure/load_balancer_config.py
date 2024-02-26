@@ -4,11 +4,12 @@ from cloudtik.core._private.util.core_utils import get_json_object_hash, get_con
 from cloudtik.core._private.utils import get_provider_config
 from cloudtik.core.load_balancer_provider import LOAD_BALANCER_TYPE_NETWORK, LOAD_BALANCER_SCHEMA_INTERNET_FACING, \
     LOAD_BALANCER_PROTOCOL_TCP, LOAD_BALANCER_PROTOCOL_UDP, LOAD_BALANCER_PROTOCOL_TLS, LOAD_BALANCER_PROTOCOL_HTTP, \
-    LOAD_BALANCER_PROTOCOL_HTTPS, LOAD_BALANCER_TYPE_APPLICATION
+    LOAD_BALANCER_PROTOCOL_HTTPS, LOAD_BALANCER_TYPE_APPLICATION, LOAD_BALANCER_SCHEMA_INTERNAL
 from cloudtik.providers._private._azure.config import get_virtual_network_name, get_workspace_subnet_name
 from cloudtik.providers._private._azure.utils import get_virtual_network_resource_id, get_network_resource_id
 
-BACKEND_POOLS_HASH_CONTEXT = "backend_pools_hash"
+LOAD_BALANCERS_HASH_CONTEXT = "load_balancers_hash"
+LOAD_BALANCERS_CONTEXT = "load_balancers"
 
 
 def _get_resources_context(parent_context, resource_context_key):
@@ -63,12 +64,39 @@ def _get_load_balancer_name(load_balancer):
     return load_balancer.name
 
 
-def _get_load_balancer_context(context, load_balancer_name):
-    return _get_resources_context(context, load_balancer_name)
+def _get_load_balancer_context(load_balancers_context, load_balancer_name):
+    return _get_resources_context(load_balancers_context, load_balancer_name)
 
 
-def _clear_load_balancer_context(context, load_balancer_name):
-    _clear_resource_last_hash(context, load_balancer_name)
+def _clear_load_balancer_context(load_balancers_context, load_balancer_name):
+    _clear_resource_last_hash(load_balancers_context, load_balancer_name)
+
+
+def _get_load_balancers_hash_context(context):
+    return _get_resources_context(
+        context, LOAD_BALANCERS_HASH_CONTEXT)
+
+
+def _update_load_balancer_last_hash(
+        load_balancers_hash_context, load_balancer):
+    load_balancer_name = load_balancer["name"]
+    _update_resource_last_hash(
+        load_balancers_hash_context, load_balancer_name, load_balancer)
+
+
+def _is_load_balancer_updated(load_balancers_hash_context, load_balancer):
+    load_balancer_name = load_balancer["name"]
+    return _is_resource_updated(
+        load_balancers_hash_context, load_balancer_name, load_balancer)
+
+
+def _clear_load_balancer_last_hash(load_balancers_hash_context, load_balancer_name):
+    _clear_resource_last_hash(load_balancers_hash_context, load_balancer_name)
+
+
+def _get_load_balancers_context(context):
+    return _get_resources_context(
+        context, LOAD_BALANCERS_CONTEXT)
 
 
 def _list_load_balancers(network_client, resource_group_name):
@@ -127,15 +155,30 @@ def _delete_load_balancer(
     load_balancer_name = load_balancer["name"]
     if load_balancer_type == LOAD_BALANCER_TYPE_NETWORK:
         _delete_network_load_balancer(
-            network_client, resource_group_name, load_balancer_name)
+            network_client, resource_group_name, load_balancer_name,
+            context)
     else:
         _delete_application_load_balancer(
             network_client, resource_group_name, load_balancer_name)
 
-    _clear_load_balancer_context(context, load_balancer_name)
-
 
 # Common shared functions
+
+
+def _get_load_balancer_protocol(protocol):
+    if protocol == LOAD_BALANCER_PROTOCOL_TCP:
+        return "Tcp"
+    elif protocol == LOAD_BALANCER_PROTOCOL_TLS:
+        return "Tls"
+    elif protocol == LOAD_BALANCER_PROTOCOL_UDP:
+        return "Udp"
+    elif protocol == LOAD_BALANCER_PROTOCOL_HTTP:
+        return "Http"
+    elif protocol == LOAD_BALANCER_PROTOCOL_HTTPS:
+        return "Https"
+    else:
+        raise ValueError(
+            "Invalid protocol: {}".format(protocol))
 
 
 def _get_frontend_ip_configurations(
@@ -184,6 +227,19 @@ def _get_private_front_ip_configuration(
     return frontend_ip_configuration
 
 
+def _get_load_balancer_schema(application_gateway):
+    frontend_ip_configurations = application_gateway.frontend_ip_configurations
+    if not frontend_ip_configurations:
+        # should not happen
+        return LOAD_BALANCER_SCHEMA_INTERNAL
+
+    for frontend_ip_configuration in frontend_ip_configurations:
+        if not frontend_ip_configuration.public_ip_address:
+            return LOAD_BALANCER_SCHEMA_INTERNET_FACING
+        else:
+            return LOAD_BALANCER_SCHEMA_INTERNAL
+
+
 ###############################
 # Azure Load Balancer functions
 ###############################
@@ -212,6 +268,9 @@ def _create_network_load_balancer(
         network_client, provider_config, workspace_name,
         load_balancer_config, context):
     load_balancer_name = load_balancer_config["name"]
+    load_balancers_hash_context = _get_load_balancers_hash_context(
+        context)
+    load_balancers_context = _get_load_balancers_context(context)
 
     load_balancer = _get_load_balancer_object(
         provider_config, workspace_name, load_balancer_config)
@@ -220,24 +279,60 @@ def _create_network_load_balancer(
     _create_or_update_load_balancer(
         network_client, resource_group_name,
         load_balancer_name, load_balancer)
+
+    # update the load balancer hash
+    load_balancer_properties = load_balancer["properties"]
+    backend_address_pools = load_balancer_properties["backendAddressPools"]
+    load_balancer_properties.pop("backendAddressPools", None)
+    _update_load_balancer_last_hash(
+        load_balancers_hash_context, load_balancer)
+
+    # update the backend pools hash
+    _clear_and_update_backend_pools_hash(
+        backend_address_pools, load_balancers_context, load_balancer_name)
 
 
 def _update_network_load_balancer(
         network_client, provider_config, workspace_name,
         load_balancer_config, context):
+    resource_group_name = provider_config["resource_group"]
     load_balancer_name = load_balancer_config["name"]
+    load_balancers_hash_context = _get_load_balancers_hash_context(
+        context)
+    load_balancers_context = _get_load_balancers_context(context)
 
     load_balancer = _get_load_balancer_object(
         provider_config, workspace_name, load_balancer_config)
 
-    resource_group_name = provider_config["resource_group"]
-    _create_or_update_load_balancer(
-        network_client, resource_group_name,
-        load_balancer_name, load_balancer)
+    load_balancer_properties = load_balancer["properties"]
+    backend_address_pools = load_balancer_properties["backendAddressPools"]
+    # check without backend address pools
+    load_balancer_properties.pop("backendAddressPools", None)
+
+    if _is_load_balancer_updated(
+            load_balancers_hash_context, load_balancer):
+        # put back the backend address pool when updating
+        load_balancer_properties["backendAddressPools"] = backend_address_pools
+        _create_or_update_load_balancer(
+            network_client, resource_group_name,
+            load_balancer_name, load_balancer)
+
+        load_balancer_properties.pop("backendAddressPools", None)
+        _update_load_balancer_last_hash(
+            load_balancers_hash_context, load_balancer)
+
+        _clear_and_update_backend_pools_hash(
+            backend_address_pools, load_balancers_context, load_balancer_name)
+    else:
+        # only backend pool addresses changed
+        _update_load_balancer_backend_address_pools(
+            network_client, resource_group_name,
+            backend_address_pools, load_balancers_context, load_balancer_name)
 
 
 def _delete_network_load_balancer(
-        network_client, resource_group_name, load_balancer_name):
+        network_client, resource_group_name, load_balancer_name,
+        context):
     load_balancer = _get_load_balancer_by_name(
         network_client, resource_group_name, load_balancer_name)
     if not load_balancer:
@@ -247,24 +342,16 @@ def _delete_network_load_balancer(
         load_balancer_name=load_balancer_name,
     ).result()
 
+    load_balancers_hash_context = _get_load_balancers_hash_context(
+        context)
+    load_balancers_context = _get_load_balancers_context(context)
+    _clear_load_balancer_last_hash(
+        load_balancers_hash_context, load_balancer_name)
+    _clear_load_balancer_context(
+        load_balancers_context, load_balancer_name)
+
 
 # Azure load balancer Helper functions
-
-def _get_load_balancer_protocol(protocol):
-    if protocol == LOAD_BALANCER_PROTOCOL_TCP:
-        return "Tcp"
-    elif protocol == LOAD_BALANCER_PROTOCOL_TLS:
-        return "Tls"
-    elif protocol == LOAD_BALANCER_PROTOCOL_UDP:
-        return "Udp"
-    elif protocol == LOAD_BALANCER_PROTOCOL_HTTP:
-        return "Http"
-    elif protocol == LOAD_BALANCER_PROTOCOL_HTTPS:
-        return "Https"
-    else:
-        raise ValueError(
-            "Invalid protocol: {}".format(protocol))
-
 
 def _list_workspace_load_balancers(network_client, resource_group_name):
     load_balancers = network_client.load_balancers.list(
@@ -291,8 +378,8 @@ def _get_load_balancer_info_of(load_balancer):
     load_balancer_id = _get_load_balancer_id(load_balancer)
     load_balancer_name = _get_load_balancer_name(load_balancer)
     load_balancer_type = LOAD_BALANCER_TYPE_NETWORK
-    # TODO: decide the schema
-    load_balancer_schema = LOAD_BALANCER_SCHEMA_INTERNET_FACING
+    # decide the schema
+    load_balancer_schema = _get_load_balancer_schema(load_balancer)
     load_balancer_info = {
         "id": load_balancer_id,
         "name": load_balancer_name,
@@ -526,6 +613,60 @@ def _get_load_balancer_services(load_balancer_config):
     return load_balancer_services
 
 
+def _update_backend_address_pool_last_hash(
+        backend_pools_hash_context, backend_address_pool):
+    backend_address_pool_name = backend_address_pool["name"]
+    _update_resource_last_hash(
+        backend_pools_hash_context, backend_address_pool_name,
+        backend_address_pool)
+
+
+def _is_backend_address_pool_updated(
+        backend_pools_hash_context, backend_address_pool):
+    backend_address_pool_name = backend_address_pool["name"]
+    return _is_resource_updated(
+        backend_pools_hash_context, backend_address_pool_name,
+        backend_address_pool)
+
+
+def _clear_and_update_backend_pools_hash(
+        backend_address_pools, load_balancers_context, load_balancer_name):
+    _clear_load_balancer_context(
+        load_balancers_context, load_balancer_name)
+    backend_pools_hash_context = _get_load_balancer_context(
+        load_balancers_context, load_balancer_name)
+    for backend_address_pool in backend_address_pools:
+        _update_backend_address_pool_last_hash(
+            backend_pools_hash_context, backend_address_pool)
+
+
+def _update_load_balancer_backend_address_pools(
+        network_client, resource_group_name,
+        backend_address_pools, load_balancers_context, load_balancer_name):
+    backend_pools_hash_context = _get_load_balancer_context(
+        load_balancers_context, load_balancer_name)
+    for backend_address_pool in backend_address_pools:
+        if _is_backend_address_pool_updated(
+                backend_pools_hash_context, backend_address_pool):
+            _create_or_update_backend_address_pool(
+                network_client, resource_group_name,
+                load_balancer_name, backend_address_pool)
+            _update_backend_address_pool_last_hash(
+                backend_pools_hash_context, backend_address_pool)
+
+
+def _create_or_update_backend_address_pool(
+        network_client, resource_group_name,
+        load_balancer_name, backend_address_pool):
+    backend_address_pool_name = backend_address_pool["name"]
+    response = network_client.load_balancer_backend_address_pools.begin_create_or_update(
+        resource_group_name=resource_group_name,
+        load_balancer_name=load_balancer_name,
+        backend_address_pool_name=backend_address_pool_name,
+        parameters=backend_address_pool).result()
+    return response
+
+
 #####################################
 # Azure Application Gateway functions
 #####################################
@@ -618,8 +759,8 @@ def _get_application_gateway_info_of(application_gateway):
     load_balancer_id = _get_load_balancer_id(application_gateway)
     load_balancer_name = _get_load_balancer_name(application_gateway)
     load_balancer_type = LOAD_BALANCER_TYPE_APPLICATION
-    # TODO: decide the schema
-    load_balancer_schema = LOAD_BALANCER_SCHEMA_INTERNET_FACING
+    # decide the schema
+    load_balancer_schema = _get_load_balancer_schema(application_gateway)
     load_balancer_info = {
         "id": load_balancer_id,
         "name": load_balancer_name,
@@ -1099,11 +1240,7 @@ def _get_sorted_services(services):
         route_path = service["route_path"]
         return [route_path, service_name]
 
-    # make a shallow copy
-    sorted_services = services.copy()
-    sorted_services.sort(
-        reverse=True, key=sort_by_route_and_name)
-    return sorted_services
+    return sorted(services, key=sort_by_route_and_name, reverse=True)
 
 
 def _get_application_gateway_path_rules(

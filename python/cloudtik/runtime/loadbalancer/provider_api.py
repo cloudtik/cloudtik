@@ -59,6 +59,13 @@ def bootstrap_provider_config(cluster_config, provider_config):
         cluster_config, provider_config)
 
 
+def _get_sorted_backend_services(backend_services):
+    def sort_by_service_name(backend_service):
+        return backend_service.service_name
+
+    return sorted(backend_services, key=sort_by_service_name)
+
+
 class LoadBalancerManager:
     """
     LoadBalancerManager takes control of managing each backend services cases
@@ -355,7 +362,10 @@ class LoadBalancerManager:
     def _add_load_balancer_service_groups(
             self, load_balancer, load_balancer_type, load_balancer_service_groups):
         service_groups = get_list_for_update(load_balancer, "service_groups")
-        for service_group_key, service_group_backend_services in load_balancer_service_groups.items():
+        # service groups should be sorted
+        sorted_service_groups = self._get_sorted_service_groups(
+            load_balancer_service_groups)
+        for service_group_key, service_group_backend_services in sorted_service_groups:
             # currently, each service group has one listener. logically, it can have more than one
             protocol = service_group_key[0]
             port = service_group_key[1]
@@ -373,7 +383,10 @@ class LoadBalancerManager:
     def _add_service_group_services(
             self, load_balancer_type, service_group, backend_services):
         services = get_list_for_update(service_group, "services")
-        for backend_service in backend_services:
+        # we shall sort the services by name to generate stable hash
+        sorted_backend_services = _get_sorted_backend_services(backend_services)
+        for backend_service in sorted_backend_services:
+            # The backend servers are already in sorted order
             backend_targets = [
                 {"ip": backend_server[0], "port": backend_server[1]}
                 for backend_server in backend_service.backend_servers
@@ -414,6 +427,14 @@ class LoadBalancerManager:
             if load_balancer_name not in load_balancers:
                 load_balancer_to_delete[load_balancer_name] = load_balancer
         return load_balancer_to_create, load_balancer_to_update, load_balancer_to_delete
+
+    @staticmethod
+    def _get_sorted_service_groups(service_groups):
+        def sort_by_service_group_key(service_group):
+            service_group_key, _ = service_group
+            return service_group_key
+
+        return sorted(service_groups.items(), key=sort_by_service_group_key)
 
     def _is_auto_created(self, load_balancer):
         tags = load_balancer.get("tags",  {})

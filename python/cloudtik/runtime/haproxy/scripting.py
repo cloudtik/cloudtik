@@ -156,10 +156,9 @@ def _get_sorted_api_gateway_backends(api_gateway_backends):
         route_path = backend_service.get_route_path()
         return [route_path, backend_name]
 
-    api_gateway_backends_list = list(api_gateway_backends.items())
-    api_gateway_backends_list.sort(
-        reverse=True, key=sort_by_route_and_name)
-    return api_gateway_backends_list
+    return sorted(
+        api_gateway_backends.items(),
+        key=sort_by_route_and_name, reverse=True)
 
 
 def update_api_gateway_configuration(

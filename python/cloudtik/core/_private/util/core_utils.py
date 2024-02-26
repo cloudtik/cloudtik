@@ -1319,3 +1319,15 @@ def batch_list(items, batch=1):
 def copy_config_key(from_config, to_config, key):
     if key in from_config:
         to_config[key] = from_config[key]
+
+
+def _sort_service_address(service_addresses, ip_address: bool = False):
+    def sort_by_ip_and_port(service_address):
+        service_ip, service_port = service_address
+        ip_addr = int(ipaddr.IPAddress(service_ip))
+        return ip_addr, service_port
+
+    if ip_address:
+        service_addresses.sort(key=sort_by_ip_and_port)
+    else:
+        service_addresses.sort()
