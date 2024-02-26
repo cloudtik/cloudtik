@@ -66,6 +66,14 @@ def _get_sorted_backend_services(backend_services):
     return sorted(backend_services, key=sort_by_service_name)
 
 
+def _get_sorted_service_groups(service_groups):
+    def sort_by_service_group_key(service_group):
+        service_group_key, _ = service_group
+        return service_group_key
+
+    return sorted(service_groups.items(), key=sort_by_service_group_key)
+
+
 class LoadBalancerManager:
     """
     LoadBalancerManager takes control of managing each backend services cases
@@ -363,7 +371,7 @@ class LoadBalancerManager:
             self, load_balancer, load_balancer_type, load_balancer_service_groups):
         service_groups = get_list_for_update(load_balancer, "service_groups")
         # service groups should be sorted
-        sorted_service_groups = self._get_sorted_service_groups(
+        sorted_service_groups = _get_sorted_service_groups(
             load_balancer_service_groups)
         for service_group_key, service_group_backend_services in sorted_service_groups:
             # currently, each service group has one listener. logically, it can have more than one
@@ -427,14 +435,6 @@ class LoadBalancerManager:
             if load_balancer_name not in load_balancers:
                 load_balancer_to_delete[load_balancer_name] = load_balancer
         return load_balancer_to_create, load_balancer_to_update, load_balancer_to_delete
-
-    @staticmethod
-    def _get_sorted_service_groups(service_groups):
-        def sort_by_service_group_key(service_group):
-            service_group_key, _ = service_group
-            return service_group_key
-
-        return sorted(service_groups.items(), key=sort_by_service_group_key)
 
     def _is_auto_created(self, load_balancer):
         tags = load_balancer.get("tags",  {})
