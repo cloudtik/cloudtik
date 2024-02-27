@@ -2,9 +2,9 @@ from typing import Dict, Any
 
 from cloudtik.core._private.util.core_utils import get_json_object_hash, get_config_for_update, copy_config_key
 from cloudtik.core._private.utils import get_provider_config
-from cloudtik.core.load_balancer_provider import LOAD_BALANCER_TYPE_NETWORK, LOAD_BALANCER_SCHEMA_INTERNET_FACING, \
+from cloudtik.core.load_balancer_provider import LOAD_BALANCER_TYPE_NETWORK, LOAD_BALANCER_SCHEME_INTERNET_FACING, \
     LOAD_BALANCER_PROTOCOL_TCP, LOAD_BALANCER_PROTOCOL_UDP, LOAD_BALANCER_PROTOCOL_TLS, LOAD_BALANCER_PROTOCOL_HTTP, \
-    LOAD_BALANCER_PROTOCOL_HTTPS, LOAD_BALANCER_TYPE_APPLICATION, LOAD_BALANCER_SCHEMA_INTERNAL
+    LOAD_BALANCER_PROTOCOL_HTTPS, LOAD_BALANCER_TYPE_APPLICATION, LOAD_BALANCER_SCHEME_INTERNAL
 from cloudtik.providers._private._azure.config import get_virtual_network_name, get_workspace_subnet_name
 from cloudtik.providers._private._azure.utils import get_virtual_network_resource_id, get_network_resource_id
 
@@ -186,8 +186,8 @@ def _get_frontend_ip_configurations(
     frontend_ip_configurations = []
     # for an internet facing load balancer, it should have public IP configuration,
     # while for internal load balancer, it should have private ip configuration
-    load_balancer_schema = load_balancer_config["schema"]
-    if load_balancer_schema == LOAD_BALANCER_SCHEMA_INTERNET_FACING:
+    load_balancer_scheme = load_balancer_config["scheme"]
+    if load_balancer_scheme == LOAD_BALANCER_SCHEME_INTERNET_FACING:
         # TODO: need to configure a public IP (passed from user)
         # Currently we support one IP, it can be more than one
         pass
@@ -227,17 +227,17 @@ def _get_private_front_ip_configuration(
     return frontend_ip_configuration
 
 
-def _get_load_balancer_schema(application_gateway):
+def _get_load_balancer_scheme(application_gateway):
     frontend_ip_configurations = application_gateway.frontend_ip_configurations
     if not frontend_ip_configurations:
         # should not happen
-        return LOAD_BALANCER_SCHEMA_INTERNAL
+        return LOAD_BALANCER_SCHEME_INTERNAL
 
     for frontend_ip_configuration in frontend_ip_configurations:
         if not frontend_ip_configuration.public_ip_address:
-            return LOAD_BALANCER_SCHEMA_INTERNET_FACING
+            return LOAD_BALANCER_SCHEME_INTERNET_FACING
         else:
-            return LOAD_BALANCER_SCHEMA_INTERNAL
+            return LOAD_BALANCER_SCHEME_INTERNAL
 
 
 ###############################
@@ -378,13 +378,13 @@ def _get_load_balancer_info_of(load_balancer):
     load_balancer_id = _get_load_balancer_id(load_balancer)
     load_balancer_name = _get_load_balancer_name(load_balancer)
     load_balancer_type = LOAD_BALANCER_TYPE_NETWORK
-    # decide the schema
-    load_balancer_schema = _get_load_balancer_schema(load_balancer)
+    # decide the scheme
+    load_balancer_scheme = _get_load_balancer_scheme(load_balancer)
     load_balancer_info = {
         "id": load_balancer_id,
         "name": load_balancer_name,
         "type": load_balancer_type,
-        "schema": load_balancer_schema,
+        "scheme": load_balancer_scheme,
     }
     tags = load_balancer.tags
     if tags:
@@ -759,13 +759,13 @@ def _get_application_gateway_info_of(application_gateway):
     load_balancer_id = _get_load_balancer_id(application_gateway)
     load_balancer_name = _get_load_balancer_name(application_gateway)
     load_balancer_type = LOAD_BALANCER_TYPE_APPLICATION
-    # decide the schema
-    load_balancer_schema = _get_load_balancer_schema(application_gateway)
+    # decide the scheme
+    load_balancer_scheme = _get_load_balancer_scheme(application_gateway)
     load_balancer_info = {
         "id": load_balancer_id,
         "name": load_balancer_name,
         "type": load_balancer_type,
-        "schema": load_balancer_schema,
+        "scheme": load_balancer_scheme,
     }
     tags = application_gateway.tags
     if tags:

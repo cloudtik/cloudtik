@@ -5,7 +5,7 @@ from cloudtik.core._private.load_balancer_provider_factory import _get_load_bala
 from cloudtik.core._private.util.core_utils import get_list_for_update, get_json_object_hash
 from cloudtik.core._private.utils import get_provider_config
 from cloudtik.core.load_balancer_provider import LOAD_BALANCER_PROTOCOL_TCP, LOAD_BALANCER_TYPE_NETWORK, \
-    LOAD_BALANCER_SCHEMA_INTERNET_FACING, LOAD_BALANCER_PROTOCOL_HTTP, LOAD_BALANCER_PROTOCOL_HTTPS, \
+    LOAD_BALANCER_SCHEME_INTERNET_FACING, LOAD_BALANCER_PROTOCOL_HTTP, LOAD_BALANCER_PROTOCOL_HTTPS, \
     LOAD_BALANCER_TYPE_APPLICATION
 from cloudtik.runtime.common.service_discovery.load_balancer import get_checked_port, ApplicationBackendService
 
@@ -151,8 +151,8 @@ class LoadBalancerManager:
             "name": load_balancer_name,
             "type": existing_load_balancer["type"],
         }
-        if "schema" in existing_load_balancer:
-            load_balancer["schema"] = existing_load_balancer["schema"]
+        if "scheme" in existing_load_balancer:
+            load_balancer["scheme"] = existing_load_balancer["scheme"]
         self._update_load_balancer(load_balancer_name, load_balancer)
 
     def _is_delete_auto_empty(self):
@@ -184,13 +184,13 @@ class LoadBalancerManager:
             service_group_key = next(iter(load_balancer_service_groups))
             load_balancer_protocol = service_group_key[0]
             load_balancer_type = self._get_load_balancer_type(load_balancer_protocol)
-            # TODO: decide the schema
-            load_balancer_schema = LOAD_BALANCER_SCHEMA_INTERNET_FACING
+            # TODO: decide the scheme
+            load_balancer_scheme = LOAD_BALANCER_SCHEME_INTERNET_FACING
 
             load_balancer = {
                 "name": load_balancer_name,
                 "type": load_balancer_type,
-                "schema": load_balancer_schema,
+                "scheme": load_balancer_scheme,
                 "tags": {
                     LOAD_BALANCER_AUTO_CREATED_TAG: "true"
                 }

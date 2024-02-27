@@ -136,12 +136,12 @@ def _get_load_balancer_info_of(load_balancer):
     load_balancer_id = _get_load_balancer_id(load_balancer)
     load_balancer_name = _get_load_balancer_name(load_balancer)
     load_balancer_type = load_balancer["Type"]
-    load_balancer_schema = load_balancer["Scheme"]
+    load_balancer_scheme = load_balancer["Scheme"]
     load_balancer_info = {
         "id": load_balancer_id,
         "name": load_balancer_name,
         "type": load_balancer_type,
-        "schema": load_balancer_schema,
+        "scheme": load_balancer_scheme,
     }
     tag_list = load_balancer.get("Tags")
     if tag_list:
@@ -212,12 +212,12 @@ def _create_load_balancer(
     # TODO: handle elastic ip
     load_balancer_name = load_balancer_config["name"]
     load_balancer_type = load_balancer_config["type"]
-    load_balancer_schema = load_balancer_config["schema"]
+    load_balancer_scheme = load_balancer_config["scheme"]
     response = elb_client.create_load_balancer(
         Name=load_balancer_name,
         Type=load_balancer_type,
         Tags=tag_pairs,
-        Scheme=load_balancer_schema,
+        Scheme=load_balancer_scheme,
         Subnets=subnet_ids,
         SecurityGroups=[security_group_id]
     )
