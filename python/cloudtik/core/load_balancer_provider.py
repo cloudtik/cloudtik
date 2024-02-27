@@ -18,9 +18,9 @@ LOAD_BALANCER_PROTOCOL_UDP = "UDP"
 LOAD_BALANCER_PROTOCOL_HTTP = "HTTP"
 LOAD_BALANCER_PROTOCOL_HTTPS = "HTTPS"
 
-# The schema of the load balancer
-LOAD_BALANCER_SCHEMA_INTERNET_FACING = "internet-facing"
-LOAD_BALANCER_SCHEMA_INTERNAL = "internal"
+# The scheme of the load balancer
+LOAD_BALANCER_SCHEME_INTERNET_FACING = "internet-facing"
+LOAD_BALANCER_SCHEME_INTERNAL = "internal"
 
 
 @DeveloperAPI
@@ -51,7 +51,7 @@ class LoadBalancerProvider:
             "load-balancer-1": {
                 "name": "load-balancer-1",
                 "type": "network",
-                "schema": "internet-facing",
+                "scheme": "internet-facing",
                 tags: {...}
             }
         }
@@ -63,7 +63,7 @@ class LoadBalancerProvider:
         {
             "name": "load-balancer-1",
             "type": "network",
-            "schema": "internet-facing",
+            "scheme": "internet-facing",
             tags: {...}
         }
         """
@@ -81,7 +81,7 @@ class LoadBalancerProvider:
         {
             "name": "load-balancer-1",
             "type": "network",
-            "schema": "internet-facing",
+            "scheme": "internet-facing",
             "service_groups": [
                 {
                     "listeners": [
