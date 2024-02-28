@@ -87,6 +87,32 @@ GCP_WORKSPACE_NUM_DELETION_STEPS = 6
 GCP_WORKSPACE_NUM_UPDATE_STEPS = 1
 GCP_WORKSPACE_TARGET_RESOURCES = 8
 
+"""
+Key Concepts to note for GCP:
+
+A VPC network is a global resource, but individual subnets are regional resources.
+
+Subnets regionally segment the network IP space into prefixes (subnets)
+and control which prefix an instance's internal IP address is allocated from.
+
+A virtual machine (VM) instance is located within a zone and can access
+global resources or resources within the same zone.
+
+The key allow a network interface to be allocated with an IP address and gain
+access to internet is accessConfigs in the networkInterfaces of VM instances:
+"accessConfigs": [{
+    "name": "External NAT",
+    "type": "ONE_TO_ONE_NAT",
+}]
+
+To allow private subnet have access to internet, a router with NAT for the subnet
+needs to be created.
+
+The interface with access config with Public IP address and External NAT doesn't
+need extra NAT router.
+
+"""
+
 
 ######################
 # Workspace functions
@@ -536,11 +562,10 @@ def _create_router(config, compute, vpc_id):
             project=project_id, region=region, body=router_body).execute()
         wait_for_compute_region_operation(project_id, region, operation, compute)
         cli_logger.print(
-            "Successfully created router for the private subnet: cloudtik-{}-subnet.",
-            config["workspace_name"])
+            "Successfully created router for the private subnet.")
     except Exception as e:
         cli_logger.error(
-            "Failed to create router. {}", str(e))
+            "Failed to create router for the private subnet. {}", str(e))
         raise e
 
 
@@ -551,7 +576,7 @@ def _create_nat_for_router(config, compute):
     nat_name = "cloudtik-{}-nat".format(workspace_name)
 
     cli_logger.print(
-        "Creating nat-gateway for private router: {}... ".format(nat_name))
+        "Creating NAT for private subnet router: {}... ".format(nat_name))
 
     router = "cloudtik-{}-private-router".format(workspace_name)
     subnet_name = "cloudtik-{}-private-subnet".format(workspace_name)
@@ -580,11 +605,11 @@ def _create_nat_for_router(config, compute):
             project=project_id, region=region, router=router, body=router_body).execute()
         wait_for_compute_region_operation(project_id, region, operation, compute)
         cli_logger.print(
-            "Successfully created nat-gateway for the private router: {}.",
+            "Successfully created NAT for the private subnet router: {}.",
             nat_name)
     except Exception as e:
         cli_logger.error(
-            "Failed to create nat-gateway. {}", str(e))
+            "Failed to create NAT for the private subnet router. {}", str(e))
         raise e
 
 
@@ -1759,7 +1784,7 @@ def _create_network_resources(config, current_step, total_steps):
         current_step += 1
         _create_router(config, compute, vpc_id)
 
-    # create nat-gateway for router
+    # create NAT for router
     with cli_logger.group(
             "Creating NAT for router",
             _numbered=("[]", current_step, total_steps)):

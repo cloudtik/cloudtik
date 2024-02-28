@@ -124,10 +124,54 @@ logging.getLogger("botocore").setLevel(logging.WARNING)
 
 _log_info = {}
 
+"""
+Key Concepts to note for AWS:
+
+VPC is region specific resource and cannot span multiple regions
+Each subnet must reside entirely within one Availability Zone and cannot span zones.
+
+Each subnet must be associated with a route table, which specifies the allowed routes
+for outbound traffic leaving the subnet. Every subnet that you create is automatically
+associated with the main route table for the VPC.
+
+Route Tables are VPC specific resources
+One Route Table can associate with multiple subnets. One Subnet can have only one Route Table.
+
+Internet Gateways are region specific resource. It must be associated with only one VPC.
+And VPC must be associated with only one IGW
+
+Subnets have an attribute that determines whether a network interface created in the subnet
+automatically receives a public IPv4 address. when you launch an instance into a subnet that
+has this attribute enabled, a public IP address is assigned to the primary network interface
+(eth0) that's created for the instance. A public IP address is mapped to the primary private
+IP address through network address translation (NAT). In API, it is done by:
+
+    client.modify_subnet_attribute(
+        SubnetId=subnet.id,
+        MapPublicIpOnLaunch={"Value": True})
+
+Or enabling or disabling during instance launch, which overrides the subnet's public IP
+addressing attribute:
+
+    NetworkInterfaces=[
+        {
+            'AssociatePublicIpAddress': True|False,
+        }
+    ]
+
+Public subnet – The subnet has a direct route to an internet gateway.
+Resources in a public subnet can access the public internet.
+
+Private subnet – The subnet does not have a direct route to an internet gateway.
+Resources in a private subnet require a NAT gateway to access the public internet.
+
+"""
+
 
 ######################
 # Workspace functions
 ######################
+
 
 def get_workspace_vpc_id(cloud_provider, workspace_name):
     ec2_client = _make_resource_client("ec2", cloud_provider)
@@ -2102,6 +2146,8 @@ def _create_or_update_route_tables(
             "Updating route table for public subnet",
             _numbered=("()", current_step, total_steps)):
         current_step += 1
+        # The public subnet uses and updates VPC default route table
+        # Which will be updated to have a route to internet gateway
         _update_route_table_for_public_subnet(
             config, ec2, ec2_client, vpc, subnets[AWS_VPC_PUBLIC_SUBNET_INDEX], internet_gateway)
 
@@ -2110,6 +2156,8 @@ def _create_or_update_route_tables(
             _numbered=("()", current_step, total_steps)):
         current_step += 1
         # create private route table for private subnets
+        # The private subnets will use a newly created route table
+        # which is updated to have a route to the NAT gateway later.
         private_subnets = subnets[1:]
         private_route_table = _create_route_table_for_private_subnets(
             config, ec2, vpc, private_subnets)
