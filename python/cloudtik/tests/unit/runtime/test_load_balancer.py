@@ -32,8 +32,8 @@ class MockLoadBalancerProvider(LoadBalancerProvider):
         """List the load balancer in the workspace"""
         return {}
 
-    def get(self, load_balancer_name: str, load_balancer_type: str):
-        """Check whether a load balancer exists"""
+    def get(self, load_balancer_name: str):
+        """Get the load balancer information given the load balancer name"""
         return None
 
     def create(self, load_balancer_config: Dict[str, Any]):

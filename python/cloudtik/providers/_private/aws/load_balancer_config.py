@@ -49,7 +49,7 @@ def _get_resources_context(parent_context, resource_context_key):
         parent_context, resource_context_key)
 
 
-def _update_resource_last_hash(resources_context, resource_key, resource):
+def _update_resource_hash(resources_context, resource_key, resource):
     resource_hash = get_json_object_hash(resource)
     resources_context[resource_key] = resource_hash
 
@@ -64,7 +64,7 @@ def _is_resource_updated(resources_context, resource_key, resource):
     return False
 
 
-def _clear_resource_last_hash(resources_context, resource_key):
+def _clear_resource_hash(resources_context, resource_key):
     if resource_key:
         resources_context.pop(resource_key, None)
 
@@ -187,7 +187,7 @@ def _get_load_balancer_context(context, load_balancer_name):
 
 
 def _clear_load_balancer_context(context, load_balancer_name):
-    _clear_resource_last_hash(context, load_balancer_name)
+    _clear_resource_hash(context, load_balancer_name)
 
 
 def _create_load_balancer(
@@ -346,14 +346,14 @@ def _create_or_update_load_balancer_target_groups(
         _create_target_group_for_service(
             elb_client, load_balancer_name,
             service, vpc_id)
-        _update_target_group_last_hash(target_groups_hash_context, service)
+        _update_target_group_hash(target_groups_hash_context, service)
 
     for target_group_to_update in target_groups_to_update:
         service, target_group = target_group_to_update
         if _is_target_group_updated(target_groups_hash_context, service):
             _update_target_group_for_service(
                 elb_client, target_group, service)
-            _update_target_group_last_hash(target_groups_hash_context, service)
+            _update_target_group_hash(target_groups_hash_context, service)
 
 
 def _get_target_groups_for_action(load_balancer_services, existing_target_groups):
@@ -401,7 +401,7 @@ def _delete_load_balancer_target_groups_unused(
     for target_group_id, target_group in target_groups_unused.items():
         _delete_target_group(elb_client, target_group_id)
         service_name = _get_target_group_service_name(target_group)
-        _clear_target_group_last_hash(target_groups_hash_context, service_name)
+        _clear_target_group_hash(target_groups_hash_context, service_name)
 
 
 def _delete_load_balancer_target_groups(
@@ -433,9 +433,9 @@ def _get_listener_context(listeners_context, listener_key):
         listeners_context, listener_key)
 
 
-def _update_listener_last_hash(listener_hashes_context, listener):
+def _update_listener_hash(listener_hashes_context, listener):
     listener_key = _get_listener_key(listener)
-    _update_resource_last_hash(
+    _update_resource_hash(
         listener_hashes_context, listener_key, listener)
 
 
@@ -445,8 +445,8 @@ def _is_listener_updated(listener_hashes_context, listener):
         listener_hashes_context, listener_key, listener)
 
 
-def _clear_listener_last_hash(listener_hashes_context, listener_key):
-    _clear_resource_last_hash(listener_hashes_context, listener_key)
+def _clear_listener_hash(listener_hashes_context, listener_key):
+    _clear_resource_hash(listener_hashes_context, listener_key)
 
 
 def _get_load_balancer_listeners(elb_client, load_balancer_id):
@@ -508,7 +508,7 @@ def _create_load_balancer_listeners(
             load_balancer_id, load_balancer_type,
             listener, listeners_context)
         load_balancer_listeners.append(load_balancer_listener)
-        _update_listener_last_hash(listeners_hash_context, listener)
+        _update_listener_hash(listeners_hash_context, listener)
 
     return load_balancer_listeners
 
@@ -636,7 +636,7 @@ def _update_load_balancer_listeners(
             elb_client, load_balancer_name,
             load_balancer_id, load_balancer_type,
             listener, listeners_context)
-        _update_listener_last_hash(listeners_hash_context, listener)
+        _update_listener_hash(listeners_hash_context, listener)
 
     for listener_to_update in listeners_to_update:
         listener, load_balancer_listener = listener_to_update
@@ -645,13 +645,13 @@ def _update_load_balancer_listeners(
                 elb_client, load_balancer_name, load_balancer_type,
                 listener, load_balancer_listener,
                 listeners_context)
-            _update_listener_last_hash(listeners_hash_context, listener)
+            _update_listener_hash(listeners_hash_context, listener)
 
     for load_balancer_listener in listeners_to_delete:
         _delete_load_balancer_listener(
             elb_client, load_balancer_listener)
         listener_key = _get_load_balancer_listener_key(load_balancer_listener)
-        _clear_listener_last_hash(listeners_hash_context, listener_key)
+        _clear_listener_hash(listeners_hash_context, listener_key)
 
 
 def _get_listeners_for_action(listeners, existing_listeners):
@@ -789,9 +789,9 @@ def _get_target_groups_hash_context(load_balancer_context):
         load_balancer_context, TARGET_GROUPS_HASH_CONTEXT)
 
 
-def _update_target_group_last_hash(target_groups_hash_context, service):
+def _update_target_group_hash(target_groups_hash_context, service):
     service_name = service["name"]
-    _update_resource_last_hash(
+    _update_resource_hash(
         target_groups_hash_context, service_name, service)
 
 
@@ -801,8 +801,8 @@ def _is_target_group_updated(target_groups_hash_context, service):
         target_groups_hash_context, service_name, service)
 
 
-def _clear_target_group_last_hash(target_groups_hash_context, service_name):
-    _clear_resource_last_hash(target_groups_hash_context, service_name)
+def _clear_target_group_hash(target_groups_hash_context, service_name):
+    _clear_resource_hash(target_groups_hash_context, service_name)
 
 
 def _get_used_target_groups(
@@ -1019,9 +1019,9 @@ def _get_rules_hash_context(listener_context):
         listener_context, LISTENER_RULES_HASH_CONTEXT)
 
 
-def _update_rule_last_hash(rules_hash_context, service):
+def _update_rule_hash(rules_hash_context, service):
     service_name = service["name"]
-    _update_resource_last_hash(
+    _update_resource_hash(
         rules_hash_context, service_name, service)
 
 
@@ -1031,8 +1031,8 @@ def _is_rule_updated(rules_hash_context, service):
         rules_hash_context, service_name, service)
 
 
-def _clear_rule_last_hash(rules_hash_context, service_name):
-    _clear_resource_last_hash(rules_hash_context, service_name)
+def _clear_rule_hash(rules_hash_context, service_name):
+    _clear_resource_hash(rules_hash_context, service_name)
 
 
 def _get_listener_services(listener):
@@ -1065,7 +1065,7 @@ def _create_listener_rules(
             elb_client, load_balancer_name,
             load_balancer_listener, service)
         listener_rules.append(listener_rule)
-        _update_rule_last_hash(rules_hash_context, service)
+        _update_rule_hash(rules_hash_context, service)
 
     return listener_rules
 
@@ -1108,7 +1108,7 @@ def _update_listener_rules(
         _create_listener_rule(
             elb_client, load_balancer_name,
             load_balancer_listener, rule_to_create)
-        _update_rule_last_hash(rules_hash_context, rule_to_create)
+        _update_rule_hash(rules_hash_context, rule_to_create)
 
     for rule_to_update in rules_to_update:
         # rule_to_update is a tuple of service, listener_rule
@@ -1117,14 +1117,14 @@ def _update_listener_rules(
             _update_listener_rule(
                 elb_client, load_balancer_name,
                 service, listener_rule)
-            _update_rule_last_hash(rules_hash_context, service)
+            _update_rule_hash(rules_hash_context, service)
 
     for rule_to_delete in rules_to_delete:
         # rule_to_delete is listener_rule
         _delete_listener_rule(
             elb_client, rule_to_delete)
         service_name = _get_listener_rule_service_name(rule_to_delete)
-        _clear_rule_last_hash(rules_hash_context, service_name)
+        _clear_rule_hash(rules_hash_context, service_name)
 
 
 def _create_listener_rule(

@@ -3467,7 +3467,7 @@ def delete_cluster_zone_disks(
     while next_page_token is not None:
         paged_disks = _get_cluster_zone_disks(
             compute, project_id, availability_zone,
-            filter_expr, next_page_token=None)
+            filter_expr, next_page_token=next_page_token)
 
         disks.extend(paged_disks.get("items", []))
         next_page_token = paged_disks.get("nextPageToken", None)
@@ -3541,7 +3541,7 @@ def delete_cluster_region_disks(
     while next_page_token is not None:
         paged_disks = _get_cluster_region_disks(
             compute, project_id, region,
-            filter_expr, next_page_token=None)
+            filter_expr, next_page_token=next_page_token)
 
         disks.extend(paged_disks.get("items", []))
         next_page_token = paged_disks.get("nextPageToken", None)

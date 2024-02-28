@@ -46,8 +46,8 @@ class AWSLoadBalancerProvider(LoadBalancerProvider):
         return _list_load_balancers(
             self.elb_client, self.workspace_name)
 
-    def get(self, load_balancer_name: str, load_balancer_type: str):
-        """Check whether a load balancer exists"""
+    def get(self, load_balancer_name: str):
+        """Get the load balancer information given the load balancer name"""
         return _get_load_balancer(
             self.elb_client, load_balancer_name)
 
