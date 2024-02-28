@@ -52,11 +52,11 @@ class AzureLoadBalancerProvider(LoadBalancerProvider):
         return _list_load_balancers(
             self.network_client, self.resource_group_name)
 
-    def get(self, load_balancer_name: str, load_balancer_type: str):
+    def get(self, load_balancer_name: str):
         """Check whether a load balancer exists"""
         return _get_load_balancer(
             self.network_client, self.resource_group_name,
-            load_balancer_name, load_balancer_type)
+            load_balancer_name)
 
     def create(self, load_balancer_config: Dict[str, Any]):
         """Create the load balancer in the workspace based on the config."""

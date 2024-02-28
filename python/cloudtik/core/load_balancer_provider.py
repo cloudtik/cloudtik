@@ -58,7 +58,7 @@ class LoadBalancerProvider:
         """
         pass
 
-    def get(self, load_balancer_name: str, load_balancer_type: str):
+    def get(self, load_balancer_name: str):
         """Return detailed information for a load balancer
         {
             "name": "load-balancer-1",
@@ -96,6 +96,7 @@ class LoadBalancerProvider:
                             "protocol": "HTTP",
                             "port": 8080,
                             "route_path": "/abc",
+                            "service_path": "/xyz",
                             "default": False,
                             "targets": [
                                 {

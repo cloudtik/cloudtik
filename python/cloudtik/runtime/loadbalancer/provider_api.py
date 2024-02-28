@@ -85,7 +85,7 @@ class LoadBalancerManager:
         self.workspace_name = workspace_name
         self.load_balancer_provider = _get_load_balancer_provider(
             self.provider_config, self.workspace_name)
-        self.load_balancer_last_hash = {}
+        self.load_balancer_hash = {}
         self.default_network_load_balancer = self._get_default_network_load_balancer_name()
         self.default_application_load_balancer = self._get_default_application_load_balancer_name()
 
@@ -114,7 +114,7 @@ class LoadBalancerManager:
             self, load_balancer_name, load_balancer):
         try:
             self.load_balancer_provider.create(load_balancer)
-            self._update_load_balancer_last_hash(
+            self._update_load_balancer_hash(
                 load_balancer_name, load_balancer)
         except Exception as e:
             logger.error(
@@ -127,7 +127,7 @@ class LoadBalancerManager:
                 load_balancer_name, load_balancer):
             try:
                 self.load_balancer_provider.update(load_balancer)
-                self._update_load_balancer_last_hash(
+                self._update_load_balancer_hash(
                     load_balancer_name, load_balancer)
             except Exception as e:
                 logger.error(
@@ -139,7 +139,7 @@ class LoadBalancerManager:
         try:
             self.load_balancer_provider.delete(
                 existing_load_balancer)
-            self._clear_load_balancer_last_hash(load_balancer_name)
+            self._clear_load_balancer_hash(load_balancer_name)
         except Exception as e:
             logger.error(
                 "Error happened when deleting load balancer {}: {}".format(
@@ -440,14 +440,14 @@ class LoadBalancerManager:
         tags = load_balancer.get("tags",  {})
         return tags.get(LOAD_BALANCER_AUTO_CREATED_TAG, False)
 
-    def _update_load_balancer_last_hash(
+    def _update_load_balancer_hash(
             self, load_balancer_name, load_balancer):
         load_balancer_hash = get_json_object_hash(load_balancer)
-        self.load_balancer_last_hash[load_balancer_name] = load_balancer_hash
+        self.load_balancer_hash[load_balancer_name] = load_balancer_hash
 
     def _is_load_balancer_updated(
             self, load_balancer_name, load_balancer):
-        old_load_balancer_hash = self.load_balancer_last_hash.get(load_balancer_name)
+        old_load_balancer_hash = self.load_balancer_hash.get(load_balancer_name)
         if not old_load_balancer_hash:
             return True
         load_balancer_hash = get_json_object_hash(load_balancer)
@@ -455,5 +455,5 @@ class LoadBalancerManager:
             return True
         return False
 
-    def _clear_load_balancer_last_hash(self, load_balancer_name):
-        self.load_balancer_last_hash.pop(load_balancer_name, None)
+    def _clear_load_balancer_hash(self, load_balancer_name):
+        self.load_balancer_hash.pop(load_balancer_name, None)
