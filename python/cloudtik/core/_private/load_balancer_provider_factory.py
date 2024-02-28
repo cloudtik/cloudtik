@@ -23,10 +23,15 @@ def _import_azure_load_balancer(provider_config):
     return AzureLoadBalancerProvider
 
 
+def _import_gcp_load_balancer(provider_config):
+    from cloudtik.providers._private.gcp.load_balancer_provider import GCPLoadBalancerProvider
+    return GCPLoadBalancerProvider
+
 
 _LOAD_BALANCER_PROVIDERS = {
     "aws": _import_aws_load_balancer,
     "azure": _import_azure_load_balancer,
+    "gcp": _import_gcp_load_balancer,
     "external": _import_external  # Import an external module
 }
 
