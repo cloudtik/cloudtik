@@ -565,7 +565,7 @@ def _create_router(config, compute, vpc_id):
             "Successfully created router for the private subnet.")
     except Exception as e:
         cli_logger.error(
-            "Failed to create router. {}", str(e))
+            "Failed to create router for the private subnet. {}", str(e))
         raise e
 
 
@@ -576,7 +576,7 @@ def _create_nat_for_router(config, compute):
     nat_name = "cloudtik-{}-nat".format(workspace_name)
 
     cli_logger.print(
-        "Creating NAT for private router: {}... ".format(nat_name))
+        "Creating NAT for private subnet router: {}... ".format(nat_name))
 
     router = "cloudtik-{}-private-router".format(workspace_name)
     subnet_name = "cloudtik-{}-private-subnet".format(workspace_name)
@@ -605,11 +605,11 @@ def _create_nat_for_router(config, compute):
             project=project_id, region=region, router=router, body=router_body).execute()
         wait_for_compute_region_operation(project_id, region, operation, compute)
         cli_logger.print(
-            "Successfully created NAT for the private router: {}.",
+            "Successfully created NAT for the private subnet router: {}.",
             nat_name)
     except Exception as e:
         cli_logger.error(
-            "Failed to create NAT. {}", str(e))
+            "Failed to create NAT for the private subnet router. {}", str(e))
         raise e
 
 
