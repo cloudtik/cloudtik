@@ -53,7 +53,7 @@ class AzureLoadBalancerProvider(LoadBalancerProvider):
             self.network_client, self.resource_group_name)
 
     def get(self, load_balancer_name: str):
-        """Check whether a load balancer exists"""
+        """Get the load balancer information given the load balancer name"""
         return _get_load_balancer(
             self.network_client, self.resource_group_name,
             load_balancer_name)
