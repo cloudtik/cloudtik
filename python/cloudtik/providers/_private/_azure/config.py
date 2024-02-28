@@ -90,6 +90,46 @@ AZURE_MANAGED_STORAGE_ACCOUNT = "azure.managed.storage.account"
 
 logger = logging.getLogger(__name__)
 
+"""
+Key Concepts to note for Azure:
+
+All Azure resources are created in an Azure region and subscription.
+A virtual network is scoped to a single region/location.
+Multiple virtual networks from different regions can be connected
+together using Virtual Network Peering.
+
+Subnets enable you to segment the virtual network into one or more
+subnetworks and allocate a portion of the virtual network's address
+space to each subnet. You can then deploy Azure resources in a specific subnet.
+
+Azure subnets by default span all availability zones.
+Azure routes network traffic between all subnets in a virtual network, by default.
+
+In our own design, the private subnet need to connect with NAT gateway to gain
+access to internet. While the public subnet don't need to connect with NAT gateway.
+
+For whether the instance created to have a public IP, we control it in VM template
+by a parameter: provisionPublicIp. With provisionPublicIp parameter set to True,
+it will create a network interface in the subnet with private address and with
+a public IP address resource:
+associated:
+
+    "subnet": {
+        "id": "[variables('subnetRef')]"
+    },
+    "privateIPAllocationMethod": "Dynamic",
+    "publicIpAddress": {
+        "id": "[resourceId('Microsoft.Network/publicIPAddresses', concat(variables('publicIPAddressName'), copyIndex()))]"
+    }
+
+Otherwise, it will create only the network interface with the private IP address:
+
+    "subnet": {
+        "id": "[variables('subnetRef')]"
+    },
+    "privateIPAllocationMethod": "Dynamic"
+
+"""
 
 ######################
 # Workspace functions
@@ -3264,6 +3304,7 @@ def _create_network_resources(
             "Creating public subnet",
             _numbered=("[]", current_step, total_steps)):
         current_step += 1
+        # The public subnet don't need to connect with NAT gateway
         _create_and_configure_subnets(
             config, network_client, resource_group_name,
             virtual_network_name, is_private=False)
@@ -3290,6 +3331,7 @@ def _create_network_resources(
             "Creating private subnet",
             _numbered=("[]", current_step, total_steps)):
         current_step += 1
+        # The private subnet needs to point to the NAT gateway
         _create_and_configure_subnets(
             config, network_client, resource_group_name,
             virtual_network_name, is_private=True)

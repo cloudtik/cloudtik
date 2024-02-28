@@ -87,6 +87,26 @@ GCP_WORKSPACE_NUM_DELETION_STEPS = 6
 GCP_WORKSPACE_NUM_UPDATE_STEPS = 1
 GCP_WORKSPACE_TARGET_RESOURCES = 8
 
+"""
+Key Concepts to note for GCP:
+
+A VPC network is a global resource, but individual subnets are regional resources.
+
+Subnets regionally segment the network IP space into prefixes (subnets)
+and control which prefix an instance's internal IP address is allocated from.
+
+A virtual machine (VM) instance is located within a zone and can access
+global resources or resources within the same zone.
+
+The key allow a network interface to be allocated with an IP address and gain
+access to internet is accessConfigs in the networkInterfaces of VM instances:
+"accessConfigs": [{
+    "name": "External NAT",
+    "type": "ONE_TO_ONE_NAT",
+}]
+
+"""
+
 
 ######################
 # Workspace functions
