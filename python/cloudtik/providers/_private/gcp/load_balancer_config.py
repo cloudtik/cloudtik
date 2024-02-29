@@ -4,9 +4,9 @@ from cloudtik.core._private.util.core_utils import get_json_object_hash, get_con
 from cloudtik.core._private.utils import get_provider_config
 from cloudtik.core.load_balancer_provider import LOAD_BALANCER_TYPE_NETWORK, LOAD_BALANCER_SCHEME_INTERNET_FACING, \
     LOAD_BALANCER_PROTOCOL_TCP, LOAD_BALANCER_PROTOCOL_TLS, LOAD_BALANCER_PROTOCOL_HTTP, \
-    LOAD_BALANCER_PROTOCOL_HTTPS, LOAD_BALANCER_TYPE_APPLICATION
+    LOAD_BALANCER_PROTOCOL_HTTPS, LOAD_BALANCER_TYPE_APPLICATION, LOAD_BALANCER_SCHEME_INTERNAL
 from cloudtik.core.tags import CLOUDTIK_TAG_WORKSPACE_NAME
-from cloudtik.providers._private.gcp.config import get_gcp_vpc_name
+from cloudtik.providers._private.gcp.config import get_gcp_vpc_name, get_workspace_subnet_name
 from cloudtik.providers._private.gcp.utils import wait_for_compute_region_operation, \
     wait_for_compute_global_operation, wait_for_compute_zone_operation
 
@@ -18,6 +18,85 @@ CLOUDTIK_TAG_LOAD_BALANCER_PROTOCOL = "load-balancer-protocol"
 LOAD_BALANCERS_HASH_CONTEXT = "load_balancers_hash"
 LOAD_BALANCERS_CONTEXT = "load_balancers"
 BACKEND_SERVICES_HASH_CONTEXT = "backend_services_hash"
+
+"""
+
+Key Concepts to note for GCP load balancers:
+
+Proxy Network Load Balancers:
+
+A global external proxy Network Load Balancer is implemented on
+globally distributed GFEs and supports advanced traffic management
+capabilities.
+
+A regional external proxy Network Load Balancer, Regional internal
+proxy Network Load Balancer, Cross-region internal proxy Network
+Load Balancer are implemented on the open source Envoy proxy software
+stack.
+
+Application load balancers:
+- Global external Application Load Balancer. This is a global
+load balancer that is implemented as a managed service on Google
+Front Ends (GFEs).
+- Regional external Application Load Balancer, Regional internal
+Application Load Balancer, Cross-region internal Application Load
+Balancer, these are load balancer that is implemented as a managed
+service on the open-source Envoy proxy.
+
+Example components:
+- For regional external Application Load Balancers only, a proxy-only subnet
+is used to send connections from the load balancer to the backends.
+- An external forwarding rule specifies an external IP address, port,
+and target HTTP(S) proxy.
+- A target HTTP(S) proxy receives a request from the client.
+- The HTTP(S) proxy uses a URL map to make a routing determination.
+- A backend service distributes requests to healthy backends.
+- One or more backends must be connected to the backend service.
+- A health check periodically monitors the readiness of your backends.
+- Firewall rules for your backends to accept health check probes.
+Regional external Application Load Balancers require an additional
+firewall rule to allow traffic from the proxy-only subnet to reach
+the backends.
+
+Proxy-only subnets are only required for all regional and cross-regional
+Envoy-based load balancers.
+The proxy-only subnet provides a set of IP addresses that Google uses
+to run Envoy proxies on your behalf. You must create one proxy-only subnet
+in each region of a VPC network where you use regional external Application
+Load Balancers. The --purpose flag for this proxy-only subnet is set to
+REGIONAL_MANAGED_PROXY.
+
+You must create one proxy-only subnet in each region of a VPC network
+where you use load balancers. Each network running these load balancers
+need a proxy-only subnet and it will be used automatically.
+
+Since VM are zonal resources, Instance groups are zonal resources.
+
+Firewall rules:
+
+For all the load balancers:
+- Configure the firewall to allow traffic from the load balancer and
+health checker to the instances. For example:
+    gcloud compute firewall-rules create fw-allow-health-check \
+        --network=default \
+        --action=allow \
+        --direction=ingress \
+        --source-ranges=130.211.0.0/22,35.191.0.0/16 \
+        --target-tags=allow-health-check \
+        --rules=tcp:80
+
+For load balancers that needs proxy-subnet (Envoy based proxy):
+- An ingress rule that allows connections from the proxy-only subnet to
+reach the backends. Replace source-ranges to the actual proxy-only subnet CIDR.
+    gcloud compute firewall-rules create fw-allow-proxy-only-subnet \
+        --network=lb-network \
+        --action=allow \
+        --direction=ingress \
+        --source-ranges=10.129.0.0/23 \
+        --target-tags=allow-proxy-only-subnet \
+        --rules=tcp:80
+
+"""
 
 
 def _bootstrap_load_balancer_config(
@@ -45,10 +124,16 @@ def _list_load_balancers(
     # we first list all region or global forward rules so that to get a list of
     # load balancer names (region or global)
     project_id = provider_config["project_id"]
-    # TODO: handle global load balancers
-    region = provider_config["region"]
+
+    # list global forward rules
+    region = None
     forward_rules = _list_workspace_forward_rules(
         compute, project_id, region, workspace_name)
+    # list regional forward rules
+    region = provider_config["region"]
+    regional_forward_rules = _list_workspace_forward_rules(
+        compute, project_id, region, workspace_name)
+    forward_rules += regional_forward_rules
 
     load_balancer_map = {}
     for forward_rule in forward_rules:
@@ -73,10 +158,14 @@ def _create_load_balancer(
         compute, provider_config, workspace_name,
         load_balancer_config, context):
     project_id = provider_config["project_id"]
-    region = provider_config["region"]
+    region = _get_load_balancer_scope_type(provider_config)
     load_balancer_name = _get_load_balancer_name(load_balancer_config)
     vpc_name = get_gcp_vpc_name(
         provider_config, workspace_name)
+
+    # TODO: check whether we need proxy-only subnet and create if needed
+    #  also need firewall rules for health-check and backend connection.
+    #  best to setup these in workspace creation.
 
     load_balancer = _get_load_balancer_object(load_balancer_config)
 
@@ -88,12 +177,12 @@ def _create_load_balancer(
 
     _create_services(
         compute, provider_config, project_id, region, vpc_name,
-        load_balancer, load_balancer_context)
+        workspace_name, load_balancer, load_balancer_context)
 
     load_balancer_proxy_rules = _get_load_balancer_proxy_rules(
         load_balancer)
     _create_proxy_rules(
-        compute, provider_config, project_id, region,
+        compute, provider_config, project_id, region, vpc_name,
         workspace_name, load_balancer)
     _update_load_balancer_hash(
         load_balancers_hash_context, load_balancer_proxy_rules)
@@ -101,9 +190,10 @@ def _create_load_balancer(
 
 def _update_load_balancer(
         compute, provider_config, workspace_name,
-        load_balancer_config, context):
+        load_balancer, load_balancer_config, context):
     project_id = provider_config["project_id"]
-    region = provider_config["region"]
+    # If region is None, it is a global load balancer
+    region = load_balancer.get("region")
     load_balancer_name = _get_load_balancer_name(load_balancer_config)
     vpc_name = get_gcp_vpc_name(
         provider_config, workspace_name)
@@ -119,14 +209,14 @@ def _update_load_balancer(
 
     _update_services(
         compute, provider_config, project_id, region, vpc_name,
-        load_balancer, load_balancer_context)
+        workspace_name, load_balancer, load_balancer_context)
 
     load_balancer_proxy_rules = _get_load_balancer_proxy_rules(
         load_balancer)
     if _is_load_balancer_updated(
             load_balancers_hash_context, load_balancer_proxy_rules):
         _update_proxy_rules(
-            compute, provider_config, project_id, region,
+            compute, provider_config, project_id, region, vpc_name,
             workspace_name, load_balancer)
         _update_load_balancer_hash(
             load_balancers_hash_context, load_balancer_proxy_rules)
@@ -141,7 +231,8 @@ def _delete_load_balancer(
         compute, provider_config, workspace_name,
         load_balancer: Dict[str, Any], context):
     project_id = provider_config["project_id"]
-    region = provider_config["region"]
+    # If region is None, it is a global load balancer
+    region = load_balancer.get("region")
     load_balancer_name = load_balancer["name"]
     load_balancers_hash_context = _get_load_balancers_hash_context(
         context)
@@ -204,6 +295,13 @@ def _get_load_balancer_config_name(load_balancer_config):
 
 def _get_load_balancer_config_type(load_balancer_config):
     return load_balancer_config["type"]
+
+
+def _get_load_balancer_scope_type(provider_config):
+    if provider_config.get("prefer_global", True):
+        return None
+    else:
+        return provider_config["region"]
 
 
 def _get_load_balancer_context(load_balancers_context, load_balancer_name):
@@ -438,27 +536,6 @@ def _execute_and_wait(compute, project_id, func, region=None, zone=None):
             project_id, operation, compute)
 
 
-def _list_workspace_load_balancers(compute, resource_group_name):
-    load_balancers = compute.load_balancers.list(
-        resource_group_name=resource_group_name,
-    )
-    if load_balancers is None:
-        return []
-    return list(load_balancers)
-
-
-def _get_load_balancer_by_name(
-        compute, resource_group_name, load_balancer_name):
-    try:
-        response = compute.load_balancers.get(
-            resource_group_name=resource_group_name,
-            load_balancer_name=load_balancer_name,
-        )
-        return response
-    except Exception:
-        return None
-
-
 def _get_load_balancer_info_of(forward_rule):
     labels = forward_rule.get("labels")
     if not labels:
@@ -481,6 +558,11 @@ def _get_load_balancer_info_of(forward_rule):
         "protocol": load_balancer_protocol,
         "tags": labels
     }
+
+    region = forward_rule.get("region")
+    if region:
+        load_balancer_info["region"] = region
+
     return load_balancer_info
 
 
@@ -510,21 +592,21 @@ def _list_load_balancer_backend_services(
 
 def _create_services(
         compute, provider_config, project_id, region, vpc_name,
-        load_balancer, load_balancer_context):
+        workspace_name, load_balancer, load_balancer_context):
     backend_services_hash_context = _get_backend_services_hash_context(
         load_balancer_context)
     services = _get_load_balancer_backend_services(load_balancer)
     for service in services:
         _create_service(
             compute, provider_config, project_id, region, vpc_name,
-            load_balancer, service)
+            workspace_name, load_balancer, service)
         _update_backend_service_hash(
             backend_services_hash_context, service)
 
 
 def _update_services(
         compute, provider_config, project_id, region, vpc_name,
-        load_balancer, load_balancer_context):
+        workspace_name, load_balancer, load_balancer_context):
     load_balancer_name = _get_load_balancer_config_name(load_balancer)
     services = _get_load_balancer_backend_services(load_balancer)
     existing_services = _list_load_balancer_backend_services(
@@ -539,7 +621,7 @@ def _update_services(
     for service in backend_services_to_create:
         _create_service(
             compute, provider_config, project_id, region, vpc_name,
-            load_balancer, service)
+            workspace_name, load_balancer, service)
         _update_backend_service_hash(
             backend_services_hash_context, service)
 
@@ -601,8 +683,8 @@ def _delete_services_unused(
 
 
 def _create_proxy_rules(
-        compute, provider_config, project_id, region,
-        load_balancer, workspace_name):
+        compute, provider_config, project_id, region, vpc_name,
+        workspace_name, load_balancer):
     load_balancer_type = load_balancer["type"]
     if load_balancer_type == LOAD_BALANCER_TYPE_APPLICATION:
         _create_url_map(
@@ -614,12 +696,12 @@ def _create_proxy_rules(
         load_balancer)
 
     _create_forwarding_rules(
-        compute, provider_config, project_id, region,
+        compute, provider_config, project_id, region, vpc_name,
         workspace_name, load_balancer)
 
 
 def _update_proxy_rules(
-        compute, provider_config, project_id, region,
+        compute, provider_config, project_id, region, vpc_name,
         workspace_name, load_balancer):
     load_balancer_type = load_balancer["type"]
     if load_balancer_type == LOAD_BALANCER_TYPE_APPLICATION:
@@ -635,7 +717,7 @@ def _update_proxy_rules(
 
     # if only there are listener changes
     _update_forwarding_rules(
-        compute, provider_config, project_id, region,
+        compute, provider_config, project_id, region, vpc_name,
         workspace_name, load_balancer)
 
 
@@ -683,14 +765,14 @@ def _get_backend_services_for_action(
 
 def _create_service(
         compute, provider_config, project_id, region, vpc_name,
-        load_balancer, service):
+        workspace_name, load_balancer, service):
     _create_health_check(
         compute, provider_config, project_id, region,
         load_balancer, service)
 
     _create_network_endpoint_group(
-        compute, provider_config, project_id, region, vpc_name,
-        load_balancer, service)
+        compute, provider_config, project_id, vpc_name,
+        workspace_name, load_balancer, service)
 
     _add_network_endpoint_group_endpoints(
         compute, provider_config, project_id,
@@ -746,15 +828,16 @@ def _get_health_check_of_service(load_balancer, service):
     # generate health check body
     # type TCP, SSL, HTTP, HTTPS
     service_protocol = service["protocol"]
-    service_port = service["port"]
     protocol = _get_load_balancer_protocol(service_protocol)
     health_check = {
         "name": name,
         "type": protocol
     }
+
     health_check_config = {
-        "port": service_port,
-        "portSpecification": "USE_FIXED_PORT"
+        # "port": service_port,
+        # "portSpecification": "USE_FIXED_PORT"
+        "portSpecification": "USE_SERVING_PORT"
     }
     if service_protocol == LOAD_BALANCER_PROTOCOL_TCP:
         health_check["tcpHealthCheck"] = health_check_config
@@ -808,6 +891,10 @@ def _get_network_url(project_id, network_name):
     return f"projects/{project_id}/global/networks/{network_name}"
 
 
+def _get_subnetwork_url(project_id, region, subnet_name):
+    return f"projects/{project_id}/regions/{region}/subnetworks/{subnet_name}"
+
+
 def _get_network_endpoint_group_url(project_id, zone, network_endpoint_group_name):
     return f"projects/{project_id}/zones/{zone}/networkEndpointGroups/{network_endpoint_group_name}"
 
@@ -836,31 +923,40 @@ def _get_compute_full_qualified_url(relative_url):
 
 
 def _get_network_endpoint_group_of_service(
-        project_id, vpc_name,
-        load_balancer, service):
+        project_id, region, vpc_name,
+        workspace_name, load_balancer, service):
     load_balancer_name = _get_load_balancer_config_name(load_balancer)
     name = _get_network_endpoint_group_name(
         load_balancer_name, service)
     network = _get_network_url(project_id, vpc_name)
+    # Zonal NEGs are zonal resources that represent collections of either IP addresses
+    # or IP address and port combinations for Google Cloud resources within a single subnet.
+    subnet_name = get_workspace_subnet_name(workspace_name)
+    subnetwork = _get_subnetwork_url(project_id, region, subnet_name)
     network_endpoint_group = {
         "name": name,
         "networkEndpointType": "GCE_VM_IP_PORT",
         # The URL of the network to which all network endpoints in the NEG belong
         "network": network,
         "defaultPort": service["port"],
-        # TODO: Optional URL of the subnetwork to which all network endpoints in the NEG belong.
-        # "subnetwork": "A String",
+        # Optional URL of the subnetwork to which all network endpoints in the NEG belong.
+        "subnetwork": subnetwork,
     }
     return network_endpoint_group
 
 
 def _create_network_endpoint_group(
-        compute, provider_config, project_id, region, vpc_name,
-        load_balancer, service):
+        compute, provider_config, project_id, vpc_name,
+        workspace_name, load_balancer, service):
+    # Should not use the region parameter which is a flag to indicate
+    # a global or a regional load balancer.
+    # while here we always create a zonal NEG which is bind to a zone of
+    # a region.
+    region = provider_config["region"]
     zone = provider_config["availability_zone"]
     network_endpoint_group = _get_network_endpoint_group_of_service(
-        project_id, vpc_name,
-        load_balancer, service)
+        project_id, region, vpc_name,
+        workspace_name, load_balancer, service)
 
     def func():
         # Zonal NEG
@@ -1310,17 +1406,17 @@ def _delete_target_proxy(
 
 
 def _create_forwarding_rules(
-        compute, provider_config, project_id, region,
+        compute, provider_config, project_id, region, vpc_name,
         workspace_name, load_balancer):
     listeners = _get_load_balancer_listeners(load_balancer)
     for listener in listeners:
         _create_forwarding_rule(
-            compute, provider_config, project_id, region,
+            compute, provider_config, project_id, region, vpc_name,
             workspace_name, load_balancer, listener)
 
 
 def _update_forwarding_rules(
-        compute, provider_config, project_id, region,
+        compute, provider_config, project_id, region, vpc_name,
         workspace_name, load_balancer):
     listeners = _get_load_balancer_listeners(load_balancer)
     existing_forward_rules = _list_load_balancer_forward_rules(
@@ -1333,7 +1429,7 @@ def _update_forwarding_rules(
 
     for listener in listeners_to_create:
         _create_forwarding_rule(
-            compute, provider_config, project_id, region,
+            compute, provider_config, project_id, region, vpc_name,
             workspace_name, load_balancer, listener)
 
     # currently we don't update a forward rule
@@ -1360,7 +1456,9 @@ def _get_listener_key(listener):
 
 def _get_forward_rule_listener_key(forward_rule):
     # The port range must be a single port
-    return int(forward_rule["portRange"])
+    port_range = forward_rule["portRange"]
+    port_range_values = port_range.split("-")
+    return int(port_range_values[0])
 
 
 def _get_listeners_for_action(listeners, existing_forward_rules):
@@ -1424,7 +1522,7 @@ def _get_forward_rule_name(load_balancer_name, listener):
 
 
 def _get_forward_rule(
-        project_id, region,
+        provider_config, project_id, region, vpc_name,
         workspace_name, load_balancer, listener):
     load_balancer_name = _get_load_balancer_config_name(load_balancer)
     load_balancer_type = _get_load_balancer_config_type(load_balancer)
@@ -1449,6 +1547,13 @@ def _get_forward_rule(
     if tags:
         labels.update(tags)
 
+    # The range with the same value for single port
+    port_range = "{}-{}".format(listener_port, listener_port)
+
+    network_tier = provider_config.get("network_tier")
+    if not network_tier:
+        network_tier = "PREMIUM"
+
     # TODO: handle static IP address assignment
     forward_rule = {
         "name": name,
@@ -1459,32 +1564,49 @@ def _get_forward_rule(
         # You can optionally specify an IP address that references an existing static (reserved) IP address resource.
         # When omitted, Google Cloud assigns an ephemeral IP address.
         # "IPAddress": "A String",
-        "portRange": listener_port,
+        # port range format, for example: "80-80"
+        "portRange": port_range,
         "loadBalancingScheme": scheme,
         # The URL of the target resource to receive the matched traffic.
         # For regional forwarding rules, this target must be in the same region as the forwarding rule.
         # For global forwarding rules, this target must be a global load balancing resource.
         "target": target_proxy_url,
         "labels": labels,
+        # This signifies the networking tier used for configuring this load balancer
+        # and can only take the following values: PREMIUM, STANDARD.
+        # For regional ForwardingRule, the valid values are PREMIUM and STANDARD.
+        # For GlobalForwardingRule, the valid value is PREMIUM.
+        # If this field is not specified, it is assumed to be PREMIUM.
+        # If IPAddress is specified, this value must be equal to the networkTier of the Address.
+        "networkTier": network_tier,
     }
 
-    # TODO: handle networking
     # This field is not used for global external load balancing.
     # If the subnetwork is specified, the network of the subnetwork will be used.
     # If neither subnetwork nor this field is specified, the default network will be used.
-    # "network": "A String",
+    if (load_balancer_scheme != LOAD_BALANCER_SCHEME_INTERNET_FACING
+            or region):
+        network = _get_network_url(project_id, vpc_name)
+        forward_rule["network"] = network
 
-    # This field identifies the subnetwork that the load balanced IP should belong to for this forwarding rule,
-    # used with internal load balancers and external passthrough Network Load Balancers with IPv6.
-    # "subnetwork": "A String",
+        # This field identifies the subnetwork that the load balanced IP should belong to for this forwarding rule,
+        # used with internal load balancers and external passthrough Network Load Balancers with IPv6.
+
+        # external application load balancers or external proxy network load balancers doesn't
+        # to specify the subnetwork field
+        # TODO: DOC error which specify subnetwork for external regional proxy network load balancer?
+        if load_balancer_scheme == LOAD_BALANCER_SCHEME_INTERNAL:
+            subnet_name = get_workspace_subnet_name(workspace_name)
+            subnetwork = _get_subnetwork_url(project_id, region, subnet_name)
+            forward_rule["subnetwork"] = subnetwork
     return forward_rule
 
 
 def _create_forwarding_rule(
-        compute, provider_config, project_id, region,
+        compute, provider_config, project_id, region, vpc_name,
         workspace_name, load_balancer, listener):
     forward_rule = _get_forward_rule(
-        project_id, region,
+        provider_config, project_id, region, vpc_name,
         workspace_name, load_balancer, listener)
 
     def func():

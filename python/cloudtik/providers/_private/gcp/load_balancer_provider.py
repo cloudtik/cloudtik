@@ -60,12 +60,14 @@ class GCPLoadBalancerProvider(LoadBalancerProvider):
             self.compute, self.provider_config, self.workspace_name,
             load_balancer_config, self.context)
 
-    def update(self, load_balancer_config: Dict[str, Any]):
+    def update(
+            self, load_balancer: Dict[str, Any],
+            load_balancer_config: Dict[str, Any]):
         """Update a load balancer in the workspace based on the config.
         """
         _update_load_balancer(
             self.compute, self.provider_config, self.workspace_name,
-            load_balancer_config, self.context)
+            load_balancer, load_balancer_config, self.context)
 
     def delete(self, load_balancer: Dict[str, Any]):
         """Delete a load balancer in the workspace.

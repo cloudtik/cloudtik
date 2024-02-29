@@ -41,7 +41,9 @@ class MockLoadBalancerProvider(LoadBalancerProvider):
         self.load_balancer_create[
             load_balancer_config["name"]] = load_balancer_config
 
-    def update(self, load_balancer_config: Dict[str, Any]):
+    def update(
+            self, load_balancer: Dict[str, Any],
+            load_balancer_config: Dict[str, Any]):
         """Update a load balancer in the workspace based on the config.
         """
         self.load_balancer_update[

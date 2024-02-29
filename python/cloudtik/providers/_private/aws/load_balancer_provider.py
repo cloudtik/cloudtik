@@ -58,9 +58,10 @@ class AWSLoadBalancerProvider(LoadBalancerProvider):
             self.workspace_name, load_balancer_config,
             self.vpc_id, self.context)
 
-    def update(self, load_balancer_config: Dict[str, Any]):
-        """Update a load balancer in the workspace based on the config.
-        """
+    def update(
+            self, load_balancer: Dict[str, Any],
+            load_balancer_config: Dict[str, Any]):
+        """Update a load balancer in the workspace based on the config."""
         _update_load_balancer(
             self.elb_client, self.provider_config,
             self.workspace_name, load_balancer_config,

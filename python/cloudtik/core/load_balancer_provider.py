@@ -118,8 +118,14 @@ class LoadBalancerProvider:
         """
         pass
 
-    def update(self, load_balancer_config: Dict[str, Any]):
-        """Update the load balancer in the workspace based on the config.
+    def update(
+            self, load_balancer: Dict[str, Any],
+            load_balancer_config: Dict[str, Any]):
+        """Update a load balancer in the workspace based on the config.
+        The load_balancer parameter is the existing load balancer info
+        returned from list or get calling.
+        The load_balancer_config parameter is the new config of the load
+        balancer.
         """
         pass
 
