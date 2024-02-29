@@ -90,14 +90,16 @@ def _update_agent_config(consul_config, join_list, cluster_name):
 
     def update_retry_join(config_object):
         config_object["retry_join"] = join_list
+
+        seq_id = get_runtime_value(CLOUDTIK_RUNTIME_ENV_NODE_SEQ_ID)
+        if seq_id:
+            node_meta = get_config_for_update(config_object, "node_meta")
+            node_meta[SERVICE_DISCOVERY_LABEL_SEQ] = seq_id
+
         if cluster_name:
             node_meta = get_config_for_update(config_object, "node_meta")
             node_meta[SERVICE_DISCOVERY_LABEL_CLUSTER] = cluster_name
-            seq_id = get_runtime_value(CLOUDTIK_RUNTIME_ENV_NODE_SEQ_ID)
-            if seq_id:
-                node_meta[SERVICE_DISCOVERY_LABEL_SEQ] = seq_id
             if not _is_disable_cluster_node_name(consul_config):
-
                 if seq_id and is_valid_dns_name(cluster_name):
                     config_object["node_name"] = get_cluster_node_name(
                         cluster_name, seq_id)

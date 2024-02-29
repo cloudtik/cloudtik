@@ -32,8 +32,8 @@ class LoadBalancerBackendService(ApplicationBackendService):
             protocol = LOAD_BALANCER_PROTOCOL_TCP
         if not port:
             # default to the same port of the backend servers
-            backend_server = backend_servers[0]
-            port = backend_server[1]
+            service_address = next(iter(backend_servers.values()))
+            port = service_address[1]
         if not load_balancer_protocol:
             load_balancer_protocol = protocol
         if not load_balancer_port:
@@ -72,6 +72,12 @@ def _get_sorted_service_groups(service_groups):
         return service_group_key
 
     return sorted(service_groups.items(), key=sort_by_service_group_key)
+
+
+def _sorted_backend_targets(backend_targets):
+    def sort_by_id(backend_target):
+        return backend_target["id"]
+    backend_targets.sort(key=sort_by_id)
 
 
 class LoadBalancerManager:
@@ -399,11 +405,14 @@ class LoadBalancerManager:
         # we shall sort the services by name to generate stable hash
         sorted_backend_services = _get_sorted_backend_services(backend_services)
         for backend_service in sorted_backend_services:
-            # The backend servers are already in sorted order
+            backend_servers = backend_service.backend_servers
             backend_targets = [
-                {"ip": backend_server[0], "port": backend_server[1]}
-                for backend_server in backend_service.backend_servers
+                {"id": node_seq_id, "ip": server_address[0], "port": server_address[1]}
+                for node_seq_id, server_address in backend_servers.items()
             ]
+            # The sort backend targets by id
+            _sorted_backend_targets(backend_targets)
+
             service = {
                 "name": backend_service.service_name,
                 "protocol": backend_service.protocol,
