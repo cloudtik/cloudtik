@@ -48,12 +48,6 @@ VERSION = "v1"
 
 GCP_RESOURCE_NAME_PREFIX = "cloudtik"
 
-# Those roles will always be added.
-HEAD_SERVICE_ACCOUNT_ROLES = [
-    "roles/storage.admin", "roles/compute.admin",
-    "roles/iam.serviceAccountUser"
-]
-
 GCP_HEAD_SERVICE_ACCOUNT_ID = GCP_RESOURCE_NAME_PREFIX + "-{}"
 GCP_HEAD_SERVICE_ACCOUNT_DISPLAY_NAME = "CloudTik Head Service Account - {}"
 
@@ -70,9 +64,29 @@ GCP_WORKSPACE_DATABASE_GLOBAL_ADDRESS_NAME = GCP_RESOURCE_NAME_PREFIX + "-{}-add
 
 GCP_SERVICE_NETWORKING_NAME = "servicenetworking.googleapis.com"
 
+# Notes for roles:
+# roles/compute.networkAdmin:
+# Permissions to create, modify, and delete networking resources, except for
+# firewall rules and SSL certificates. The network admin role allows read-only
+# access to firewall rules, SSL certificates, and instances.
+
+# roles/compute.securityAdmin:
+# Permissions to create, modify, and delete firewall rules and SSL certificates.
+
+# Those roles will always be added.
+HEAD_SERVICE_ACCOUNT_ROLES = [
+    "roles/storage.admin",
+    "roles/compute.admin",
+    # TODO: The network admin role for load balancers in more fine grained way
+    "roles/compute.networkAdmin",
+    "roles/iam.serviceAccountUser"
+]
+
 # Those roles will always be added.
 WORKER_SERVICE_ACCOUNT_ROLES = [
     "roles/storage.admin",
+    # TODO: The network admin role for load balancers in more fine grained way
+    "roles/compute.networkAdmin",
     "roles/iam.serviceAccountUser"
 ]
 
@@ -117,6 +131,15 @@ need extra NAT router.
 ######################
 # Workspace functions
 ######################
+
+
+def get_workspace_subnet_name(workspace_name):
+    return "cloudtik-{}-private-subnet".format(workspace_name)
+
+
+def get_workspace_public_subnet_name(workspace_name):
+    # We may need to remove the public subnet concept
+    return "cloudtik-{}-public-subnet".format(workspace_name)
 
 
 def get_workspace_head_nodes(provider_config, workspace_name):
@@ -579,7 +602,7 @@ def _create_nat_for_router(config, compute):
         "Creating NAT for private subnet router: {}... ".format(nat_name))
 
     router = "cloudtik-{}-private-router".format(workspace_name)
-    subnet_name = "cloudtik-{}-private-subnet".format(workspace_name)
+    subnet_name = get_workspace_subnet_name(workspace_name)
     private_subnet = get_subnet(config, subnet_name, compute)
     private_subnet_self_link = private_subnet.get("selfLink")
     router_body = {
@@ -1850,10 +1873,10 @@ def check_gcp_workspace_existence(config):
         if vpc_id is not None:
             existing_resources += 1
             # Network resources that depending on VPC
-            if get_subnet(config, "cloudtik-{}-private-subnet".format(
+            if get_subnet(config, get_workspace_subnet_name(
                     workspace_name), compute) is not None:
                 existing_resources += 1
-            if get_subnet(config, "cloudtik-{}-public-subnet".format(
+            if get_subnet(config, get_workspace_public_subnet_name(
                     workspace_name), compute) is not None:
                 existing_resources += 1
             if get_router(config, "cloudtik-{}-private-router".format(
@@ -3355,9 +3378,9 @@ def _configure_subnet_from_workspace(config, compute):
 
     # networkInterfaces is compute, networkConfig is TPU
     public_subnet = get_subnet(
-        config, "cloudtik-{}-public-subnet".format(workspace_name), compute)
+        config, get_workspace_public_subnet_name(workspace_name), compute)
     private_subnet = get_subnet(
-        config, "cloudtik-{}-private-subnet".format(workspace_name), compute)
+        config, get_workspace_subnet_name(workspace_name), compute)
 
     public_interfaces = [{
         "subnetwork": public_subnet["selfLink"],

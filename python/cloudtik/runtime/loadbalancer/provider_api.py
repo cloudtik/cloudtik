@@ -99,8 +99,10 @@ class LoadBalancerManager:
         for load_balancer_name, load_balancer in load_balancers_to_create.items():
             self._create_load_balancer(load_balancer_name, load_balancer)
 
-        for load_balancer_name, load_balancer in load_balancers_to_update.items():
-            self._update_load_balancer(load_balancer_name, load_balancer)
+        for load_balancer_name, load_balancer_to_update in load_balancers_to_update.items():
+            load_balancer, existing_load_balancer = load_balancer_to_update
+            self._update_load_balancer(
+                load_balancer_name, load_balancer, existing_load_balancer)
 
         for load_balancer_name, existing_load_balancer in load_balancers_to_delete.items():
             if self._is_delete_auto_empty():
@@ -122,11 +124,12 @@ class LoadBalancerManager:
                     load_balancer_name, str(e)))
 
     def _update_load_balancer(
-            self, load_balancer_name, load_balancer):
+            self, load_balancer_name, load_balancer, existing_load_balancer):
         if self._is_load_balancer_updated(
                 load_balancer_name, load_balancer):
             try:
-                self.load_balancer_provider.update(load_balancer)
+                self.load_balancer_provider.update(
+                    existing_load_balancer, load_balancer)
                 self._update_load_balancer_hash(
                     load_balancer_name, load_balancer)
             except Exception as e:
@@ -147,13 +150,15 @@ class LoadBalancerManager:
 
     def _clear_load_balancer(
             self, load_balancer_name, existing_load_balancer):
+        # TODO: whether some load balancer provider doesn't support clear
         load_balancer = {
             "name": load_balancer_name,
             "type": existing_load_balancer["type"],
         }
         if "scheme" in existing_load_balancer:
             load_balancer["scheme"] = existing_load_balancer["scheme"]
-        self._update_load_balancer(load_balancer_name, load_balancer)
+        self._update_load_balancer(
+            load_balancer_name, load_balancer, existing_load_balancer)
 
     def _is_delete_auto_empty(self):
         return self.provider_config.get("delete_auto_empty", True)
@@ -427,7 +432,9 @@ class LoadBalancerManager:
             if load_balancer_name not in existing_load_balancers:
                 load_balancer_to_create[load_balancer_name] = load_balancer
             else:
-                load_balancer_to_update[load_balancer_name] = load_balancer
+                existing_load_balancer = existing_load_balancers[load_balancer_name]
+                load_balancer_to_update[load_balancer_name] = (
+                    load_balancer, existing_load_balancer)
 
         for load_balancer_name, load_balancer in existing_load_balancers.items():
             if not self._is_auto_created(load_balancer):
