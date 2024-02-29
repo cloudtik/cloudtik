@@ -962,6 +962,8 @@ def _get_targets_for_action(targets, existing_targets):
         (target["ip"], target["port"]): target
         for target in targets
     }
+
+    # If the target type is ip, the "Id" specify an IP address
     existing_targets_by_key = {
         (existing_target["Id"], existing_target["Port"]): existing_target
         for existing_target in existing_targets

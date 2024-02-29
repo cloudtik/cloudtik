@@ -463,9 +463,10 @@ def _get_load_balancer_backend_addresses(
     virtual_network_id = _get_virtual_network_resource_id(
         provider_config, virtual_network_name)
     service_name = service["name"]
-    for i, target in enumerate(targets, start=1):
+    for target in targets:
+        target_id = target["id"]
         ip_address = target["ip"]
-        name = "{}-address-{}".format(service_name, i)
+        name = "{}-node-{}".format(service_name, target_id)
         load_balancer_backend_address = {
             "name": name,
             "properties": {

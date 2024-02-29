@@ -1,14 +1,12 @@
 import logging
 import time
 
-import ipaddr
-
 from cloudtik.core._private.service_discovery.utils import deserialize_service_selector, \
     SERVICE_DISCOVERY_LABEL_PROTOCOL
-from cloudtik.core._private.util.core_utils import deserialize_config, get_json_object_hash, _sort_service_address
+from cloudtik.core._private.util.core_utils import deserialize_config, get_json_object_hash
 from cloudtik.runtime.common.active_standby_service import ActiveStandbyService
 from cloudtik.runtime.common.service_discovery.consul import \
-    get_service_address_of_node, get_labels_of_service_nodes
+    get_service_address_of_node, get_labels_of_service_nodes, get_node_seq_id_of_node
 from cloudtik.runtime.common.service_discovery.discovery import query_services_with_nodes
 from cloudtik.runtime.common.service_discovery.load_balancer import LOAD_BALANCER_SERVICE_DISCOVERY_LABEL_PORT, \
     LOAD_BALANCER_SERVICE_DISCOVERY_LABEL_PROTOCOL, LOAD_BALANCER_SERVICE_DISCOVERY_NAME_LABEL, \
@@ -89,8 +87,8 @@ class LoadBalancerController(ActiveStandbyService):
         for service_name, service_nodes in selected_services.items():
             backend_service = self.get_backend_service(
                 service_name, service_nodes)
-            backend_name = service_name
-            backend_services[backend_name] = backend_service
+            if backend_service is not None:
+                backend_services[service_name] = backend_service
 
         # Finally, rebuild the LoadBalancer configuration
         backend_config_hash = get_json_object_hash(backend_services)
@@ -104,16 +102,18 @@ class LoadBalancerController(ActiveStandbyService):
 
     @staticmethod
     def get_backend_service(service_name, service_nodes):
-        backend_servers = []
+        backend_servers = {}
         for service_node in service_nodes:
+            node_seq_id = get_node_seq_id_of_node(service_node)
+            # Currently every service node shall have a node seq id
+            if not node_seq_id:
+                continue
             server_address = get_service_address_of_node(service_node)
-            backend_servers.append(server_address)
-
-        # sort the address for stable hash
-        _sort_service_address(backend_servers, ip_address=True)
+            backend_servers[node_seq_id] = server_address
+        if not backend_servers:
+            return None
 
         labels = get_labels_of_service_nodes(service_nodes)
-
         service_protocol = labels.get(SERVICE_DISCOVERY_LABEL_PROTOCOL)
         # Convert lower case service protocol to upper case
         protocol = service_protocol.upper() if service_protocol else None

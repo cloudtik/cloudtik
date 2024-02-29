@@ -58,6 +58,7 @@ Regional external Application Load Balancers require an additional
 firewall rule to allow traffic from the proxy-only subnet to reach
 the backends.
 
+Note for Proxy-only subnets:
 Proxy-only subnets are only required for all regional and cross-regional
 Envoy-based load balancers.
 The proxy-only subnet provides a set of IP addresses that Google uses
@@ -70,7 +71,27 @@ You must create one proxy-only subnet in each region of a VPC network
 where you use load balancers. Each network running these load balancers
 need a proxy-only subnet and it will be used automatically.
 
-Since VM are zonal resources, Instance groups are zonal resources.
+Notes for internal forward rule subnet for internal load balancers:
+The internal IP address associated with the forwarding rule can come from a subnet
+in the same network and region as the backends. Note the following conditions:
+The IP address can (but does not need to) come from the same subnet as the backend.
+The IP address must not come from a reserved proxy-only subnet.
+If use the same IP address between multiple internal forwarding rules
+For multiple internal forwarding rules to share the same internal IP address,
+you must reserve the IP address and set its --purpose flag to SHARED_LOADBALANCER_VIP
+    gcloud compute addresses create SHARED_IP_ADDRESS_NAME \
+        --region=REGION \
+        --subnet=SUBNET_NAME \
+        --purpose=SHARED_LOADBALANCER_VIP
+
+# The IP address of the forward rule can be static specified or dynamic allocated
+from the subnet.
+
+For external forward rules, we reserve an external IP address (global or regional).
+If not specified, it assigns an ephemeral IP address (confirm?)
+
+The forwarding rule's target, and in most cases, also the loadBalancingScheme,
+determine the type of IP address that you can use.
 
 Firewall rules:
 
@@ -84,6 +105,9 @@ health checker to the instances. For example:
         --source-ranges=130.211.0.0/22,35.191.0.0/16 \
         --target-tags=allow-health-check \
         --rules=tcp:80
+The target tags define the backend instances. Without the target tags,
+the firewall rules apply to all of your backend instances in the VPC network.
+
 
 For load balancers that needs proxy-subnet (Envoy based proxy):
 - An ingress rule that allows connections from the proxy-only subnet to
@@ -1589,8 +1613,12 @@ def _get_forward_rule(
         network = _get_network_url(project_id, vpc_name)
         forward_rule["network"] = network
 
-        # This field identifies the subnetwork that the load balanced IP should belong to for this forwarding rule,
-        # used with internal load balancers and external passthrough Network Load Balancers with IPv6.
+        # This field identifies the subnetwork that the load balanced IP
+        # should belong to for this forwarding rule, used with internal
+        # load balancers and external passthrough Network Load Balancers with IPv6.
+
+        # Usually we can just use the workspace private subnet to allocate the private
+        # IP address.
 
         # external application load balancers or external proxy network load balancers doesn't
         # to specify the subnetwork field

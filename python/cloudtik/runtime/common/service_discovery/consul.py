@@ -210,9 +210,8 @@ def get_node_label_of_node(service_node, label_name):
 
 
 def get_node_seq_id_of_node(service_node):
-    node_meta = service_node.get(
-        "NodeMeta", {})
-    return node_meta.get(SERVICE_DISCOVERY_LABEL_SEQ)
+    return get_node_label_of_node(
+        service_node, SERVICE_DISCOVERY_LABEL_SEQ)
 
 
 def get_service_dns_name(
