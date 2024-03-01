@@ -94,7 +94,9 @@ logger = logging.getLogger(__name__)
 Key Concepts to note for Azure:
 
 All Azure resources are created in an Azure region and subscription.
-A virtual network is scoped to a single region/location.
+A virtual network is scoped to a single region/location. And created with a
+private CIDR address range.
+
 Multiple virtual networks from different regions can be connected
 together using Virtual Network Peering.
 
@@ -104,6 +106,9 @@ space to each subnet. You can then deploy Azure resources in a specific subnet.
 
 Azure subnets by default span all availability zones.
 Azure routes network traffic between all subnets in a virtual network, by default.
+
+ Azure virtual network does not have private or public subnet as in AWS VPC.
+ Resources connected to a VNet have access to the Internet, by default (SNAT).
 
 In our own design, the private subnet need to connect with NAT gateway to gain
 access to internet. While the public subnet don't need to connect with NAT gateway.
@@ -128,6 +133,40 @@ Otherwise, it will create only the network interface with the private IP address
         "id": "[variables('subnetRef')]"
     },
     "privateIPAllocationMethod": "Dynamic"
+
+Notes about NAT Gateway and external IP address:
+What if the network interface has both external IP and NAT router configured:
+-  You can combine NAT gateway with public IP addresses and Azure load balancers
+but only the standard tier. If you have a basic tier associated then the NAT gateway
+association will fail.
+- NAT gateway automatically connects outbound to the internet after being attached
+to a public IP address or prefix and a subnet. NAT gateway takes priority over Load
+balancer with outbound rules, instance-level public IP addresses on virtual machines,
+and Azure Firewall for outbound connectivity. For example, if you are using a load
+balancer for inbound NAT and a NAT gateway for outbound NAT then the NAT gateway IP
+address is the outbound address.
+
+Notes to security:
+Azure Network Security Group a regional resource. And it can be associated to subnets or
+network interfaces.
+
+Azure creates the following default rules in each network security group that you create:
+AllowVNetInBound, AllowAzureLoadBalancerInBound, DenyAllInbound,
+AllowVnetOutBound, AllowInternetOutBound, DenyAllOutBound
+
+You can't remove the default rules, but you can override them by creating rules
+with higher priorities.
+
+Network Security Group is used to control the network security.
+
+Network Security Groups (NSGs) combines the functions of the AWS SGs and NACLs.
+NSGs are stateful and can be applied at the subnet or NIC level. Only one NSG
+can be applied to a NIC. (AWS you can apply more than one Security Group to an
+Elastic Network Interface)
+
+The current Network Security Group rules allows:
+1. Communication within the workspace virtual network. (default)
+2. Allow rule for specific sources for SSH on 22 port. (for public SSH to head)
 
 """
 
