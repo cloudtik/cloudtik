@@ -165,6 +165,41 @@ Resources in a public subnet can access the public internet.
 Private subnet – The subnet does not have a direct route to an internet gateway.
 Resources in a private subnet require a NAT gateway to access the public internet.
 
+The key differences between an Internet Gateway and NAT Gateway are:
+Internet GW allows both inbound and outbound access to the internet
+whereas the NAT Gateway only allows outbound access.
+
+Each NAT gateway is created in a specific Availability Zone and implemented
+with redundancy in that zone.
+
+If you have resources in multiple Availability Zones and they share one NAT gateway,
+and if the NAT gateway’s Availability Zone is down, resources in the other
+Availability Zones lose internet access. To improve resiliency, create a NAT gateway
+in each Availability Zone, and configure your routing to ensure that resources use
+the NAT gateway in the same Availability Zone.
+
+Notes to security:
+AWS security group is bound to VPC. Security groups allow inbound and outbound traffic
+for associated resources, such as EC2 instances. Technically, the rule is applied at the
+Elastic Network Interface (ENI) level. The response traffic is automatically allowed once
+a traffic is allowed.
+
+The current Security Group rules:
+1. Allows communication within the VPC using the same workspace security group.
+2. Allow rule for specific sources for SSH on 22 port. (for public SSH to head)
+3. Allow SSH on 22 port within the VPC.
+4. If using working node to peering, allow Working node VPC to SSH on 22 port.
+
+Network ACLs allow or deny inbound and outbound traffic at the subnet level.
+By design, each subnet must be associated with a network ACL. Every subnet that
+you create is automatically associated with the default network ACL for the VPC.
+The default network ACL allows all inbound and outbound traffic.
+
+NACLs are stateless filtering rules that are applied at the subnet level and applies
+to every resource deployed to the subnet. It’s stateless because if an ingress traffic
+is allowed, the response is not automatically allowed unless explicitly allowed in the
+rule for the subnet.
+
 """
 
 
@@ -2149,7 +2184,8 @@ def _create_or_update_route_tables(
         # The public subnet uses and updates VPC default route table
         # Which will be updated to have a route to internet gateway
         _update_route_table_for_public_subnet(
-            config, ec2, ec2_client, vpc, subnets[AWS_VPC_PUBLIC_SUBNET_INDEX], internet_gateway)
+            config, ec2, ec2_client, vpc,
+            subnets[AWS_VPC_PUBLIC_SUBNET_INDEX], internet_gateway)
 
     with cli_logger.group(
             "Creating route table for private subnet",
@@ -2612,6 +2648,9 @@ def _create_network_resources(config, ec2, ec2_client,
             "Creating and configuring NAT gateway",
             _numbered=("[]", current_step, total_steps)):
         current_step += 1
+        # Create the NAT gateway in public subnet which makes the
+        # NAT gateway receives the private IP address from that subnet.
+        # TODO: should we create each NAT gateway in each private subnet (availability zone)
         _create_and_configure_nat_gateway(
             config, ec2_client, vpc,
             subnets[AWS_VPC_PUBLIC_SUBNET_INDEX], private_route_table)

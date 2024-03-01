@@ -19,6 +19,20 @@ LISTENERS_CONTEXT = "listeners"
 LISTENER_RULES_HASH_CONTEXT = "rules_hash"
 
 
+"""
+
+Key Concepts to note for AWS load balancers:
+
+AWS load balancer has a granular API for create or update the configurations.
+
+The Network load balancer and Application load share the same API and only
+differs at some points for configurations.
+
+The target group is by VPC.
+
+"""
+
+
 def _get_response_list(response, name):
     if not response:
         return None

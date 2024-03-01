@@ -106,6 +106,11 @@ Key Concepts to note for GCP:
 
 A VPC network is a global resource, but individual subnets are regional resources.
 
+GCP VPC networks do not have any IP address ranges associated with them.
+When you create a subnet, you must define a primary IP address range as
+long as the address range is a valid Private IPv4 address ranges, for example:
+10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16
+
 Subnets regionally segment the network IP space into prefixes (subnets)
 and control which prefix an instance's internal IP address is allocated from.
 
@@ -124,6 +129,30 @@ needs to be created.
 
 The interface with access config with Public IP address and External NAT doesn't
 need extra NAT router.
+
+What if the network interface has both external IP and NAT router configured:
+Public NAT gateway provides NAT for the VM's network interface's primary internal
+IP address, provided that the network interface doesn't have an external IP address
+assigned to it. If the network interface has an external IP address assigned to it,
+Google Cloud automatically performs one-to-one NAT for packets whose sources match
+the interface's primary internal IP address because the network interface meets the
+Google Cloud internet access requirements. The existence of an external IP address
+on an interface always takes precedence and always performs one-to-one NAT, without
+using Public NAT. (For this, we may don't need public subnet for GCP, the only thing
+needed is to assign external IP address to head network interface.)
+
+Notes to security:
+
+GCP firewall rules are global resource. The firewall rules apply to a given project and network.
+VPC firewall rules let you allow or deny connections to or from virtual machine (VM) instances
+in your VPC network.
+
+The current firewall rules:
+1. Allows communication between all existing subnets of workspace VPC.
+(Newly created subnets not included. Because VPC network doesn't have a fixed CIDR)
+2. Allow rule for specific sources for SSH on 22 port. (for public SSH to head)
+3. Allow SSH on 22 port within the VPC.
+4. If using working node to peering, allow Working node VPC to SSH on 22 port.
 
 """
 
@@ -575,7 +604,7 @@ def _create_router(config, compute, vpc_id):
         "bgp": {
             "advertiseMode": "CUSTOM"
         },
-        "description": "auto created for the workspace: {}".format(vpc_name),
+        "description": "Auto created for the workspace: {}".format(vpc_name),
         "name": router_name,
         "network": "projects/{}/global/networks/{}".format(project_id, vpc_id),
         "region": "projects/{}/regions/{}".format(project_id, region)

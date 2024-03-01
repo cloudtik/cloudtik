@@ -120,6 +120,10 @@ reach the backends. Replace source-ranges to the actual proxy-only subnet CIDR.
         --target-tags=allow-proxy-only-subnet \
         --rules=tcp:80
 
+Finally, the network endpoint group to use is zonal.
+Zonal NEGs are zonal resources that represent collections of either IP addresses
+or IP address and port combinations for Google Cloud resources within a single subnet.
+
 """
 
 

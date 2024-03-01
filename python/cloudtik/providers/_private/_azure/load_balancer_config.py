@@ -12,6 +12,92 @@ LOAD_BALANCERS_HASH_CONTEXT = "load_balancers_hash"
 LOAD_BALANCERS_CONTEXT = "load_balancers"
 
 
+"""
+
+Key Concepts to note for Azure load balancers:
+
+Network load balancers and Application load balancer (Application Gateway) are going
+through separate API and concepts.
+
+The API style is create or update all the configurations in a single API call. So we
+generate the request object and do create or update call.
+
+For Network load balancers, we can update backend address pool only but for Application
+load balancer, there is no API for update only backend address pool.
+
+The backend address pool (more accurately the backend addresses) are by virtual network.
+
+For a standard load balancer, the VMs in the backend pool are required to have network
+interfaces that belong to a network security group.
+
+The network security group has default rule AllowAzureLoadBalancerInBound rule which
+translate to AzureLoadBalancer tags for load balancer health probes. So this only
+includes probe traffic, not real traffic to your backend resource.
+
+For the real traffic from the load balancer allowed for backend resources, we still need
+to add the corresponding rule to allow the traffic:
+
+ az network nsg rule create \
+    --resource-group CreatePubLBQS-rg \
+    --nsg-name myNSG \
+    --name myNSGRuleHTTP \
+    --protocol '*' \
+    --direction inbound \
+    --source-address-prefix '*' \
+    --source-port-range '*' \
+    --destination-address-prefix '*' \
+    --destination-port-range 80 \
+    --access allow \
+    --priority 200
+
+Implement network security groups and only allow access to your application's trusted
+ports and IP address ranges. In cases where there is no network security group assigned
+to the backend subnet or NIC of the backend virtual machines, traffic will not be allowed
+to access these resources from the load balancer.
+
+Notes for Application Gateway:
+
+An application gateway is a dedicated deployment in your virtual network.
+Within your virtual network, a dedicated subnet is required for the application gateway.
+The application gateway subnet can contain only application gateways.
+You can't deploy any other resource in the Application Gateway subnet.
+You can't mix v1 and v2 Application Gateway SKUs on the same subnet.
+
+Application Gateway uses one private IP address per instance, plus another
+private IP address if a private frontend IP is configured.
+
+Usually we create two subnets: one for the application gateway, and another for the backend
+servers. You can configure the Frontend IP of the Application Gateway to be Public or Private
+as per your use case.
+
+Application Gateway subnet NSGs:
+The security rules by Application Gateway subnet is automatically configured. (To confirm)
+If you use your own NSG with your application gateway, you need to create or retain some essential
+security rules.
+- Client traffic: Allow incoming traffic from the expected clients (as source IP or IP range),
+and for the destination as your application gateway's entire subnet IP prefix and inbound
+access ports.
+- After you configure active public and private listeners (with rules) with the same port number,
+your application gateway changes the Destination of all inbound flows to the frontend IPs of your
+gateway. You must include your gateway's frontend public and private IP addresses in the Destination
+of the inbound rule when you use the same port configuration.
+- Infrastructure ports: Allow incoming requests from the source as the GatewayManager service tag
+and Any destination.
+- Azure Load Balancer probes: Allow incoming traffic from the source as the AzureLoadBalancer
+service tag. (This rule is created by default for NSGs.)
+
+For Backend subnet, since the Application Gateway subnet and the Backend subnet in the same VPC,
+the communication is by default enabled. (The Application Gateway subnet was configured to accept
+client traffic) (To confirm)
+
+The frontend private IP address can be allocated from the Application Gateway subnet.
+
+An application gateway frontend supports only one public IP address. New versions (in preview)
+support dual-stack IP addresses.
+
+"""
+
+
 def _get_resources_context(parent_context, resource_context_key):
     return get_config_for_update(
         parent_context, resource_context_key)
@@ -204,7 +290,7 @@ def _get_virtual_network_resource_id(provider_config, virtual_network):
 
 def _get_private_front_ip_configuration(
         provider_config, workspace_name, virtual_network_name):
-    # use the private subnet
+    # TODO: use the private subnet or for Application Gateway, use Application Gateway subnet
     subnet_name = get_workspace_subnet_name(
         workspace_name, is_private=True)
     virtual_network_id = _get_virtual_network_resource_id(
@@ -855,7 +941,7 @@ def _get_application_gateway_ip_configurations(
 
 def _get_application_gateway_ip_configuration(
         provider_config, workspace_name, virtual_network_name):
-    # use the private subnet
+    # TODO: Need to use the Application Gateway subnet
     subnet_name = get_workspace_subnet_name(
         workspace_name, is_private=True)
     virtual_network_id = _get_virtual_network_resource_id(
