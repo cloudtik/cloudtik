@@ -10,7 +10,7 @@ from cloudtik.core._private.util.runtime_utils import get_runtime_node_type, get
     load_and_save_json, get_runtime_value, get_runtime_cluster_name
 from cloudtik.core._private.service_discovery.utils import SERVICE_DISCOVERY_PORT, \
     SERVICE_DISCOVERY_TAGS, SERVICE_DISCOVERY_LABELS, SERVICE_DISCOVERY_CHECK_INTERVAL, \
-    SERVICE_DISCOVERY_CHECK_TIMEOUT, SERVICE_DISCOVERY_LABEL_CLUSTER, SERVICE_DISCOVERY_LABEL_SEQ, \
+    SERVICE_DISCOVERY_CHECK_TIMEOUT, SERVICE_DISCOVERY_LABEL_CLUSTER, SERVICE_DISCOVERY_LABEL_SEQ_ID, \
     SERVICE_DISCOVERY_LABEL_NODE_ID
 from cloudtik.core._private.service_discovery.naming import get_cluster_node_name
 from cloudtik.core.tags import QUORUM_JOIN_STATUS_INIT
@@ -95,7 +95,7 @@ def _update_agent_config(consul_config, join_list, cluster_name):
         seq_id = get_runtime_value(CLOUDTIK_RUNTIME_ENV_NODE_SEQ_ID)
         if seq_id:
             node_meta = get_config_for_update(config_object, "node_meta")
-            node_meta[SERVICE_DISCOVERY_LABEL_SEQ] = seq_id
+            node_meta[SERVICE_DISCOVERY_LABEL_SEQ_ID] = seq_id
 
         node_id = get_runtime_value(CLOUDTIK_RUNTIME_ENV_NODE_ID)
         if node_id:

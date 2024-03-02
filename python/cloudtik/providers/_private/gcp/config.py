@@ -93,19 +93,20 @@ GCP_SERVICE_NETWORKING_NAME = "servicenetworking.googleapis.com"
 
 # Those roles will always be added.
 HEAD_SERVICE_ACCOUNT_ROLES = [
-    "roles/storage.admin",
     "roles/compute.admin",
+    "roles/storage.admin",
     # TODO: The network admin role for load balancers in more fine grained way
     "roles/compute.networkAdmin",
-    "roles/iam.serviceAccountUser"
+    "roles/iam.serviceAccountUser",
 ]
 
 # Those roles will always be added.
 WORKER_SERVICE_ACCOUNT_ROLES = [
+    "roles/compute.viewer",
     "roles/storage.admin",
     # TODO: The network admin role for load balancers in more fine grained way
     "roles/compute.networkAdmin",
-    "roles/iam.serviceAccountUser"
+    "roles/iam.serviceAccountUser",
 ]
 
 # Those roles will only be added if there are TPU nodes defined in config.

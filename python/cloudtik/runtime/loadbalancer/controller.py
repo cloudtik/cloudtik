@@ -102,21 +102,21 @@ class LoadBalancerController(ActiveStandbyService):
 
     @staticmethod
     def get_backend_service(service_name, service_nodes):
+        # service address as key
         backend_servers = {}
         for service_node in service_nodes:
-            node_seq_id = get_node_seq_id_of_node(service_node)
-            # Currently every service node shall have a node seq id
-            if not node_seq_id:
-                continue
             node_id = get_node_id_of_node(service_node)
-            server_address = get_service_address_of_node(service_node)
+            node_seq_id = get_node_seq_id_of_node(service_node)
+            service_address = get_service_address_of_node(service_node)
             backend_server = {
-                "node_id": node_id,
-                "seq": node_seq_id,
-                "ip": server_address[0],
-                "port": server_address[1],
+                "ip": service_address[0],
+                "port": service_address[1],
             }
-            backend_servers[node_seq_id] = backend_server
+            if node_id:
+                backend_server["node_id"] = node_id
+            if node_seq_id:
+                backend_server["seq_id"] = node_seq_id
+            backend_servers[service_address] = backend_server
         if not backend_servers:
             return None
 

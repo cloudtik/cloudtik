@@ -954,13 +954,20 @@ def _get_workspace_subnet_zones(provider_config):
 
 
 def _get_head_worker_targets(service):
+    # For simplification, we only support targets with node_id and seq_id
+    # which is not available for static configurations
+    # If we support multiple zones in the future, we may have to list instances
+    # for getting the subnet and zone information of each target.
     targets = service.get("targets", [])
     head_targets = []
     worker_targets = []
     for target in targets:
-        seq_id = int(target["seq"])
+        seq_id = target.get("seq_id")
+        node_id = target.get("node_id")
+        if not seq_id or not node_id:
+            continue
         # Under the assumption that head node seq id will be always 1
-        if seq_id == 1:
+        if int(seq_id) == 1:
             head_targets.append(target)
         else:
             worker_targets.append(target)
