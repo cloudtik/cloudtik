@@ -1164,13 +1164,14 @@ def update_gcp_workspace(
 
 
 def update_network_resources(config):
+    workspace_name = get_workspace_name(config)
     crm, iam, compute, tpu = \
         construct_clients_from_provider_config(config["provider"])
     use_working_vpc = is_use_working_vpc(config)
     vpc_id = get_gcp_vpc_id(config, compute, use_working_vpc)
     if vpc_id is None:
         raise RuntimeError(
-            "The workspace: {} doesn't exist.".format(config["workspace_name"]))
+            "The workspace: {} doesn't exist.".format(workspace_name))
 
     current_step = 1
     total_steps = 2
