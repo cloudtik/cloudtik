@@ -74,7 +74,7 @@ def _get_sorted_service_groups(service_groups):
     return sorted(service_groups.items(), key=sort_by_service_group_key)
 
 
-def _sorted_backend_targets_sorted_backend_targets(backend_targets):
+def _sorted_backend_targets(backend_targets):
     def sort_by_ip_port(backend_target):
         return backend_target["ip"], backend_target["port"]
     backend_targets.sort(key=sort_by_ip_port)
