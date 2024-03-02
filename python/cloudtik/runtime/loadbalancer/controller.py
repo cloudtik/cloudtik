@@ -111,7 +111,7 @@ class LoadBalancerController(ActiveStandbyService):
             node_id = get_node_id_of_node(service_node)
             server_address = get_service_address_of_node(service_node)
             backend_server = {
-                "id": node_id,
+                "node_id": node_id,
                 "seq": node_seq_id,
                 "ip": server_address[0],
                 "port": server_address[1],

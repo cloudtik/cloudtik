@@ -958,9 +958,9 @@ def _get_head_worker_targets(service):
     head_targets = []
     worker_targets = []
     for target in targets:
-        seq = int(target["seq"])
-        # Under the assumption that head node seq will be always 1
-        if seq == 1:
+        seq_id = int(target["seq"])
+        # Under the assumption that head node seq id will be always 1
+        if seq_id == 1:
             head_targets.append(target)
         else:
             worker_targets.append(target)
@@ -1125,7 +1125,7 @@ def _delete_network_endpoint_group(
 def _get_endpoints_of_targets(targets):
     network_endpoints = []
     for target in targets:
-        instance = target["id"]
+        instance = target["node_id"]
         ip_address = target["ip"]
         port = target["port"]
         network_endpoint = {
@@ -1175,7 +1175,7 @@ def _get_endpoints_for_action(network_endpoints, existing_network_endpoints):
     # decide the endpoint by ip and port
     # convert to dict for fast search
     endpoints_by_key = {
-        endpoint["id"]: endpoint
+        (endpoint["ip"], endpoint["port"]): endpoint
         for endpoint in network_endpoints
     }
     # The existing endpoint is in the format of
@@ -1188,14 +1188,14 @@ def _get_endpoints_for_action(network_endpoints, existing_network_endpoints):
     # }
     existing_endpoints = [
         {
-            "id": existing_endpoint["networkEndpoint"]["instance"],
+            "node_id": existing_endpoint["networkEndpoint"]["instance"],
             "ip": existing_endpoint["networkEndpoint"]["ipAddress"],
             "port": existing_endpoint["networkEndpoint"]["port"]
         }
         for existing_endpoint in existing_network_endpoints
     ]
     existing_endpoints_by_key = {
-        existing_endpoint["id"]: existing_endpoint
+        (existing_endpoint["ip"], existing_endpoint["port"]): existing_endpoint
         for existing_endpoint in existing_endpoints
     }
     for endpoint_key, endpoint in endpoints_by_key.items():

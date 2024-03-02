@@ -100,13 +100,13 @@ class LoadBalancerProvider:
                             "default": False,
                             "targets": [
                                 {
-                                    "id": "node-id-1",
+                                    "node_id": "node-id-1",
                                     "seq": "1"
                                     "ip": "172.18.0.1",
                                     "port": 1234,
                                 },
                                 {
-                                    "id": "node-id-2",
+                                    "node_id": "node-id-2",
                                     "seq": "2",
                                     "ip": "172.18.0.2",
                                     "port": 1234,
