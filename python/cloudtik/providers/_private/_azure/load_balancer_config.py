@@ -5,7 +5,8 @@ from cloudtik.core._private.utils import get_provider_config
 from cloudtik.core.load_balancer_provider import LOAD_BALANCER_TYPE_NETWORK, LOAD_BALANCER_SCHEME_INTERNET_FACING, \
     LOAD_BALANCER_PROTOCOL_TCP, LOAD_BALANCER_PROTOCOL_UDP, LOAD_BALANCER_PROTOCOL_TLS, LOAD_BALANCER_PROTOCOL_HTTP, \
     LOAD_BALANCER_PROTOCOL_HTTPS, LOAD_BALANCER_TYPE_APPLICATION, LOAD_BALANCER_SCHEME_INTERNAL
-from cloudtik.providers._private._azure.config import get_virtual_network_name, get_workspace_subnet_name
+from cloudtik.providers._private._azure.config import get_virtual_network_name, get_workspace_subnet_name, \
+    get_application_gateway_subnet_name
 from cloudtik.providers._private._azure.utils import get_virtual_network_resource_id, get_network_resource_id
 
 LOAD_BALANCERS_HASH_CONTEXT = "load_balancers_hash"
@@ -274,8 +275,16 @@ def _get_frontend_ip_configurations(
         # Currently we support one IP, it can be more than one
         pass
     else:
+        # Use Application Gateway subnet for Application Gateway,
+        load_balancer_type = load_balancer_config["type"]
+        if load_balancer_type == LOAD_BALANCER_TYPE_NETWORK:
+            subnet_name = get_workspace_subnet_name(
+                workspace_name, is_private=True)
+        else:
+            subnet_name = get_application_gateway_subnet_name(
+                workspace_name)
         frontend_ip_configuration = _get_private_front_ip_configuration(
-            provider_config, workspace_name, virtual_network_name)
+            provider_config, virtual_network_name, subnet_name)
         frontend_ip_configurations.append(frontend_ip_configuration)
 
     return frontend_ip_configurations
@@ -289,10 +298,7 @@ def _get_virtual_network_resource_id(provider_config, virtual_network):
 
 
 def _get_private_front_ip_configuration(
-        provider_config, workspace_name, virtual_network_name):
-    # TODO: use the private subnet or for Application Gateway, use Application Gateway subnet
-    subnet_name = get_workspace_subnet_name(
-        workspace_name, is_private=True)
+        provider_config, virtual_network_name, subnet_name):
     virtual_network_id = _get_virtual_network_resource_id(
         provider_config, virtual_network_name)
     subnet_id = virtual_network_id + "/subnets/{}".format(subnet_name)
@@ -941,9 +947,9 @@ def _get_application_gateway_ip_configurations(
 
 def _get_application_gateway_ip_configuration(
         provider_config, workspace_name, virtual_network_name):
-    # TODO: Need to use the Application Gateway subnet
-    subnet_name = get_workspace_subnet_name(
-        workspace_name, is_private=True)
+    # Need to use the Application Gateway subnet
+    subnet_name = get_application_gateway_subnet_name(
+        workspace_name)
     virtual_network_id = _get_virtual_network_resource_id(
         provider_config, virtual_network_name)
     subnet_id = virtual_network_id + "/subnets/{}".format(subnet_name)
