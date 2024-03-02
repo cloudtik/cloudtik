@@ -39,7 +39,7 @@ from cloudtik.providers._private.gcp.utils import _get_node_info, construct_clie
     wait_for_sql_admin_operation, export_gcp_cloud_database_config, construct_compute_client, \
     construct_service_networking, \
     wait_for_service_networking_operation, get_gcp_database_engine, get_gcp_database_default_admin_user, \
-    get_gcp_database_default_port, wait_for_compute_zone_operation
+    get_gcp_database_default_port, wait_for_compute_zone_operation, get_network_url
 from cloudtik.providers._private.utils import StorageTestingError
 
 logger = logging.getLogger(__name__)
@@ -55,12 +55,27 @@ GCP_WORKER_SERVICE_ACCOUNT_ID = GCP_RESOURCE_NAME_PREFIX + "-w-{}"
 GCP_WORKER_SERVICE_ACCOUNT_DISPLAY_NAME = "CloudTik Worker Service Account - {}"
 
 GCP_WORKSPACE_VPC_NAME = GCP_RESOURCE_NAME_PREFIX + "-{}-vpc"
+GCP_WORKSPACE_SUBNET_NAME = GCP_RESOURCE_NAME_PREFIX + "-{}-{}-subnet"
+
+GCP_WORKSPACE_ROUTER_NAME = GCP_RESOURCE_NAME_PREFIX + "-{}-private-router"
+GCP_WORKSPACE_NAT_NAME = GCP_RESOURCE_NAME_PREFIX + "-{}-nat"
+
+GCP_WORKSPACE_DEFAULT_INTERNAL_FIREWALL_NAME = (
+        GCP_RESOURCE_NAME_PREFIX + "-{}-default-allow-internal-firewall")
+GCP_WORKSPACE_LOAD_BALANCER_HEALTH_CHECK_FIREWALL_NAME = (
+        GCP_RESOURCE_NAME_PREFIX + "-{}-load-balancer-health-check-firewall")
+GCP_WORKSPACE_CUSTOM_FIREWALL_NAME = (
+        GCP_RESOURCE_NAME_PREFIX + "-{}-custom-{}-firewall")
 
 GCP_WORKSPACE_VPC_PEERING_NAME = GCP_RESOURCE_NAME_PREFIX + "-{}-a-peer"
 GCP_WORKING_VPC_PEERING_NAME = GCP_RESOURCE_NAME_PREFIX + "-{}-b-peer"
 
 GCP_WORKSPACE_DATABASE_NAME = GCP_RESOURCE_NAME_PREFIX + "-{}-db"
 GCP_WORKSPACE_DATABASE_GLOBAL_ADDRESS_NAME = GCP_RESOURCE_NAME_PREFIX + "-{}-addr"
+
+# We currently create only regional proxy-only subnet
+GCP_WORKSPACE_GLOBAL_PROXY_SUBNET = "global-proxy"
+GCP_WORKSPACE_REGIONAL_PROXY_SUBNET = "regional-proxy"
 
 GCP_SERVICE_NETWORKING_NAME = "servicenetworking.googleapis.com"
 
@@ -96,10 +111,10 @@ TPU_SERVICE_ACCOUNT_ROLES = ["roles/tpu.admin"]
 # NOTE: iam.serviceAccountUser allows the Head Node to create worker nodes
 # with ServiceAccounts.
 
-GCP_WORKSPACE_NUM_CREATION_STEPS = 7
-GCP_WORKSPACE_NUM_DELETION_STEPS = 6
+GCP_WORKSPACE_NUM_CREATION_STEPS = 8
+GCP_WORKSPACE_NUM_DELETION_STEPS = 7
 GCP_WORKSPACE_NUM_UPDATE_STEPS = 1
-GCP_WORKSPACE_TARGET_RESOURCES = 8
+GCP_WORKSPACE_TARGET_RESOURCES = 9
 
 """
 Key Concepts to note for GCP:
@@ -148,11 +163,12 @@ VPC firewall rules let you allow or deny connections to or from virtual machine 
 in your VPC network.
 
 The current firewall rules:
-1. Allows communication between all existing subnets of workspace VPC.
+1. Allows communication between all existing subnets of workspace VPC (including proxy-only subnet).
 (Newly created subnets not included. Because VPC network doesn't have a fixed CIDR)
 2. Allow rule for specific sources for SSH on 22 port. (for public SSH to head)
 3. Allow SSH on 22 port within the VPC.
 4. If using working node to peering, allow Working node VPC to SSH on 22 port.
+5. From load balancer health checks from 130.211.0.0/22,35.191.0.0/16
 
 """
 
@@ -162,13 +178,30 @@ The current firewall rules:
 ######################
 
 
-def get_workspace_subnet_name(workspace_name):
-    return "cloudtik-{}-private-subnet".format(workspace_name)
+def get_workspace_subnet_name_of_type(workspace_name, subnet_type):
+    return GCP_WORKSPACE_SUBNET_NAME.format(workspace_name, subnet_type)
+
+
+def get_workspace_subnet_name(workspace_name, is_private=True):
+    subnet_type = 'private' if is_private else 'public'
+    return get_workspace_subnet_name_of_type(workspace_name, subnet_type)
 
 
 def get_workspace_public_subnet_name(workspace_name):
     # We may need to remove the public subnet concept
-    return "cloudtik-{}-public-subnet".format(workspace_name)
+    return get_workspace_subnet_name(workspace_name, is_private=False)
+
+
+def get_workspace_proxy_subnet_name(workspace_name, is_regional=True):
+    subnet_type = (
+        GCP_WORKSPACE_GLOBAL_PROXY_SUBNET
+        if is_regional else GCP_WORKSPACE_REGIONAL_PROXY_SUBNET)
+    return get_workspace_subnet_name_of_type(
+        workspace_name, subnet_type)
+
+
+def get_workspace_router_name(workspace_name):
+    return GCP_WORKSPACE_ROUTER_NAME.format(workspace_name)
 
 
 def get_workspace_head_nodes(provider_config, workspace_name):
@@ -493,7 +526,7 @@ def _get_working_node_vpc_name(provider_config, compute):
     return vpc["name"]
 
 
-def _configure_gcp_subnets_cidr(config, compute, vpc_id):
+def _configure_gcp_subnets_cidr(config, compute, vpc_id, num_cidr):
     project_id = config["provider"].get("project_id")
     region = config["provider"].get("region")
     vpc_self_link = compute.networks().get(
@@ -504,7 +537,7 @@ def _configure_gcp_subnets_cidr(config, compute, vpc_id):
     cidr_list = []
 
     if len(subnets) == 0:
-        for i in range(0, 2):
+        for i in range(0, num_cidr):
             cidr_list.append("10.0." + str(i) + ".0/24")
     else:
         cidr_blocks = [subnet["ipCidrRange"] for subnet in subnets]
@@ -515,7 +548,7 @@ def _configure_gcp_subnets_cidr(config, compute, vpc_id):
                 cidr_list.append(tmp_cidr_block)
                 cli_logger.print("Choose CIDR: {}".format(tmp_cidr_block))
 
-            if len(cidr_list) == 2:
+            if len(cidr_list) == num_cidr:
                 break
 
     return cidr_list
@@ -523,24 +556,29 @@ def _configure_gcp_subnets_cidr(config, compute, vpc_id):
 
 def _delete_subnet(config, compute, is_private=True):
     if is_private:
-        subnet_attribute = "private"
+        subnet_type = "private"
     else:
-        subnet_attribute = "public"
+        subnet_type = "public"
+
+    _delete_subnet_of_type(config, compute, subnet_type)
+
+
+def _delete_subnet_of_type(config, compute, subnet_type):
     project_id = config["provider"].get("project_id")
     region = config["provider"].get("region")
     workspace_name = get_workspace_name(config)
-    subnet_name = "cloudtik-{}-{}-subnet".format(
-        workspace_name, subnet_attribute)
+    subnet_name = get_workspace_subnet_name_of_type(
+        workspace_name, subnet_type)
 
     if get_subnet(config, subnet_name, compute) is None:
         cli_logger.print(
-            "The {} subnet {} doesn't exist in workspace."
-            .format(subnet_attribute, subnet_name))
+            "The {} subnet {} doesn't exist in workspace. Skip deletion."
+            .format(subnet_type, subnet_name))
         return
 
     # """ Delete custom subnet """
     cli_logger.print(
-        "Deleting {} subnet: {}...".format(subnet_attribute, subnet_name))
+        "Deleting {} subnet: {}...".format(subnet_type, subnet_name))
     try:
         operation = compute.subnetworks().delete(
             project=project_id, region=region,
@@ -548,36 +586,45 @@ def _delete_subnet(config, compute, is_private=True):
         wait_for_compute_region_operation(project_id, region, operation, compute)
         cli_logger.print(
             "Successfully deleted {} subnet: {}.",
-            subnet_attribute, subnet_name)
+            subnet_type, subnet_name)
     except Exception as e:
         cli_logger.error(
             "Failed to delete the {} subnet: {}. {}",
-            subnet_attribute, subnet_name, str(e))
+            subnet_type, subnet_name, str(e))
         raise e
+
+
+def _delete_proxy_subnets(config, compute):
+    _delete_subnet_of_type(
+        config, compute, GCP_WORKSPACE_REGIONAL_PROXY_SUBNET)
 
 
 def _create_and_configure_subnets(config, compute, vpc_id):
     workspace_name = get_workspace_name(config)
     project_id = config["provider"]["project_id"]
     region = config["provider"]["region"]
+    num_cidr = 2
+    cidr_list = _configure_gcp_subnets_cidr(config, compute, vpc_id, num_cidr)
+    if len(cidr_list) != num_cidr:
+        raise RuntimeError(
+            "Failed to get {} free CIDR ranges for VPC: {}.".format(
+                num_cidr, vpc_id))
 
-    cidr_list = _configure_gcp_subnets_cidr(config, compute, vpc_id)
-    assert len(cidr_list) == 2, "We must create 2 subnets for VPC: {}!".format(vpc_id)
-
-    subnets_attribute = ["public", "private"]
+    subnets_type = ["public", "private"]
     for i in range(2):
-        subnet_name = "cloudtik-{}-{}-subnet".format(workspace_name, subnets_attribute[i])
+        subnet_name = get_workspace_subnet_name_of_type(
+            workspace_name, subnets_type[i])
         cli_logger.print(
             "Creating subnet for the vpc: {} with CIDR: {}...",
             vpc_id, cidr_list[i])
         network_body = {
-            "description": "Auto created {} subnet for cloudtik".format(subnets_attribute[i]),
+            "description": "Auto created {} subnet for cloudtik".format(subnets_type[i]),
             "enableFlowLogs": False,
             "ipCidrRange": cidr_list[i],
             "name": subnet_name,
-            "network": "projects/{}/global/networks/{}".format(project_id, vpc_id),
+            "network": get_network_url(project_id, vpc_id),
             "stackType": "IPV4_ONLY",
-            "privateIpGoogleAccess": False if subnets_attribute[i] == "public" else True,
+            "privateIpGoogleAccess": False if subnets_type[i] == "public" else True,
             "region": region
         }
         try:
@@ -592,11 +639,67 @@ def _create_and_configure_subnets(config, compute, vpc_id):
             raise e
 
 
+def _create_or_update_proxy_subnets(config, compute, vpc_id):
+    # create only regional proxy-only subnet
+    _create_or_update_proxy_subnet(
+        config, compute, vpc_id)
+
+
+def _create_or_update_proxy_subnet(config, compute, vpc_id, is_regional=True):
+    workspace_name = get_workspace_name(config)
+    project_id = config["provider"]["project_id"]
+    region = config["provider"]["region"]
+    subnet_type = get_workspace_proxy_subnet_name(workspace_name, is_regional)
+    subnet_name = get_workspace_subnet_name_of_type(
+        workspace_name, subnet_type)
+
+    subnet = get_subnet(config, subnet_name, compute)
+    if subnet:
+        cli_logger.print(
+            "The {} subnet {} already exists for workspace. Skip creation.",
+            subnet_type, subnet_name)
+        return
+
+    cidr_list = _configure_gcp_subnets_cidr(config, compute, vpc_id, 1)
+    if not cidr_list:
+        raise RuntimeError(
+            "Failed to get free CIDR range for VPC: {}.".format(vpc_id))
+
+    cidr_range = cidr_list[0]
+    purpose = "GLOBAL_MANAGED_PROXY" if not is_regional else "REGIONAL_MANAGED_PROXY"
+
+    cli_logger.print(
+        "Creating subnet for the vpc: {} with CIDR: {}...",
+        vpc_id, cidr_range)
+
+    # The enableFlowLogs field isn't supported if the subnet purpose field is set
+    # to GLOBAL_MANAGED_PROXY or REGIONAL_MANAGED_PROXY.
+    network_body = {
+        "description": "Auto created {} subnet for cloudtik".format(subnet_type),
+        "purpose": purpose,
+        "role": "ACTIVE",
+        "ipCidrRange": cidr_range,
+        "name": subnet_name,
+        "network": get_network_url(project_id, vpc_id),
+        "region": region
+    }
+    try:
+        operation = compute.subnetworks().insert(
+            project=project_id, region=region, body=network_body).execute()
+        wait_for_compute_region_operation(project_id, region, operation, compute)
+        cli_logger.print(
+            "Successfully created subnet: {}.".format(subnet_name))
+    except Exception as e:
+        cli_logger.error(
+            "Failed to create subnet. {}",  str(e))
+        raise e
+
+
 def _create_router(config, compute, vpc_id):
     project_id = config["provider"]["project_id"]
     region = config["provider"]["region"]
     workspace_name = get_workspace_name(config)
-    router_name = "cloudtik-{}-private-router".format(workspace_name)
+    router_name = get_workspace_router_name(workspace_name)
     vpc_name = _get_workspace_vpc_name(workspace_name)
     cli_logger.print(
         "Creating router for the private subnet: {}...".format(router_name))
@@ -606,7 +709,7 @@ def _create_router(config, compute, vpc_id):
         },
         "description": "Auto created for the workspace: {}".format(vpc_name),
         "name": router_name,
-        "network": "projects/{}/global/networks/{}".format(project_id, vpc_id),
+        "network": get_network_url(project_id, vpc_id),
         "region": "projects/{}/regions/{}".format(project_id, region)
     }
     try:
@@ -625,12 +728,12 @@ def _create_nat_for_router(config, compute):
     project_id = config["provider"]["project_id"]
     region = config["provider"]["region"]
     workspace_name = get_workspace_name(config)
-    nat_name = "cloudtik-{}-nat".format(workspace_name)
+    nat_name = GCP_WORKSPACE_NAT_NAME.format(workspace_name)
 
     cli_logger.print(
         "Creating NAT for private subnet router: {}... ".format(nat_name))
 
-    router = "cloudtik-{}-private-router".format(workspace_name)
+    router = get_workspace_router_name(workspace_name)
     subnet_name = get_workspace_subnet_name(workspace_name)
     private_subnet = get_subnet(config, subnet_name, compute)
     private_subnet_self_link = private_subnet.get("selfLink")
@@ -669,7 +772,7 @@ def _delete_router(config, compute):
     project_id = config["provider"]["project_id"]
     region = config["provider"]["region"]
     workspace_name = get_workspace_name(config)
-    router_name = "cloudtik-{}-private-router".format(workspace_name)
+    router_name = get_workspace_router_name(workspace_name)
 
     if get_router(config, router_name, compute) is None:
         cli_logger.print(
@@ -776,6 +879,7 @@ def get_subnetworks_ip_cidr_range(config, compute, vpc_id):
         network=vpc_id).execute().get("subnetworks")
     subnetwork_cidrs = []
     for subnetwork in subnetworks:
+        # proxy CIDR range already allowed
         subnetwork_cidrs.append(
             _get_subnetwork_ip_cidr_range(project_id, compute, subnetwork))
     return subnetwork_cidrs
@@ -796,23 +900,19 @@ def _create_default_allow_internal_firewall(config, compute, vpc_id):
     project_id = config["provider"]["project_id"]
     workspace_name = get_workspace_name(config)
     subnetwork_cidrs = get_subnetworks_ip_cidr_range(config, compute, vpc_id)
-    firewall_name = "cloudtik-{}-default-allow-internal-firewall".format(
+    firewall_name = GCP_WORKSPACE_DEFAULT_INTERNAL_FIREWALL_NAME.format(
         workspace_name)
     firewall_body = {
         "name": firewall_name,
-        "network": "projects/{}/global/networks/{}".format(project_id, vpc_id),
+        "network": get_network_url(project_id, vpc_id),
         "allowed": [
             {
                 "IPProtocol": "tcp",
-                "ports": [
-                    "0-65535"
-                ]
+                "ports": ["0-65535"]
             },
             {
                 "IPProtocol": "udp",
-                "ports": [
-                    "0-65535"
-                ]
+                "ports": ["0-65535"]
             },
             {
                 "IPProtocol": "icmp"
@@ -821,6 +921,30 @@ def _create_default_allow_internal_firewall(config, compute, vpc_id):
         "sourceRanges": subnetwork_cidrs
     }
 
+    create_or_update_firewall(config, compute, firewall_body)
+
+
+def _create_or_update_load_balancer_health_check_firewall(
+        config, compute, vpc_id):
+    project_id = config["provider"]["project_id"]
+    workspace_name = get_workspace_name(config)
+    firewall_name = GCP_WORKSPACE_LOAD_BALANCER_HEALTH_CHECK_FIREWALL_NAME.format(
+        workspace_name)
+    firewall_body = {
+        "name": firewall_name,
+        "network": get_network_url(project_id, vpc_id),
+        "allowed": [
+            {
+                "IPProtocol": "tcp",
+                "ports": ["0-65535"]
+            },
+            {
+                "IPProtocol": "udp",
+                "ports": ["0-65535"]
+            }
+        ],
+        "sourceRanges": ["35.191.0.0/16", "130.211.0.0/22"]
+    }
     create_or_update_firewall(config, compute, firewall_body)
 
 
@@ -857,8 +981,8 @@ def _create_or_update_custom_firewalls(config, compute, vpc_id):
     workspace_name = get_workspace_name(config)
     for i in range(len(firewall_rules)):
         firewall_body = {
-            "name": "cloudtik-{}-custom-{}-firewall".format(workspace_name, i),
-            "network": "projects/{}/global/networks/{}".format(project_id, vpc_id),
+            "name": GCP_WORKSPACE_CUSTOM_FIREWALL_NAME.format(workspace_name, i),
+            "network": get_network_url(project_id, vpc_id),
             "allowed": firewall_rules[i]["allowed"],
             "sourceRanges": firewall_rules[i]["sourceRanges"]
         }
@@ -867,13 +991,20 @@ def _create_or_update_custom_firewalls(config, compute, vpc_id):
 
 def _create_or_update_firewalls(config, compute, vpc_id):
     current_step = 1
-    total_steps = 2
+    total_steps = 3
 
     with cli_logger.group(
             "Creating or updating internal firewall",
             _numbered=("()", current_step, total_steps)):
         current_step += 1
         _create_default_allow_internal_firewall(config, compute, vpc_id)
+
+    with cli_logger.group(
+            "Creating or updating load balancer health check firewall",
+            _numbered=("()", current_step, total_steps)):
+        current_step += 1
+        _create_or_update_load_balancer_health_check_firewall(
+            config, compute, vpc_id)
 
     with cli_logger.group(
             "Creating or updating custom firewalls",
@@ -884,8 +1015,12 @@ def _create_or_update_firewalls(config, compute, vpc_id):
 
 def check_workspace_firewalls(config, compute):
     workspace_name = get_workspace_name(config)
-    firewall_names = ["cloudtik-{}-default-allow-internal-firewall".format(
-        workspace_name)]
+    firewall_names = [
+        GCP_WORKSPACE_DEFAULT_INTERNAL_FIREWALL_NAME.format(
+            workspace_name),
+        GCP_WORKSPACE_LOAD_BALANCER_HEALTH_CHECK_FIREWALL_NAME.format(
+            workspace_name),
+    ]
 
     for firewall_name in firewall_names:
         if not check_firewall_exist(config, compute, firewall_name):
@@ -916,7 +1051,8 @@ def _delete_firewalls(config, compute):
         firewall.get("name")
         for firewall in compute.firewalls().list(
             project=project_id).execute().get("items")
-        if "cloudtik-{}".format(workspace_name) in firewall.get("name")]
+        if "{}-{}".format(
+            GCP_RESOURCE_NAME_PREFIX, workspace_name) in firewall.get("name")]
 
     total_steps = len(workspace_firewalls)
     if total_steps == 0:
@@ -982,10 +1118,10 @@ def update_gcp_workspace(
         with cli_logger.group(
                 "Updating workspace: {}", workspace_name):
             with cli_logger.group(
-                    "Updating workspace firewalls",
+                    "Updating network resources",
                     _numbered=("[]", current_step, total_steps)):
                 current_step += 1
-                update_workspace_firewalls(config)
+                update_network_resources(config)
 
             if managed_cloud_storage:
                 with cli_logger.group(
@@ -1027,16 +1163,34 @@ def update_gcp_workspace(
         cf.bold(workspace_name))
 
 
-def update_workspace_firewalls(config):
+def update_network_resources(config):
+    workspace_name = get_workspace_name(config)
     crm, iam, compute, tpu = \
         construct_clients_from_provider_config(config["provider"])
-
-    workspace_name = get_workspace_name(config)
     use_working_vpc = is_use_working_vpc(config)
     vpc_id = get_gcp_vpc_id(config, compute, use_working_vpc)
     if vpc_id is None:
         raise RuntimeError(
-            "The workspace: {} doesn't exist!".format(config["workspace_name"]))
+            "The workspace: {} doesn't exist.".format(workspace_name))
+
+    current_step = 1
+    total_steps = 2
+
+    with cli_logger.group(
+            "Updating proxy subnets",
+            _numbered=("[]", current_step, total_steps)):
+        current_step += 1
+        _create_or_update_proxy_subnets(config, compute, vpc_id)
+
+    with cli_logger.group(
+            "Updating workspace firewalls",
+            _numbered=("[]", current_step, total_steps)):
+        current_step += 1
+        update_workspace_firewalls(config, compute, vpc_id)
+
+
+def update_workspace_firewalls(config, compute, vpc_id):
+    workspace_name = get_workspace_name(config)
 
     try:
         cli_logger.print(
@@ -1397,6 +1551,7 @@ def _delete_network_resources(config, compute, current_step, total_steps):
     """
          Do the work - order of operation:
          Delete VPC peering connection if needed
+         Delete proxy subnets
          Delete public subnet
          Delete router for private subnet
          Delete private subnets
@@ -1412,6 +1567,12 @@ def _delete_network_resources(config, compute, current_step, total_steps):
                 _numbered=("[]", current_step, total_steps)):
             current_step += 1
             _delete_vpc_peering_connections(config, compute)
+
+    with cli_logger.group(
+            "Deleting proxy subnets",
+            _numbered=("[]", current_step, total_steps)):
+        current_step += 1
+        _delete_proxy_subnets(config, compute)
 
     # delete public subnets
     with cli_logger.group(
@@ -1470,7 +1631,7 @@ def _create_vpc(config, compute):
             cli_logger.abort(
                 "There is a existing VPC with the same name: {}, "
                 "if you want to create a new workspace with the same name, "
-                "you need to execute workspace delete first!".format(workspace_name))
+                "you need to execute workspace delete first.".format(workspace_name))
     return vpc_id
 
 
@@ -1554,7 +1715,8 @@ def _create_workspace_service_accounts(config, crm, iam):
 
 def get_default_workspace_object_storage_name(
         workspace_name, region):
-    bucket_name = "cloudtik-{workspace_name}-{region}-{suffix}".format(
+    bucket_name = "{prefix}-{workspace_name}-{region}-{suffix}".format(
+        prefix=GCP_RESOURCE_NAME_PREFIX,
         workspace_name=workspace_name,
         region=region,
         suffix="default"
@@ -1661,7 +1823,7 @@ def _create_global_address(
     global_address_name = GCP_WORKSPACE_DATABASE_GLOBAL_ADDRESS_NAME.format(
         workspace_name)
     project_id = provider_config.get("project_id")
-    network = "projects/{}/global/networks/{}".format(project_id, vpc_name)
+    network = get_network_url(project_id, vpc_name)
     create_body = {
         "name": global_address_name,
         "purpose": "VPC_PEERING",
@@ -1700,7 +1862,7 @@ def _create_private_connection(provider_config, workspace_name, vpc_name):
     service_networking = construct_service_networking(provider_config)
 
     project_id = provider_config.get("project_id")
-    network = "projects/{}/global/networks/{}".format(project_id, vpc_name)
+    network = get_network_url(project_id, vpc_name)
     service_name = "services/{}".format(GCP_SERVICE_NETWORKING_NAME)
     global_address_name = GCP_WORKSPACE_DATABASE_GLOBAL_ADDRESS_NAME.format(workspace_name)
     create_body = {
@@ -1754,7 +1916,7 @@ def _create_managed_database_instance(
         return
 
     project_id = provider_config.get("project_id")
-    network = "projects/{}/global/networks/{}".format(project_id, vpc_name)
+    network = get_network_url(project_id, vpc_name)
 
     sql_admin = construct_sql_admin(provider_config)
     region = provider_config["region"]
@@ -1843,6 +2005,12 @@ def _create_network_resources(config, current_step, total_steps):
         current_step += 1
         _create_nat_for_router(config, compute)
 
+    with cli_logger.group(
+            "Creating proxy subnets",
+            _numbered=("[]", current_step, total_steps)):
+        current_step += 1
+        _create_or_update_proxy_subnets(config, compute, vpc_id)
+
     # create firewalls
     with cli_logger.group(
             "Creating firewall rules",
@@ -1884,6 +2052,7 @@ def check_gcp_workspace_existence(config):
          Check VPC
          Check private subnet
          Check public subnet
+         Check proxy subnets
          Check router
          Check firewalls
          Check VPC peering if needed
@@ -1908,7 +2077,10 @@ def check_gcp_workspace_existence(config):
             if get_subnet(config, get_workspace_public_subnet_name(
                     workspace_name), compute) is not None:
                 existing_resources += 1
-            if get_router(config, "cloudtik-{}-private-router".format(
+            if get_subnet(config, get_workspace_proxy_subnet_name(
+                    workspace_name), compute) is not None:
+                existing_resources += 1
+            if get_router(config, get_workspace_router_name(
                     workspace_name), compute) is not None:
                 existing_resources += 1
             if check_workspace_firewalls(config, compute):
@@ -2201,7 +2373,7 @@ def get_managed_database_instances(
 def get_private_connection(provider_config, workspace_name, vpc_name):
     service_networking = construct_service_networking(provider_config)
     project_id = provider_config.get("project_id")
-    network = "projects/{}/global/networks/{}".format(project_id, vpc_name)
+    network = get_network_url(project_id, vpc_name)
     service_name = "services/{}".format(GCP_SERVICE_NETWORKING_NAME)
     cli_logger.verbose(
         "Getting the private connection for network: {}.".format(vpc_name))
@@ -2629,7 +2801,7 @@ def _create_vpc_peering_connection(config, compute, vpc_id, peer_name, peering_v
     project_id = provider_config.get("project_id")
     cli_logger.print(
         "Creating VPC peering connection: {}...".format(peer_name))
-    peer_network = "projects/{}/global/networks/{}".format(project_id, peering_vpc_name)
+    peer_network = get_network_url(project_id, peering_vpc_name)
     try:
         # Creating the VPC peering
         networks_add_peering_request_body = {
@@ -2996,8 +3168,8 @@ def _configure_disks_for_node(
         if not seq_id:
             raise RuntimeError(
                 "No node sequence id assigned for using permanent data volumes.")
-        node_name_for_disk = "cloudtik-{}-node-{}".format(
-            cluster_name, seq_id)
+        node_name_for_disk = "{}-{}-node-{}".format(
+            GCP_RESOURCE_NAME_PREFIX, cluster_name, seq_id)
         base_config = copy.deepcopy(base_config)
         base_config = _configure_disk_name_for_volumes(
             base_config, cluster_name, node_name_for_disk)
@@ -3129,7 +3301,7 @@ def bootstrap_gcp_from_workspace(config):
     if not check_gcp_workspace_integrity(config):
         workspace_name = get_workspace_name(config)
         cli_logger.abort(
-            "GCP workspace {} doesn't exist or is in wrong state!", workspace_name)
+            "GCP workspace {} doesn't exist or is in wrong state.", workspace_name)
 
     config = copy.deepcopy(config)
 

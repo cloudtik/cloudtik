@@ -14,7 +14,7 @@ from cloudtik.core._private.util.database_utils import get_database_engine, get_
     DATABASE_ENV_ENGINE, DATABASE_ENV_HOST, DATABASE_ENV_PORT, DATABASE_ENV_USERNAME, DATABASE_ENV_PASSWORD, \
     DATABASE_ENGINE_MYSQL, get_database_default_port
 from cloudtik.core._private.utils import get_storage_config_for_update, get_database_config_for_update, \
-    get_config_for_update, PROVIDER_DATABASE_CONFIG_KEY, PROVIDER_STORAGE_CONFIG_KEY, PROVIDER_CREDENTIALS_CONFIG_KEY, \
+    get_config_for_update, PROVIDER_DATABASE_CONFIG_KEY, PROVIDER_STORAGE_CONFIG_KEY, \
     get_cloud_credentials, clear_cloud_credentials
 from cloudtik.providers._private.gcp.node import (GCPNodeType, MAX_POLLS,
                                                   POLL_INTERVAL)
@@ -94,9 +94,10 @@ def clear_gcp_credentials(provider_config):
 def _get_gcp_credentials(provider_config):
     gcp_credentials = get_gcp_credentials(provider_config)
     if gcp_credentials is None:
-        logger.debug("gcp_credentials not found in cluster yaml file. "
-                     "Falling back to GOOGLE_APPLICATION_CREDENTIALS "
-                     "environment variable.")
+        logger.debug(
+            "gcp_credentials not found in cluster yaml file. "
+            "Falling back to GOOGLE_APPLICATION_CREDENTIALS "
+            "environment variable.")
         # If gcp_credentials is None, then discovery.build will search for
         # credentials in the local environment.
         return None
@@ -131,9 +132,10 @@ def construct_clients_from_provider_config(provider_config):
     """
     credentials = _get_gcp_credentials(provider_config)
     if credentials is None:
-        logger.debug("gcp_credentials not found in cluster yaml file. "
-                     "Falling back to GOOGLE_APPLICATION_CREDENTIALS "
-                     "environment variable.")
+        logger.debug(
+            "gcp_credentials not found in cluster yaml file. "
+            "Falling back to GOOGLE_APPLICATION_CREDENTIALS "
+            "environment variable.")
         tpu_resource = _create_tpu() if provider_config.get(
             HAS_TPU_PROVIDER_FIELD, False) else None
         # If gcp_credentials is None, then discovery.build will search for
@@ -211,8 +213,9 @@ def construct_storage_client(provider_config):
 
 def wait_for_crm_operation(operation, crm):
     """Poll for cloud resource manager operation until finished."""
-    cli_logger.verbose("wait_for_crm_operation: "
-                       "Waiting for operation {} to finish...".format(operation["name"]))
+    cli_logger.verbose(
+        "wait_for_crm_operation: "
+        "Waiting for operation {} to finish...".format(operation["name"]))
 
     for _ in range(MAX_POLLS):
         result = crm.operations().get(name=operation["name"]).execute()
@@ -220,7 +223,8 @@ def wait_for_crm_operation(operation, crm):
             raise Exception(result["error"])
 
         if "done" in result and result["done"]:
-            cli_logger.verbose("wait_for_crm_operation: Operation done.")
+            cli_logger.verbose(
+                "wait_for_crm_operation: Operation done.")
             break
 
         time.sleep(POLL_INTERVAL)
@@ -230,8 +234,9 @@ def wait_for_crm_operation(operation, crm):
 
 def wait_for_compute_region_operation(project_name, region, operation, compute):
     """Poll for compute region operation until finished."""
-    cli_logger.verbose("wait_for_compute_region_operation: "
-                       "Waiting for operation {} to finish...".format(operation["name"]))
+    cli_logger.verbose(
+        "wait_for_compute_region_operation: "
+        "Waiting for operation {} to finish...".format(operation["name"]))
 
     for _ in range(MAX_POLLS):
         result = compute.regionOperations().get(
@@ -243,8 +248,8 @@ def wait_for_compute_region_operation(project_name, region, operation, compute):
             raise Exception(result["error"])
 
         if result["status"] == "DONE":
-            cli_logger.verbose("wait_for_compute_region_operation: "
-                               "Operation done.")
+            cli_logger.verbose(
+                "wait_for_compute_region_operation: Operation done.")
             break
 
         time.sleep(POLL_INTERVAL)
@@ -254,8 +259,9 @@ def wait_for_compute_region_operation(project_name, region, operation, compute):
 
 def wait_for_compute_zone_operation(project_id, availability_zone, operation, compute):
     """Poll for compute zone operation until finished."""
-    cli_logger.verbose("wait_for_compute_zone_operation: "
-                       "Waiting for operation {} to finish...".format(operation["name"]))
+    cli_logger.verbose(
+        "wait_for_compute_zone_operation: "
+        "Waiting for operation {} to finish...".format(operation["name"]))
 
     for _ in range(MAX_POLLS):
         result = compute.zoneOperations().get(
@@ -267,8 +273,8 @@ def wait_for_compute_zone_operation(project_id, availability_zone, operation, co
             raise Exception(result["error"])
 
         if result["status"] == "DONE":
-            cli_logger.verbose("wait_for_compute_zone_operation: "
-                               "Operation done.")
+            cli_logger.verbose(
+                "wait_for_compute_zone_operation: Operation done.")
             break
 
         time.sleep(POLL_INTERVAL)
@@ -278,8 +284,9 @@ def wait_for_compute_zone_operation(project_id, availability_zone, operation, co
 
 def wait_for_compute_global_operation(project_name, operation, compute):
     """Poll for global compute operation until finished."""
-    cli_logger.verbose("wait_for_compute_global_operation: "
-                       "Waiting for operation {} to finish...".format(operation["name"]))
+    cli_logger.verbose(
+        "wait_for_compute_global_operation: "
+        "Waiting for operation {} to finish...".format(operation["name"]))
 
     for _ in range(MAX_POLLS):
         result = compute.globalOperations().get(
@@ -290,8 +297,8 @@ def wait_for_compute_global_operation(project_name, operation, compute):
             raise Exception(result["error"])
 
         if result["status"] == "DONE":
-            cli_logger.verbose("wait_for_compute_global_operation: "
-                               "Operation done.")
+            cli_logger.verbose(
+                "wait_for_compute_global_operation: Operation done.")
             break
 
         time.sleep(POLL_INTERVAL)
@@ -301,8 +308,9 @@ def wait_for_compute_global_operation(project_name, operation, compute):
 
 def wait_for_sql_admin_operation(project_id, operation, sql_admin):
     """Poll for cloud resource manager operation until finished."""
-    cli_logger.verbose("wait_for_sql_admin_operation: "
-                       "Waiting for operation {} to finish...".format(operation["name"]))
+    cli_logger.verbose(
+        "wait_for_sql_admin_operation: "
+        "Waiting for operation {} to finish...".format(operation["name"]))
 
     for _ in range(MAX_POLLS * 5):
         result = sql_admin.operations().get(
@@ -312,7 +320,8 @@ def wait_for_sql_admin_operation(project_id, operation, sql_admin):
             raise Exception(result["error"])
 
         if result["status"] == "DONE":
-            cli_logger.verbose("wait_for_sql_admin_operation: Operation done.")
+            cli_logger.verbose(
+                "wait_for_sql_admin_operation: Operation done.")
             break
 
         time.sleep(POLL_INTERVAL)
@@ -322,8 +331,9 @@ def wait_for_sql_admin_operation(project_id, operation, sql_admin):
 
 def wait_for_service_networking_operation(operation, service_networking):
     """Poll for cloud resource manager operation until finished."""
-    cli_logger.verbose("wait_for_service_networking_operation: "
-                       "Waiting for operation {} to finish...".format(operation["name"]))
+    cli_logger.verbose(
+        "wait_for_service_networking_operation: "
+        "Waiting for operation {} to finish...".format(operation["name"]))
 
     for _ in range(MAX_POLLS * 5):
         result = service_networking.operations().get(
@@ -332,7 +342,8 @@ def wait_for_service_networking_operation(operation, service_networking):
             raise Exception(result["error"])
 
         if "done" in result and result["done"]:
-            cli_logger.verbose("wait_for_service_networking_operation: Operation done.")
+            cli_logger.verbose(
+                "wait_for_service_networking_operation: Operation done.")
             break
 
         time.sleep(POLL_INTERVAL)
@@ -540,3 +551,11 @@ def get_service_account_email(project_id, account_id):
             account_id=account_id,
             project_id=project_id)
     return email
+
+
+def get_network_url(project_id, network_name):
+    return f"projects/{project_id}/global/networks/{network_name}"
+
+
+def get_subnetwork_url(project_id, region, subnet_name):
+    return f"projects/{project_id}/regions/{region}/subnetworks/{subnet_name}"
