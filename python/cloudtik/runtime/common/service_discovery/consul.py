@@ -7,7 +7,7 @@ from cloudtik.core._private.service_discovery.utils import SERVICE_SELECTOR_SERV
     SERVICE_SELECTOR_RUNTIMES, SERVICE_SELECTOR_CLUSTERS, SERVICE_SELECTOR_EXCLUDE_JOINED_LABELS, \
     SERVICE_DISCOVERY_TAG_CLUSTER_PREFIX, SERVICE_DISCOVERY_TAG_SYSTEM_PREFIX, ServiceAddressType, \
     SERVICE_DISCOVERY_LABEL_RUNTIME, SERVICE_SELECTOR_SERVICE_TYPES, SERVICE_DISCOVERY_LABEL_SERVICE, \
-    SERVICE_DISCOVERY_LABEL_SEQ
+    SERVICE_DISCOVERY_LABEL_SEQ_ID, SERVICE_DISCOVERY_LABEL_NODE_ID
 from cloudtik.core._private.util.core_utils import get_intersect_labels
 from cloudtik.core._private.util.rest_api import EndPointAddress
 from cloudtik.runtime.common.consul_utils import consul_api_get, ConsulClient
@@ -211,7 +211,12 @@ def get_node_label_of_node(service_node, label_name):
 
 def get_node_seq_id_of_node(service_node):
     return get_node_label_of_node(
-        service_node, SERVICE_DISCOVERY_LABEL_SEQ)
+        service_node, SERVICE_DISCOVERY_LABEL_SEQ_ID)
+
+
+def get_node_id_of_node(service_node):
+    return get_node_label_of_node(
+        service_node, SERVICE_DISCOVERY_LABEL_NODE_ID)
 
 
 def get_service_dns_name(

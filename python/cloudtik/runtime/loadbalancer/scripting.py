@@ -62,7 +62,14 @@ def _get_backend_service_from_config(service_name, backend_service_config):
         LOAD_BALANCER_BACKEND_SERVICE_SERVERS_CONFIG_KEY)
     if not servers:
         return None
-    backend_servers = [service_address_from_string(server, None) for server in servers]
+    backend_servers = {}
+    for server in servers:
+        service_address = service_address_from_string(server, None)
+        backend_server = {
+            "ip": service_address[0],
+            "port": service_address[1],
+        }
+        backend_servers[service_address] = backend_server
     if not backend_servers:
         return None
 

@@ -526,11 +526,13 @@ def get_default_gcp_cloud_database(provider_config):
 
 
 def _get_node_info(node: GCPNode):
-    node_info = {"node_id": node["id"],
-                 "instance_type": node["machineType"].split("/")[-1],
-                 "private_ip": node.get_internal_ip(),
-                 "public_ip": node.get_external_ip(),
-                 "instance_status": node["status"]}
+    # TODO: shall we use node["name"] same as node provider
+    node_info = {
+        "node_id": node["id"],
+        "instance_type": node["machineType"].split("/")[-1],
+        "private_ip": node.get_internal_ip(),
+        "public_ip": node.get_external_ip(),
+        "instance_status": node["status"]}
     node_info.update(node.get_labels())
     return node_info
 

@@ -75,9 +75,9 @@ def _get_sorted_service_groups(service_groups):
 
 
 def _sorted_backend_targets(backend_targets):
-    def sort_by_id(backend_target):
-        return backend_target["id"]
-    backend_targets.sort(key=sort_by_id)
+    def sort_by_ip_port(backend_target):
+        return backend_target["ip"], backend_target["port"]
+    backend_targets.sort(key=sort_by_ip_port)
 
 
 class LoadBalancerManager:
@@ -406,11 +406,8 @@ class LoadBalancerManager:
         sorted_backend_services = _get_sorted_backend_services(backend_services)
         for backend_service in sorted_backend_services:
             backend_servers = backend_service.backend_servers
-            backend_targets = [
-                {"id": node_seq_id, "ip": server_address[0], "port": server_address[1]}
-                for node_seq_id, server_address in backend_servers.items()
-            ]
-            # The sort backend targets by id
+            backend_targets = [backend_server for backend_server in backend_servers.values()]
+            # The sort backend targets by ip and port
             _sorted_backend_targets(backend_targets)
 
             service = {

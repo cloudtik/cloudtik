@@ -73,6 +73,9 @@ GCP_WORKING_VPC_PEERING_NAME = GCP_RESOURCE_NAME_PREFIX + "-{}-b-peer"
 GCP_WORKSPACE_DATABASE_NAME = GCP_RESOURCE_NAME_PREFIX + "-{}-db"
 GCP_WORKSPACE_DATABASE_GLOBAL_ADDRESS_NAME = GCP_RESOURCE_NAME_PREFIX + "-{}-addr"
 
+GCP_WORKSPACE_PUBLIC_SUBNET = "public"
+GCP_WORKSPACE_PRIVATE_SUBNET = "private"
+
 # We currently create only regional proxy-only subnet
 GCP_WORKSPACE_GLOBAL_PROXY_SUBNET = "global-proxy"
 GCP_WORKSPACE_REGIONAL_PROXY_SUBNET = "regional-proxy"
@@ -90,19 +93,20 @@ GCP_SERVICE_NETWORKING_NAME = "servicenetworking.googleapis.com"
 
 # Those roles will always be added.
 HEAD_SERVICE_ACCOUNT_ROLES = [
-    "roles/storage.admin",
     "roles/compute.admin",
+    "roles/storage.admin",
     # TODO: The network admin role for load balancers in more fine grained way
     "roles/compute.networkAdmin",
-    "roles/iam.serviceAccountUser"
+    "roles/iam.serviceAccountUser",
 ]
 
 # Those roles will always be added.
 WORKER_SERVICE_ACCOUNT_ROLES = [
+    "roles/compute.viewer",
     "roles/storage.admin",
     # TODO: The network admin role for load balancers in more fine grained way
     "roles/compute.networkAdmin",
-    "roles/iam.serviceAccountUser"
+    "roles/iam.serviceAccountUser",
 ]
 
 # Those roles will only be added if there are TPU nodes defined in config.
@@ -556,9 +560,9 @@ def _configure_gcp_subnets_cidr(config, compute, vpc_id, num_cidr):
 
 def _delete_subnet(config, compute, is_private=True):
     if is_private:
-        subnet_type = "private"
+        subnet_type = GCP_WORKSPACE_PRIVATE_SUBNET
     else:
-        subnet_type = "public"
+        subnet_type = GCP_WORKSPACE_PUBLIC_SUBNET
 
     _delete_subnet_of_type(config, compute, subnet_type)
 
@@ -610,7 +614,7 @@ def _create_and_configure_subnets(config, compute, vpc_id):
             "Failed to get {} free CIDR ranges for VPC: {}.".format(
                 num_cidr, vpc_id))
 
-    subnets_type = ["public", "private"]
+    subnets_type = [GCP_WORKSPACE_PUBLIC_SUBNET, GCP_WORKSPACE_PRIVATE_SUBNET]
     for i in range(2):
         subnet_name = get_workspace_subnet_name_of_type(
             workspace_name, subnets_type[i])
@@ -624,7 +628,7 @@ def _create_and_configure_subnets(config, compute, vpc_id):
             "name": subnet_name,
             "network": get_network_url(project_id, vpc_id),
             "stackType": "IPV4_ONLY",
-            "privateIpGoogleAccess": False if subnets_type[i] == "public" else True,
+            "privateIpGoogleAccess": False if subnets_type[i] == GCP_WORKSPACE_PUBLIC_SUBNET else True,
             "region": region
         }
         try:
