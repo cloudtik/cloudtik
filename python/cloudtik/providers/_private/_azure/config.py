@@ -2981,7 +2981,7 @@ def _delete_vnet_peering_connection(
             network_client, resource_group_name,
             virtual_network_name, virtual_network_peering_name) is None:
         cli_logger.print(
-            "The virtual_network_peering \"{}\" is not found.",
+            "The virtual_network_peering {} is not found.",
             virtual_network_peering_name)
     else:
         try:
@@ -3087,7 +3087,7 @@ def _delete_subnet_of_type(
         virtual_network_name, subnet_name)
     if subnet is None:
         cli_logger.print(
-            "The {} subnet \"{}\" is not found for workspace. Skip deletion.",
+            "The {} subnet {} is not found for workspace. Skip deletion.",
             subnet_type, subnet_name)
         return
 
