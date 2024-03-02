@@ -74,16 +74,18 @@ AZURE_WORKSPACE_DATABASE_SUBNET_NAME = AZURE_RESOURCE_NAME_PREFIX + "-{}-{}-subn
 AZURE_WORKSPACE_DATABASE_PRIVATE_DNS_ZONE_NAME = AZURE_RESOURCE_NAME_PREFIX + ".{}.database.azure.com"
 AZURE_WORKSPACE_DATABASE_PRIVATE_DNS_ZONE_LINK_NAME = AZURE_RESOURCE_NAME_PREFIX + "{}-{}-dns-link"
 
+AZURE_APPLICATION_GATEWAY_SUBNET = "gateway"
+
 AZURE_DATABASE_MYSQL_SERVER_ENDPOINT = "{}.mysql.database.azure.com"
 AZURE_DATABASE_POSTGRES_SERVER_ENDPOINT = "{}.postgres.database.azure.com"
 
 AZURE_WORKSPACE_VERSION_TAG_NAME = "cloudtik-workspace-version"
 AZURE_WORKSPACE_VERSION_CURRENT = "1"
 
-AZURE_WORKSPACE_NUM_CREATION_STEPS = 9
-AZURE_WORKSPACE_NUM_DELETION_STEPS = 9
-AZURE_WORKSPACE_NUM_UPDATE_STEPS = 1
-AZURE_WORKSPACE_TARGET_RESOURCES = 12
+AZURE_WORKSPACE_NUM_CREATION_STEPS = 10
+AZURE_WORKSPACE_NUM_DELETION_STEPS = 10
+AZURE_WORKSPACE_NUM_UPDATE_STEPS = 2
+AZURE_WORKSPACE_TARGET_RESOURCES = 13
 
 AZURE_MANAGED_STORAGE_TYPE = "azure.managed.storage.type"
 AZURE_MANAGED_STORAGE_ACCOUNT = "azure.managed.storage.account"
@@ -187,9 +189,18 @@ def get_workspace_vnet_peering_name(workspace_name):
     return AZURE_WORKSPACE_VNET_PEERING_NAME.format(workspace_name)
 
 
+def get_workspace_subnet_name_of_type(workspace_name, subnet_type):
+    return AZURE_WORKSPACE_SUBNET_NAME.format(workspace_name, subnet_type)
+
+
 def get_workspace_subnet_name(workspace_name, is_private=True):
-    return AZURE_WORKSPACE_SUBNET_NAME.format(workspace_name, 'private') if is_private \
-        else AZURE_WORKSPACE_SUBNET_NAME.format(workspace_name, 'public')
+    subnet_type = 'private' if is_private else 'public'
+    return get_workspace_subnet_name_of_type(workspace_name, subnet_type)
+
+
+def get_application_gateway_subnet_name(workspace_name):
+    return get_workspace_subnet_name_of_type(
+        workspace_name, AZURE_APPLICATION_GATEWAY_SUBNET)
 
 
 def get_workspace_storage_account_name(workspace_name):
@@ -318,6 +329,13 @@ def check_azure_workspace_existence(config):
             if get_subnet(
                     network_client, resource_group_name,
                     virtual_network_name, public_subnet_name) is not None:
+                existing_resources += 1
+
+            application_gateway_subnet_name = get_application_gateway_subnet_name(
+                workspace_name)
+            if get_subnet(
+                    network_client, resource_group_name,
+                    virtual_network_name, application_gateway_subnet_name) is not None:
                 existing_resources += 1
 
             if use_peering_vpc:
@@ -519,10 +537,16 @@ def update_azure_workspace(
         with cli_logger.group(
                 "Updating workspace: {}", workspace_name):
             with cli_logger.group(
+                    "Updating network resources",
+                    _numbered=("[]", current_step, total_steps)):
+                current_step += 1
+                update_network_resources(config, resource_group_name)
+
+            with cli_logger.group(
                     "Updating workspace firewalls",
                     _numbered=("[]", current_step, total_steps)):
                 current_step += 1
-                update_workspace_firewalls(config)
+                update_workspace_firewalls(config, resource_group_name)
 
             if managed_cloud_storage:
                 with cli_logger.group(
@@ -562,17 +586,9 @@ def update_azure_workspace(
         cf.bold(workspace_name))
 
 
-def update_workspace_firewalls(config):
-    resource_client = construct_resource_client(config)
+def update_workspace_firewalls(config, resource_group_name):
     network_client = construct_network_client(config)
     workspace_name = get_workspace_name(config)
-    use_working_vpc = is_use_working_vpc(config)
-    resource_group_name = get_resource_group_name(
-        config, resource_client, use_working_vpc)
-
-    if resource_group_name is None:
-        raise RuntimeError(
-            "The workspace: {} doesn't exist!".format(config["workspace_name"]))
 
     try:
 
@@ -587,6 +603,25 @@ def update_workspace_firewalls(config):
     cli_logger.print(
         "Successfully updated the firewalls of workspace: {}.",
         cf.bold(workspace_name))
+
+
+def update_network_resources(config, resource_group_name):
+    provider_config = get_provider_config(config)
+    workspace_name = get_workspace_name(config)
+    virtual_network_name = get_virtual_network_name(
+        provider_config, workspace_name)
+    network_client = construct_network_client(config)
+
+    current_step = 1
+    total_steps = 1
+
+    with cli_logger.group(
+            "Updating application gateway subnet",
+            _numbered=("()", current_step, total_steps)):
+        current_step += 1
+        _create_or_update_application_gateway_subnet(
+            config, network_client, resource_group_name,
+            virtual_network_name)
 
 
 def delete_azure_workspace(
@@ -681,8 +716,9 @@ def _delete_network_resources(
     """
          Do the work - order of operation
          Delete virtual network peering if needed
+         Delete application gateway subnet
          Delete public subnet
-         Delete private subnet 
+         Delete private subnet
          Delete NAT gateway
          Delete public IP address
          Delete network security group
@@ -698,7 +734,15 @@ def _delete_network_resources(
             _delete_vnet_peering_connections(
                 config, resource_client, network_client)
 
-    # delete public subnets
+    with cli_logger.group(
+            "Deleting application gateway subnet",
+            _numbered=("[]", current_step, total_steps)):
+        current_step += 1
+        _delete_application_gateway_subnet(
+            config, network_client, resource_group_name,
+            virtual_network_name)
+
+    # delete public subnet
     with cli_logger.group(
             "Deleting public subnet",
             _numbered=("[]", current_step, total_steps)):
@@ -1216,8 +1260,9 @@ def _delete_managed_database_delegated_subnet(
     subnet_name = get_managed_database_subnet_name(workspace_name, engine)
 
     network_client = _construct_network_client(provider_config)
-    subnet = get_subnet(network_client, resource_group_name,
-                        virtual_network_name, subnet_name)
+    subnet = get_subnet(
+        network_client, resource_group_name,
+        virtual_network_name, subnet_name)
     if subnet is None:
         cli_logger.print(
             "Delegated subnet for database doesn't exist. Skip deletion.")
@@ -2369,8 +2414,9 @@ def _create_managed_database_delegated_subnet(
         virtual_network_name, engine):
     network_client = _construct_network_client(cloud_provider)
     subnet_name = get_managed_database_subnet_name(workspace_name, engine)
-    subnet = get_subnet(network_client, resource_group_name,
-                        virtual_network_name, subnet_name)
+    subnet = get_subnet(
+        network_client, resource_group_name,
+        virtual_network_name, subnet_name)
     if subnet is not None:
         cli_logger.print(
             "Delegated subnet for database already exist. Skip creation.")
@@ -2935,7 +2981,7 @@ def _delete_vnet_peering_connection(
             network_client, resource_group_name,
             virtual_network_name, virtual_network_peering_name) is None:
         cli_logger.print(
-            "The virtual_network_peering \"{}\" is not found.",
+            "The virtual_network_peering {} is not found.",
             virtual_network_peering_name)
     else:
         try:
@@ -3014,22 +3060,40 @@ def _delete_subnet(
         config, network_client, resource_group_name,
         virtual_network_name, is_private=True):
     if is_private:
-        subnet_attribute = "private"
+        subnet_type = "private"
     else:
-        subnet_attribute = "public"
+        subnet_type = "public"
+    _delete_subnet_of_type(
+        config, network_client, resource_group_name,
+        virtual_network_name, subnet_type)
 
+
+def _delete_application_gateway_subnet(
+        config, network_client, resource_group_name,
+        virtual_network_name):
+    _delete_subnet_of_type(
+        config, network_client, resource_group_name,
+        virtual_network_name, AZURE_APPLICATION_GATEWAY_SUBNET)
+
+
+def _delete_subnet_of_type(
+        config, network_client, resource_group_name,
+        virtual_network_name, subnet_type):
     workspace_name = get_workspace_name(config)
-    subnet_name = get_workspace_subnet_name(workspace_name, is_private=is_private)
+    subnet_name = get_workspace_subnet_name_of_type(workspace_name, subnet_type)
 
-    if get_subnet(network_client, resource_group_name, virtual_network_name, subnet_name) is None:
+    subnet = get_subnet(
+        network_client, resource_group_name,
+        virtual_network_name, subnet_name)
+    if subnet is None:
         cli_logger.print(
-            "The {} subnet \"{}\" is not found for workspace.",
-            subnet_attribute, subnet_name)
+            "The {} subnet {} is not found for workspace. Skip deletion.",
+            subnet_type, subnet_name)
         return
 
     """ Delete custom subnet """
     cli_logger.print(
-        "Deleting {} subnet: {}...", subnet_attribute, subnet_name)
+        "Deleting {} subnet: {}...", subnet_type, subnet_name)
     try:
         network_client.subnets.begin_delete(
             resource_group_name=resource_group_name,
@@ -3038,11 +3102,11 @@ def _delete_subnet(
         ).result()
         cli_logger.print(
             "Successfully deleted {} subnet: {}.",
-            subnet_attribute, subnet_name)
+            subnet_type, subnet_name)
     except Exception as e:
         cli_logger.error(
             "Failed to delete the {} subnet: {}. {}",
-            subnet_attribute, subnet_name, str(e))
+            subnet_type, subnet_name, str(e))
         raise e
 
 
@@ -3165,7 +3229,7 @@ def _create_and_configure_subnets(
         virtual_network_name, is_private=True):
     subscription_id = config["provider"].get("subscription_id")
     workspace_name = get_workspace_name(config)
-    subnet_attribute = "private" if is_private else "public"
+    subnet_type = "private" if is_private else "public"
     subnet_name = get_workspace_subnet_name(workspace_name, is_private=is_private)
 
     cidr_block = _configure_azure_subnet_cidr(
@@ -3196,7 +3260,17 @@ def _create_and_configure_subnets(
                     "networkSecurityGroups", network_security_group_name)
             }
         }
+    _create_subnet(
+        network_client, resource_group_name,
+        virtual_network_name, subnet_type, subnet_name,
+        subnet_parameters, cidr_block
+    )
 
+
+def _create_subnet(
+        network_client, resource_group_name,
+        virtual_network_name, subnet_type, subnet_name,
+        subnet_parameters, cidr_block):
     # Create subnet
     cli_logger.print(
         "Creating subnet for the virtual network: {} with CIDR: {}...".
@@ -3209,11 +3283,41 @@ def _create_and_configure_subnets(
             subnet_parameters=subnet_parameters
         ).result()
         cli_logger.print(
-            "Successfully created {} subnet: {}.".format(subnet_attribute, subnet_name))
+            "Successfully created {} subnet: {}.".format(subnet_type, subnet_name))
     except Exception as e:
         cli_logger.error(
             "Failed to create subnet. {}", str(e))
         raise e
+
+
+def _create_or_update_application_gateway_subnet(
+        config, network_client, resource_group_name,
+        virtual_network_name):
+    workspace_name = get_workspace_name(config)
+    subnet_type = AZURE_APPLICATION_GATEWAY_SUBNET
+    subnet_name = get_application_gateway_subnet_name(workspace_name)
+
+    # check whether it is already exists
+    subnet = get_subnet(
+        network_client, resource_group_name,
+        virtual_network_name, subnet_name)
+    if subnet:
+        cli_logger.print(
+            "The {} subnet {} already exists in workspace. Skip creation.",
+            subnet_type, subnet_name)
+        return
+
+    cidr_block = _configure_azure_subnet_cidr(
+        network_client, resource_group_name, virtual_network_name)
+
+    subnet_parameters = {
+        "address_prefix": cidr_block,
+    }
+    _create_subnet(
+        network_client, resource_group_name,
+        virtual_network_name, subnet_type, subnet_name,
+        subnet_parameters, cidr_block
+    )
 
 
 def _create_nat(
@@ -3374,6 +3478,14 @@ def _create_network_resources(
         _create_and_configure_subnets(
             config, network_client, resource_group_name,
             virtual_network_name, is_private=True)
+
+    with cli_logger.group(
+            "Creating application gateway subnet",
+            _numbered=("[]", current_step, total_steps)):
+        current_step += 1
+        _create_or_update_application_gateway_subnet(
+            config, network_client, resource_group_name,
+            virtual_network_name)
 
     if is_use_peering_vpc(config):
         with cli_logger.group(
