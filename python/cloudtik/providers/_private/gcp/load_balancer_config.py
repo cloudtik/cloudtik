@@ -6,7 +6,8 @@ from cloudtik.core.load_balancer_provider import LOAD_BALANCER_TYPE_NETWORK, LOA
     LOAD_BALANCER_PROTOCOL_TCP, LOAD_BALANCER_PROTOCOL_TLS, LOAD_BALANCER_PROTOCOL_HTTP, \
     LOAD_BALANCER_PROTOCOL_HTTPS, LOAD_BALANCER_TYPE_APPLICATION, LOAD_BALANCER_SCHEME_INTERNAL
 from cloudtik.core.tags import CLOUDTIK_TAG_WORKSPACE_NAME
-from cloudtik.providers._private.gcp.config import get_gcp_vpc_name, get_workspace_subnet_name
+from cloudtik.providers._private.gcp.config import get_gcp_vpc_name, get_workspace_subnet_name, \
+    get_workspace_subnet_name_of_type, GCP_WORKSPACE_PUBLIC_SUBNET, GCP_WORKSPACE_PRIVATE_SUBNET
 from cloudtik.providers._private.gcp.utils import wait_for_compute_region_operation, \
     wait_for_compute_global_operation, wait_for_compute_zone_operation, get_network_url, get_subnetwork_url
 
@@ -122,6 +123,9 @@ reach the backends. Replace source-ranges to the actual proxy-only subnet CIDR.
 Finally, the network endpoint group to use is zonal.
 Zonal NEGs are zonal resources that represent collections of either IP addresses
 or IP address and port combinations for Google Cloud resources within a single subnet.
+
+Global network endpoint group = Internet NEG
+Regional network endpoint group = Serverless NEG
 
 """
 
@@ -652,8 +656,8 @@ def _update_services(
         service, backend_service = backend_service_to_update
         if _is_backend_service_updated(backend_services_hash_context, service):
             _update_service(
-                compute, provider_config, project_id, region,
-                load_balancer, service)
+                compute, provider_config, project_id, region, vpc_name,
+                workspace_name, load_balancer, service)
             _update_backend_service_hash(
                 backend_services_hash_context, service)
 
@@ -793,13 +797,9 @@ def _create_service(
         compute, provider_config, project_id, region,
         load_balancer, service)
 
-    _create_network_endpoint_group(
+    _create_or_update_network_endpoint_groups(
         compute, provider_config, project_id, vpc_name,
         workspace_name, load_balancer, service)
-
-    _add_network_endpoint_group_endpoints(
-        compute, provider_config, project_id,
-        load_balancer, service)
 
     # create backend service using the health check
     _create_backend_service(
@@ -808,12 +808,15 @@ def _create_service(
 
 
 def _update_service(
-        compute, provider_config, project_id, region,
-        load_balancer, service):
+        compute, provider_config, project_id, region, vpc_name,
+        workspace_name, load_balancer, service):
     # for updating service, we currently only update the targets
-    _update_network_endpoint_group_endpoints(
-        compute, provider_config, project_id,
-        load_balancer, service)
+    _create_or_update_network_endpoint_groups(
+        compute, provider_config, project_id, vpc_name,
+        workspace_name, load_balancer, service)
+
+    # Currently, all network endpoint groups are created and set when creating
+    # Future to support dynamic network endpoint groups
 
 
 def _delete_service(
@@ -828,7 +831,7 @@ def _delete_service(
         load_balancer, service)
 
     # delete the network endpoint group
-    _delete_network_endpoint_group(
+    _delete_network_endpoint_groups(
         compute, provider_config, project_id,
         load_balancer, service)
 
@@ -905,9 +908,10 @@ def _delete_health_check(
 
 
 def _get_network_endpoint_group_name(
-        load_balancer_name, service):
+        load_balancer_name, service, subnet, zone):
     service_name = service["name"]
-    return "{}-{}".format(load_balancer_name, service_name)
+    return "{}-{}-{}-{}".format(
+        load_balancer_name, service_name, subnet, zone)
 
 
 def _get_network_endpoint_group_url(project_id, zone, network_endpoint_group_name):
@@ -937,16 +941,109 @@ def _get_compute_full_qualified_url(relative_url):
     return "https://www.googleapis.com/compute/v1/" + relative_url
 
 
+def _get_workspace_subnet_zones(provider_config):
+    availability_zone = provider_config["availability_zone"]
+    subnets = [GCP_WORKSPACE_PUBLIC_SUBNET, GCP_WORKSPACE_PRIVATE_SUBNET]
+    zones = [availability_zone]
+    subnet_zones = []
+    for subnet in subnets:
+        for zone in zones:
+            subnet_zone = (subnet, zone)
+            subnet_zones.append(subnet_zone)
+    return subnet_zones
+
+
+def _get_head_worker_targets(service):
+    targets = service.get("targets", [])
+    head_targets = []
+    worker_targets = []
+    for target in targets:
+        seq = int(target["seq"])
+        # Under the assumption that head node seq will be always 1
+        if seq == 1:
+            head_targets.append(target)
+        else:
+            worker_targets.append(target)
+    return head_targets, worker_targets
+
+
+def _get_network_endpoints_of_subnet_zones(
+        service, subnet_zones):
+    # the work here is categorizing the targets into the corresponding subnet and zones
+    # and also we need the VM instance name (id) for creating the NEG endpoint
+    # Currently, we handle only one zone (all the target are in the same zone)
+    head_targets, worker_targets = _get_head_worker_targets(service)
+    network_endpoints_map = {}
+    for subnet_zone in subnet_zones:
+        subnet, zone = subnet_zone
+        if subnet == GCP_WORKSPACE_PUBLIC_SUBNET:
+            network_endpoints = head_targets
+        else:
+            network_endpoints = worker_targets
+        network_endpoints_map[subnet_zone] = network_endpoints
+    return network_endpoints_map
+
+
+def _create_or_update_network_endpoint_groups(
+        compute, provider_config, project_id, vpc_name,
+        workspace_name, load_balancer, service):
+    # figuring out the network endpoint groups we need to create or update
+    # Notes the following:
+    # You must specify the name for each VM endpoint.
+    # Each endpoint VM must be located in the same zone as the NEG.
+    # Every endpoint in the NEG must be a unique IP address and port combination.
+    # A unique endpoint IP address and port combination can be referenced by more than one NEG.
+    # Each endpoint VM must have a network interface in the same VPC network as the NEG.
+    # Endpoint IP addresses must be associated with the same subnet specified in the NEG.
+
+    # get a list of subnets, and get a list of zones
+    # figuring out the endpoint for each subnet and each zone
+    # currently we have two subnets and a single zone
+    subnet_zones = _get_workspace_subnet_zones(provider_config)
+    network_endpoints_map = _get_network_endpoints_of_subnet_zones(
+        service, subnet_zones)
+    for subnet_zone, network_endpoints in network_endpoints_map.items():
+        subnet, zone = subnet_zone
+        _create_or_update_network_endpoint_group_of_service(
+            compute, provider_config, project_id, vpc_name,
+            workspace_name, load_balancer, service,
+            subnet, zone, network_endpoints)
+
+
+def _create_or_update_network_endpoint_group_of_service(
+        compute, provider_config, project_id, vpc_name,
+        workspace_name, load_balancer, service,
+        subnet, zone, network_endpoints):
+    network_endpoint_group = _get_network_endpoint_group(
+        compute, project_id,
+        load_balancer, service, subnet, zone)
+    if not network_endpoint_group:
+        _create_network_endpoint_group(
+            compute, provider_config, project_id, vpc_name,
+            workspace_name, load_balancer, service, subnet, zone)
+
+        _add_network_endpoint_group_endpoints(
+            compute, project_id,
+            load_balancer, service,
+            subnet, zone, network_endpoints)
+    else:
+        # update endpoints
+        _update_network_endpoint_group_endpoints(
+            compute, project_id,
+            load_balancer, service,
+            subnet, zone, network_endpoints)
+
+
 def _get_network_endpoint_group_of_service(
         project_id, region, vpc_name,
-        workspace_name, load_balancer, service):
+        workspace_name, load_balancer, service, subnet, zone):
     load_balancer_name = _get_load_balancer_config_name(load_balancer)
     name = _get_network_endpoint_group_name(
-        load_balancer_name, service)
+        load_balancer_name, service, subnet, zone)
     network = get_network_url(project_id, vpc_name)
+    subnet_name = get_workspace_subnet_name_of_type(workspace_name, subnet)
     # Zonal NEGs are zonal resources that represent collections of either IP addresses
     # or IP address and port combinations for Google Cloud resources within a single subnet.
-    subnet_name = get_workspace_subnet_name(workspace_name)
     subnetwork = get_subnetwork_url(project_id, region, subnet_name)
     network_endpoint_group = {
         "name": name,
@@ -960,18 +1057,34 @@ def _get_network_endpoint_group_of_service(
     return network_endpoint_group
 
 
+def _get_network_endpoint_group(
+        compute, project_id,
+        load_balancer, service, subnet, zone):
+    load_balancer_name = _get_load_balancer_config_name(load_balancer)
+    network_endpoint_group_name = _get_network_endpoint_group_name(
+        load_balancer_name, service, subnet, zone)
+    try:
+        network_endpoint_group = compute.networkEndpointGroups().get(
+            project=project_id,
+            zone=zone,
+            networkEndpointGroup=network_endpoint_group_name,
+        ).execute()
+        return network_endpoint_group
+    except Exception:
+        return None
+
+
 def _create_network_endpoint_group(
         compute, provider_config, project_id, vpc_name,
-        workspace_name, load_balancer, service):
+        workspace_name, load_balancer, service, subnet, zone):
     # Should not use the region parameter which is a flag to indicate
     # a global or a regional load balancer.
     # while here we always create a zonal NEG which is bind to a zone of
     # a region.
     region = provider_config["region"]
-    zone = provider_config["availability_zone"]
     network_endpoint_group = _get_network_endpoint_group_of_service(
         project_id, region, vpc_name,
-        workspace_name, load_balancer, service)
+        workspace_name, load_balancer, service, subnet, zone)
 
     def func():
         # Zonal NEG
@@ -982,13 +1095,23 @@ def _create_network_endpoint_group(
     return network_endpoint_group
 
 
-def _delete_network_endpoint_group(
+def _delete_network_endpoint_groups(
         compute, provider_config, project_id,
         load_balancer, service):
-    zone = provider_config["availability_zone"]
+    subnet_zones = _get_workspace_subnet_zones(provider_config)
+    for subnet_zone in subnet_zones:
+        subnet, zone = subnet_zone
+        _delete_network_endpoint_group(
+            compute, project_id,
+            load_balancer, service, subnet, zone)
+
+
+def _delete_network_endpoint_group(
+        compute, project_id,
+        load_balancer, service, subnet, zone):
     load_balancer_name = _get_load_balancer_config_name(load_balancer)
     network_endpoint_group_name = _get_network_endpoint_group_name(
-        load_balancer_name, service)
+        load_balancer_name, service, subnet, zone)
 
     def func():
         # Zonal NEG
@@ -999,17 +1122,14 @@ def _delete_network_endpoint_group(
     _execute_and_wait(compute, project_id, func, zone=zone)
 
 
-def _get_endpoints_of_service(service):
-    targets = service.get("targets", [])
-    return _get_endpoints_of_targets(targets)
-
-
 def _get_endpoints_of_targets(targets):
     network_endpoints = []
     for target in targets:
+        instance = target["id"]
         ip_address = target["ip"]
         port = target["port"]
         network_endpoint = {
+            "instance": instance,
             "ipAddress": ip_address,
             "port": port,
         }
@@ -1022,21 +1142,20 @@ def _get_endpoints_of_targets(targets):
 
 
 def _update_network_endpoint_group_endpoints(
-        compute, provider_config, project_id,
-        load_balancer, service):
-    zone = provider_config["availability_zone"]
+        compute, project_id,
+        load_balancer, service,
+        subnet, zone, network_endpoints):
     load_balancer_name = _get_load_balancer_config_name(load_balancer)
     network_endpoint_group_name = _get_network_endpoint_group_name(
-        load_balancer_name, service)
+        load_balancer_name, service, subnet, zone)
 
     # decide endpoints to attach or detach
-    endpoints = service.get("targets", [])
     existing_network_endpoints = _list_network_endpoint_group_endpoints(
-        compute, provider_config, project_id,
+        compute, project_id, zone,
         network_endpoint_group_name)
     (endpoints_attach,
      endpoints_to_detach) = _get_endpoints_for_action(
-        endpoints, existing_network_endpoints)
+        network_endpoints, existing_network_endpoints)
 
     if endpoints_attach:
         endpoints = _get_endpoints_of_targets(endpoints_attach)
@@ -1050,32 +1169,33 @@ def _update_network_endpoint_group_endpoints(
             network_endpoint_group_name, endpoints)
 
 
-def _get_endpoints_for_action(endpoints, existing_network_endpoints):
+def _get_endpoints_for_action(network_endpoints, existing_network_endpoints):
     endpoints_attach = []
     endpoints_to_detach = []
     # decide the endpoint by ip and port
     # convert to dict for fast search
     endpoints_by_key = {
-        (endpoint["ip"], endpoint["port"]): endpoint
-        for endpoint in endpoints
+        endpoint["id"]: endpoint
+        for endpoint in network_endpoints
     }
     # The existing endpoint is in the format of
     # {
     #   "networkEndpoint": {
+    #       "instance": "instance"
     #       "ipAddress": "x.x.x.x",
     #       "port": x
     #   }
     # }
     existing_endpoints = [
         {
+            "id": existing_endpoint["networkEndpoint"]["instance"],
             "ip": existing_endpoint["networkEndpoint"]["ipAddress"],
             "port": existing_endpoint["networkEndpoint"]["port"]
         }
         for existing_endpoint in existing_network_endpoints
     ]
-
     existing_endpoints_by_key = {
-        (existing_endpoint["ip"], existing_endpoint["port"]): existing_endpoint
+        existing_endpoint["id"]: existing_endpoint
         for existing_endpoint in existing_endpoints
     }
     for endpoint_key, endpoint in endpoints_by_key.items():
@@ -1088,9 +1208,7 @@ def _get_endpoints_for_action(endpoints, existing_network_endpoints):
 
 
 def _list_network_endpoint_group_endpoints(
-        compute, provider_config, project_id,
-        network_endpoint_group_name):
-    zone = provider_config["availability_zone"]
+        compute, project_id, zone, network_endpoint_group_name):
 
     endpoints = []
     paged_endpoints = _get_network_endpoint_group_endpoints(
@@ -1121,13 +1239,13 @@ def _get_network_endpoint_group_endpoints(
 
 
 def _add_network_endpoint_group_endpoints(
-        compute, provider_config, project_id,
-        load_balancer, service):
-    zone = provider_config["availability_zone"]
+        compute, project_id,
+        load_balancer, service,
+        subnet, zone, network_endpoints):
     load_balancer_name = _get_load_balancer_config_name(load_balancer)
     network_endpoint_group_name = _get_network_endpoint_group_name(
-        load_balancer_name, service)
-    endpoints = _get_endpoints_of_service(service)
+        load_balancer_name, service, subnet, zone)
+    endpoints = _get_endpoints_of_targets(network_endpoints)
     _attach_network_endpoints(
         compute, project_id, zone,
         network_endpoint_group_name, endpoints)
@@ -1166,33 +1284,50 @@ def _get_backend_service_name(load_balancer_name, service):
     return "{}-{}".format(load_balancer_name, service_name)
 
 
-def _get_backend_service(
-        provider_config, project_id, region,
+def _get_backend_service_backends(
+        provider_config, project_id,
         load_balancer, service):
-    zone = provider_config["availability_zone"]
     load_balancer_name = _get_load_balancer_config_name(load_balancer)
-    name = _get_backend_service_name(load_balancer_name, service)
-    scheme = _get_load_balancer_config_scheme(load_balancer)
-
-    service_protocol = service["protocol"]
-    protocol = _get_load_balancer_protocol(service_protocol)
-
     load_balancer_type = _get_load_balancer_config_type(load_balancer)
     if load_balancer_type == LOAD_BALANCER_TYPE_APPLICATION:
         balancing_mode = "RATE"
     else:
         balancing_mode = "CONNECTION"
 
-    # The fully-qualified URL of an instance group or network endpoint group (NEG) resource.
-    # must use the *fully-qualified* URL (starting with https://www.googleapis.com/) to
-    # specify the instance group or NEG.
-    network_endpoint_group_name = _get_network_endpoint_group_name(
-        load_balancer_name, service)
-    network_endpoint_group_url = _get_network_endpoint_group_url(
-        project_id, zone, network_endpoint_group_name)
-    network_endpoint_group_full_url = _get_compute_full_qualified_url(
-        network_endpoint_group_url)
+    backends = []
+    subnet_zones = _get_workspace_subnet_zones(provider_config)
+    for subnet_zone in subnet_zones:
+        subnet, zone = subnet_zone
+        # The fully-qualified URL of an instance group or network endpoint group (NEG) resource.
+        # must use the *fully-qualified* URL (starting with https://www.googleapis.com/) to
+        # specify the instance group or NEG.
+        network_endpoint_group_name = _get_network_endpoint_group_name(
+            load_balancer_name, service, subnet, zone)
+        network_endpoint_group_url = _get_network_endpoint_group_url(
+            project_id, zone, network_endpoint_group_name)
+        network_endpoint_group_full_url = _get_compute_full_qualified_url(
+            network_endpoint_group_url)
+        backend = {
+            # balancingMode application load balancer uses "RATE"
+            "balancingMode": balancing_mode,
+            "group": network_endpoint_group_full_url,
+        }
+        backends.append(backend)
+    return backends
 
+
+def _get_backend_service(
+        provider_config, project_id, region,
+        load_balancer, service):
+    load_balancer_name = _get_load_balancer_config_name(load_balancer)
+    name = _get_backend_service_name(load_balancer_name, service)
+    scheme = _get_load_balancer_config_scheme(load_balancer)
+
+    service_protocol = service["protocol"]
+    protocol = _get_load_balancer_protocol(service_protocol)
+    backends = _get_backend_service_backends(
+        provider_config, project_id,
+        load_balancer, service)
     health_check_name = _get_health_check_name(
         load_balancer_name, service)
     health_check_url = _get_health_check_url(
@@ -1204,13 +1339,7 @@ def _get_backend_service(
         "protocol": protocol,
         # ROUND_ROBIN, LEAST_REQUEST, RING_HASH, RANDOM, ORIGINAL_DESTINATION, MAGLEV
         "localityLbPolicy": "ROUND_ROBIN",
-        "backends": [
-            {
-                # balancingMode application load balancer uses "RATE"
-                "balancingMode": balancing_mode,
-                "group": network_endpoint_group_full_url,
-            }
-        ],
+        "backends": backends,
         "healthChecks": [
             # Currently, at most one health check can be specified for each backend service.
             health_check_url,

@@ -29,6 +29,7 @@ SERVICE_DISCOVERY_LABEL_PROTOCOL = "protocol"
 
 SERVICE_DISCOVERY_LABEL_CLUSTER = "cloudtik-cluster"
 SERVICE_DISCOVERY_LABEL_SEQ = "cloudtik-seq"
+SERVICE_DISCOVERY_LABEL_NODE_ID = "cloudtik-node-id"
 
 SERVICE_DISCOVERY_LABEL_RUNTIME = "cloudtik-runtime"
 # The service type label

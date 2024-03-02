@@ -556,7 +556,7 @@ def _get_load_balancer_backend_addresses(
         provider_config, virtual_network_name)
     service_name = service["name"]
     for target in targets:
-        target_id = target["id"]
+        target_id = target["seq"]
         ip_address = target["ip"]
         name = "{}-node-{}".format(service_name, target_id)
         load_balancer_backend_address = {
