@@ -407,7 +407,7 @@ class LoadBalancerManager:
         for backend_service in sorted_backend_services:
             backend_servers = backend_service.backend_servers
             backend_targets = [backend_server for backend_server in backend_servers.values()]
-            # The sort backend targets by id
+            # The sort backend targets by seq id
             _sorted_backend_targets(backend_targets)
 
             service = {
