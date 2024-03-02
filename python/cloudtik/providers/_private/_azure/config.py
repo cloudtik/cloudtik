@@ -84,7 +84,7 @@ AZURE_WORKSPACE_VERSION_CURRENT = "1"
 
 AZURE_WORKSPACE_NUM_CREATION_STEPS = 10
 AZURE_WORKSPACE_NUM_DELETION_STEPS = 10
-AZURE_WORKSPACE_NUM_UPDATE_STEPS = 2
+AZURE_WORKSPACE_NUM_UPDATE_STEPS = 1
 AZURE_WORKSPACE_TARGET_RESOURCES = 13
 
 AZURE_MANAGED_STORAGE_TYPE = "azure.managed.storage.type"
@@ -542,12 +542,6 @@ def update_azure_workspace(
                 current_step += 1
                 update_network_resources(config, resource_group_name)
 
-            with cli_logger.group(
-                    "Updating workspace firewalls",
-                    _numbered=("[]", current_step, total_steps)):
-                current_step += 1
-                update_workspace_firewalls(config, resource_group_name)
-
             if managed_cloud_storage:
                 with cli_logger.group(
                         "Creating managed cloud storage...",
@@ -586,13 +580,13 @@ def update_azure_workspace(
         cf.bold(workspace_name))
 
 
-def update_workspace_firewalls(config, resource_group_name):
-    network_client = construct_network_client(config)
+def update_workspace_firewalls(
+        config, network_client, resource_group_name):
     workspace_name = get_workspace_name(config)
 
     try:
-
-        cli_logger.print("Updating the firewalls of workspace...")
+        cli_logger.print(
+            "Updating the firewalls of workspace...")
         _create_or_update_network_security_group(
             config, network_client, resource_group_name)
     except Exception as e:
@@ -613,7 +607,7 @@ def update_network_resources(config, resource_group_name):
     network_client = construct_network_client(config)
 
     current_step = 1
-    total_steps = 1
+    total_steps = 2
 
     with cli_logger.group(
             "Updating application gateway subnet",
@@ -622,6 +616,13 @@ def update_network_resources(config, resource_group_name):
         _create_or_update_application_gateway_subnet(
             config, network_client, resource_group_name,
             virtual_network_name)
+
+    with cli_logger.group(
+            "Updating workspace firewalls",
+            _numbered=("[]", current_step, total_steps)):
+        current_step += 1
+        update_workspace_firewalls(
+            config, network_client, resource_group_name)
 
 
 def delete_azure_workspace(

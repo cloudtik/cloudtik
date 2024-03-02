@@ -8,7 +8,7 @@ from cloudtik.core.load_balancer_provider import LOAD_BALANCER_TYPE_NETWORK, LOA
 from cloudtik.core.tags import CLOUDTIK_TAG_WORKSPACE_NAME
 from cloudtik.providers._private.gcp.config import get_gcp_vpc_name, get_workspace_subnet_name
 from cloudtik.providers._private.gcp.utils import wait_for_compute_region_operation, \
-    wait_for_compute_global_operation, wait_for_compute_zone_operation
+    wait_for_compute_global_operation, wait_for_compute_zone_operation, get_network_url, get_subnetwork_url
 
 CLOUDTIK_TAG_LOAD_BALANCER_NAME = "load-balancer-name"
 CLOUDTIK_TAG_LOAD_BALANCER_TYPE = "load-balancer-type"
@@ -108,7 +108,6 @@ health checker to the instances. For example:
 The target tags define the backend instances. Without the target tags,
 the firewall rules apply to all of your backend instances in the VPC network.
 
-
 For load balancers that needs proxy-subnet (Envoy based proxy):
 - An ingress rule that allows connections from the proxy-only subnet to
 reach the backends. Replace source-ranges to the actual proxy-only subnet CIDR.
@@ -190,10 +189,6 @@ def _create_load_balancer(
     load_balancer_name = _get_load_balancer_name(load_balancer_config)
     vpc_name = get_gcp_vpc_name(
         provider_config, workspace_name)
-
-    # TODO: check whether we need proxy-only subnet and create if needed
-    #  also need firewall rules for health-check and backend connection.
-    #  best to setup these in workspace creation.
 
     load_balancer = _get_load_balancer_object(load_balancer_config)
 
@@ -915,14 +910,6 @@ def _get_network_endpoint_group_name(
     return "{}-{}".format(load_balancer_name, service_name)
 
 
-def _get_network_url(project_id, network_name):
-    return f"projects/{project_id}/global/networks/{network_name}"
-
-
-def _get_subnetwork_url(project_id, region, subnet_name):
-    return f"projects/{project_id}/regions/{region}/subnetworks/{subnet_name}"
-
-
 def _get_network_endpoint_group_url(project_id, zone, network_endpoint_group_name):
     return f"projects/{project_id}/zones/{zone}/networkEndpointGroups/{network_endpoint_group_name}"
 
@@ -956,11 +943,11 @@ def _get_network_endpoint_group_of_service(
     load_balancer_name = _get_load_balancer_config_name(load_balancer)
     name = _get_network_endpoint_group_name(
         load_balancer_name, service)
-    network = _get_network_url(project_id, vpc_name)
+    network = get_network_url(project_id, vpc_name)
     # Zonal NEGs are zonal resources that represent collections of either IP addresses
     # or IP address and port combinations for Google Cloud resources within a single subnet.
     subnet_name = get_workspace_subnet_name(workspace_name)
-    subnetwork = _get_subnetwork_url(project_id, region, subnet_name)
+    subnetwork = get_subnetwork_url(project_id, region, subnet_name)
     network_endpoint_group = {
         "name": name,
         "networkEndpointType": "GCE_VM_IP_PORT",
@@ -1227,10 +1214,7 @@ def _get_backend_service(
         "healthChecks": [
             # Currently, at most one health check can be specified for each backend service.
             health_check_url,
-        ],
-        # TODO:The URL of the network to which this backend service belongs.
-        # This field can only be specified when the load balancing scheme is set to INTERNAL.
-        # "network": "A String",
+        ]
     }
     return backend_service
 
@@ -1614,7 +1598,7 @@ def _get_forward_rule(
     # If neither subnetwork nor this field is specified, the default network will be used.
     if (load_balancer_scheme != LOAD_BALANCER_SCHEME_INTERNET_FACING
             or region):
-        network = _get_network_url(project_id, vpc_name)
+        network = get_network_url(project_id, vpc_name)
         forward_rule["network"] = network
 
         # This field identifies the subnetwork that the load balanced IP
@@ -1629,7 +1613,7 @@ def _get_forward_rule(
         # TODO: DOC error which specify subnetwork for external regional proxy network load balancer?
         if load_balancer_scheme == LOAD_BALANCER_SCHEME_INTERNAL:
             subnet_name = get_workspace_subnet_name(workspace_name)
-            subnetwork = _get_subnetwork_url(project_id, region, subnet_name)
+            subnetwork = get_subnetwork_url(project_id, region, subnet_name)
             forward_rule["subnetwork"] = subnetwork
     return forward_rule
 
