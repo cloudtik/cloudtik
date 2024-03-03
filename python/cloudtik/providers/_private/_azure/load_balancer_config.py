@@ -5,7 +5,7 @@ from cloudtik.core._private.utils import get_provider_config
 from cloudtik.core.load_balancer_provider import LOAD_BALANCER_TYPE_NETWORK, LOAD_BALANCER_SCHEME_INTERNET_FACING, \
     LOAD_BALANCER_PROTOCOL_TCP, LOAD_BALANCER_PROTOCOL_UDP, LOAD_BALANCER_PROTOCOL_TLS, LOAD_BALANCER_PROTOCOL_HTTP, \
     LOAD_BALANCER_PROTOCOL_HTTPS, LOAD_BALANCER_TYPE_APPLICATION, LOAD_BALANCER_SCHEME_INTERNAL
-from cloudtik.providers._private._azure.config import get_virtual_network_name, get_workspace_subnet_name, \
+from cloudtik.providers._private._azure.config import get_workspace_subnet_name, \
     get_application_gateway_subnet_name
 from cloudtik.providers._private._azure.utils import get_virtual_network_resource_id, get_network_resource_id
 
@@ -165,14 +165,13 @@ def _get_load_balancers_hash_context(context):
 
 
 def _update_load_balancer_hash(
-        load_balancers_hash_context, load_balancer):
-    load_balancer_name = load_balancer["name"]
+        load_balancers_hash_context, load_balancer_name, load_balancer):
     _update_resource_hash(
         load_balancers_hash_context, load_balancer_name, load_balancer)
 
 
-def _is_load_balancer_updated(load_balancers_hash_context, load_balancer):
-    load_balancer_name = load_balancer["name"]
+def _is_load_balancer_updated(
+        load_balancers_hash_context, load_balancer_name, load_balancer):
     return _is_resource_updated(
         load_balancers_hash_context, load_balancer_name, load_balancer)
 
@@ -204,30 +203,30 @@ def _get_load_balancer(
 
 
 def _create_load_balancer(
-        network_client, provider_config, workspace_name,
+        network_client, provider_config, workspace_name, virtual_network_name,
         load_balancer_config, context):
     load_balancer_type = load_balancer_config["type"]
     if load_balancer_type == LOAD_BALANCER_TYPE_NETWORK:
         return _create_network_load_balancer(
-            network_client, provider_config, workspace_name,
+            network_client, provider_config, workspace_name, virtual_network_name,
             load_balancer_config, context)
     else:
         return _create_application_load_balancer(
-            network_client, provider_config, workspace_name,
+            network_client, provider_config, workspace_name, virtual_network_name,
             load_balancer_config, context)
 
 
 def _update_load_balancer(
-        network_client, provider_config, workspace_name,
+        network_client, provider_config, workspace_name, virtual_network_name,
         load_balancer_config, context):
     load_balancer_type = load_balancer_config["type"]
     if load_balancer_type == LOAD_BALANCER_TYPE_NETWORK:
         return _update_network_load_balancer(
-            network_client, provider_config, workspace_name,
+            network_client, provider_config, workspace_name, virtual_network_name,
             load_balancer_config, context)
     else:
         return _update_application_load_balancer(
-            network_client, provider_config, workspace_name,
+            network_client, provider_config, workspace_name, virtual_network_name,
             load_balancer_config, context)
 
 
@@ -242,7 +241,8 @@ def _delete_load_balancer(
             context)
     else:
         _delete_application_load_balancer(
-            network_client, resource_group_name, load_balancer_name)
+            network_client, resource_group_name, load_balancer_name,
+            context)
 
 
 # Common shared functions
@@ -353,7 +353,7 @@ def _get_network_load_balancer(
 
 
 def _create_network_load_balancer(
-        network_client, provider_config, workspace_name,
+        network_client, provider_config, workspace_name, virtual_network_name,
         load_balancer_config, context):
     load_balancer_name = load_balancer_config["name"]
     load_balancers_hash_context = _get_load_balancers_hash_context(
@@ -361,7 +361,8 @@ def _create_network_load_balancer(
     load_balancers_context = _get_load_balancers_context(context)
 
     load_balancer = _get_load_balancer_object(
-        provider_config, workspace_name, load_balancer_config)
+        provider_config, workspace_name, virtual_network_name,
+        load_balancer_config)
 
     resource_group_name = provider_config["resource_group"]
     _create_or_update_load_balancer(
@@ -373,7 +374,7 @@ def _create_network_load_balancer(
     backend_address_pools = load_balancer_properties["backendAddressPools"]
     load_balancer_properties.pop("backendAddressPools", None)
     _update_load_balancer_hash(
-        load_balancers_hash_context, load_balancer)
+        load_balancers_hash_context, load_balancer_name, load_balancer)
 
     # update the backend pools hash
     _clear_and_update_backend_pools_hash(
@@ -381,7 +382,7 @@ def _create_network_load_balancer(
 
 
 def _update_network_load_balancer(
-        network_client, provider_config, workspace_name,
+        network_client, provider_config, workspace_name, virtual_network_name,
         load_balancer_config, context):
     resource_group_name = provider_config["resource_group"]
     load_balancer_name = load_balancer_config["name"]
@@ -390,7 +391,8 @@ def _update_network_load_balancer(
     load_balancers_context = _get_load_balancers_context(context)
 
     load_balancer = _get_load_balancer_object(
-        provider_config, workspace_name, load_balancer_config)
+        provider_config, workspace_name, virtual_network_name,
+        load_balancer_config)
 
     load_balancer_properties = load_balancer["properties"]
     backend_address_pools = load_balancer_properties["backendAddressPools"]
@@ -398,7 +400,7 @@ def _update_network_load_balancer(
     load_balancer_properties.pop("backendAddressPools", None)
 
     if _is_load_balancer_updated(
-            load_balancers_hash_context, load_balancer):
+            load_balancers_hash_context, load_balancer_name, load_balancer):
         # put back the backend address pool when updating
         load_balancer_properties["backendAddressPools"] = backend_address_pools
         _create_or_update_load_balancer(
@@ -407,7 +409,7 @@ def _update_network_load_balancer(
 
         load_balancer_properties.pop("backendAddressPools", None)
         _update_load_balancer_hash(
-            load_balancers_hash_context, load_balancer)
+            load_balancers_hash_context, load_balancer_name, load_balancer)
 
         _clear_and_update_backend_pools_hash(
             backend_address_pools, load_balancers_context, load_balancer_name)
@@ -481,18 +483,16 @@ def _get_load_balancer_info_of(load_balancer):
 
 
 def _get_load_balancer_object(
-        provider_config, workspace_name, load_balancer_config):
+        provider_config, workspace_name, virtual_network_name,
+        load_balancer_config):
     location = provider_config["location"]
     tags = load_balancer_config.get("tags", None)
 
-    virtual_network_name = get_virtual_network_name(
-        provider_config, workspace_name)
-
     frontend_ip_configurations = _get_frontend_ip_configurations(
-        provider_config, workspace_name, load_balancer_config,
-        virtual_network_name)
+        provider_config, workspace_name, virtual_network_name,
+        load_balancer_config)
     backend_address_pools = _get_load_balancer_backend_address_pools(
-        provider_config, load_balancer_config, virtual_network_name)
+        provider_config, virtual_network_name, load_balancer_config)
     load_balancing_rules = _get_load_balancer_load_balancing_rules(
         provider_config, load_balancer_config, frontend_ip_configurations)
     probes = _get_load_balancer_probes(
@@ -523,7 +523,7 @@ def _create_or_update_load_balancer(
 
 
 def _get_load_balancer_backend_address_pools(
-        provider_config, load_balancer_config, virtual_network_name):
+        provider_config, virtual_network_name, load_balancer_config):
     backend_address_pools = []
     services = _get_load_balancer_services(load_balancer_config)
     for service_name, service in services.items():
@@ -785,12 +785,13 @@ def _get_application_load_balancer(
 
 
 def _create_application_load_balancer(
-        network_client, provider_config, workspace_name,
+        network_client, provider_config, workspace_name, virtual_network_name,
         load_balancer_config, context):
     load_balancer_name = load_balancer_config["name"]
 
     application_gateway = _get_application_gateway_object(
-        provider_config, workspace_name, load_balancer_config)
+        provider_config, workspace_name, virtual_network_name,
+        load_balancer_config)
 
     resource_group_name = provider_config["resource_group"]
     _create_or_update_application_gateway(
@@ -799,12 +800,13 @@ def _create_application_load_balancer(
 
 
 def _update_application_load_balancer(
-        network_client, provider_config, workspace_name,
+        network_client, provider_config, workspace_name, virtual_network_name,
         load_balancer_config, context):
     load_balancer_name = load_balancer_config["name"]
 
     application_gateway = _get_application_gateway_object(
-        provider_config, workspace_name, load_balancer_config)
+        provider_config, workspace_name, virtual_network_name,
+        load_balancer_config)
 
     resource_group_name = provider_config["resource_group"]
     _create_or_update_application_gateway(
@@ -813,15 +815,24 @@ def _update_application_load_balancer(
 
 
 def _delete_application_load_balancer(
-        network_client, resource_group_name, load_balancer_name):
-    load_balancer = _get_load_balancer_by_name(
+        network_client, resource_group_name, load_balancer_name,
+        context):
+    application_gateway = _get_application_gateway_by_name(
         network_client, resource_group_name, load_balancer_name)
-    if not load_balancer:
+    if not application_gateway:
         return
     network_client.load_balancers.begin_delete(
         resource_group_name=resource_group_name,
-        load_balancer_name=load_balancer_name,
+        application_gateway_name=load_balancer_name,
     ).result()
+
+    load_balancers_hash_context = _get_load_balancers_hash_context(
+        context)
+    load_balancers_context = _get_load_balancers_context(context)
+    _clear_load_balancer_hash(
+        load_balancers_hash_context, load_balancer_name)
+    _clear_load_balancer_context(
+        load_balancers_context, load_balancer_name)
 
 
 # Azure Application Gateway Helper functions
@@ -871,18 +882,16 @@ def _get_application_gateway_info_of(application_gateway):
 
 
 def _get_application_gateway_object(
-        provider_config, workspace_name, load_balancer_config):
+        provider_config, workspace_name, virtual_network_name,
+        load_balancer_config):
     location = provider_config["location"]
     tags = load_balancer_config.get("tags", None)
-
-    virtual_network_name = get_virtual_network_name(
-        provider_config, workspace_name)
 
     gateway_ip_configurations = _get_application_gateway_ip_configurations(
         provider_config, workspace_name, virtual_network_name)
     frontend_ip_configurations = _get_frontend_ip_configurations(
-        provider_config, workspace_name, load_balancer_config,
-        virtual_network_name)
+        provider_config, workspace_name, virtual_network_name,
+        load_balancer_config)
     frontend_ports = _get_application_gateway_frontend_ports(
         load_balancer_config)
     backend_address_pools = _get_application_gateway_backend_address_pools(

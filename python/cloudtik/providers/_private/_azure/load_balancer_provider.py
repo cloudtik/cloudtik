@@ -5,6 +5,7 @@ from typing import Any, Dict
 from azure.mgmt.network import NetworkManagementClient
 
 from cloudtik.core.load_balancer_provider import LoadBalancerProvider
+from cloudtik.providers._private._azure.config import get_virtual_network_name
 from cloudtik.providers._private._azure.load_balancer_config import _list_load_balancers, \
     _delete_load_balancer, _create_load_balancer, _update_load_balancer, _get_load_balancer, \
     _bootstrap_load_balancer_config
@@ -39,6 +40,8 @@ class AzureLoadBalancerProvider(LoadBalancerProvider):
         self.network_client = NetworkManagementClient(
             self.credential,
             subscription_id)
+        self.virtual_network_name = get_virtual_network_name(
+            provider_config, workspace_name)
 
         self.context = {}
 
@@ -62,7 +65,7 @@ class AzureLoadBalancerProvider(LoadBalancerProvider):
         """Create the load balancer in the workspace based on the config."""
         _create_load_balancer(
             self.network_client, self.provider_config, self.workspace_name,
-            load_balancer_config, self.context)
+            self.virtual_network_name, load_balancer_config, self.context)
 
     def update(
             self, load_balancer: Dict[str, Any],
@@ -71,7 +74,7 @@ class AzureLoadBalancerProvider(LoadBalancerProvider):
         """
         _update_load_balancer(
             self.network_client, self.provider_config, self.workspace_name,
-            load_balancer_config, self.context)
+            self.virtual_network_name, load_balancer_config, self.context)
 
     def delete(self, load_balancer: Dict[str, Any]):
         """Delete a load balancer in the workspace.

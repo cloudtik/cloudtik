@@ -10,7 +10,7 @@ from cloudtik.runtime.common.service_discovery.consul import \
 from cloudtik.runtime.common.service_discovery.discovery import query_services_with_nodes
 from cloudtik.runtime.common.service_discovery.load_balancer import LOAD_BALANCER_SERVICE_DISCOVERY_LABEL_PORT, \
     LOAD_BALANCER_SERVICE_DISCOVERY_LABEL_PROTOCOL, LOAD_BALANCER_SERVICE_DISCOVERY_NAME_LABEL, \
-    get_application_route_from_service_nodes
+    LOAD_BALANCER_SERVICE_DISCOVERY_SCHEME_LABEL, get_application_route_from_service_nodes
 from cloudtik.runtime.loadbalancer.provider_api import get_load_balancer_manager, LoadBalancerBackendService
 
 logger = logging.getLogger(__name__)
@@ -128,9 +128,10 @@ class LoadBalancerController(ActiveStandbyService):
         port = None
 
         # This is the frontend/listener protocol and port
+        load_balancer_name = labels.get(LOAD_BALANCER_SERVICE_DISCOVERY_NAME_LABEL)
+        load_balancer_scheme = labels.get(LOAD_BALANCER_SERVICE_DISCOVERY_SCHEME_LABEL)
         load_balancer_protocol = labels.get(LOAD_BALANCER_SERVICE_DISCOVERY_LABEL_PROTOCOL)
         load_balancer_port = labels.get(LOAD_BALANCER_SERVICE_DISCOVERY_LABEL_PORT)
-        load_balancer_name = labels.get(LOAD_BALANCER_SERVICE_DISCOVERY_NAME_LABEL)
 
         (route_path,
          service_path,
@@ -141,6 +142,7 @@ class LoadBalancerController(ActiveStandbyService):
             service_name, backend_servers,
             protocol=protocol, port=port,
             load_balancer_name=load_balancer_name,
+            load_balancer_scheme=load_balancer_scheme,
             load_balancer_protocol=load_balancer_protocol,
             load_balancer_port=load_balancer_port,
             route_path=route_path, service_path=service_path,
