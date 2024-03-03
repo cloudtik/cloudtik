@@ -3,6 +3,7 @@ import re
 from typing import Any, Dict
 
 from cloudtik.core.load_balancer_provider import LoadBalancerProvider
+from cloudtik.providers._private.gcp.config import get_gcp_vpc_name
 from cloudtik.providers._private.gcp.load_balancer_config import _list_load_balancers, \
     _delete_load_balancer, _create_load_balancer, _update_load_balancer, _get_load_balancer, \
     _bootstrap_load_balancer_config
@@ -35,6 +36,8 @@ class GCPLoadBalancerProvider(LoadBalancerProvider):
             workspace_name: str) -> None:
         super().__init__(provider_config, workspace_name)
         self.compute = construct_compute_client(provider_config)
+        self.vpc_name = get_gcp_vpc_name(
+            provider_config, workspace_name)
 
         self.context = {}
 
@@ -57,7 +60,7 @@ class GCPLoadBalancerProvider(LoadBalancerProvider):
     def create(self, load_balancer_config: Dict[str, Any]):
         """Create the load balancer in the workspace based on the config."""
         _create_load_balancer(
-            self.compute, self.provider_config, self.workspace_name,
+            self.compute, self.provider_config, self.workspace_name, self.vpc_name,
             load_balancer_config, self.context)
 
     def update(
@@ -66,7 +69,7 @@ class GCPLoadBalancerProvider(LoadBalancerProvider):
         """Update a load balancer in the workspace based on the config.
         """
         _update_load_balancer(
-            self.compute, self.provider_config, self.workspace_name,
+            self.compute, self.provider_config, self.workspace_name, self.vpc_name,
             load_balancer, load_balancer_config, self.context)
 
     def delete(self, load_balancer: Dict[str, Any]):

@@ -12,6 +12,7 @@ LOAD_BALANCER_SERVICE_DISCOVERY_LABEL_PROTOCOL = "load-balancer-protocol"
 LOAD_BALANCER_SERVICE_DISCOVERY_LABEL_PORT = "load-balancer-port"
 
 LOAD_BALANCER_SERVICE_DISCOVERY_NAME_LABEL = "load-balancer-name"
+LOAD_BALANCER_SERVICE_DISCOVERY_SCHEME_LABEL = "load-balancer-scheme"
 
 
 class ApplicationBackendService(JSONSerializableObject):

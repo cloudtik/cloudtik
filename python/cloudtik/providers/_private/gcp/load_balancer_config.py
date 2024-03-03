@@ -6,7 +6,7 @@ from cloudtik.core.load_balancer_provider import LOAD_BALANCER_TYPE_NETWORK, LOA
     LOAD_BALANCER_PROTOCOL_TCP, LOAD_BALANCER_PROTOCOL_TLS, LOAD_BALANCER_PROTOCOL_HTTP, \
     LOAD_BALANCER_PROTOCOL_HTTPS, LOAD_BALANCER_TYPE_APPLICATION, LOAD_BALANCER_SCHEME_INTERNAL
 from cloudtik.core.tags import CLOUDTIK_TAG_WORKSPACE_NAME
-from cloudtik.providers._private.gcp.config import get_gcp_vpc_name, get_workspace_subnet_name, \
+from cloudtik.providers._private.gcp.config import get_workspace_subnet_name, \
     get_workspace_subnet_name_of_type, GCP_WORKSPACE_PUBLIC_SUBNET, GCP_WORKSPACE_PRIVATE_SUBNET
 from cloudtik.providers._private.gcp.utils import wait_for_compute_region_operation, \
     wait_for_compute_global_operation, wait_for_compute_zone_operation, get_network_url, get_subnetwork_url
@@ -186,13 +186,11 @@ def _get_load_balancer(
 
 
 def _create_load_balancer(
-        compute, provider_config, workspace_name,
+        compute, provider_config, workspace_name, vpc_name,
         load_balancer_config, context):
     project_id = provider_config["project_id"]
     region = _get_load_balancer_scope_type(provider_config)
     load_balancer_name = _get_load_balancer_name(load_balancer_config)
-    vpc_name = get_gcp_vpc_name(
-        provider_config, workspace_name)
 
     load_balancer = _get_load_balancer_object(load_balancer_config)
 
@@ -212,18 +210,17 @@ def _create_load_balancer(
         compute, provider_config, project_id, region, vpc_name,
         workspace_name, load_balancer)
     _update_load_balancer_hash(
-        load_balancers_hash_context, load_balancer_proxy_rules)
+        load_balancers_hash_context, load_balancer_name,
+        load_balancer_proxy_rules)
 
 
 def _update_load_balancer(
-        compute, provider_config, workspace_name,
+        compute, provider_config, workspace_name, vpc_name,
         load_balancer, load_balancer_config, context):
     project_id = provider_config["project_id"]
     # If region is None, it is a global load balancer
     region = load_balancer.get("region")
     load_balancer_name = _get_load_balancer_name(load_balancer_config)
-    vpc_name = get_gcp_vpc_name(
-        provider_config, workspace_name)
 
     load_balancer = _get_load_balancer_object(
         load_balancer_config)
@@ -241,12 +238,14 @@ def _update_load_balancer(
     load_balancer_proxy_rules = _get_load_balancer_proxy_rules(
         load_balancer)
     if _is_load_balancer_updated(
-            load_balancers_hash_context, load_balancer_proxy_rules):
+            load_balancers_hash_context, load_balancer_name,
+            load_balancer_proxy_rules):
         _update_proxy_rules(
             compute, provider_config, project_id, region, vpc_name,
             workspace_name, load_balancer)
         _update_load_balancer_hash(
-            load_balancers_hash_context, load_balancer_proxy_rules)
+            load_balancers_hash_context, load_balancer_name,
+            load_balancer_proxy_rules)
 
         # delete the backend services that is not needed
         _delete_services_unused(
@@ -345,14 +344,13 @@ def _get_load_balancers_hash_context(context):
 
 
 def _update_load_balancer_hash(
-        load_balancers_hash_context, load_balancer):
-    load_balancer_name = load_balancer["name"]
+        load_balancers_hash_context, load_balancer_name, load_balancer):
     _update_resource_hash(
         load_balancers_hash_context, load_balancer_name, load_balancer)
 
 
-def _is_load_balancer_updated(load_balancers_hash_context, load_balancer):
-    load_balancer_name = load_balancer["name"]
+def _is_load_balancer_updated(
+        load_balancers_hash_context, load_balancer_name, load_balancer):
     return _is_resource_updated(
         load_balancers_hash_context, load_balancer_name, load_balancer)
 
@@ -479,7 +477,7 @@ def _get_load_balancer_object(load_balancer_config):
     load_balancer["backend_services"] = _get_backend_services_of(services)
     load_balancer["listeners"] = _get_service_group_listeners(service_group)
     load_balancer["route_services"] = _get_route_services_of(services)
-    return load_balancer_config
+    return load_balancer
 
 
 def _get_load_balancer_proxy_rules(load_balancer):
@@ -1370,7 +1368,7 @@ def _create_backend_service(
             return compute.backendServices().insert(
                 project=project_id, body=backend_service)
 
-    _execute_and_wait(compute, project_id, region, func)
+    _execute_and_wait(compute, project_id, func, region=region)
     return backend_service
 
 
@@ -1389,7 +1387,7 @@ def _delete_backend_service(
             return compute.backendServices().delete(
                 project=project_id, backendService=backend_service_name)
 
-    _execute_and_wait(compute, project_id, region, func)
+    _execute_and_wait(compute, project_id, func, region=region)
 
 
 def _get_target_proxy_name(load_balancer_name):
@@ -1483,7 +1481,7 @@ def _create_target_proxy(
             return target_proxy_api.insert(
                 project=project_id, body=target_proxy)
 
-    _execute_and_wait(compute, project_id, region, func)
+    _execute_and_wait(compute, project_id, func, region=region)
     return target_proxy
 
 
@@ -1513,7 +1511,7 @@ def _update_target_proxy(
         return compute.targetTcpProxies().setBackendService(
             project=project_id, targetTcpProxy=target_proxy_name, body=set_backend_service)
 
-    _execute_and_wait(compute, project_id, region, func)
+    _execute_and_wait(compute, project_id, func, region=region)
     return set_backend_service
 
 
@@ -1530,7 +1528,7 @@ def _delete_target_proxy(
     def func():
         if load_balancer_type == LOAD_BALANCER_TYPE_NETWORK:
             if region:
-                return compute.regionTargetTcpProxies(
+                return compute.regionTargetTcpProxies().delete(
                     project=project_id, region=region, targetTcpProxy=target_proxy_name)
             else:
                 return compute.targetTcpProxies().delete(
@@ -1538,19 +1536,19 @@ def _delete_target_proxy(
         else:
             if load_balancer_protocol == LOAD_BALANCER_PROTOCOL_HTTP:
                 if region:
-                    return compute.regionTargetHttpProxies(
+                    return compute.regionTargetHttpProxies().delete(
                         project=project_id, region=region, targetHttpProxy=target_proxy_name)
                 else:
-                    return compute.targetHttpProxies(
+                    return compute.targetHttpProxies().delete(
                         project=project_id, targetHttpProxy=target_proxy_name)
             else:
                 if region:
-                    return compute.regionTargetHttpsProxies(
+                    return compute.regionTargetHttpsProxies().delete(
                         project=project_id, region=region, targetHttpsProxy=target_proxy_name)
                 else:
-                    return compute.targetHttpsProxies(
+                    return compute.targetHttpsProxies().delete(
                         project=project_id, targetHttpsProxy=target_proxy_name)
-    _execute_and_wait(compute, project_id, region, func)
+    _execute_and_wait(compute, project_id, func, region=region)
 
 
 def _create_forwarding_rules(
@@ -1691,7 +1689,7 @@ def _get_forward_rule(
         CLOUDTIK_TAG_LOAD_BALANCER_SCHEME: load_balancer_scheme,
         CLOUDTIK_TAG_LOAD_BALANCER_PROTOCOL: load_balancer_protocol,
     }
-    tags = load_balancer.tags
+    tags = load_balancer.get("tags")
     if tags:
         labels.update(tags)
 
@@ -1769,7 +1767,7 @@ def _create_forwarding_rule(
             return compute.globalForwardingRules().insert(
                 project=project_id, body=forward_rule)
 
-    _execute_and_wait(compute, project_id, region, func)
+    _execute_and_wait(compute, project_id, func, region=region)
     return forward_rule
 
 
@@ -1786,7 +1784,7 @@ def _delete_forwarding_rule(
             return compute.globalForwardingRules().insert(
                 project=project_id, forwardingRule=forward_rule_name)
 
-    _execute_and_wait(compute, project_id, region, func)
+    _execute_and_wait(compute, project_id, func, region=region)
 
 
 def _get_url_map_name(
@@ -1939,7 +1937,7 @@ def _create_url_map(
             return compute.urlMaps().insert(
                 project=project_id, body=url_map)
 
-    _execute_and_wait(compute, project_id, region, func)
+    _execute_and_wait(compute, project_id, func, region=region)
     return url_map
 
 
@@ -1961,7 +1959,7 @@ def _update_url_map(
             return compute.urlMaps().update(
                 project=project_id, urlMap=url_map_name, body=url_map)
 
-    _execute_and_wait(compute, project_id, region, func)
+    _execute_and_wait(compute, project_id, func, region=region)
     return url_map
 
 
@@ -1979,4 +1977,4 @@ def _delete_url_map(
             return compute.urlMaps().delete(
                 project=project_id, urlMap=url_map_name)
 
-    _execute_and_wait(compute, project_id, region, func)
+    _execute_and_wait(compute, project_id, func, region=region)

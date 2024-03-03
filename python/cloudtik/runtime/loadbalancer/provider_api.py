@@ -22,7 +22,7 @@ class LoadBalancerBackendService(ApplicationBackendService):
             self,
             service_name, backend_servers,
             protocol, port,
-            load_balancer_name=None,
+            load_balancer_name=None, load_balancer_scheme=None,
             load_balancer_protocol=None, load_balancer_port=None,
             route_path=None, service_path=None, default_service=False):
         super().__init__(
@@ -46,6 +46,7 @@ class LoadBalancerBackendService(ApplicationBackendService):
         self.load_balancer_name = load_balancer_name
         self.load_balancer_protocol = load_balancer_protocol
         self.load_balancer_port = get_checked_port(load_balancer_port)
+        self.load_balancer_scheme = load_balancer_scheme
 
 
 def get_load_balancer_manager(provider_config, workspace_name):
@@ -94,6 +95,9 @@ class LoadBalancerManager:
         self.load_balancer_hash = {}
         self.default_network_load_balancer = self._get_default_network_load_balancer_name()
         self.default_application_load_balancer = self._get_default_application_load_balancer_name()
+        self.error_abort = provider_config.get("error_abort", False)
+        self.default_load_balancer_scheme = provider_config.get(
+            "load_balancer_scheme", LOAD_BALANCER_SCHEME_INTERNET_FACING)
 
     def update(self, backend_services):
         load_balancers = self._get_load_balancers(backend_services)
@@ -128,6 +132,8 @@ class LoadBalancerManager:
             logger.error(
                 "Error happened when creating load balancer {}: {}".format(
                     load_balancer_name, str(e)))
+            if self.error_abort:
+                raise e
 
     def _update_load_balancer(
             self, load_balancer_name, load_balancer, existing_load_balancer):
@@ -142,6 +148,8 @@ class LoadBalancerManager:
                 logger.error(
                     "Error happened when updating load balancer {}: {}".format(
                         load_balancer_name, str(e)))
+                if self.error_abort:
+                    raise e
 
     def _delete_load_balancer(
             self, load_balancer_name, existing_load_balancer):
@@ -153,6 +161,8 @@ class LoadBalancerManager:
             logger.error(
                 "Error happened when deleting load balancer {}: {}".format(
                     load_balancer_name, str(e)))
+            if self.error_abort:
+                raise e
 
     def _clear_load_balancer(
             self, load_balancer_name, existing_load_balancer):
@@ -195,8 +205,8 @@ class LoadBalancerManager:
             service_group_key = next(iter(load_balancer_service_groups))
             load_balancer_protocol = service_group_key[0]
             load_balancer_type = self._get_load_balancer_type(load_balancer_protocol)
-            # TODO: decide the scheme
-            load_balancer_scheme = LOAD_BALANCER_SCHEME_INTERNET_FACING
+            # TODO: decide the scheme from backend service
+            load_balancer_scheme = self.default_load_balancer_scheme
 
             load_balancer = {
                 "name": load_balancer_name,
