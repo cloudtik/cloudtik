@@ -38,7 +38,7 @@ azure-storage-blob == 12.11.0
 azure-storage-file-datalake == 12.6.0
 azure-mgmt-containerservice
 azure-mgmt-privatedns
-azure-mgmt-rdbms
+azure-mgmt-rdbms == 10.2.0b8
 adlfs == 2022.2.0
 ## for gcp
 google-api-python-client == 2.48.0

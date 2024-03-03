@@ -69,7 +69,7 @@ setup_spec.extras = {
         "azure-storage-file-datalake==12.6.0",
         "azure-mgmt-containerservice",
         "azure-mgmt-privatedns",
-        "azure-mgmt-rdbms",
+        "azure-mgmt-rdbms==10.2.0b8",
         "adlfs==2023.1.0",
     ],
     "gcp": [
