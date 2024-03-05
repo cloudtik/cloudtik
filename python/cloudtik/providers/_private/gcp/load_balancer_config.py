@@ -1131,7 +1131,7 @@ def _get_endpoints_of_targets(targets):
     network_endpoints = []
     for target in targets:
         instance = target["node_id"]
-        ip_address = target["ip"]
+        ip_address = target["address"]
         port = target["port"]
         network_endpoint = {
             "instance": instance,
@@ -1177,10 +1177,10 @@ def _update_network_endpoint_group_endpoints(
 def _get_endpoints_for_action(network_endpoints, existing_network_endpoints):
     endpoints_attach = []
     endpoints_to_detach = []
-    # decide the endpoint by ip and port
+    # decide the endpoint by address and port
     # convert to dict for fast search
     endpoints_by_key = {
-        (endpoint["ip"], endpoint["port"]): endpoint
+        (endpoint["address"], endpoint["port"]): endpoint
         for endpoint in network_endpoints
     }
     # The existing endpoint is in the format of
@@ -1194,13 +1194,13 @@ def _get_endpoints_for_action(network_endpoints, existing_network_endpoints):
     existing_endpoints = [
         {
             "node_id": existing_endpoint["networkEndpoint"]["instance"],
-            "ip": existing_endpoint["networkEndpoint"]["ipAddress"],
+            "address": existing_endpoint["networkEndpoint"]["ipAddress"],
             "port": existing_endpoint["networkEndpoint"]["port"]
         }
         for existing_endpoint in existing_network_endpoints
     ]
     existing_endpoints_by_key = {
-        (existing_endpoint["ip"], existing_endpoint["port"]): existing_endpoint
+        (existing_endpoint["address"], existing_endpoint["port"]): existing_endpoint
         for existing_endpoint in existing_endpoints
     }
     for endpoint_key, endpoint in endpoints_by_key.items():

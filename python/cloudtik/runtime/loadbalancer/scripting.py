@@ -67,7 +67,7 @@ def _get_backend_service_from_config(service_name, backend_service_config):
     for server in servers:
         service_address = service_address_from_string(server, None)
         backend_server = {
-            "ip": service_address[0],
+            "address": service_address[0],
             "port": service_address[1],
         }
         backend_servers[service_address] = backend_server

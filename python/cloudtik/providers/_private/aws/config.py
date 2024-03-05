@@ -106,6 +106,7 @@ DEFAULT_AMI_GPU = {
     "sa-east-1": "ami-0cfdee64f7ca89369",
 }
 
+# By current design, workspace has 1 public subnet and 2 private subnets
 AWS_VPC_SUBNETS_COUNT = 3
 AWS_VPC_PUBLIC_SUBNET_INDEX = 0
 
@@ -1075,6 +1076,7 @@ def _create_or_update_instance_profile(
                 ]
             else:
                 attach_policy_arns = [
+                    "arn:aws:iam::aws:policy/AmazonEC2ReadOnlyAccess",
                     "arn:aws:iam::aws:policy/AmazonS3FullAccess",
                     "arn:aws:iam::aws:policy/ElasticLoadBalancingFullAccess"
                 ]
@@ -3717,27 +3719,46 @@ def _configure_iam_role_for_cluster(config):
     return config
 
 
+def _get_subnet_index_of_availability_zone(subnets, availability_zone):
+    for i, subnet in enumerate(subnets):
+        if availability_zone == subnet.availability_zone:
+            return i
+    return -1
+
+
+def _get_ordered_workspace_subnets(workspace_name, ec2, vpc_id):
+    public_subnets = get_workspace_public_subnets(workspace_name, ec2, vpc_id)
+    private_subnets = get_workspace_private_subnets(workspace_name, ec2, vpc_id)
+
+    def sort_by_availability_zone(subnet):
+        return subnet.availability_zone
+
+    public_subnets.sort(key=sort_by_availability_zone)
+    private_subnets.sort(key=sort_by_availability_zone)
+
+    # We need to make sure the first private subnet is the same availability zone
+    # with the first public subnet if there is a public subnet (which uses default subnet)
+    if public_subnets:
+        default_availability_zone = public_subnets[0].availability_zone
+        subnet_index = _get_subnet_index_of_availability_zone(
+            private_subnets, default_availability_zone)
+        if subnet_index > 0:
+            default_subnet = private_subnets.pop(subnet_index)
+            private_subnets.insert(0, default_subnet)
+    return public_subnets, private_subnets
+
+
 def _configure_subnet_from_workspace(config):
     ec2 = _resource("ec2", config)
     ec2_client = _resource_client("ec2", config)
     workspace_name = get_workspace_name(config)
     use_internal_ips = is_use_internal_ip(config)
-
     vpc_id = _get_workspace_vpc_id(workspace_name, ec2_client)
-    public_subnets = get_workspace_public_subnets(workspace_name, ec2, vpc_id)
-    private_subnets = get_workspace_private_subnets(workspace_name, ec2, vpc_id)
+
+    public_subnets,  private_subnets = _get_ordered_workspace_subnets(
+        workspace_name, ec2, vpc_id)
     public_subnet_ids = [public_subnet.id for public_subnet in public_subnets]
     private_subnet_ids = [private_subnet.id for private_subnet in private_subnets]
-
-    # We need to make sure the first private subnet is the same availability zone
-    # with the first public subnet
-    if not use_internal_ips and len(public_subnet_ids) > 0:
-        availability_zone = public_subnets[0].availability_zone
-        for private_subnet in private_subnets:
-            if availability_zone == private_subnet.availability_zone:
-                private_subnet_ids.remove(private_subnet.id)
-                private_subnet_ids.insert(0, private_subnet.id)
-                break
 
     # store the subnet id and availability_zone map to provider for use by node provider
     provider_config = get_provider_config(config)

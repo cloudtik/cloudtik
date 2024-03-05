@@ -76,9 +76,9 @@ def _get_sorted_service_groups(service_groups):
 
 
 def _sorted_backend_targets(backend_targets):
-    def sort_by_ip_port(backend_target):
-        return backend_target["ip"], backend_target["port"]
-    backend_targets.sort(key=sort_by_ip_port)
+    def sort_by_address_port(backend_target):
+        return backend_target["address"], backend_target["port"]
+    backend_targets.sort(key=sort_by_address_port)
 
 
 class LoadBalancerManager:

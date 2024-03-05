@@ -4,10 +4,11 @@ import botocore
 
 from cloudtik.core._private.util.core_utils import batch_list, get_json_object_hash, get_config_for_update
 from cloudtik.core._private.utils import get_provider_config
-from cloudtik.core.load_balancer_provider import LOAD_BALANCER_TYPE_APPLICATION
+from cloudtik.core.load_balancer_provider import LOAD_BALANCER_TYPE_APPLICATION, LOAD_BALANCER_TYPE_NETWORK, \
+    LOAD_BALANCER_SCHEME_INTERNET_FACING
 from cloudtik.core.tags import CLOUDTIK_TAG_WORKSPACE_NAME
 from cloudtik.providers._private.aws.config import _is_workspace_tagged, _get_response_object, \
-    get_workspace_private_subnets, _get_workspace_security_group
+    _get_ordered_workspace_subnets, _get_workspace_security_group
 from cloudtik.providers._private.aws.utils import tags_list_to_dict, _make_resource, get_boto_error_code
 
 CLOUDTIK_TAG_LOAD_BALANCER_NAME = "cloudtik-load-balancer"
@@ -29,6 +30,11 @@ The Network load balancer and Application load share the same API and only
 differs at some points for configurations.
 
 The target group is by VPC.
+
+Notes for Public IP:
+You can't assign a static IP address to an Application Load Balancer.
+If Application Load Balancer requires a static IP address, then it's a best practice
+to register it behind a Network Load Balancer.
 
 """
 
@@ -184,7 +190,7 @@ def _get_load_balancer(elb_client, load_balancer_name):
 def _get_load_balancer_subnet_ids(
         provider_config, workspace_name, vpc_id):
     ec2 = _make_resource("ec2", provider_config)
-    private_subnets = get_workspace_private_subnets(
+    public_subnets, private_subnets = _get_ordered_workspace_subnets(
         workspace_name, ec2, vpc_id)
     subnet_ids = [private_subnet.id for private_subnet in private_subnets]
     return subnet_ids
@@ -223,18 +229,41 @@ def _create_load_balancer(
             "Value": v,
         })
 
-    # TODO: handle elastic ip
     load_balancer_name = load_balancer_config["name"]
     load_balancer_type = load_balancer_config["type"]
     load_balancer_scheme = load_balancer_config["scheme"]
-    response = elb_client.create_load_balancer(
-        Name=load_balancer_name,
-        Type=load_balancer_type,
-        Tags=tag_pairs,
-        Scheme=load_balancer_scheme,
-        Subnets=subnet_ids,
-        SecurityGroups=[security_group_id]
-    )
+
+    static_public_ips = load_balancer_config.get("public_ips", [])
+    if (load_balancer_type == LOAD_BALANCER_TYPE_NETWORK
+            and load_balancer_scheme == LOAD_BALANCER_SCHEME_INTERNET_FACING
+            and static_public_ips):
+        # handle elastic ip (application load balancer cannot assign static IP)
+        valid_ip_count = min(len(static_public_ips), len(subnet_ids))
+        subnet_mappings = [
+            {
+                'SubnetId': subnet_ids[i],
+                'AllocationId': static_public_ips[i]["id"],
+            }
+            for i in range(0, valid_ip_count)
+        ]
+
+        response = elb_client.create_load_balancer(
+            Name=load_balancer_name,
+            Type=load_balancer_type,
+            Tags=tag_pairs,
+            Scheme=load_balancer_scheme,
+            SubnetMappings=subnet_mappings,
+            SecurityGroups=[security_group_id]
+        )
+    else:
+        response = elb_client.create_load_balancer(
+            Name=load_balancer_name,
+            Type=load_balancer_type,
+            Tags=tag_pairs,
+            Scheme=load_balancer_scheme,
+            Subnets=subnet_ids,
+            SecurityGroups=[security_group_id]
+        )
     load_balancer = _get_response_object(response, "LoadBalancers")
     if not load_balancer:
         raise RuntimeError(
@@ -970,10 +999,10 @@ def _update_target_group_targets(
 def _get_targets_for_action(targets, existing_targets):
     targets_register = []
     targets_to_deregister = []
-    # decide the target by ip and port
+    # decide the target by address and port
     # convert to dict for fast search
     targets_by_key = {
-        (target["ip"], target["port"]): target
+        (target["address"], target["port"]): target
         for target in targets
     }
 
@@ -995,7 +1024,7 @@ def _register_targets(
         elb_client, target_group_id, targets):
     target_group_targets = [
         {
-            'Id': target["ip"],
+            'Id': target["address"],
             'Port': target["port"],
         } for target in targets
     ]

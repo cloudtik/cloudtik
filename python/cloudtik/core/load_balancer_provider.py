@@ -84,7 +84,7 @@ class LoadBalancerProvider:
             "scheme": "internet-facing",
             "public_ips": [
                 {
-                    "id": "public ip name or full resource id of cloud provider"
+                    "id": "public ip name or resource id of cloud provider"
                 }
             ]
             "service_groups": [
@@ -105,13 +105,13 @@ class LoadBalancerProvider:
                             "default": False,
                             "targets": [
                                 {
-                                    "ip": "172.18.0.1",
+                                    "address": "172.18.0.1",
                                     "port": 1234,
                                     "node_id": "node-id-1",
                                     "seq_id": "1"
                                 },
                                 {
-                                    "ip": "172.18.0.2",
+                                    "address": "172.18.0.2",
                                     "port": 1234,
                                     "node_id": "node-id-2",
                                     "seq_id": "2",

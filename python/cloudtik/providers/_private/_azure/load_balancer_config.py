@@ -695,7 +695,7 @@ def _get_load_balancer_backend_addresses(
         provider_config, virtual_network_name)
     service_name = service["name"]
     for i, target in enumerate(targets, start=1):
-        ip_address = target["ip"]
+        ip_address = target["address"]
         name = "{}-addr-{}".format(service_name, i)
         load_balancer_backend_address = {
             "name": name,
@@ -1185,7 +1185,7 @@ def _get_application_gateway_backend_addresses(
     backend_addresses = []
     targets = service.get("targets", [])
     for target in targets:
-        ip_address = target["ip"]
+        ip_address = target["address"]
         backend_address = {
             "ipAddress": ip_address,
         }
