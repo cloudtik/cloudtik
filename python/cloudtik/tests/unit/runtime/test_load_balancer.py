@@ -351,12 +351,15 @@ class MockGCPOperation:
         if "list" in self.name:
             return {}
         elif self.name == "get":
-            return {
-                "status": "DONE"
-            }
+            if self.collection_name in ["globalOperations", "regionOperations", "zoneOperations"]:
+                return {
+                    "status": "DONE"
+                }
+            else:
+                return {}
         else:
             return {
-                "name": "operation-name",
+                "name": "operation-{}-{}".format(self.collection_name, self.name),
             }
 
 
