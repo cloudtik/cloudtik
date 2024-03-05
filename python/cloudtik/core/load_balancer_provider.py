@@ -82,6 +82,11 @@ class LoadBalancerProvider:
             "name": "load-balancer-1",
             "type": "network",
             "scheme": "internet-facing",
+            "public_ips": [
+                {
+                    "id": "public ip name or full resource id of cloud provider"
+                }
+            ]
             "service_groups": [
                 {
                     "listeners": [

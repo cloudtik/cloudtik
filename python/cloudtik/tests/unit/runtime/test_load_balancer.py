@@ -196,6 +196,7 @@ class MockAzureNetworkManagementClient:
     def __init__(self):
         self.load_balancers = MockAzureCollection("load_balancers")
         self.application_gateways = MockAzureCollection("application_gateways")
+        self.public_ip_addresses = MockAzureCollection("public_ip_addresses")
 
 
 class MockAzureCollection:
@@ -206,7 +207,7 @@ class MockAzureCollection:
         return []
 
     def get(self, *args, **kwargs):
-        return {}
+        return MockAzureResource()
 
     def begin_create_or_update(self, *args, **kwargs):
         return MockAzureOperation(self.name, "create_or_update")
@@ -221,7 +222,12 @@ class MockAzureOperation:
         self.name = name
 
     def result(self):
-        return {}
+        return MockAzureResource()
+
+
+class MockAzureResource:
+    def __init__(self):
+        self.name = "xyz"
 
 
 class MockGCPLoadBalancerManager(MockLoadBalancerManager):
