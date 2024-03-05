@@ -192,7 +192,7 @@ def _create_load_balancer(
         load_balancer_config, context):
     project_id = provider_config["project_id"]
     region = _get_load_balancer_scope_type(provider_config)
-    load_balancer_name = _get_load_balancer_name(load_balancer_config)
+    load_balancer_name = get_load_balancer_config_name(load_balancer_config)
 
     load_balancer = _get_load_balancer_object(load_balancer_config)
 
@@ -222,7 +222,7 @@ def _update_load_balancer(
     project_id = provider_config["project_id"]
     # If region is None, it is a global load balancer
     region = load_balancer.get("region")
-    load_balancer_name = _get_load_balancer_name(load_balancer_config)
+    load_balancer_name = get_load_balancer_config_name(load_balancer_config)
 
     load_balancer = _get_load_balancer_object(
         load_balancer_config)
@@ -307,14 +307,6 @@ def _is_resource_updated(resources_context, resource_key, resource):
 def _clear_resource_hash(resources_context, resource_key):
     if resource_key:
         resources_context.pop(resource_key, None)
-
-
-def _get_load_balancer_id(load_balancer):
-    return load_balancer["id"]
-
-
-def _get_load_balancer_name(load_balancer):
-    return load_balancer["name"]
 
 
 def _get_load_balancer_scope_type(provider_config):
@@ -672,7 +664,7 @@ def _get_unused_backend_services(backend_services, services_used):
 def _delete_services_unused(
         compute, provider_config, project_id, region,
         load_balancer, load_balancer_context):
-    load_balancer_name = _get_load_balancer_name(load_balancer)
+    load_balancer_name = get_load_balancer_config_name(load_balancer)
     backend_services = _list_load_balancer_backend_services(
         compute, project_id, region, load_balancer_name)
     services = _get_load_balancer_backend_services(load_balancer)
