@@ -96,6 +96,16 @@ The frontend private IP address can be allocated from the Application Gateway su
 An application gateway frontend supports only one public IP address. New versions (in preview)
 support dual-stack IP addresses.
 
+Notes about public IPs:
+Public IP addresses are associated with a single region. The Global tier spans an IP address
+across multiple regions. Global tier is required for the frontends of cross-region load balancers.
+
+Irrespective of type of tier selected for the Public IP address while creating, you can associate it
+to Azure Resources which are located in same Location as that of the Public IP.
+Irrespective of type of tier selected for the Public IP address while creating, these IPs can be
+reached from any location.
+
+
 """
 
 
@@ -149,6 +159,10 @@ def _get_load_balancer_id(load_balancer):
 
 def _get_load_balancer_name(load_balancer):
     return load_balancer.name
+
+
+def _get_load_balancer_config_name(load_balancer_config):
+    return load_balancer_config["name"]
 
 
 def _get_load_balancer_context(load_balancers_context, load_balancer_name):
@@ -271,9 +285,19 @@ def _get_frontend_ip_configurations(
     # while for internal load balancer, it should have private ip configuration
     load_balancer_scheme = load_balancer_config["scheme"]
     if load_balancer_scheme == LOAD_BALANCER_SCHEME_INTERNET_FACING:
-        # TODO: need to configure a public IP (passed from user)
+        # configure a public IP (passed from user) or auto created
         # Currently we support one IP, it can be more than one
-        pass
+        static_public_ips = load_balancer_config.get("public_ips", [])
+        if static_public_ips:
+            static_public_ip = static_public_ips[0]
+            public_ip_id = static_public_ip["id"]
+        else:
+            # We auto created one
+            load_balancer_name = _get_load_balancer_config_name(load_balancer_config)
+            public_ip_id = _get_load_balancer_public_ip_name(
+                load_balancer_name)
+        frontend_ip_configuration = _get_public_front_ip_configuration(
+            provider_config, public_ip_id)
     else:
         # Use Application Gateway subnet for Application Gateway,
         load_balancer_type = load_balancer_config["type"]
@@ -285,8 +309,8 @@ def _get_frontend_ip_configurations(
                 workspace_name)
         frontend_ip_configuration = _get_private_front_ip_configuration(
             provider_config, virtual_network_name, subnet_name)
-        frontend_ip_configurations.append(frontend_ip_configuration)
 
+    frontend_ip_configurations.append(frontend_ip_configuration)
     return frontend_ip_configurations
 
 
@@ -295,6 +319,30 @@ def _get_virtual_network_resource_id(provider_config, virtual_network):
     resource_group_name = provider_config["resource_group"]
     return get_virtual_network_resource_id(
         subscription_id, resource_group_name, virtual_network)
+
+
+def _get_public_ip_resource_id(provider_config, public_ip_name):
+    subscription_id = provider_config["subscription_id"]
+    resource_group_name = provider_config["resource_group"]
+    return get_network_resource_id(
+        subscription_id, resource_group_name, "publicIPAddresses", public_ip_name)
+
+
+def _get_public_front_ip_configuration(
+        provider_config, public_ip_id):
+    # check whether the id is a name in workspace resource group
+    if "/" not in public_ip_id:
+        public_ip_id = _get_public_ip_resource_id(provider_config, public_ip_id)
+    frontend_ip_name = "ip-1"
+    frontend_ip_configuration = {
+        "name": frontend_ip_name,
+        "properties": {
+            "publicIPAddress": {
+                "id": public_ip_id,
+            }
+        },
+    }
+    return frontend_ip_configuration
 
 
 def _get_private_front_ip_configuration(
@@ -313,6 +361,89 @@ def _get_private_front_ip_configuration(
         },
     }
     return frontend_ip_configuration
+
+
+def _get_load_balancer_public_ip_name(load_balancer_name):
+    return "{}-public-ip".format(load_balancer_name)
+
+
+def _create_load_balancer_ip(
+        network_client, provider_config, resource_group_name,
+        load_balancer_config):
+    load_balancer_scheme = load_balancer_config["scheme"]
+    if load_balancer_scheme != LOAD_BALANCER_SCHEME_INTERNET_FACING:
+        return
+
+    # if not static public ip from user, auto created
+    static_public_ips = load_balancer_config.get("public_ips", [])
+    if static_public_ips:
+        return
+
+    _create_load_balancer_public_ip(
+        network_client, provider_config, resource_group_name,
+        load_balancer_config)
+
+
+def _create_load_balancer_public_ip(
+        network_client, provider_config, resource_group_name,
+        load_balancer_config):
+    load_balancer_name = _get_load_balancer_config_name(load_balancer_config)
+    public_ip_address_name = _get_load_balancer_public_ip_name(load_balancer_name)
+    public_ip = _get_public_ip_address(
+        network_client, resource_group_name, public_ip_address_name)
+    if public_ip:
+        # already created
+        return public_ip
+    return _create_public_ip_address(
+        network_client, provider_config, resource_group_name,
+        public_ip_address_name)
+
+
+def _get_public_ip_address(
+        network_client, resource_group_name, public_ip_address_name):
+    try:
+        response = network_client.public_ip_addresses.get(
+            resource_group_name=resource_group_name,
+            public_ip_address_name=public_ip_address_name,
+        )
+        return response
+    except Exception:
+        return None
+
+
+def _create_public_ip_address(
+        network_client, provider_config, resource_group_name,
+        public_ip_address_name):
+    location = provider_config["location"]
+    public_ip = {
+        'location': location,
+        'public_ip_allocation_method': 'Static',
+        'public_ip_address_version': 'IPv4',
+        'idle_timeout_in_minutes': 4,
+        "sku": {
+            "name": "Standard",
+            "tier": "Regional"
+        }
+    }
+    response = network_client.public_ip_addresses.begin_create_or_update(
+        resource_group_name=resource_group_name,
+        public_ip_address_name=public_ip_address_name,
+        parameters=public_ip
+    ).result()
+    return response
+
+
+def _delete_load_balancer_ip(
+        network_client, resource_group_name, load_balancer_name):
+    public_ip_address_name = _get_load_balancer_public_ip_name(load_balancer_name)
+    public_ip = _get_public_ip_address(
+        network_client, resource_group_name, public_ip_address_name)
+    if not public_ip:
+        return
+    network_client.public_ip_addresses.begin_delete(
+        resource_group_name=resource_group_name,
+        public_ip_address_name=public_ip_address_name
+    ).result()
 
 
 def _get_load_balancer_scheme(application_gateway):
@@ -355,16 +486,20 @@ def _get_network_load_balancer(
 def _create_network_load_balancer(
         network_client, provider_config, workspace_name, virtual_network_name,
         load_balancer_config, context):
-    load_balancer_name = load_balancer_config["name"]
+    resource_group_name = provider_config["resource_group"]
+    load_balancer_name = _get_load_balancer_config_name(load_balancer_config)
     load_balancers_hash_context = _get_load_balancers_hash_context(
         context)
     load_balancers_context = _get_load_balancers_context(context)
+
+    _create_load_balancer_ip(
+        network_client, provider_config, resource_group_name,
+        load_balancer_config)
 
     load_balancer = _get_load_balancer_object(
         provider_config, workspace_name, virtual_network_name,
         load_balancer_config)
 
-    resource_group_name = provider_config["resource_group"]
     _create_or_update_load_balancer(
         network_client, resource_group_name,
         load_balancer_name, load_balancer)
@@ -385,7 +520,7 @@ def _update_network_load_balancer(
         network_client, provider_config, workspace_name, virtual_network_name,
         load_balancer_config, context):
     resource_group_name = provider_config["resource_group"]
-    load_balancer_name = load_balancer_config["name"]
+    load_balancer_name = _get_load_balancer_config_name(load_balancer_config)
     load_balancers_hash_context = _get_load_balancers_hash_context(
         context)
     load_balancers_context = _get_load_balancers_context(context)
@@ -427,6 +562,7 @@ def _delete_network_load_balancer(
         network_client, resource_group_name, load_balancer_name)
     if not load_balancer:
         return
+
     network_client.load_balancers.begin_delete(
         resource_group_name=resource_group_name,
         load_balancer_name=load_balancer_name,
@@ -439,6 +575,9 @@ def _delete_network_load_balancer(
         load_balancers_hash_context, load_balancer_name)
     _clear_load_balancer_context(
         load_balancers_context, load_balancer_name)
+
+    _delete_load_balancer_ip(
+        network_client, resource_group_name, load_balancer_name)
 
 
 # Azure load balancer Helper functions
@@ -573,7 +712,7 @@ def _get_load_balancer_backend_addresses(
 
 def _get_load_balancer_load_balancing_rules(
         provider_config, load_balancer_config, frontend_ip_configurations):
-    load_balancer_name = load_balancer_config["name"]
+    load_balancer_name = _get_load_balancer_config_name(load_balancer_config)
     load_balancing_rules = []
 
     # rules repeated based on the number of front ip configurations
@@ -787,7 +926,12 @@ def _get_application_load_balancer(
 def _create_application_load_balancer(
         network_client, provider_config, workspace_name, virtual_network_name,
         load_balancer_config, context):
-    load_balancer_name = load_balancer_config["name"]
+    resource_group_name = provider_config["resource_group"]
+    load_balancer_name = _get_load_balancer_config_name(load_balancer_config)
+
+    _create_load_balancer_ip(
+        network_client, provider_config, resource_group_name,
+        load_balancer_config)
 
     application_gateway = _get_application_gateway_object(
         provider_config, workspace_name, virtual_network_name,
@@ -802,7 +946,7 @@ def _create_application_load_balancer(
 def _update_application_load_balancer(
         network_client, provider_config, workspace_name, virtual_network_name,
         load_balancer_config, context):
-    load_balancer_name = load_balancer_config["name"]
+    load_balancer_name = _get_load_balancer_config_name(load_balancer_config)
 
     application_gateway = _get_application_gateway_object(
         provider_config, workspace_name, virtual_network_name,
@@ -833,6 +977,9 @@ def _delete_application_load_balancer(
         load_balancers_hash_context, load_balancer_name)
     _clear_load_balancer_context(
         load_balancers_context, load_balancer_name)
+
+    _delete_load_balancer_ip(
+        network_client, resource_group_name, load_balancer_name)
 
 
 # Azure Application Gateway Helper functions
@@ -1075,7 +1222,7 @@ def _get_application_gateway_backend_http_setting(
 def _get_application_gateway_http_listeners(
         provider_config, load_balancer_config,
         frontend_ip_configurations):
-    application_gateway_name = load_balancer_config["name"]
+    application_gateway_name = _get_load_balancer_config_name(load_balancer_config)
     http_listeners = []
 
     # The listeners repeated based on the number of front ip configurations
@@ -1264,7 +1411,7 @@ def _get_service_rewrite_rule_prefix(
 
 def _get_application_gateway_url_path_maps(
         provider_config, load_balancer_config):
-    application_gateway_name = load_balancer_config["name"]
+    application_gateway_name = _get_load_balancer_config_name(load_balancer_config)
     # create one urlPathMap for each service group
     url_path_maps = []
     service_groups = _get_load_balancer_service_groups(load_balancer_config)
@@ -1420,7 +1567,7 @@ def _get_application_gateway_path_rule(
 
 def _get_application_gateway_request_routing_rules(
         provider_config, load_balancer_config, frontend_ip_configurations):
-    application_gateway_name = load_balancer_config["name"]
+    application_gateway_name = _get_load_balancer_config_name(load_balancer_config)
     request_routing_rules = []
 
     # The routing rules repeated based on the number of front ip configurations
