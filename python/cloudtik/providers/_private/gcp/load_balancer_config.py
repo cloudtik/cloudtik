@@ -2,7 +2,8 @@ from typing import Dict, Any
 
 from cloudtik.core._private.util.core_utils import get_json_object_hash, get_config_for_update, copy_config_key
 from cloudtik.core._private.util.load_balancer import get_load_balancer_service_groups, get_service_group_services, \
-    get_service_group_listeners, get_load_balancer_config_type, get_load_balancer_config_name, get_service_targets
+    get_service_group_listeners, get_load_balancer_config_type, get_load_balancer_config_name, get_service_targets, \
+    get_load_balancer_config_scheme, get_load_balancer_public_ips
 from cloudtik.core._private.utils import get_provider_config
 from cloudtik.core.load_balancer_provider import LOAD_BALANCER_TYPE_NETWORK, LOAD_BALANCER_SCHEME_INTERNET_FACING, \
     LOAD_BALANCER_PROTOCOL_TCP, LOAD_BALANCER_PROTOCOL_TLS, LOAD_BALANCER_PROTOCOL_HTTP, \
@@ -74,12 +75,26 @@ You must create one proxy-only subnet in each region of a VPC network
 where you use load balancers. Each network running these load balancers
 need a proxy-only subnet and it will be used automatically.
 
-Notes for internal forward rule subnet for internal load balancers:
+Notes for internal forwarding rule subnet for internal load balancers:
 The internal IP address associated with the forwarding rule can come from a subnet
 in the same network and region as the backends. Note the following conditions:
 The IP address can (but does not need to) come from the same subnet as the backend.
 The IP address must not come from a reserved proxy-only subnet.
-If use the same IP address between multiple internal forwarding rules
+
+For external forwarding rules, we reserve an external IP address (global or regional).
+If not specified, it assigns an ephemeral IP address (confirm?)
+
+The forwarding rule's target, and in most cases, also the loadBalancingScheme,
+determine the type of IP address that you can use.
+
+Notes for Multiple forwarding rules with a common IP address:
+
+Two or more forwarding rules with the EXTERNAL or EXTERNAL_MANAGED load balancing
+scheme can share the same IP address if the following are true:
+- The ports used by each forwarding rule don't overlap.
+- The Network Service Tiers of each forwarding rule matches the Network Service Tiers
+of the external IP address.
+
 For multiple internal forwarding rules to share the same internal IP address,
 you must reserve the IP address and set its --purpose flag to SHARED_LOADBALANCER_VIP
     gcloud compute addresses create SHARED_IP_ADDRESS_NAME \
@@ -87,14 +102,9 @@ you must reserve the IP address and set its --purpose flag to SHARED_LOADBALANCE
         --subnet=SUBNET_NAME \
         --purpose=SHARED_LOADBALANCER_VIP
 
-# The IP address of the forward rule can be static specified or dynamic allocated
+# The IP address of the forwarding rule can be static specified or dynamic allocated
 from the subnet.
 
-For external forward rules, we reserve an external IP address (global or regional).
-If not specified, it assigns an ephemeral IP address (confirm?)
-
-The forwarding rule's target, and in most cases, also the loadBalancingScheme,
-determine the type of IP address that you can use.
 
 Firewall rules:
 
@@ -153,24 +163,24 @@ def _bootstrap_load_balancer_config(
 
 def _list_load_balancers(
         compute, provider_config, workspace_name):
-    # only forward rules has capability of labels
-    # we first list all region or global forward rules so that to get a list of
+    # only forwarding rules has capability of labels
+    # we first list all region or global forwarding rules so that to get a list of
     # load balancer names (region or global)
     project_id = provider_config["project_id"]
 
-    # list global forward rules
+    # list global forwarding rules
     region = None
-    forward_rules = _list_workspace_forward_rules(
+    forwarding_rules = _list_workspace_forwarding_rules(
         compute, project_id, region, workspace_name)
-    # list regional forward rules
+    # list regional forwarding rules
     region = provider_config["region"]
-    regional_forward_rules = _list_workspace_forward_rules(
+    regional_forwarding_rules = _list_workspace_forwarding_rules(
         compute, project_id, region, workspace_name)
-    forward_rules += regional_forward_rules
+    forwarding_rules += regional_forwarding_rules
 
     load_balancer_map = {}
-    for forward_rule in forward_rules:
-        load_balancer_info = _get_load_balancer_info_of(forward_rule)
+    for forwarding_rule in forwarding_rules:
+        load_balancer_info = _get_load_balancer_info_of(forwarding_rule)
         if load_balancer_info:
             load_balancer_name = load_balancer_info["name"]
             load_balancer_map[load_balancer_name] = load_balancer_info
@@ -381,7 +391,7 @@ def _get_load_balancer_protocol(protocol):
     return protocol
 
 
-def _get_load_balancer_config_scheme(load_balancer):
+def _get_load_balancer_scheme(load_balancer):
     scheme = load_balancer["scheme"]
     if scheme == LOAD_BALANCER_SCHEME_INTERNET_FACING:
         return "EXTERNAL_MANAGED"
@@ -435,12 +445,55 @@ def _get_route_services_of(services):
     return route_services
 
 
+def _get_forwarding_rule_name(load_balancer_name, listener, public_ip=None):
+    # considering listeners for different ip addresses
+    if public_ip:
+        return "{}-{}-{}".format(
+            load_balancer_name, public_ip["id"], listener["port"])
+    else:
+        return "{}-{}".format(
+            load_balancer_name, listener["port"])
+
+
+def _get_forwarding_rules_of(
+        load_balancer_name, service_group, public_ips):
+
+    listeners = get_service_group_listeners(service_group)
+    forwarding_rules = []
+    if public_ips:
+        for public_ip in public_ips:
+            for listener in listeners:
+                name = _get_forwarding_rule_name(
+                    load_balancer_name, listener, public_ip)
+                forwarding_rule = {
+                    "name": name,
+                    "ip_address": public_ip["id"],
+                    "protocol": listener["protocol"],
+                    "port": listener["port"],
+                }
+                forwarding_rules.append(forwarding_rule)
+    else:
+        for listener in listeners:
+            name = _get_forwarding_rule_name(
+                load_balancer_name, listener)
+            forwarding_rule = {
+                "name": name,
+                "protocol": listener["protocol"],
+                "port": listener["port"],
+            }
+            forwarding_rules.append(forwarding_rule)
+    return forwarding_rules
+
+
 def _get_load_balancer_object(load_balancer_config):
     # Currently no conversion needs to be done
+    load_balancer_name = get_load_balancer_config_name(load_balancer_config)
+    load_balancer_type = get_load_balancer_config_type(load_balancer_config)
+    load_balancer_scheme = get_load_balancer_config_scheme(load_balancer_config)
     load_balancer = {
-        "name": load_balancer_config["name"],
-        "type": load_balancer_config["type"],
-        "scheme": load_balancer_config["scheme"],
+        "name": load_balancer_name,
+        "type": load_balancer_type,
+        "scheme": load_balancer_scheme,
     }
     copy_config_key(load_balancer_config, load_balancer, "tags")
 
@@ -449,7 +502,12 @@ def _get_load_balancer_object(load_balancer_config):
     services = get_service_group_services(service_group)
 
     load_balancer["backend_services"] = _get_backend_services_of(services)
-    load_balancer["listeners"] = get_service_group_listeners(service_group)
+    # convert to forwarding rules
+    public_ips = None
+    if load_balancer_scheme == LOAD_BALANCER_SCHEME_INTERNET_FACING:
+        public_ips = get_load_balancer_public_ips(load_balancer_config)
+    load_balancer["forwarding_rules"] = _get_forwarding_rules_of(
+        load_balancer_name, service_group, public_ips)
     load_balancer["route_services"] = _get_route_services_of(services)
     return load_balancer
 
@@ -457,7 +515,7 @@ def _get_load_balancer_object(load_balancer_config):
 def _get_load_balancer_proxy_rules(load_balancer):
     # proxy rules include listeners and route_services
     load_balancer_proxy_rules = {
-        "listeners": load_balancer["listeners"],
+        "forwarding_rules": load_balancer["forwarding_rules"],
         "route_services": load_balancer["route_services"]
     }
     return load_balancer_proxy_rules
@@ -471,8 +529,8 @@ def _get_load_balancer_route_services(load_balancer):
     return load_balancer["route_services"]
 
 
-def _get_load_balancer_listeners(load_balancer):
-    return load_balancer["listeners"]
+def _get_load_balancer_forwarding_rules(load_balancer):
+    return load_balancer["forwarding_rules"]
 
 
 def _get_service_route_path(service):
@@ -489,14 +547,14 @@ def _get_load_balancer_first_service(load_balancer):
 
 
 def _get_load_balancer_config_protocol(load_balancer):
-    listeners = _get_load_balancer_listeners(load_balancer)
-    if not listeners:
+    forwarding_rules = _get_load_balancer_forwarding_rules(load_balancer)
+    if not forwarding_rules:
         raise RuntimeError(
             "No listener defined for load balancer.")
     # get the first listener protocol
     # multiple listeners should not mix protocol
-    listener = listeners[0]
-    return listener["protocol"]
+    forwarding_rule = forwarding_rules[0]
+    return forwarding_rule["protocol"]
 
 
 def _get_sorted_services(services, reverse=False):
@@ -535,8 +593,8 @@ def _execute_and_wait(compute, project_id, func, region=None, zone=None):
             project_id, operation, compute)
 
 
-def _get_load_balancer_info_of(forward_rule):
-    labels = forward_rule.get("labels")
+def _get_load_balancer_info_of(forwarding_rule):
+    labels = forwarding_rule.get("labels")
     if not labels:
         return None
     # all these labels must be set
@@ -558,7 +616,7 @@ def _get_load_balancer_info_of(forward_rule):
         "tags": labels
     }
 
-    region = forward_rule.get("region")
+    region = forwarding_rule.get("region")
     if region:
         load_balancer_info["region"] = region
 
@@ -1300,7 +1358,7 @@ def _get_backend_service(
         load_balancer, service):
     load_balancer_name = get_load_balancer_config_name(load_balancer)
     name = _get_backend_service_name(load_balancer_name, service)
-    scheme = _get_load_balancer_config_scheme(load_balancer)
+    scheme = _get_load_balancer_scheme(load_balancer)
 
     service_protocol = service["protocol"]
     protocol = _get_load_balancer_protocol(service_protocol)
@@ -1528,33 +1586,33 @@ def _delete_target_proxy(
 def _create_forwarding_rules(
         compute, provider_config, project_id, region, vpc_name,
         workspace_name, load_balancer):
-    listeners = _get_load_balancer_listeners(load_balancer)
-    for listener in listeners:
+    forwarding_rules = _get_load_balancer_forwarding_rules(load_balancer)
+    for forwarding_rule in forwarding_rules:
         _create_forwarding_rule(
             compute, provider_config, project_id, region, vpc_name,
-            workspace_name, load_balancer, listener)
+            workspace_name, load_balancer, forwarding_rule)
 
 
 def _update_forwarding_rules(
         compute, provider_config, project_id, region, vpc_name,
         workspace_name, load_balancer):
-    listeners = _get_load_balancer_listeners(load_balancer)
-    existing_forward_rules = _list_load_balancer_forward_rules(
+    forwarding_rules = _get_load_balancer_forwarding_rules(load_balancer)
+    existing_forwarding_rules = _list_load_balancer_forwarding_rules(
         compute, project_id, region, load_balancer)
 
-    (listeners_to_create,
-     listeners_to_update,
-     listeners_to_delete) = _get_listeners_for_action(
-        listeners, existing_forward_rules)
+    (forwarding_rules_to_create,
+     forwarding_rules_to_update,
+     forwarding_rules_to_delete) = _get_forwarding_rules_for_action(
+        forwarding_rules, existing_forwarding_rules)
 
-    for listener in listeners_to_create:
+    for forwarding_rule in forwarding_rules_to_create:
         _create_forwarding_rule(
             compute, provider_config, project_id, region, vpc_name,
-            workspace_name, load_balancer, listener)
+            workspace_name, load_balancer, forwarding_rule)
 
-    # currently we don't update a forward rule
+    # currently we don't update a forwarding rule
 
-    for forwarding_rule in listeners_to_delete:
+    for forwarding_rule in forwarding_rules_to_delete:
         _delete_forwarding_rule(
             compute, project_id, region, forwarding_rule)
 
@@ -1562,53 +1620,41 @@ def _update_forwarding_rules(
 def _delete_forwarding_rules(
         compute, project_id, region,
         load_balancer):
-    existing_forward_rules = _list_load_balancer_forward_rules(
+    existing_forwarding_rules = _list_load_balancer_forwarding_rules(
         compute, project_id, region, load_balancer)
-    for forwarding_rule in existing_forward_rules:
+    for forwarding_rule in existing_forwarding_rules:
         _delete_forwarding_rule(
             compute, project_id, region, forwarding_rule)
 
 
-def _get_listener_key(listener):
-    # Currently we distinguish only by port. The protocol must be the same.
-    return listener["port"]
-
-
-def _get_forward_rule_listener_key(forward_rule):
-    # The port range must be a single port
-    port_range = forward_rule["portRange"]
-    port_range_values = port_range.split("-")
-    return int(port_range_values[0])
-
-
-def _get_listeners_for_action(listeners, existing_forward_rules):
-    listeners_create = []
-    listeners_update = []
-    listeners_to_delete = []
-    # decide the listener by protocol and port
+def _get_forwarding_rules_for_action(forwarding_rules, existing_forwarding_rules):
+    forwarding_rules_create = []
+    forwarding_rules_update = []
+    forwarding_rules_to_delete = []
+    # decide the forwarding_rule by protocol and port
     # convert to dict for fast search
-    listeners_by_key = {
-        _get_listener_key(listener): listener
-        for listener in listeners
+    forwarding_rules_by_key = {
+        forwarding_rule["name"]: forwarding_rule
+        for forwarding_rule in forwarding_rules
     }
-    existing_listeners_by_key = {
-        _get_forward_rule_listener_key(forward_rule): forward_rule
-        for forward_rule in existing_forward_rules
+    existing_forwarding_rules_by_key = {
+        forwarding_rule["name"]: forwarding_rule
+        for forwarding_rule in existing_forwarding_rules
     }
-    for listener_key, listener in listeners_by_key.items():
-        if listener_key not in existing_listeners_by_key:
-            listeners_create.append(listener)
+    for forwarding_rule_key, forwarding_rule in forwarding_rules_by_key.items():
+        if forwarding_rule_key not in existing_forwarding_rules_by_key:
+            forwarding_rules_create.append(forwarding_rule)
         else:
-            load_balancer_listener = existing_listeners_by_key[listener_key]
-            listeners_update.append((listener, load_balancer_listener))
+            load_balancer_forwarding_rule = existing_forwarding_rules_by_key[forwarding_rule_key]
+            forwarding_rules_update.append((forwarding_rule, load_balancer_forwarding_rule))
 
-    for listener_key, existing_listeners in existing_listeners_by_key.items():
-        if listener_key not in listeners_by_key:
-            listeners_to_delete.append(existing_listeners)
-    return listeners_create, listeners_update, listeners_to_delete
+    for forwarding_rule_key, existing_forwarding_rules in existing_forwarding_rules_by_key.items():
+        if forwarding_rule_key not in forwarding_rules_by_key:
+            forwarding_rules_to_delete.append(existing_forwarding_rules)
+    return forwarding_rules_create, forwarding_rules_update, forwarding_rules_to_delete
 
 
-def _list_forward_rules(
+def _list_forwarding_rules(
         compute, project_id, region, filter_expr):
     if region:
         response = compute.forwardingRules().list(
@@ -1619,39 +1665,34 @@ def _list_forward_rules(
     return response.get("items", [])
 
 
-def _list_load_balancer_forward_rules(
+def _list_load_balancer_forwarding_rules(
         compute, project_id, region, load_balancer):
     load_balancer_name = get_load_balancer_config_name(load_balancer)
     filter_expr = '(labels.{key} = {value})'.format(
         key=CLOUDTIK_TAG_LOAD_BALANCER_NAME, value=load_balancer_name)
-    return _list_forward_rules(
+    return _list_forwarding_rules(
         compute, project_id, region, filter_expr)
 
 
-def _list_workspace_forward_rules(
+def _list_workspace_forwarding_rules(
         compute, project_id, region, workspace_name):
     filter_expr = '(labels.{key} = {value})'.format(
         key=CLOUDTIK_TAG_WORKSPACE_NAME, value=workspace_name)
-    return _list_forward_rules(
+    return _list_forwarding_rules(
         compute, project_id, region, filter_expr)
 
 
-def _get_forward_rule_name(load_balancer_name, listener):
-    # TODO: considering listeners for different ip addresses
-    return "{}-{}".format(load_balancer_name, listener["port"])
-
-
-def _get_forward_rule(
+def _get_forwarding_rule(
         provider_config, project_id, region, vpc_name,
-        workspace_name, load_balancer, listener):
+        workspace_name, load_balancer, forwarding_rule):
     load_balancer_name = get_load_balancer_config_name(load_balancer)
     load_balancer_type = get_load_balancer_config_type(load_balancer)
-    load_balancer_scheme = load_balancer["scheme"]
+    load_balancer_scheme = get_load_balancer_config_scheme(load_balancer)
     load_balancer_protocol = _get_load_balancer_config_protocol(load_balancer)
 
-    scheme = _get_load_balancer_config_scheme(load_balancer)
-    name = _get_forward_rule_name(load_balancer_name, listener)
-    listener_port = str(listener["port"])
+    scheme = _get_load_balancer_scheme(load_balancer)
+    name = forwarding_rule["name"]
+    listener_port = str(forwarding_rule["port"])
 
     target_proxy_url = _get_target_proxy_url(
         project_id, region, load_balancer)
@@ -1674,8 +1715,7 @@ def _get_forward_rule(
     if not network_tier:
         network_tier = "PREMIUM"
 
-    # TODO: handle static IP address assignment
-    forward_rule = {
+    forwarding_rule_body = {
         "name": name,
         # The IP protocol to which this rule applies
         # TCP or (SSL - for only Global external proxy Network Load Balancer)
@@ -1701,13 +1741,19 @@ def _get_forward_rule(
         "networkTier": network_tier,
     }
 
+    # handle static IP address assignment
+    ip_address = forwarding_rule.get("ip_address")
+    if ip_address:
+        # static IP address assignment if there is one
+        forwarding_rule_body["IPAddress"] = ip_address
+
     # This field is not used for global external load balancing.
     # If the subnetwork is specified, the network of the subnetwork will be used.
     # If neither subnetwork nor this field is specified, the default network will be used.
     if (load_balancer_scheme != LOAD_BALANCER_SCHEME_INTERNET_FACING
             or region):
         network = get_network_url(project_id, vpc_name)
-        forward_rule["network"] = network
+        forwarding_rule_body["network"] = network
 
         # This field identifies the subnetwork that the load balanced IP
         # should belong to for this forwarding rule, used with internal
@@ -1722,41 +1768,41 @@ def _get_forward_rule(
         if load_balancer_scheme == LOAD_BALANCER_SCHEME_INTERNAL:
             subnet_name = get_workspace_subnet_name(workspace_name)
             subnetwork = get_subnetwork_url(project_id, region, subnet_name)
-            forward_rule["subnetwork"] = subnetwork
-    return forward_rule
+            forwarding_rule_body["subnetwork"] = subnetwork
+    return forwarding_rule_body
 
 
 def _create_forwarding_rule(
         compute, provider_config, project_id, region, vpc_name,
-        workspace_name, load_balancer, listener):
-    forward_rule = _get_forward_rule(
+        workspace_name, load_balancer, forwarding_rule):
+    forwarding_rule_body = _get_forwarding_rule(
         provider_config, project_id, region, vpc_name,
-        workspace_name, load_balancer, listener)
+        workspace_name, load_balancer, forwarding_rule)
 
     def func():
         if region:
             return compute.forwardingRules().insert(
-                project=project_id, region=region, body=forward_rule)
+                project=project_id, region=region, body=forwarding_rule_body)
         else:
             return compute.globalForwardingRules().insert(
-                project=project_id, body=forward_rule)
+                project=project_id, body=forwarding_rule_body)
 
     _execute_and_wait(compute, project_id, func, region=region)
-    return forward_rule
+    return forwarding_rule_body
 
 
 def _delete_forwarding_rule(
         compute, project_id, region,
         forwarding_rule):
-    forward_rule_name = forwarding_rule["name"]
+    forwarding_rule_name = forwarding_rule["name"]
 
     def func():
         if region:
             return compute.forwardingRules().delete(
-                project=project_id, region=region, forwardingRule=forward_rule_name)
+                project=project_id, region=region, forwardingRule=forwarding_rule_name)
         else:
             return compute.globalForwardingRules().insert(
-                project=project_id, forwardingRule=forward_rule_name)
+                project=project_id, forwardingRule=forwarding_rule_name)
 
     _execute_and_wait(compute, project_id, func, region=region)
 
