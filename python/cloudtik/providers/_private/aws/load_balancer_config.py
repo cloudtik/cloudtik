@@ -3,6 +3,9 @@ from typing import Dict, Any
 import botocore
 
 from cloudtik.core._private.util.core_utils import batch_list, get_json_object_hash, get_config_for_update
+from cloudtik.core._private.util.load_balancer import get_service_group_services, get_load_balancer_service_groups, \
+    get_service_group_listeners, get_load_balancer_public_ips, get_load_balancer_config_name, \
+    get_load_balancer_config_type, get_load_balancer_config_scheme, get_service_targets
 from cloudtik.core._private.utils import get_provider_config
 from cloudtik.core.load_balancer_provider import LOAD_BALANCER_TYPE_APPLICATION, LOAD_BALANCER_TYPE_NETWORK, \
     LOAD_BALANCER_SCHEME_INTERNET_FACING
@@ -229,11 +232,11 @@ def _create_load_balancer(
             "Value": v,
         })
 
-    load_balancer_name = load_balancer_config["name"]
-    load_balancer_type = load_balancer_config["type"]
-    load_balancer_scheme = load_balancer_config["scheme"]
+    load_balancer_name = get_load_balancer_config_name(load_balancer_config)
+    load_balancer_type = get_load_balancer_config_type(load_balancer_config)
+    load_balancer_scheme = get_load_balancer_config_scheme(load_balancer_config)
 
-    static_public_ips = load_balancer_config.get("public_ips", [])
+    static_public_ips = get_load_balancer_public_ips(load_balancer_config)
     if (load_balancer_type == LOAD_BALANCER_TYPE_NETWORK
             and load_balancer_scheme == LOAD_BALANCER_SCHEME_INTERNET_FACING
             and static_public_ips):
@@ -302,7 +305,7 @@ def _update_load_balancer(
         vpc_id, context):
     # The load balancer exists
     # we track the last settings we updated in context
-    load_balancer_name = load_balancer_config["name"]
+    load_balancer_name = get_load_balancer_config_name(load_balancer_config)
     load_balancer = _get_load_balancer_by_name(elb_client, load_balancer_name)
     if not load_balancer:
         raise RuntimeError(
@@ -360,15 +363,11 @@ def wait_load_balancer_deleted(elb_client, load_balancer_id):
     )
 
 
-def _get_service_group_services(service_group):
-    return service_group.get("services", [])
-
-
 def _get_load_balancer_services(load_balancer_config):
-    service_groups = load_balancer_config.get("service_groups", [])
+    service_groups = get_load_balancer_service_groups(load_balancer_config)
     load_balancer_services = {}
     for service_group in service_groups:
-        services = _get_service_group_services(service_group)
+        services = get_service_group_services(service_group)
         load_balancer_services.update(
             {service["name"]: service for service in services})
     return load_balancer_services
@@ -502,11 +501,11 @@ def _get_listener_id(load_balancer_listener):
 
 
 def _get_listeners_config(load_balancer_config):
-    service_groups = load_balancer_config.get("service_groups", [])
+    service_groups = get_load_balancer_service_groups(load_balancer_config)
     listeners_config = []
     for service_group in service_groups:
         # The listeners of the service group cannot overlap
-        listeners = service_group.get("listeners", [])
+        listeners = get_service_group_listeners(service_group)
         for listener in listeners:
             listener_config = _get_service_group_listener_config(
                 service_group, listener)
@@ -516,7 +515,7 @@ def _get_listeners_config(load_balancer_config):
 
 def _get_service_group_listener_config(service_group, listener):
     # this will remove unrelated attributes for listener
-    services = _get_service_group_services(service_group)
+    services = get_service_group_services(service_group)
     services_config = []
     for service in services:
         service_config = {
@@ -539,7 +538,7 @@ def _create_load_balancer_listeners(
         load_balancer_context):
     load_balancer_id = _get_load_balancer_id(load_balancer)
     load_balancer_name = _get_load_balancer_name(load_balancer)
-    load_balancer_type = load_balancer_config["type"]
+    load_balancer_type = get_load_balancer_config_type(load_balancer_config)
     listeners = _get_listeners_config(load_balancer_config)
     listeners_hash_context = _get_listeners_hash_context(load_balancer_context)
     listeners_context = _get_listeners_context(load_balancer_context)
@@ -662,7 +661,7 @@ def _update_load_balancer_listeners(
         load_balancer_context):
     load_balancer_id = _get_load_balancer_id(load_balancer)
     load_balancer_name = _get_load_balancer_name(load_balancer)
-    load_balancer_type = load_balancer_config["type"]
+    load_balancer_type = get_load_balancer_config_type(load_balancer_config)
     listeners = _get_listeners_config(load_balancer_config)
     existing_listeners = _get_load_balancer_listeners(
         elb_client, load_balancer_id)
@@ -985,7 +984,7 @@ def _list_target_group_targets(elb_client, target_group_id):
 def _update_target_group_targets(
         elb_client, target_group_id, service):
     # decide targets to register and deregister
-    targets = service.get("targets", [])
+    targets = get_service_targets(service)
     existing_targets = _list_target_group_targets(elb_client, target_group_id)
     (targets_register,
      targets_to_deregister) = _get_targets_for_action(targets, existing_targets)

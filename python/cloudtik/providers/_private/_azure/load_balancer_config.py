@@ -1,6 +1,9 @@
 from typing import Dict, Any
 
 from cloudtik.core._private.util.core_utils import get_json_object_hash, get_config_for_update, copy_config_key
+from cloudtik.core._private.util.load_balancer import get_service_group_services, get_load_balancer_service_groups, \
+    get_service_group_listeners, get_load_balancer_config_name, get_load_balancer_public_ips, \
+    get_load_balancer_config_scheme, get_service_targets
 from cloudtik.core._private.utils import get_provider_config
 from cloudtik.core.load_balancer_provider import LOAD_BALANCER_TYPE_NETWORK, LOAD_BALANCER_SCHEME_INTERNET_FACING, \
     LOAD_BALANCER_PROTOCOL_TCP, LOAD_BALANCER_PROTOCOL_UDP, LOAD_BALANCER_PROTOCOL_TLS, LOAD_BALANCER_PROTOCOL_HTTP, \
@@ -161,10 +164,6 @@ def _get_load_balancer_name(load_balancer):
     return load_balancer.name
 
 
-def _get_load_balancer_config_name(load_balancer_config):
-    return load_balancer_config["name"]
-
-
 def _get_load_balancer_context(load_balancers_context, load_balancer_name):
     return _get_resources_context(load_balancers_context, load_balancer_name)
 
@@ -283,17 +282,17 @@ def _get_frontend_ip_configurations(
     frontend_ip_configurations = []
     # for an internet facing load balancer, it should have public IP configuration,
     # while for internal load balancer, it should have private ip configuration
-    load_balancer_scheme = load_balancer_config["scheme"]
+    load_balancer_scheme = get_load_balancer_config_scheme(load_balancer_config)
     if load_balancer_scheme == LOAD_BALANCER_SCHEME_INTERNET_FACING:
         # configure a public IP (passed from user) or auto created
         # Currently we support one IP, it can be more than one
-        static_public_ips = load_balancer_config.get("public_ips", [])
+        static_public_ips = get_load_balancer_public_ips(load_balancer_config)
         if static_public_ips:
             static_public_ip = static_public_ips[0]
             public_ip_id = static_public_ip["id"]
         else:
             # We auto created one
-            load_balancer_name = _get_load_balancer_config_name(load_balancer_config)
+            load_balancer_name = get_load_balancer_config_name(load_balancer_config)
             public_ip_id = _get_load_balancer_public_ip_name(
                 load_balancer_name)
         frontend_ip_configuration = _get_public_front_ip_configuration(
@@ -370,12 +369,12 @@ def _get_load_balancer_public_ip_name(load_balancer_name):
 def _create_load_balancer_ip(
         network_client, provider_config, resource_group_name,
         load_balancer_config):
-    load_balancer_scheme = load_balancer_config["scheme"]
+    load_balancer_scheme = get_load_balancer_config_scheme(load_balancer_config)
     if load_balancer_scheme != LOAD_BALANCER_SCHEME_INTERNET_FACING:
         return
 
     # if not static public ip from user, auto created
-    static_public_ips = load_balancer_config.get("public_ips", [])
+    static_public_ips = get_load_balancer_public_ips(load_balancer_config)
     if static_public_ips:
         return
 
@@ -387,7 +386,7 @@ def _create_load_balancer_ip(
 def _create_load_balancer_public_ip(
         network_client, provider_config, resource_group_name,
         load_balancer_config):
-    load_balancer_name = _get_load_balancer_config_name(load_balancer_config)
+    load_balancer_name = get_load_balancer_config_name(load_balancer_config)
     public_ip_address_name = _get_load_balancer_public_ip_name(load_balancer_name)
     public_ip = _get_public_ip_address(
         network_client, resource_group_name, public_ip_address_name)
@@ -487,7 +486,7 @@ def _create_network_load_balancer(
         network_client, provider_config, workspace_name, virtual_network_name,
         load_balancer_config, context):
     resource_group_name = provider_config["resource_group"]
-    load_balancer_name = _get_load_balancer_config_name(load_balancer_config)
+    load_balancer_name = get_load_balancer_config_name(load_balancer_config)
     load_balancers_hash_context = _get_load_balancers_hash_context(
         context)
     load_balancers_context = _get_load_balancers_context(context)
@@ -520,7 +519,7 @@ def _update_network_load_balancer(
         network_client, provider_config, workspace_name, virtual_network_name,
         load_balancer_config, context):
     resource_group_name = provider_config["resource_group"]
-    load_balancer_name = _get_load_balancer_config_name(load_balancer_config)
+    load_balancer_name = get_load_balancer_config_name(load_balancer_config)
     load_balancers_hash_context = _get_load_balancers_hash_context(
         context)
     load_balancers_context = _get_load_balancers_context(context)
@@ -690,7 +689,7 @@ def _get_load_balancer_backend_address_pool(
 def _get_load_balancer_backend_addresses(
         provider_config, virtual_network_name, service):
     load_balancer_backend_addresses = []
-    targets = service.get("targets", [])
+    targets = get_service_targets(service)
     virtual_network_id = _get_virtual_network_resource_id(
         provider_config, virtual_network_name)
     service_name = service["name"]
@@ -712,15 +711,15 @@ def _get_load_balancer_backend_addresses(
 
 def _get_load_balancer_load_balancing_rules(
         provider_config, load_balancer_config, frontend_ip_configurations):
-    load_balancer_name = _get_load_balancer_config_name(load_balancer_config)
+    load_balancer_name = get_load_balancer_config_name(load_balancer_config)
     load_balancing_rules = []
 
     # rules repeated based on the number of front ip configurations
     for frontend_ip_configuration in frontend_ip_configurations:
-        service_groups = _get_load_balancer_service_groups(load_balancer_config)
+        service_groups = get_load_balancer_service_groups(load_balancer_config)
         for service_group in service_groups:
             # The listeners of the service group cannot overlap
-            listeners = _get_service_group_listeners(service_group)
+            listeners = get_service_group_listeners(service_group)
             for listener in listeners:
                 load_balancing_rule = _get_service_group_load_balancing_rule(
                     provider_config, load_balancer_name,
@@ -747,7 +746,7 @@ def _get_service_group_load_balancing_rule(
         provider_config, load_balancer_name,
         frontend_ip_configuration, service_group, listener):
     # this will remove unrelated attributes for listener
-    services = _get_service_group_services(service_group)
+    services = get_service_group_services(service_group)
     if not services:
         raise RuntimeError(
             "No service defined for service group.")
@@ -822,23 +821,11 @@ def _get_probe_of_service(
     return probe
 
 
-def _get_service_group_services(service_group):
-    return service_group.get("services", [])
-
-
-def _get_service_group_listeners(service_group):
-    return service_group.get("listeners", [])
-
-
-def _get_load_balancer_service_groups(load_balancer_config):
-    return load_balancer_config.get("service_groups", [])
-
-
 def _get_load_balancer_services(load_balancer_config):
-    service_groups = _get_load_balancer_service_groups(load_balancer_config)
+    service_groups = get_load_balancer_service_groups(load_balancer_config)
     load_balancer_services = {}
     for service_group in service_groups:
-        services = _get_service_group_services(service_group)
+        services = get_service_group_services(service_group)
         load_balancer_services.update(
             {service["name"]: service for service in services})
     return load_balancer_services
@@ -927,7 +914,7 @@ def _create_application_load_balancer(
         network_client, provider_config, workspace_name, virtual_network_name,
         load_balancer_config, context):
     resource_group_name = provider_config["resource_group"]
-    load_balancer_name = _get_load_balancer_config_name(load_balancer_config)
+    load_balancer_name = get_load_balancer_config_name(load_balancer_config)
 
     _create_load_balancer_ip(
         network_client, provider_config, resource_group_name,
@@ -946,7 +933,7 @@ def _create_application_load_balancer(
 def _update_application_load_balancer(
         network_client, provider_config, workspace_name, virtual_network_name,
         load_balancer_config, context):
-    load_balancer_name = _get_load_balancer_config_name(load_balancer_config)
+    load_balancer_name = get_load_balancer_config_name(load_balancer_config)
 
     application_gateway = _get_application_gateway_object(
         provider_config, workspace_name, virtual_network_name,
@@ -1123,10 +1110,10 @@ def _get_application_gateway_ip_configuration(
 def _get_application_gateway_frontend_ports(
         load_balancer_config):
     frontend_ports = []
-    service_groups = _get_load_balancer_service_groups(load_balancer_config)
+    service_groups = get_load_balancer_service_groups(load_balancer_config)
     for service_group in service_groups:
         # The listeners of the service group cannot overlap
-        listeners = _get_service_group_listeners(service_group)
+        listeners = get_service_group_listeners(service_group)
         for listener in listeners:
             frontend_port = _get_application_gateway_frontend_port(listener)
             frontend_ports.append(frontend_port)
@@ -1183,7 +1170,7 @@ def _get_application_gateway_backend_address_pool(
 def _get_application_gateway_backend_addresses(
         service):
     backend_addresses = []
-    targets = service.get("targets", [])
+    targets = get_service_targets(service)
     for target in targets:
         ip_address = target["address"]
         backend_address = {
@@ -1222,15 +1209,15 @@ def _get_application_gateway_backend_http_setting(
 def _get_application_gateway_http_listeners(
         provider_config, load_balancer_config,
         frontend_ip_configurations):
-    application_gateway_name = _get_load_balancer_config_name(load_balancer_config)
+    application_gateway_name = get_load_balancer_config_name(load_balancer_config)
     http_listeners = []
 
     # The listeners repeated based on the number of front ip configurations
     for frontend_ip_configuration in frontend_ip_configurations:
-        service_groups = _get_load_balancer_service_groups(load_balancer_config)
+        service_groups = get_load_balancer_service_groups(load_balancer_config)
         for service_group in service_groups:
             # The listeners of the service group cannot overlap
-            listeners = _get_service_group_listeners(service_group)
+            listeners = get_service_group_listeners(service_group)
             for listener in listeners:
                 http_listener = _get_application_gateway_http_listener(
                     provider_config, application_gateway_name,
@@ -1411,10 +1398,10 @@ def _get_service_rewrite_rule_prefix(
 
 def _get_application_gateway_url_path_maps(
         provider_config, load_balancer_config):
-    application_gateway_name = _get_load_balancer_config_name(load_balancer_config)
+    application_gateway_name = get_load_balancer_config_name(load_balancer_config)
     # create one urlPathMap for each service group
     url_path_maps = []
-    service_groups = _get_load_balancer_service_groups(load_balancer_config)
+    service_groups = get_load_balancer_service_groups(load_balancer_config)
     for service_group in service_groups:
         url_path_map = _get_application_gateway_url_path_map(
             provider_config, application_gateway_name, service_group)
@@ -1437,7 +1424,7 @@ def _get_application_gateway_url_path_map_name(service_group):
     # TODO: handle properly for service group name
     # currently we have only one listener for each service group
     # and we can use the listener to name the service group
-    listeners = _get_service_group_listeners(service_group)
+    listeners = get_service_group_listeners(service_group)
     listener = listeners[0]
     protocol = listener["protocol"]
     port = listener["port"]
@@ -1457,7 +1444,7 @@ def _get_application_gateway_url_path_map(
     }
 
     # there must be a default service?
-    services = _get_service_group_services(service_group)
+    services = get_service_group_services(service_group)
     default_service = _get_application_default_service(
         services)
     if default_service:
@@ -1505,7 +1492,7 @@ def _get_application_gateway_path_rules(
     # so that it will be processed last.
     # We should sort the services by the route path in reverse order
     path_rules = []
-    services = _get_service_group_services(service_group)
+    services = get_service_group_services(service_group)
     sorted_services = _get_sorted_services(services, reverse=True)
     for service in sorted_services:
         path_rule = _get_application_gateway_path_rule(
@@ -1567,15 +1554,15 @@ def _get_application_gateway_path_rule(
 
 def _get_application_gateway_request_routing_rules(
         provider_config, load_balancer_config, frontend_ip_configurations):
-    application_gateway_name = _get_load_balancer_config_name(load_balancer_config)
+    application_gateway_name = get_load_balancer_config_name(load_balancer_config)
     request_routing_rules = []
 
     # The routing rules repeated based on the number of front ip configurations
     for frontend_ip_configuration in frontend_ip_configurations:
-        service_groups = _get_load_balancer_service_groups(load_balancer_config)
+        service_groups = get_load_balancer_service_groups(load_balancer_config)
         for service_group in service_groups:
             # The listeners of the service group cannot overlap
-            listeners = _get_service_group_listeners(service_group)
+            listeners = get_service_group_listeners(service_group)
             for listener in listeners:
                 request_routing_rule = _get_application_gateway_request_routing_rule(
                     provider_config, application_gateway_name,
