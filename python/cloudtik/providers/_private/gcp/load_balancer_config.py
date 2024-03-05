@@ -1,6 +1,8 @@
 from typing import Dict, Any
 
 from cloudtik.core._private.util.core_utils import get_json_object_hash, get_config_for_update, copy_config_key
+from cloudtik.core._private.util.load_balancer import get_load_balancer_service_groups, get_service_group_services, \
+    get_service_group_listeners, get_load_balancer_config_type, get_load_balancer_config_name, get_service_targets
 from cloudtik.core._private.utils import get_provider_config
 from cloudtik.core.load_balancer_provider import LOAD_BALANCER_TYPE_NETWORK, LOAD_BALANCER_SCHEME_INTERNET_FACING, \
     LOAD_BALANCER_PROTOCOL_TCP, LOAD_BALANCER_PROTOCOL_TLS, LOAD_BALANCER_PROTOCOL_HTTP, \
@@ -190,7 +192,7 @@ def _create_load_balancer(
         load_balancer_config, context):
     project_id = provider_config["project_id"]
     region = _get_load_balancer_scope_type(provider_config)
-    load_balancer_name = _get_load_balancer_name(load_balancer_config)
+    load_balancer_name = get_load_balancer_config_name(load_balancer_config)
 
     load_balancer = _get_load_balancer_object(load_balancer_config)
 
@@ -220,7 +222,7 @@ def _update_load_balancer(
     project_id = provider_config["project_id"]
     # If region is None, it is a global load balancer
     region = load_balancer.get("region")
-    load_balancer_name = _get_load_balancer_name(load_balancer_config)
+    load_balancer_name = get_load_balancer_config_name(load_balancer_config)
 
     load_balancer = _get_load_balancer_object(
         load_balancer_config)
@@ -307,22 +309,6 @@ def _clear_resource_hash(resources_context, resource_key):
         resources_context.pop(resource_key, None)
 
 
-def _get_load_balancer_id(load_balancer):
-    return load_balancer["id"]
-
-
-def _get_load_balancer_name(load_balancer):
-    return load_balancer["name"]
-
-
-def _get_load_balancer_config_name(load_balancer_config):
-    return load_balancer_config["name"]
-
-
-def _get_load_balancer_config_type(load_balancer_config):
-    return load_balancer_config["type"]
-
-
 def _get_load_balancer_scope_type(provider_config):
     if provider_config.get("prefer_global", True):
         return None
@@ -403,21 +389,9 @@ def _get_load_balancer_config_scheme(load_balancer):
         return "INTERNAL_MANAGED"
 
 
-def _get_load_balancer_service_groups(load_balancer_config):
-    return load_balancer_config.get("service_groups", [])
-
-
-def _get_service_group_services(service_group):
-    return service_group.get("services", [])
-
-
-def _get_service_group_listeners(service_group):
-    return service_group.get("listeners", [])
-
-
 def _get_load_balancer_service_group(load_balancer_config):
     # we have only one service group
-    service_groups = _get_load_balancer_service_groups(
+    service_groups = get_load_balancer_service_groups(
         load_balancer_config)
     if not service_groups:
         raise RuntimeError(
@@ -472,10 +446,10 @@ def _get_load_balancer_object(load_balancer_config):
 
     service_group = _get_load_balancer_service_group(
         load_balancer_config)
-    services = _get_service_group_services(service_group)
+    services = get_service_group_services(service_group)
 
     load_balancer["backend_services"] = _get_backend_services_of(services)
-    load_balancer["listeners"] = _get_service_group_listeners(service_group)
+    load_balancer["listeners"] = get_service_group_listeners(service_group)
     load_balancer["route_services"] = _get_route_services_of(services)
     return load_balancer
 
@@ -632,7 +606,7 @@ def _create_services(
 def _update_services(
         compute, provider_config, project_id, region, vpc_name,
         workspace_name, load_balancer, load_balancer_context):
-    load_balancer_name = _get_load_balancer_config_name(load_balancer)
+    load_balancer_name = get_load_balancer_config_name(load_balancer)
     services = _get_load_balancer_backend_services(load_balancer)
     existing_services = _list_load_balancer_backend_services(
         compute, project_id, region, load_balancer_name)
@@ -663,7 +637,7 @@ def _update_services(
 def _delete_services(
         compute, provider_config, project_id, region,
         load_balancer):
-    load_balancer_name = _get_load_balancer_config_name(load_balancer)
+    load_balancer_name = get_load_balancer_config_name(load_balancer)
     existing_services = _list_load_balancer_backend_services(
         compute, project_id, region, load_balancer_name)
 
@@ -690,7 +664,7 @@ def _get_unused_backend_services(backend_services, services_used):
 def _delete_services_unused(
         compute, provider_config, project_id, region,
         load_balancer, load_balancer_context):
-    load_balancer_name = _get_load_balancer_name(load_balancer)
+    load_balancer_name = get_load_balancer_config_name(load_balancer)
     backend_services = _list_load_balancer_backend_services(
         compute, project_id, region, load_balancer_name)
     services = _get_load_balancer_backend_services(load_balancer)
@@ -845,7 +819,7 @@ def _get_health_check_name(load_balancer_name, service):
 
 
 def _get_health_check_of_service(load_balancer, service):
-    load_balancer_name = _get_load_balancer_config_name(load_balancer)
+    load_balancer_name = get_load_balancer_config_name(load_balancer)
     # The name must be 1-63 characters long, and comply with RFC1035.
     # For example, a name that is 1-63 characters long, matches the regular expression `[a-z]([-a-z0-9]*[a-z0-9])?
     name = _get_health_check_name(load_balancer_name, service)
@@ -892,7 +866,7 @@ def _create_health_check(
 def _delete_health_check(
         compute, project_id, region,
         load_balancer, service):
-    load_balancer_name = _get_load_balancer_config_name(load_balancer)
+    load_balancer_name = get_load_balancer_config_name(load_balancer)
     health_check_name = _get_health_check_name(load_balancer_name, service)
 
     def func():
@@ -956,7 +930,7 @@ def _get_head_worker_targets(service):
     # which is not available for static configurations
     # If we support multiple zones in the future, we may have to list instances
     # for getting the subnet and zone information of each target.
-    targets = service.get("targets", [])
+    targets = get_service_targets(service)
     head_targets = []
     worker_targets = []
     for target in targets:
@@ -1042,7 +1016,7 @@ def _create_or_update_network_endpoint_group_of_service(
 def _get_network_endpoint_group_of_service(
         project_id, region, vpc_name,
         workspace_name, load_balancer, service, subnet, zone):
-    load_balancer_name = _get_load_balancer_config_name(load_balancer)
+    load_balancer_name = get_load_balancer_config_name(load_balancer)
     name = _get_network_endpoint_group_name(
         load_balancer_name, service, subnet, zone)
     network = get_network_url(project_id, vpc_name)
@@ -1065,7 +1039,7 @@ def _get_network_endpoint_group_of_service(
 def _get_network_endpoint_group(
         compute, project_id,
         load_balancer, service, subnet, zone):
-    load_balancer_name = _get_load_balancer_config_name(load_balancer)
+    load_balancer_name = get_load_balancer_config_name(load_balancer)
     network_endpoint_group_name = _get_network_endpoint_group_name(
         load_balancer_name, service, subnet, zone)
     try:
@@ -1114,7 +1088,7 @@ def _delete_network_endpoint_groups(
 def _delete_network_endpoint_group(
         compute, project_id,
         load_balancer, service, subnet, zone):
-    load_balancer_name = _get_load_balancer_config_name(load_balancer)
+    load_balancer_name = get_load_balancer_config_name(load_balancer)
     network_endpoint_group_name = _get_network_endpoint_group_name(
         load_balancer_name, service, subnet, zone)
 
@@ -1150,7 +1124,7 @@ def _update_network_endpoint_group_endpoints(
         compute, project_id,
         load_balancer, service,
         subnet, zone, network_endpoints):
-    load_balancer_name = _get_load_balancer_config_name(load_balancer)
+    load_balancer_name = get_load_balancer_config_name(load_balancer)
     network_endpoint_group_name = _get_network_endpoint_group_name(
         load_balancer_name, service, subnet, zone)
 
@@ -1247,7 +1221,7 @@ def _add_network_endpoint_group_endpoints(
         compute, project_id,
         load_balancer, service,
         subnet, zone, network_endpoints):
-    load_balancer_name = _get_load_balancer_config_name(load_balancer)
+    load_balancer_name = get_load_balancer_config_name(load_balancer)
     network_endpoint_group_name = _get_network_endpoint_group_name(
         load_balancer_name, service, subnet, zone)
     endpoints = _get_endpoints_of_targets(network_endpoints)
@@ -1292,8 +1266,8 @@ def _get_backend_service_name(load_balancer_name, service):
 def _get_backend_service_backends(
         provider_config, project_id,
         load_balancer, service):
-    load_balancer_name = _get_load_balancer_config_name(load_balancer)
-    load_balancer_type = _get_load_balancer_config_type(load_balancer)
+    load_balancer_name = get_load_balancer_config_name(load_balancer)
+    load_balancer_type = get_load_balancer_config_type(load_balancer)
     if load_balancer_type == LOAD_BALANCER_TYPE_APPLICATION:
         balancing_mode = "RATE"
     else:
@@ -1324,7 +1298,7 @@ def _get_backend_service_backends(
 def _get_backend_service(
         provider_config, project_id, region,
         load_balancer, service):
-    load_balancer_name = _get_load_balancer_config_name(load_balancer)
+    load_balancer_name = get_load_balancer_config_name(load_balancer)
     name = _get_backend_service_name(load_balancer_name, service)
     scheme = _get_load_balancer_config_scheme(load_balancer)
 
@@ -1375,7 +1349,7 @@ def _create_backend_service(
 def _delete_backend_service(
         compute, project_id, region,
         load_balancer, service):
-    load_balancer_name = _get_load_balancer_config_name(load_balancer)
+    load_balancer_name = get_load_balancer_config_name(load_balancer)
     backend_service_name = _get_backend_service_name(
         load_balancer_name, service)
 
@@ -1397,14 +1371,14 @@ def _get_target_proxy_name(load_balancer_name):
 def _get_target_proxy(
         project_id, region,
         load_balancer):
-    load_balancer_name = _get_load_balancer_config_name(load_balancer)
+    load_balancer_name = get_load_balancer_config_name(load_balancer)
     name = _get_target_proxy_name(load_balancer_name)
 
     target_proxy = {
         "name": name,
     }
 
-    load_balancer_type = _get_load_balancer_config_type(load_balancer)
+    load_balancer_type = get_load_balancer_config_type(load_balancer)
     if load_balancer_type == LOAD_BALANCER_TYPE_NETWORK:
         # URL to the BackendService resource.
         # there is only one service
@@ -1426,11 +1400,11 @@ def _get_target_proxy(
 
 def _get_target_proxy_url(
         project_id, region, load_balancer):
-    load_balancer_name = _get_load_balancer_config_name(load_balancer)
+    load_balancer_name = get_load_balancer_config_name(load_balancer)
     target_proxy_name = _get_target_proxy_name(
         load_balancer_name)
 
-    load_balancer_type = _get_load_balancer_config_type(load_balancer)
+    load_balancer_type = get_load_balancer_config_type(load_balancer)
     load_balancer_protocol = _get_load_balancer_config_protocol(load_balancer)
     if load_balancer_type == LOAD_BALANCER_TYPE_NETWORK:
         resource_type = "targetTcpProxies"
@@ -1465,7 +1439,7 @@ def _get_target_proxy_api(
 def _create_target_proxy(
         compute, project_id, region,
         load_balancer):
-    load_balancer_type = _get_load_balancer_config_type(load_balancer)
+    load_balancer_type = get_load_balancer_config_type(load_balancer)
     load_balancer_protocol = _get_load_balancer_config_protocol(load_balancer)
     target_proxy = _get_target_proxy(
         project_id, region,
@@ -1488,12 +1462,12 @@ def _create_target_proxy(
 def _update_target_proxy(
         compute, project_id, region,
         load_balancer):
-    load_balancer_type = _get_load_balancer_config_type(load_balancer)
+    load_balancer_type = get_load_balancer_config_type(load_balancer)
     # TODO: why region target TCP proxy doesn't have method for set the backend service
     if load_balancer_type != LOAD_BALANCER_TYPE_NETWORK or region:
         return
 
-    load_balancer_name = _get_load_balancer_config_name(load_balancer)
+    load_balancer_name = get_load_balancer_config_name(load_balancer)
     target_proxy_name = _get_target_proxy_name(load_balancer_name)
 
     # only for the case the backend service changed
@@ -1518,8 +1492,8 @@ def _update_target_proxy(
 def _delete_target_proxy(
         compute, project_id, region,
         load_balancer):
-    load_balancer_type = _get_load_balancer_config_type(load_balancer)
-    load_balancer_name = _get_load_balancer_config_name(load_balancer)
+    load_balancer_type = get_load_balancer_config_type(load_balancer)
+    load_balancer_name = get_load_balancer_config_name(load_balancer)
     target_proxy_name = _get_target_proxy_name(load_balancer_name)
 
     # This is set load balancer label and returned in the list
@@ -1647,7 +1621,7 @@ def _list_forward_rules(
 
 def _list_load_balancer_forward_rules(
         compute, project_id, region, load_balancer):
-    load_balancer_name = _get_load_balancer_config_name(load_balancer)
+    load_balancer_name = get_load_balancer_config_name(load_balancer)
     filter_expr = '(labels.{key} = {value})'.format(
         key=CLOUDTIK_TAG_LOAD_BALANCER_NAME, value=load_balancer_name)
     return _list_forward_rules(
@@ -1670,8 +1644,8 @@ def _get_forward_rule_name(load_balancer_name, listener):
 def _get_forward_rule(
         provider_config, project_id, region, vpc_name,
         workspace_name, load_balancer, listener):
-    load_balancer_name = _get_load_balancer_config_name(load_balancer)
-    load_balancer_type = _get_load_balancer_config_type(load_balancer)
+    load_balancer_name = get_load_balancer_config_name(load_balancer)
+    load_balancer_type = get_load_balancer_config_type(load_balancer)
     load_balancer_scheme = load_balancer["scheme"]
     load_balancer_protocol = _get_load_balancer_config_protocol(load_balancer)
 
@@ -1795,7 +1769,7 @@ def _get_url_map_name(
 def _get_url_map(
         project_id, region,
         load_balancer):
-    load_balancer_name = _get_load_balancer_config_name(load_balancer)
+    load_balancer_name = get_load_balancer_config_name(load_balancer)
     name = _get_url_map_name(load_balancer_name)
     path_rules = _get_path_rules(
         project_id, region,
@@ -1867,7 +1841,7 @@ def _get_path_rules(
 def _get_path_rule_of_service(
         project_id, region,
         load_balancer, service):
-    load_balancer_name = _get_load_balancer_config_name(load_balancer)
+    load_balancer_name = get_load_balancer_config_name(load_balancer)
     route_path = _get_service_route_path(service)
     if route_path.endswith('/'):
         # if the route path ends with /, we don't need two paths to match
@@ -1944,7 +1918,7 @@ def _create_url_map(
 def _update_url_map(
         compute, project_id, region,
         load_balancer):
-    load_balancer_name = _get_load_balancer_config_name(load_balancer)
+    load_balancer_name = get_load_balancer_config_name(load_balancer)
     url_map_name = _get_url_map_name(load_balancer_name)
     url_map = _get_url_map(
         project_id, region,
@@ -1966,7 +1940,7 @@ def _update_url_map(
 def _delete_url_map(
         compute, project_id, region,
         load_balancer):
-    load_balancer_name = _get_load_balancer_config_name(load_balancer)
+    load_balancer_name = get_load_balancer_config_name(load_balancer)
     url_map_name = _get_url_map_name(load_balancer_name)
 
     def func():
