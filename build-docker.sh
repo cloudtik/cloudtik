@@ -264,6 +264,11 @@ do
         fi
     fi
 
+    SPARK_BASE_PREFIX="spark-"
+    if [ -z "${DOCKER_FILE_PATH}" ]; then
+        SPARK_BASE_PREFIX="spark-runtime"
+    fi
+
     if [ "$DEVICE_TYPE" == "" ]; then
         if [ -d "docker/${DOCKER_FILE_PATH}runtime/ai/cpu" ] && ([ $BUILD_AI ] || [ $BUILD_ALL ]); then
             build_image_for "docker/${DOCKER_FILE_PATH}runtime/ai/cpu" \
@@ -277,12 +282,12 @@ do
 
         if [ -d "docker/${DOCKER_FILE_PATH}runtime/ai/cpu" ] && ([ $BUILD_SPARK_AI ] || [ $BUILD_ALL ]); then
             build_image_for "docker/${DOCKER_FILE_PATH}runtime/ai/cpu" \
-              "spark-ai-runtime" "$IMAGE_TAG" "spark-runtime"
+              "spark-ai-runtime" "$IMAGE_TAG" "${SPARK_BASE_PREFIX}"
         fi
 
         if [ -d "docker/${DOCKER_FILE_PATH}runtime/ai/oneapi" ] && ([ $BUILD_SPARK_AI_ONEAPI ] || [ $BUILD_ALL ]); then
             build_image_for "docker/${DOCKER_FILE_PATH}runtime/ai/oneapi" \
-              "spark-ai-oneapi" "$IMAGE_TAG" "spark-runtime"
+              "spark-ai-oneapi" "$IMAGE_TAG" "${SPARK_BASE_PREFIX}"
         fi
     else
         if [ -d "docker/${DOCKER_FILE_PATH}runtime/ai/$DEVICE_TYPE" ] && ([ $BUILD_AI ] || [ $BUILD_ALL ]); then
@@ -292,7 +297,7 @@ do
 
         if [ -d "docker/${DOCKER_FILE_PATH}runtime/ai/$DEVICE_TYPE" ] && ([ $BUILD_SPARK_AI ] || [ $BUILD_ALL ]); then
             build_image_for "docker/${DOCKER_FILE_PATH}runtime/ai/$DEVICE_TYPE" \
-              "spark-ai-runtime" "$IMAGE_TAG$DEVICE_TAG" "spark-runtime"
+              "spark-ai-runtime" "$IMAGE_TAG$DEVICE_TAG" "${SPARK_BASE_PREFIX}"
         fi
     fi
 
