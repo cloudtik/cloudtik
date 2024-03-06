@@ -118,9 +118,6 @@ class LoadBalancerManager:
             if self._is_delete_auto_empty():
                 # delete auto created load balancer if no targets
                 self._delete_load_balancer(load_balancer_name, existing_load_balancer)
-            else:
-                # the load balancer has no targets, clear it
-                self._clear_load_balancer(load_balancer_name, existing_load_balancer)
 
     def _create_load_balancer(
             self, load_balancer_name, load_balancer):
@@ -163,18 +160,6 @@ class LoadBalancerManager:
                     load_balancer_name, str(e)))
             if self.error_abort:
                 raise e
-
-    def _clear_load_balancer(
-            self, load_balancer_name, existing_load_balancer):
-        # TODO: whether some load balancer provider doesn't support clear
-        load_balancer = {
-            "name": load_balancer_name,
-            "type": existing_load_balancer["type"],
-        }
-        if "scheme" in existing_load_balancer:
-            load_balancer["scheme"] = existing_load_balancer["scheme"]
-        self._update_load_balancer(
-            load_balancer_name, load_balancer, existing_load_balancer)
 
     def _is_delete_auto_empty(self):
         return self.provider_config.get("delete_auto_empty", True)
