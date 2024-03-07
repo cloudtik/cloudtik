@@ -9,7 +9,7 @@ from cloudtik.core._private.util.load_balancer import get_service_group_services
     get_load_balancer_config_type, get_load_balancer_config_scheme, get_service_targets, \
     LOAD_BALANCER_CONFIG_PROTOCOL, LOAD_BALANCER_CONFIG_PORT, LOAD_BALANCER_CONFIG_ADDRESS, \
     LOAD_BALANCER_CONFIG_ROUTE_PATH, LOAD_BALANCER_CONFIG_TAGS, LOAD_BALANCER_CONFIG_DEFAULT, \
-    LOAD_BALANCER_CONFIG_ID
+    LOAD_BALANCER_CONFIG_ID, LOAD_BALANCER_CONFIG_NAME
 from cloudtik.core._private.utils import get_provider_config
 from cloudtik.core.load_balancer_provider import LOAD_BALANCER_TYPE_APPLICATION, LOAD_BALANCER_TYPE_NETWORK, \
     LOAD_BALANCER_SCHEME_INTERNET_FACING
@@ -364,7 +364,7 @@ def _get_load_balancer_services(load_balancer_config):
     for service_group in service_groups:
         services = get_service_group_services(service_group)
         load_balancer_services.update(
-            {service["name"]: service for service in services})
+            {service[LOAD_BALANCER_CONFIG_NAME]: service for service in services})
     return load_balancer_services
 
 
@@ -514,7 +514,7 @@ def _get_service_group_listener_config(service_group, listener):
     services_config = []
     for service in services:
         service_config = {
-            "name": service["name"],
+            "name": service[LOAD_BALANCER_CONFIG_NAME],
             "route_path": service[LOAD_BALANCER_CONFIG_ROUTE_PATH],
         }
         copy_config_key(
@@ -827,13 +827,13 @@ def _get_target_groups_hash_context(load_balancer_context):
 
 
 def _update_target_group_hash(target_groups_hash_context, service):
-    service_name = service["name"]
+    service_name = service[LOAD_BALANCER_CONFIG_NAME]
     _update_resource_hash(
         target_groups_hash_context, service_name, service)
 
 
 def _is_target_group_updated(target_groups_hash_context, service):
-    service_name = service["name"]
+    service_name = service[LOAD_BALANCER_CONFIG_NAME]
     return _is_resource_updated(
         target_groups_hash_context, service_name, service)
 
@@ -891,7 +891,7 @@ def _get_target_group_name(
     # TODO: the target name length constrains:
     # This name must be unique per region per account, can have a maximum of 32 characters,
     # must contain only alphanumeric characters or hyphens, and must not begin or end with a hyphen.
-    service_name = service["name"]
+    service_name = service[LOAD_BALANCER_CONFIG_NAME]
     return "{}-{}".format(load_balancer_name, service_name)
 
 
@@ -908,7 +908,7 @@ def _get_target_group_for_service(
 
 def _create_target_group(
         elb_client, load_balancer_name, target_group_name,  service, vpc_id):
-    service_name = service["name"]
+    service_name = service[LOAD_BALANCER_CONFIG_NAME]
     protocol = service[LOAD_BALANCER_CONFIG_PROTOCOL]
     port = service[LOAD_BALANCER_CONFIG_PORT]
     response = elb_client.create_target_group(
@@ -1059,13 +1059,13 @@ def _get_rules_hash_context(listener_context):
 
 
 def _update_rule_hash(rules_hash_context, service):
-    service_name = service["name"]
+    service_name = service[LOAD_BALANCER_CONFIG_NAME]
     _update_resource_hash(
         rules_hash_context, service_name, service)
 
 
 def _is_rule_updated(rules_hash_context, service):
-    service_name = service["name"]
+    service_name = service[LOAD_BALANCER_CONFIG_NAME]
     return _is_resource_updated(
         rules_hash_context, service_name, service)
 
@@ -1174,7 +1174,7 @@ def _create_listener_rule(
     if not target_group:
         raise RuntimeError(
             "Target group for service not found: {}.".format(
-                service["name"]))
+                service[LOAD_BALANCER_CONFIG_NAME]))
     # create a rule to route to the target group
     return _create_rule(
         elb_client, load_balancer_listener, service, target_group)
@@ -1188,7 +1188,7 @@ def _update_listener_rule(
     if not target_group:
         raise RuntimeError(
             "Target group for service not found: {}.".format(
-                service["name"]))
+                service[LOAD_BALANCER_CONFIG_NAME]))
 
     return _modify_rule(elb_client, listener_rule, service, target_group)
 
@@ -1239,7 +1239,7 @@ def _get_listener_rules_for_action(services, existing_listener_rules):
 
     # convert to dict for fast search
     services_by_key = {
-        service["name"]: service
+        service[LOAD_BALANCER_CONFIG_NAME]: service
         for service in services
     }
     existing_rules_by_key = {
@@ -1263,7 +1263,7 @@ def _create_rule(
         elb_client, load_balancer_listener, service, target_group):
     listener_id = _get_listener_id(load_balancer_listener)
     target_group_id = _get_target_group_id(target_group)
-    service_name = service["name"]
+    service_name = service[LOAD_BALANCER_CONFIG_NAME]
     route_path = service[LOAD_BALANCER_CONFIG_ROUTE_PATH]
     # Note: Path-based routing rules look for an exact match.
     # If your application requires requests to be routed further down these paths,

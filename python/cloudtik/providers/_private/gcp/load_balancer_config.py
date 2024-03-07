@@ -6,7 +6,7 @@ from cloudtik.core._private.util.load_balancer import get_load_balancer_service_
     get_load_balancer_config_scheme, get_load_balancer_public_ips, LOAD_BALANCER_CONFIG_PROTOCOL, \
     LOAD_BALANCER_CONFIG_PORT, LOAD_BALANCER_CONFIG_ROUTE_PATH, LOAD_BALANCER_CONFIG_SERVICE_PATH, \
     LOAD_BALANCER_CONFIG_DEFAULT, LOAD_BALANCER_CONFIG_ADDRESS, LOAD_BALANCER_CONFIG_NODE_ID, \
-    LOAD_BALANCER_CONFIG_SEQ_ID, LOAD_BALANCER_CONFIG_TAGS, LOAD_BALANCER_CONFIG_ID
+    LOAD_BALANCER_CONFIG_SEQ_ID, LOAD_BALANCER_CONFIG_TAGS, LOAD_BALANCER_CONFIG_ID, LOAD_BALANCER_CONFIG_NAME
 from cloudtik.core._private.utils import get_provider_config
 from cloudtik.core.load_balancer_provider import LOAD_BALANCER_TYPE_NETWORK, LOAD_BALANCER_SCHEME_INTERNET_FACING, \
     LOAD_BALANCER_PROTOCOL_TCP, LOAD_BALANCER_PROTOCOL_TLS, LOAD_BALANCER_PROTOCOL_HTTP, \
@@ -372,13 +372,13 @@ def _get_backend_services_hash_context(load_balancer_context):
 
 def _update_backend_service_hash(
         backend_services_hash_context, backend_service):
-    backend_service_name = backend_service["name"]
+    backend_service_name = backend_service[LOAD_BALANCER_CONFIG_NAME]
     _update_resource_hash(
         backend_services_hash_context, backend_service_name, backend_service)
 
 
 def _is_backend_service_updated(backend_services_hash_context, backend_service):
-    backend_service_name = backend_service["name"]
+    backend_service_name = backend_service[LOAD_BALANCER_CONFIG_NAME]
     return _is_resource_updated(
         backend_services_hash_context, backend_service_name, backend_service)
 
@@ -414,7 +414,7 @@ def _get_load_balancer_service_group(load_balancer_config):
 
 def _get_backend_service_of_service(service):
     backend_service = {
-        "name": service["name"],
+        "name": service[LOAD_BALANCER_CONFIG_NAME],
         "protocol": service[LOAD_BALANCER_CONFIG_PROTOCOL],
         "port": service[LOAD_BALANCER_CONFIG_PORT],
         "targets": service["targets"],
@@ -432,7 +432,7 @@ def _get_backend_services_of(services):
 
 def _get_route_service_of_service(service):
     route_service = {
-        "name": service["name"],
+        "name": service[LOAD_BALANCER_CONFIG_NAME],
     }
     copy_config_key(service, route_service, LOAD_BALANCER_CONFIG_ROUTE_PATH)
     copy_config_key(service, route_service, LOAD_BALANCER_CONFIG_SERVICE_PATH)
@@ -564,7 +564,7 @@ def _get_load_balancer_config_protocol(load_balancer):
 
 def _get_sorted_services(services, reverse=False):
     def sort_by_route_and_name(service):
-        service_name = service["name"]
+        service_name = service[LOAD_BALANCER_CONFIG_NAME]
         route_path = _get_service_route_path(service)
         return [route_path, service_name]
     return sorted(services, key=sort_by_route_and_name, reverse=reverse)
@@ -712,10 +712,10 @@ def _delete_services(
 
 def _get_unused_backend_services(backend_services, services_used):
     backend_services_by_name = {
-        service["name"]: service
+        service[LOAD_BALANCER_CONFIG_NAME]: service
         for service in backend_services}
     service_used_by_name = {
-        service["name"]: service
+        service[LOAD_BALANCER_CONFIG_NAME]: service
         for service in services_used}
     return {
         service_name: service
@@ -809,7 +809,7 @@ def _get_backend_services_for_action(
 
     # convert to dict for fast search
     services_by_key = {
-        service["name"]: service
+        service[LOAD_BALANCER_CONFIG_NAME]: service
         for service in services
     }
     existing_backend_services_by_key = {
@@ -877,7 +877,7 @@ def _delete_service(
 
 
 def _get_health_check_name(load_balancer_name, service):
-    service_name = service["name"]
+    service_name = service[LOAD_BALANCER_CONFIG_NAME]
     return "{}-{}".format(load_balancer_name, service_name)
 
 
@@ -944,7 +944,7 @@ def _delete_health_check(
 
 def _get_network_endpoint_group_name(
         load_balancer_name, service, subnet, zone):
-    service_name = service["name"]
+    service_name = service[LOAD_BALANCER_CONFIG_NAME]
     return "{}-{}-{}-{}".format(
         load_balancer_name, service_name, subnet, zone)
 
@@ -1322,7 +1322,7 @@ def _detach_network_endpoints(
 
 
 def _get_backend_service_name(load_balancer_name, service):
-    service_name = service["name"]
+    service_name = service[LOAD_BALANCER_CONFIG_NAME]
     return "{}-{}".format(load_balancer_name, service_name)
 
 

@@ -5,7 +5,7 @@ from cloudtik.core._private.util.load_balancer import get_service_group_services
     get_service_group_listeners, get_load_balancer_config_name, get_load_balancer_public_ips, \
     get_load_balancer_config_scheme, get_service_targets, LOAD_BALANCER_CONFIG_PROTOCOL, LOAD_BALANCER_CONFIG_PORT, \
     LOAD_BALANCER_CONFIG_ROUTE_PATH, LOAD_BALANCER_CONFIG_SERVICE_PATH, LOAD_BALANCER_CONFIG_ADDRESS, \
-    LOAD_BALANCER_CONFIG_TAGS, LOAD_BALANCER_CONFIG_DEFAULT, LOAD_BALANCER_CONFIG_ID
+    LOAD_BALANCER_CONFIG_TAGS, LOAD_BALANCER_CONFIG_DEFAULT, LOAD_BALANCER_CONFIG_ID, LOAD_BALANCER_CONFIG_NAME
 from cloudtik.core._private.utils import get_provider_config
 from cloudtik.core.load_balancer_provider import LOAD_BALANCER_TYPE_NETWORK, LOAD_BALANCER_SCHEME_INTERNET_FACING, \
     LOAD_BALANCER_PROTOCOL_TCP, LOAD_BALANCER_PROTOCOL_UDP, LOAD_BALANCER_PROTOCOL_TLS, LOAD_BALANCER_PROTOCOL_HTTP, \
@@ -695,7 +695,7 @@ def _get_load_balancer_backend_addresses(
     targets = get_service_targets(service)
     virtual_network_id = _get_virtual_network_resource_id(
         provider_config, virtual_network_name)
-    service_name = service["name"]
+    service_name = service[LOAD_BALANCER_CONFIG_NAME]
     for i, target in enumerate(targets, start=1):
         ip_address = target[LOAD_BALANCER_CONFIG_ADDRESS]
         name = "{}-addr-{}".format(service_name, i)
@@ -739,7 +739,7 @@ def _get_load_balancer_resource_id(provider_config, load_balancer_name):
 
 
 def _get_load_balancing_rule_name(frontend_ip_name, listener, service):
-    service_name = service["name"]
+    service_name = service[LOAD_BALANCER_CONFIG_NAME]
     protocol = listener[LOAD_BALANCER_CONFIG_PROTOCOL]
     port = listener[LOAD_BALANCER_CONFIG_PORT]
     return "{}-{}-{}-{}".format(service_name, frontend_ip_name, protocol, port)
@@ -759,7 +759,7 @@ def _get_service_group_load_balancing_rule(
     load_balancer_resource_id = _get_load_balancer_resource_id(
         provider_config, load_balancer_name)
 
-    service_name = service["name"]
+    service_name = service[LOAD_BALANCER_CONFIG_NAME]
     backend_address_pool_id = (
             load_balancer_resource_id +
             "/backendAddressPools/{}".format(service_name))
@@ -830,7 +830,7 @@ def _get_load_balancer_services(load_balancer_config):
     for service_group in service_groups:
         services = get_service_group_services(service_group)
         load_balancer_services.update(
-            {service["name"]: service for service in services})
+            {service[LOAD_BALANCER_CONFIG_NAME]: service for service in services})
     return load_balancer_services
 
 
@@ -1453,7 +1453,7 @@ def _get_application_gateway_url_path_map(
     default_service = _get_application_default_service(
         services)
     if default_service:
-        service_name = default_service["name"]
+        service_name = default_service[LOAD_BALANCER_CONFIG_NAME]
         application_gateway_resource_id = _get_application_gateway_resource_id(
             provider_config, application_gateway_name)
         backend_address_pool_id = (
@@ -1483,7 +1483,7 @@ def _get_application_gateway_url_path_map(
 
 def _get_sorted_services(services, reverse=False):
     def sort_by_route_and_name(service):
-        service_name = service["name"]
+        service_name = service[LOAD_BALANCER_CONFIG_NAME]
         route_path = _get_service_route_path(service)
         return [route_path, service_name]
 
@@ -1508,7 +1508,7 @@ def _get_application_gateway_path_rules(
 
 def _get_application_gateway_path_rule(
         provider_config, application_gateway_name, service):
-    service_name = service["name"]
+    service_name = service[LOAD_BALANCER_CONFIG_NAME]
     route_path = _get_service_route_path(service)
 
     application_gateway_resource_id = _get_application_gateway_resource_id(
