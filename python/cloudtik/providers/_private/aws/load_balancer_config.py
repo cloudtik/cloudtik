@@ -9,7 +9,8 @@ from cloudtik.core._private.util.load_balancer import get_service_group_services
     get_load_balancer_config_type, get_load_balancer_config_scheme, get_service_targets, \
     LOAD_BALANCER_CONFIG_PROTOCOL, LOAD_BALANCER_CONFIG_PORT, LOAD_BALANCER_CONFIG_ADDRESS, \
     LOAD_BALANCER_CONFIG_ROUTE_PATH, LOAD_BALANCER_CONFIG_TAGS, LOAD_BALANCER_CONFIG_DEFAULT, \
-    LOAD_BALANCER_CONFIG_ID, LOAD_BALANCER_CONFIG_NAME
+    LOAD_BALANCER_CONFIG_ID, LOAD_BALANCER_CONFIG_NAME, LOAD_BALANCER_CONFIG_TYPE, LOAD_BALANCER_CONFIG_SCHEME, \
+    LOAD_BALANCER_CONFIG_SERVICES
 from cloudtik.core._private.utils import get_provider_config
 from cloudtik.core.load_balancer_provider import LOAD_BALANCER_TYPE_APPLICATION, LOAD_BALANCER_TYPE_NETWORK, \
     LOAD_BALANCER_SCHEME_INTERNET_FACING
@@ -165,15 +166,15 @@ def _get_load_balancer_info_of(load_balancer):
     load_balancer_type = load_balancer["Type"]
     load_balancer_scheme = load_balancer["Scheme"]
     load_balancer_info = {
-        "id": load_balancer_id,
-        "name": load_balancer_name,
-        "type": load_balancer_type,
-        "scheme": load_balancer_scheme,
+        LOAD_BALANCER_CONFIG_ID: load_balancer_id,
+        LOAD_BALANCER_CONFIG_NAME: load_balancer_name,
+        LOAD_BALANCER_CONFIG_TYPE: load_balancer_type,
+        LOAD_BALANCER_CONFIG_SCHEME: load_balancer_scheme,
     }
     tag_list = load_balancer.get("Tags")
     if tag_list:
         tags = tags_list_to_dict(tag_list)
-        load_balancer_info["tags"] = tags
+        load_balancer_info[LOAD_BALANCER_CONFIG_TAGS] = tags
     return load_balancer_info
 
 
@@ -326,7 +327,7 @@ def _update_load_balancer(
 
 def _delete_load_balancer(
         elb_client, load_balancer: Dict[str, Any], context):
-    load_balancer_name = load_balancer["name"]
+    load_balancer_name = get_load_balancer_config_name(load_balancer)
     load_balancer = _get_load_balancer_by_name(elb_client, load_balancer_name)
     if not load_balancer:
         return
@@ -514,16 +515,16 @@ def _get_service_group_listener_config(service_group, listener):
     services_config = []
     for service in services:
         service_config = {
-            "name": service[LOAD_BALANCER_CONFIG_NAME],
-            "route_path": service[LOAD_BALANCER_CONFIG_ROUTE_PATH],
+            LOAD_BALANCER_CONFIG_NAME: service[LOAD_BALANCER_CONFIG_NAME],
+            LOAD_BALANCER_CONFIG_ROUTE_PATH: service[LOAD_BALANCER_CONFIG_ROUTE_PATH],
         }
         copy_config_key(
             service, service_config, LOAD_BALANCER_CONFIG_DEFAULT)
         services_config.append(service_config)
     listener_config = {
-        "protocol": listener[LOAD_BALANCER_CONFIG_PROTOCOL],
-        "port": listener[LOAD_BALANCER_CONFIG_PORT],
-        "services": services_config,
+        LOAD_BALANCER_CONFIG_PROTOCOL: listener[LOAD_BALANCER_CONFIG_PROTOCOL],
+        LOAD_BALANCER_CONFIG_PORT: listener[LOAD_BALANCER_CONFIG_PORT],
+        LOAD_BALANCER_CONFIG_SERVICES: services_config,
     }
     return listener_config
 
@@ -552,7 +553,7 @@ def _create_load_balancer_listeners(
 
 def _get_listener_first_service(listener):
     # This is for the case that each listener has a single service
-    services = listener.get("services")
+    services = listener.get(LOAD_BALANCER_CONFIG_SERVICES)
     if not services:
         raise RuntimeError(
             "No service defined for listener.")
@@ -1075,7 +1076,7 @@ def _clear_rule_hash(rules_hash_context, service_name):
 
 
 def _get_listener_services(listener):
-    return listener.get("services", [])
+    return listener.get(LOAD_BALANCER_CONFIG_SERVICES, [])
 
 
 def _get_rule_id(rule):
