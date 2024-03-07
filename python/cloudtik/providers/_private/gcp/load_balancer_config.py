@@ -6,7 +6,8 @@ from cloudtik.core._private.util.load_balancer import get_load_balancer_service_
     get_load_balancer_config_scheme, get_load_balancer_public_ips, LOAD_BALANCER_CONFIG_PROTOCOL, \
     LOAD_BALANCER_CONFIG_PORT, LOAD_BALANCER_CONFIG_ROUTE_PATH, LOAD_BALANCER_CONFIG_SERVICE_PATH, \
     LOAD_BALANCER_CONFIG_DEFAULT, LOAD_BALANCER_CONFIG_ADDRESS, LOAD_BALANCER_CONFIG_NODE_ID, \
-    LOAD_BALANCER_CONFIG_SEQ_ID, LOAD_BALANCER_CONFIG_TAGS, LOAD_BALANCER_CONFIG_ID, LOAD_BALANCER_CONFIG_NAME
+    LOAD_BALANCER_CONFIG_SEQ_ID, LOAD_BALANCER_CONFIG_TAGS, LOAD_BALANCER_CONFIG_ID, LOAD_BALANCER_CONFIG_NAME, \
+    LOAD_BALANCER_CONFIG_TARGETS, LOAD_BALANCER_CONFIG_TYPE, LOAD_BALANCER_CONFIG_SCHEME
 from cloudtik.core._private.utils import get_provider_config
 from cloudtik.core.load_balancer_provider import LOAD_BALANCER_TYPE_NETWORK, LOAD_BALANCER_SCHEME_INTERNET_FACING, \
     LOAD_BALANCER_PROTOCOL_TCP, LOAD_BALANCER_PROTOCOL_TLS, LOAD_BALANCER_PROTOCOL_HTTP, \
@@ -185,7 +186,7 @@ def _list_load_balancers(
     for forwarding_rule in forwarding_rules:
         load_balancer_info = _get_load_balancer_info_of(forwarding_rule)
         if load_balancer_info:
-            load_balancer_name = load_balancer_info["name"]
+            load_balancer_name = load_balancer_info[LOAD_BALANCER_CONFIG_NAME]
             load_balancer_map[load_balancer_name] = load_balancer_info
 
     return load_balancer_map
@@ -274,7 +275,7 @@ def _delete_load_balancer(
     project_id = provider_config["project_id"]
     # If region is None, it is a global load balancer
     region = load_balancer.get("region")
-    load_balancer_name = load_balancer["name"]
+    load_balancer_name = get_load_balancer_config_name(load_balancer)
     load_balancers_hash_context = _get_load_balancers_hash_context(
         context)
     load_balancers_context = _get_load_balancers_context(context)
@@ -414,10 +415,10 @@ def _get_load_balancer_service_group(load_balancer_config):
 
 def _get_backend_service_of_service(service):
     backend_service = {
-        "name": service[LOAD_BALANCER_CONFIG_NAME],
-        "protocol": service[LOAD_BALANCER_CONFIG_PROTOCOL],
-        "port": service[LOAD_BALANCER_CONFIG_PORT],
-        "targets": service["targets"],
+        LOAD_BALANCER_CONFIG_NAME: service[LOAD_BALANCER_CONFIG_NAME],
+        LOAD_BALANCER_CONFIG_PROTOCOL: service[LOAD_BALANCER_CONFIG_PROTOCOL],
+        LOAD_BALANCER_CONFIG_PORT: service[LOAD_BALANCER_CONFIG_PORT],
+        LOAD_BALANCER_CONFIG_TARGETS: service[LOAD_BALANCER_CONFIG_TARGETS],
     }
     return backend_service
 
@@ -432,7 +433,7 @@ def _get_backend_services_of(services):
 
 def _get_route_service_of_service(service):
     route_service = {
-        "name": service[LOAD_BALANCER_CONFIG_NAME],
+        LOAD_BALANCER_CONFIG_NAME: service[LOAD_BALANCER_CONFIG_NAME],
     }
     copy_config_key(service, route_service, LOAD_BALANCER_CONFIG_ROUTE_PATH)
     copy_config_key(service, route_service, LOAD_BALANCER_CONFIG_SERVICE_PATH)
@@ -495,9 +496,9 @@ def _get_load_balancer_object(load_balancer_config):
     load_balancer_type = get_load_balancer_config_type(load_balancer_config)
     load_balancer_scheme = get_load_balancer_config_scheme(load_balancer_config)
     load_balancer = {
-        "name": load_balancer_name,
-        "type": load_balancer_type,
-        "scheme": load_balancer_scheme,
+        LOAD_BALANCER_CONFIG_NAME: load_balancer_name,
+        LOAD_BALANCER_CONFIG_TYPE: load_balancer_type,
+        LOAD_BALANCER_CONFIG_SCHEME: load_balancer_scheme,
     }
     copy_config_key(
         load_balancer_config, load_balancer, LOAD_BALANCER_CONFIG_TAGS)
@@ -614,11 +615,11 @@ def _get_load_balancer_info_of(forwarding_rule):
         return None
 
     load_balancer_info = {
-        "name": load_balancer_name,
-        "type": load_balancer_type,
-        "scheme": load_balancer_scheme,
-        "protocol": load_balancer_protocol,
-        "tags": labels
+        LOAD_BALANCER_CONFIG_NAME: load_balancer_name,
+        LOAD_BALANCER_CONFIG_TYPE: load_balancer_type,
+        LOAD_BALANCER_CONFIG_SCHEME: load_balancer_scheme,
+        LOAD_BALANCER_CONFIG_TAGS: labels,
+        LOAD_BALANCER_CONFIG_PROTOCOL: load_balancer_protocol,
     }
 
     region = forwarding_rule.get("region")
@@ -747,7 +748,7 @@ def _delete_services_unused(
 def _create_proxy_rules(
         compute, provider_config, project_id, region, vpc_name,
         workspace_name, load_balancer):
-    load_balancer_type = load_balancer["type"]
+    load_balancer_type = get_load_balancer_config_type(load_balancer)
     if load_balancer_type == LOAD_BALANCER_TYPE_APPLICATION:
         _create_url_map(
             compute, project_id, region,
@@ -765,7 +766,7 @@ def _create_proxy_rules(
 def _update_proxy_rules(
         compute, provider_config, project_id, region, vpc_name,
         workspace_name, load_balancer):
-    load_balancer_type = load_balancer["type"]
+    load_balancer_type = get_load_balancer_config_type(load_balancer)
     if load_balancer_type == LOAD_BALANCER_TYPE_APPLICATION:
         # if there are service and meta changes
         _update_url_map(
@@ -786,7 +787,7 @@ def _update_proxy_rules(
 def _delete_proxy_rules(
         compute, project_id, region,
         load_balancer):
-    load_balancer_type = load_balancer["type"]
+    load_balancer_type = get_load_balancer_config_type(load_balancer)
     _delete_forwarding_rules(
         compute, project_id, region,
         load_balancer)

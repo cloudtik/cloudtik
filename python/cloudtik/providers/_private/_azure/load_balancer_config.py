@@ -5,7 +5,8 @@ from cloudtik.core._private.util.load_balancer import get_service_group_services
     get_service_group_listeners, get_load_balancer_config_name, get_load_balancer_public_ips, \
     get_load_balancer_config_scheme, get_service_targets, LOAD_BALANCER_CONFIG_PROTOCOL, LOAD_BALANCER_CONFIG_PORT, \
     LOAD_BALANCER_CONFIG_ROUTE_PATH, LOAD_BALANCER_CONFIG_SERVICE_PATH, LOAD_BALANCER_CONFIG_ADDRESS, \
-    LOAD_BALANCER_CONFIG_TAGS, LOAD_BALANCER_CONFIG_DEFAULT, LOAD_BALANCER_CONFIG_ID, LOAD_BALANCER_CONFIG_NAME
+    LOAD_BALANCER_CONFIG_TAGS, LOAD_BALANCER_CONFIG_DEFAULT, LOAD_BALANCER_CONFIG_ID, LOAD_BALANCER_CONFIG_NAME, \
+    get_load_balancer_config_type, LOAD_BALANCER_CONFIG_TYPE, LOAD_BALANCER_CONFIG_SCHEME
 from cloudtik.core._private.utils import get_provider_config
 from cloudtik.core.load_balancer_provider import LOAD_BALANCER_TYPE_NETWORK, LOAD_BALANCER_SCHEME_INTERNET_FACING, \
     LOAD_BALANCER_PROTOCOL_TCP, LOAD_BALANCER_PROTOCOL_UDP, LOAD_BALANCER_PROTOCOL_TLS, LOAD_BALANCER_PROTOCOL_HTTP, \
@@ -220,7 +221,7 @@ def _get_load_balancer(
 def _create_load_balancer(
         network_client, provider_config, workspace_name, virtual_network_name,
         load_balancer_config, context):
-    load_balancer_type = load_balancer_config["type"]
+    load_balancer_type = get_load_balancer_config_type(load_balancer_config)
     if load_balancer_type == LOAD_BALANCER_TYPE_NETWORK:
         return _create_network_load_balancer(
             network_client, provider_config, workspace_name, virtual_network_name,
@@ -234,7 +235,7 @@ def _create_load_balancer(
 def _update_load_balancer(
         network_client, provider_config, workspace_name, virtual_network_name,
         load_balancer_config, context):
-    load_balancer_type = load_balancer_config["type"]
+    load_balancer_type = get_load_balancer_config_type(load_balancer_config)
     if load_balancer_type == LOAD_BALANCER_TYPE_NETWORK:
         return _update_network_load_balancer(
             network_client, provider_config, workspace_name, virtual_network_name,
@@ -248,8 +249,8 @@ def _update_load_balancer(
 def _delete_load_balancer(
         network_client, resource_group_name,
         load_balancer: Dict[str, Any], context):
-    load_balancer_type = load_balancer["type"]
-    load_balancer_name = load_balancer["name"]
+    load_balancer_type = get_load_balancer_config_type(load_balancer)
+    load_balancer_name = get_load_balancer_config_name(load_balancer)
     if load_balancer_type == LOAD_BALANCER_TYPE_NETWORK:
         _delete_network_load_balancer(
             network_client, resource_group_name, load_balancer_name,
@@ -301,7 +302,7 @@ def _get_frontend_ip_configurations(
             provider_config, public_ip_id)
     else:
         # Use Application Gateway subnet for Application Gateway,
-        load_balancer_type = load_balancer_config["type"]
+        load_balancer_type = get_load_balancer_config_type(load_balancer_config)
         if load_balancer_type == LOAD_BALANCER_TYPE_NETWORK:
             subnet_name = get_workspace_subnet_name(
                 workspace_name, is_private=True)
@@ -611,14 +612,14 @@ def _get_load_balancer_info_of(load_balancer):
     # decide the scheme
     load_balancer_scheme = _get_load_balancer_scheme(load_balancer)
     load_balancer_info = {
-        "id": load_balancer_id,
-        "name": load_balancer_name,
-        "type": load_balancer_type,
-        "scheme": load_balancer_scheme,
+        LOAD_BALANCER_CONFIG_ID: load_balancer_id,
+        LOAD_BALANCER_CONFIG_NAME: load_balancer_name,
+        LOAD_BALANCER_CONFIG_TYPE: load_balancer_type,
+        LOAD_BALANCER_CONFIG_SCHEME: load_balancer_scheme,
     }
     tags = load_balancer.tags
     if tags:
-        load_balancer_info["tags"] = tags
+        load_balancer_info[LOAD_BALANCER_CONFIG_TAGS] = tags
     return load_balancer_info
 
 
@@ -1007,14 +1008,14 @@ def _get_application_gateway_info_of(application_gateway):
     # decide the scheme
     load_balancer_scheme = _get_load_balancer_scheme(application_gateway)
     load_balancer_info = {
-        "id": load_balancer_id,
-        "name": load_balancer_name,
-        "type": load_balancer_type,
-        "scheme": load_balancer_scheme,
+        LOAD_BALANCER_CONFIG_ID: load_balancer_id,
+        LOAD_BALANCER_CONFIG_NAME: load_balancer_name,
+        LOAD_BALANCER_CONFIG_TYPE: load_balancer_type,
+        LOAD_BALANCER_CONFIG_SCHEME: load_balancer_scheme,
     }
     tags = application_gateway.tags
     if tags:
-        load_balancer_info["tags"] = tags
+        load_balancer_info[LOAD_BALANCER_CONFIG_TAGS] = tags
     return load_balancer_info
 
 
