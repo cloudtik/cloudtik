@@ -2,10 +2,14 @@ from typing import Dict, Any
 
 import botocore
 
-from cloudtik.core._private.util.core_utils import batch_list, get_json_object_hash, get_config_for_update
+from cloudtik.core._private.util.core_utils import batch_list, get_json_object_hash, get_config_for_update, \
+    copy_config_key
 from cloudtik.core._private.util.load_balancer import get_service_group_services, get_load_balancer_service_groups, \
     get_service_group_listeners, get_load_balancer_public_ips, get_load_balancer_config_name, \
-    get_load_balancer_config_type, get_load_balancer_config_scheme, get_service_targets
+    get_load_balancer_config_type, get_load_balancer_config_scheme, get_service_targets, \
+    LOAD_BALANCER_CONFIG_PROTOCOL, LOAD_BALANCER_CONFIG_PORT, LOAD_BALANCER_CONFIG_ADDRESS, \
+    LOAD_BALANCER_CONFIG_ROUTE_PATH, LOAD_BALANCER_CONFIG_TAGS, LOAD_BALANCER_CONFIG_DEFAULT, \
+    LOAD_BALANCER_CONFIG_ID
 from cloudtik.core._private.utils import get_provider_config
 from cloudtik.core.load_balancer_provider import LOAD_BALANCER_TYPE_APPLICATION, LOAD_BALANCER_TYPE_NETWORK, \
     LOAD_BALANCER_SCHEME_INTERNET_FACING
@@ -173,15 +177,6 @@ def _get_load_balancer_info_of(load_balancer):
     return load_balancer_info
 
 
-def _get_load_balancer_listener_info(load_balancer_listeners):
-    return [
-        {
-            "protocol": load_balancer_listener["Protocol"],
-            "port": load_balancer_listener["Port"]
-        } for load_balancer_listener in load_balancer_listeners
-    ]
-
-
 def _get_load_balancer(elb_client, load_balancer_name):
     load_balancer = _get_load_balancer_by_name(elb_client, load_balancer_name)
     if not load_balancer:
@@ -222,7 +217,7 @@ def _create_load_balancer(
     security_group_id = get_load_balancer_security_group_id(
         provider_config, vpc_id, workspace_name)
 
-    tags = load_balancer_config.get("tags", {})
+    tags = load_balancer_config.get(LOAD_BALANCER_CONFIG_TAGS, {})
     tag_pairs = [
         {'Key': CLOUDTIK_TAG_WORKSPACE_NAME, 'Value': workspace_name}
     ]
@@ -245,7 +240,7 @@ def _create_load_balancer(
         subnet_mappings = [
             {
                 'SubnetId': subnet_ids[i],
-                'AllocationId': static_public_ips[i]["id"],
+                'AllocationId': static_public_ips[i][LOAD_BALANCER_CONFIG_ID],
             }
             for i in range(0, valid_ip_count)
         ]
@@ -463,7 +458,7 @@ def _get_listeners_context(load_balancer_context):
 
 
 def _get_listener_key(listener):
-    return listener["protocol"], listener["port"]
+    return listener[LOAD_BALANCER_CONFIG_PROTOCOL], listener[LOAD_BALANCER_CONFIG_PORT]
 
 
 def _get_load_balancer_listener_key(load_balancer_listener):
@@ -520,14 +515,14 @@ def _get_service_group_listener_config(service_group, listener):
     for service in services:
         service_config = {
             "name": service["name"],
-            "route_path": service["route_path"],
+            "route_path": service[LOAD_BALANCER_CONFIG_ROUTE_PATH],
         }
-        if "default" in service:
-            service_config["default"] = service["default"]
+        copy_config_key(
+            service, service_config, LOAD_BALANCER_CONFIG_DEFAULT)
         services_config.append(service_config)
     listener_config = {
-        "protocol": listener["protocol"],
-        "port": listener["port"],
+        "protocol": listener[LOAD_BALANCER_CONFIG_PROTOCOL],
+        "port": listener[LOAD_BALANCER_CONFIG_PORT],
         "services": services_config,
     }
     return listener_config
@@ -589,8 +584,8 @@ def _create_load_balancer_listener(
         elb_client, load_balancer_name,
         load_balancer_id, load_balancer_type,
         listener, listeners_context):
-    protocol = listener["protocol"]
-    port = listener["port"]
+    protocol = listener[LOAD_BALANCER_CONFIG_PROTOCOL]
+    port = listener[LOAD_BALANCER_CONFIG_PORT]
 
     # first we need to create the default target group
     target_group = _get_listener_default_target_group(
@@ -914,8 +909,8 @@ def _get_target_group_for_service(
 def _create_target_group(
         elb_client, load_balancer_name, target_group_name,  service, vpc_id):
     service_name = service["name"]
-    protocol = service["protocol"]
-    port = service["port"]
+    protocol = service[LOAD_BALANCER_CONFIG_PROTOCOL]
+    port = service[LOAD_BALANCER_CONFIG_PORT]
     response = elb_client.create_target_group(
         Name=target_group_name,
         Port=port,
@@ -1001,7 +996,7 @@ def _get_targets_for_action(targets, existing_targets):
     # decide the target by address and port
     # convert to dict for fast search
     targets_by_key = {
-        (target["address"], target["port"]): target
+        (target[LOAD_BALANCER_CONFIG_ADDRESS], target[LOAD_BALANCER_CONFIG_PORT]): target
         for target in targets
     }
 
@@ -1023,8 +1018,8 @@ def _register_targets(
         elb_client, target_group_id, targets):
     target_group_targets = [
         {
-            'Id': target["address"],
-            'Port': target["port"],
+            'Id': target[LOAD_BALANCER_CONFIG_ADDRESS],
+            'Port': target[LOAD_BALANCER_CONFIG_PORT],
         } for target in targets
     ]
     elb_client.register_targets(
@@ -1046,7 +1041,7 @@ def _deregister_targets(
 
 
 def _is_default_service(service):
-    return service.get("default", False)
+    return service.get(LOAD_BALANCER_CONFIG_DEFAULT, False)
 
 
 def _get_application_default_service(services):
@@ -1269,7 +1264,7 @@ def _create_rule(
     listener_id = _get_listener_id(load_balancer_listener)
     target_group_id = _get_target_group_id(target_group)
     service_name = service["name"]
-    route_path = service["route_path"]
+    route_path = service[LOAD_BALANCER_CONFIG_ROUTE_PATH]
     # Note: Path-based routing rules look for an exact match.
     # If your application requires requests to be routed further down these paths,
     # for example, /svcA/doc, then include a wildcard when you write the condition
@@ -1314,7 +1309,7 @@ def _create_rule(
 def _modify_rule(elb_client, listener_rule, service, target_group):
     rule_id = _get_rule_id(listener_rule)
     target_group_id = _get_target_group_id(target_group)
-    route_path = service["route_path"]
+    route_path = service[LOAD_BALANCER_CONFIG_ROUTE_PATH]
     response = elb_client.modify_rule(
         RuleArn=rule_id,
         Actions=[

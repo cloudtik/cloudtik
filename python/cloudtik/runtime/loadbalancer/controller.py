@@ -4,6 +4,8 @@ import time
 from cloudtik.core._private.service_discovery.utils import deserialize_service_selector, \
     SERVICE_DISCOVERY_LABEL_PROTOCOL
 from cloudtik.core._private.util.core_utils import deserialize_config, get_json_object_hash
+from cloudtik.core._private.util.load_balancer import LOAD_BALANCER_CONFIG_ADDRESS, LOAD_BALANCER_CONFIG_PORT, \
+    LOAD_BALANCER_CONFIG_NODE_ID, LOAD_BALANCER_CONFIG_SEQ_ID
 from cloudtik.runtime.common.active_standby_service import ActiveStandbyService
 from cloudtik.runtime.common.service_discovery.consul import \
     get_service_address_of_node, get_labels_of_service_nodes, get_node_seq_id_of_node, get_node_id_of_node
@@ -109,13 +111,13 @@ class LoadBalancerController(ActiveStandbyService):
             node_seq_id = get_node_seq_id_of_node(service_node)
             service_address = get_service_address_of_node(service_node)
             backend_server = {
-                "address": service_address[0],
-                "port": service_address[1],
+                LOAD_BALANCER_CONFIG_ADDRESS: service_address[0],
+                LOAD_BALANCER_CONFIG_PORT: service_address[1],
             }
             if node_id:
-                backend_server["node_id"] = node_id
+                backend_server[LOAD_BALANCER_CONFIG_NODE_ID] = node_id
             if node_seq_id:
-                backend_server["seq_id"] = node_seq_id
+                backend_server[LOAD_BALANCER_CONFIG_SEQ_ID] = node_seq_id
             backend_servers[service_address] = backend_server
         if not backend_servers:
             return None

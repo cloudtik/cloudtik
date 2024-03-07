@@ -3,7 +3,10 @@ from typing import Dict, Any
 from cloudtik.core._private.util.core_utils import get_json_object_hash, get_config_for_update, copy_config_key
 from cloudtik.core._private.util.load_balancer import get_load_balancer_service_groups, get_service_group_services, \
     get_service_group_listeners, get_load_balancer_config_type, get_load_balancer_config_name, get_service_targets, \
-    get_load_balancer_config_scheme, get_load_balancer_public_ips
+    get_load_balancer_config_scheme, get_load_balancer_public_ips, LOAD_BALANCER_CONFIG_PROTOCOL, \
+    LOAD_BALANCER_CONFIG_PORT, LOAD_BALANCER_CONFIG_ROUTE_PATH, LOAD_BALANCER_CONFIG_SERVICE_PATH, \
+    LOAD_BALANCER_CONFIG_DEFAULT, LOAD_BALANCER_CONFIG_ADDRESS, LOAD_BALANCER_CONFIG_NODE_ID, \
+    LOAD_BALANCER_CONFIG_SEQ_ID, LOAD_BALANCER_CONFIG_TAGS, LOAD_BALANCER_CONFIG_ID
 from cloudtik.core._private.utils import get_provider_config
 from cloudtik.core.load_balancer_provider import LOAD_BALANCER_TYPE_NETWORK, LOAD_BALANCER_SCHEME_INTERNET_FACING, \
     LOAD_BALANCER_PROTOCOL_TCP, LOAD_BALANCER_PROTOCOL_TLS, LOAD_BALANCER_PROTOCOL_HTTP, \
@@ -412,8 +415,8 @@ def _get_load_balancer_service_group(load_balancer_config):
 def _get_backend_service_of_service(service):
     backend_service = {
         "name": service["name"],
-        "protocol": service["protocol"],
-        "port": service["port"],
+        "protocol": service[LOAD_BALANCER_CONFIG_PROTOCOL],
+        "port": service[LOAD_BALANCER_CONFIG_PORT],
         "targets": service["targets"],
     }
     return backend_service
@@ -431,9 +434,9 @@ def _get_route_service_of_service(service):
     route_service = {
         "name": service["name"],
     }
-    copy_config_key(service, route_service, "route_path")
-    copy_config_key(service, route_service, "service_path")
-    copy_config_key(service, route_service, "default")
+    copy_config_key(service, route_service, LOAD_BALANCER_CONFIG_ROUTE_PATH)
+    copy_config_key(service, route_service, LOAD_BALANCER_CONFIG_SERVICE_PATH)
+    copy_config_key(service, route_service, LOAD_BALANCER_CONFIG_DEFAULT)
     return route_service
 
 
@@ -449,10 +452,11 @@ def _get_forwarding_rule_name(load_balancer_name, listener, public_ip=None):
     # considering listeners for different ip addresses
     if public_ip:
         return "{}-{}-{}".format(
-            load_balancer_name, public_ip["id"], listener["port"])
+            load_balancer_name, public_ip[LOAD_BALANCER_CONFIG_ID],
+            listener[LOAD_BALANCER_CONFIG_PORT])
     else:
         return "{}-{}".format(
-            load_balancer_name, listener["port"])
+            load_balancer_name, listener[LOAD_BALANCER_CONFIG_PORT])
 
 
 def _get_forwarding_rules_of(
@@ -467,9 +471,9 @@ def _get_forwarding_rules_of(
                     load_balancer_name, listener, public_ip)
                 forwarding_rule = {
                     "name": name,
-                    "ip_address": public_ip["id"],
-                    "protocol": listener["protocol"],
-                    "port": listener["port"],
+                    "ip_address": public_ip[LOAD_BALANCER_CONFIG_ID],
+                    "protocol": listener[LOAD_BALANCER_CONFIG_PROTOCOL],
+                    "port": listener[LOAD_BALANCER_CONFIG_PORT],
                 }
                 forwarding_rules.append(forwarding_rule)
     else:
@@ -478,8 +482,8 @@ def _get_forwarding_rules_of(
                 load_balancer_name, listener)
             forwarding_rule = {
                 "name": name,
-                "protocol": listener["protocol"],
-                "port": listener["port"],
+                "protocol": listener[LOAD_BALANCER_CONFIG_PROTOCOL],
+                "port": listener[LOAD_BALANCER_CONFIG_PORT],
             }
             forwarding_rules.append(forwarding_rule)
     return forwarding_rules
@@ -495,7 +499,8 @@ def _get_load_balancer_object(load_balancer_config):
         "type": load_balancer_type,
         "scheme": load_balancer_scheme,
     }
-    copy_config_key(load_balancer_config, load_balancer, "tags")
+    copy_config_key(
+        load_balancer_config, load_balancer, LOAD_BALANCER_CONFIG_TAGS)
 
     service_group = _get_load_balancer_service_group(
         load_balancer_config)
@@ -535,7 +540,7 @@ def _get_load_balancer_forwarding_rules(load_balancer):
 
 def _get_service_route_path(service):
     # The route path should not be empty
-    return service.get("route_path", "/")
+    return service.get(LOAD_BALANCER_CONFIG_ROUTE_PATH, "/")
 
 
 def _get_load_balancer_first_service(load_balancer):
@@ -571,7 +576,7 @@ def _get_load_balancer_default_service(load_balancer):
         raise RuntimeError(
             "No service defined for load balancer.")
     for service in services:
-        if service.get("default", False):
+        if service.get(LOAD_BALANCER_CONFIG_DEFAULT, False):
             return service
     # get service with the shortest route path
     sorted_services = _get_sorted_services(services)
@@ -710,7 +715,7 @@ def _get_unused_backend_services(backend_services, services_used):
         service["name"]: service
         for service in backend_services}
     service_used_by_name = {
-        service["named"]: service
+        service["name"]: service
         for service in services_used}
     return {
         service_name: service
@@ -883,7 +888,7 @@ def _get_health_check_of_service(load_balancer, service):
     name = _get_health_check_name(load_balancer_name, service)
     # generate health check body
     # type TCP, SSL, HTTP, HTTPS
-    service_protocol = service["protocol"]
+    service_protocol = service[LOAD_BALANCER_CONFIG_PROTOCOL]
     protocol = _get_load_balancer_protocol(service_protocol)
     health_check = {
         "name": name,
@@ -992,8 +997,8 @@ def _get_head_worker_targets(service):
     head_targets = []
     worker_targets = []
     for target in targets:
-        seq_id = target.get("seq_id")
-        node_id = target.get("node_id")
+        seq_id = target.get(LOAD_BALANCER_CONFIG_SEQ_ID)
+        node_id = target.get(LOAD_BALANCER_CONFIG_NODE_ID)
         if not seq_id or not node_id:
             continue
         # Under the assumption that head node seq id will be always 1
@@ -1087,7 +1092,7 @@ def _get_network_endpoint_group_of_service(
         "networkEndpointType": "GCE_VM_IP_PORT",
         # The URL of the network to which all network endpoints in the NEG belong
         "network": network,
-        "defaultPort": service["port"],
+        "defaultPort": service[LOAD_BALANCER_CONFIG_PORT],
         # Optional URL of the subnetwork to which all network endpoints in the NEG belong.
         "subnetwork": subnetwork,
     }
@@ -1162,9 +1167,9 @@ def _delete_network_endpoint_group(
 def _get_endpoints_of_targets(targets):
     network_endpoints = []
     for target in targets:
-        instance = target["node_id"]
-        ip_address = target["address"]
-        port = target["port"]
+        instance = target[LOAD_BALANCER_CONFIG_NODE_ID]
+        ip_address = target[LOAD_BALANCER_CONFIG_ADDRESS]
+        port = target[LOAD_BALANCER_CONFIG_PORT]
         network_endpoint = {
             "instance": instance,
             "ipAddress": ip_address,
@@ -1360,7 +1365,7 @@ def _get_backend_service(
     name = _get_backend_service_name(load_balancer_name, service)
     scheme = _get_load_balancer_scheme(load_balancer)
 
-    service_protocol = service["protocol"]
+    service_protocol = service[LOAD_BALANCER_CONFIG_PROTOCOL]
     protocol = _get_load_balancer_protocol(service_protocol)
     backends = _get_backend_service_backends(
         provider_config, project_id,
@@ -1555,7 +1560,7 @@ def _delete_target_proxy(
     target_proxy_name = _get_target_proxy_name(load_balancer_name)
 
     # This is set load balancer label and returned in the list
-    load_balancer_protocol = load_balancer["protocol"]
+    load_balancer_protocol = load_balancer[LOAD_BALANCER_CONFIG_PROTOCOL]
 
     def func():
         if load_balancer_type == LOAD_BALANCER_TYPE_NETWORK:
@@ -1704,7 +1709,7 @@ def _get_forwarding_rule(
         CLOUDTIK_TAG_LOAD_BALANCER_SCHEME: load_balancer_scheme,
         CLOUDTIK_TAG_LOAD_BALANCER_PROTOCOL: load_balancer_protocol,
     }
-    tags = load_balancer.get("tags")
+    tags = load_balancer.get(LOAD_BALANCER_CONFIG_TAGS)
     if tags:
         labels.update(tags)
 
@@ -1923,7 +1928,7 @@ def _get_rule_action_of_service(service):
     if strip_path:
         # this makes /abc/ to /abc or / to empty string (which means no strip)
         strip_path = strip_path.rstrip('/')
-    service_path = service.get("service_path")
+    service_path = service.get(LOAD_BALANCER_CONFIG_SERVICE_PATH)
     if not strip_path and not service_path:
         return None
     # handle url rewrite using prefix rewrite

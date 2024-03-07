@@ -3,6 +3,12 @@ import logging
 from cloudtik.core._private.load_balancer_provider_factory import _get_load_balancer_provider, \
     _get_load_balancer_provider_cls
 from cloudtik.core._private.util.core_utils import get_list_for_update, get_json_object_hash
+from cloudtik.core._private.util.load_balancer import LOAD_BALANCER_CONFIG_SERVICE_GROUPS, \
+    LOAD_BALANCER_CONFIG_PROTOCOL, LOAD_BALANCER_CONFIG_PORT, LOAD_BALANCER_CONFIG_LISTENERS, \
+    LOAD_BALANCER_CONFIG_NAME, LOAD_BALANCER_CONFIG_TARGETS, LOAD_BALANCER_CONFIG_ROUTE_PATH, \
+    LOAD_BALANCER_CONFIG_SERVICE_PATH, LOAD_BALANCER_CONFIG_DEFAULT, LOAD_BALANCER_CONFIG_SERVICES, \
+    LOAD_BALANCER_CONFIG_TYPE, LOAD_BALANCER_CONFIG_SCHEME, LOAD_BALANCER_CONFIG_TAGS, \
+    LOAD_BALANCER_CONFIG_ADDRESS
 from cloudtik.core._private.utils import get_provider_config
 from cloudtik.core.load_balancer_provider import LOAD_BALANCER_PROTOCOL_TCP, LOAD_BALANCER_TYPE_NETWORK, \
     LOAD_BALANCER_SCHEME_INTERNET_FACING, LOAD_BALANCER_PROTOCOL_HTTP, LOAD_BALANCER_PROTOCOL_HTTPS, \
@@ -77,7 +83,8 @@ def _get_sorted_service_groups(service_groups):
 
 def _sorted_backend_targets(backend_targets):
     def sort_by_address_port(backend_target):
-        return backend_target["address"], backend_target["port"]
+        return (backend_target[LOAD_BALANCER_CONFIG_ADDRESS],
+                backend_target[LOAD_BALANCER_CONFIG_PORT])
     backend_targets.sort(key=sort_by_address_port)
 
 
@@ -194,10 +201,10 @@ class LoadBalancerManager:
             load_balancer_scheme = self.default_load_balancer_scheme
 
             load_balancer = {
-                "name": load_balancer_name,
-                "type": load_balancer_type,
-                "scheme": load_balancer_scheme,
-                "tags": {
+                LOAD_BALANCER_CONFIG_NAME: load_balancer_name,
+                LOAD_BALANCER_CONFIG_TYPE: load_balancer_type,
+                LOAD_BALANCER_CONFIG_SCHEME: load_balancer_scheme,
+                LOAD_BALANCER_CONFIG_TAGS: {
                     LOAD_BALANCER_AUTO_CREATED_TAG: "true"
                 }
             }
@@ -375,7 +382,8 @@ class LoadBalancerManager:
 
     def _add_load_balancer_service_groups(
             self, load_balancer, load_balancer_type, load_balancer_service_groups):
-        service_groups = get_list_for_update(load_balancer, "service_groups")
+        service_groups = get_list_for_update(
+            load_balancer, LOAD_BALANCER_CONFIG_SERVICE_GROUPS)
         # service groups should be sorted
         sorted_service_groups = _get_sorted_service_groups(
             load_balancer_service_groups)
@@ -384,11 +392,11 @@ class LoadBalancerManager:
             protocol = service_group_key[0]
             port = service_group_key[1]
             listener = {
-                "protocol": protocol,
-                "port": port,
+                LOAD_BALANCER_CONFIG_PROTOCOL: protocol,
+                LOAD_BALANCER_CONFIG_PORT: port,
             }
             service_group = {
-                "listeners": [listener],
+                LOAD_BALANCER_CONFIG_LISTENERS: [listener],
             }
             self._add_service_group_services(
                 load_balancer_type, service_group, service_group_backend_services)
@@ -396,7 +404,8 @@ class LoadBalancerManager:
 
     def _add_service_group_services(
             self, load_balancer_type, service_group, backend_services):
-        services = get_list_for_update(service_group, "services")
+        services = get_list_for_update(
+            service_group, LOAD_BALANCER_CONFIG_SERVICES)
         # we shall sort the services by name to generate stable hash
         sorted_backend_services = _get_sorted_backend_services(backend_services)
         for backend_service in sorted_backend_services:
@@ -406,21 +415,21 @@ class LoadBalancerManager:
             _sorted_backend_targets(backend_targets)
 
             service = {
-                "name": backend_service.service_name,
-                "protocol": backend_service.protocol,
-                "port": backend_service.port,
-                "targets": backend_targets
+                LOAD_BALANCER_CONFIG_NAME: backend_service.service_name,
+                LOAD_BALANCER_CONFIG_PROTOCOL: backend_service.protocol,
+                LOAD_BALANCER_CONFIG_PORT: backend_service.port,
+                LOAD_BALANCER_CONFIG_TARGETS: backend_targets
             }
             if load_balancer_type == LOAD_BALANCER_TYPE_APPLICATION:
                 route_path = backend_service.get_route_path()
                 if route_path:
-                    service["route_path"] = route_path
+                    service[LOAD_BALANCER_CONFIG_ROUTE_PATH] = route_path
                 service_path = backend_service.get_service_path()
                 if service_path:
-                    service["service_path"] = service_path
+                    service[LOAD_BALANCER_CONFIG_SERVICE_PATH] = service_path
                 default_service = backend_service.default_service
                 if default_service:
-                    service["default"] = default_service
+                    service[LOAD_BALANCER_CONFIG_DEFAULT] = default_service
 
             services.append(service)
 
@@ -445,7 +454,7 @@ class LoadBalancerManager:
         return load_balancer_to_create, load_balancer_to_update, load_balancer_to_delete
 
     def _is_auto_created(self, load_balancer):
-        tags = load_balancer.get("tags",  {})
+        tags = load_balancer.get(LOAD_BALANCER_CONFIG_TAGS,  {})
         return tags.get(LOAD_BALANCER_AUTO_CREATED_TAG, False)
 
     def _update_load_balancer_hash(
